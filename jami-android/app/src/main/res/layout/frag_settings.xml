@@ -832,6 +832,37 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 style="@style/SettingsHeader"
                 android:layout_marginStart="8dp" />
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="Appearance"
+                style="@style/SettingsHeader"
+                android:layout_marginStart="8dp" />
+
+            <RelativeLayout
+                android:id="@+id/settings_fonts_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/CustomRelativeLayout"
+                android:padding="@dimen/padding_large">
+
+                <TextView
+                    android:id="@+id/fonts_title"
+                    style="@style/ListPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Fonts" />
+
+                <TextView
+                    style="@style/ListSecondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Family, weight and size per text category"
+                    android:layout_below="@id/fonts_title" />
+
+            </RelativeLayout>
+
             <RelativeLayout
                 android:id="@+id/settings_video_layout"
                 android:layout_width="match_parent"

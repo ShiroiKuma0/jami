@@ -130,6 +130,7 @@ class MessageBubble(context: Context, attrs: AttributeSet?) : ViewGroup(context,
             setTextIsSelectable(true)
             text = message
         }
+        cx.ring.utils.FontUtil.apply(messageText, cx.ring.utils.FontPrefs.CHAT_TEXT)
         messageTime.text = time
         updateTextColor(defaultTextColor)
     }
