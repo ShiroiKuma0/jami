@@ -526,10 +526,16 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                             profile.second,
                             true,
                             profile.first.presenceStatus
+                        ).setInSize(
+                            TypedValue.applyDimension(
+                                TypedValue.COMPLEX_UNIT_DIP,
+                                54f,
+                                resources.displayMetrics
+                            ).toInt()
                         ),
                         TypedValue.applyDimension(
                             TypedValue.COMPLEX_UNIT_DIP,
-                            6f,
+                            2f,
                             resources.displayMetrics
                         ).toInt()
                     )

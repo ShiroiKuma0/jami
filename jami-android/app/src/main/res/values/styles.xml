@@ -146,6 +146,11 @@
         <item name="android:textColorHint">#FFFF00</item>
     </style>
 
+    <!-- shiroikuma: 50% larger search-bar text -->
+    <style name="TextAppearance.Shiroikuma.SearchBar" parent="@style/TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">24sp</item>
+    </style>
+
     <!-- HomeScreen style -->
     <style name="AppTheme.Navigation" parent="AppThemeBase">
         <item name="android:windowTranslucentStatus">true</item>
