@@ -7,6 +7,7 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import cx.ring.R
 import java.io.File
 
 object FontUtil {
@@ -47,6 +48,23 @@ object FontUtil {
         val src = b ?: Typeface.DEFAULT
         return if (Build.VERSION.SDK_INT >= 28) Typeface.create(src, weight, false)
         else Typeface.create(src, if (weight >= 600) Typeface.BOLD else Typeface.NORMAL)
+    }
+
+    /** Line height (px) of the chat-text font, for sizing the message status icon to one line. */
+    fun chatTextLineHeightPx(context: Context): Int {
+        val sizeSp = FontPrefs.effectiveSize(context, FontPrefs.CHAT_TEXT)
+        val sizePx = if (sizeSp > 0f)
+            TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sizeSp, context.resources.displayMetrics)
+        else context.resources.getDimension(R.dimen.custom_message_bubble_default_text_size)
+        val paint = android.graphics.Paint().apply {
+            typeface = resolveTypeface(
+                FontPrefs.effectiveFamily(context, FontPrefs.CHAT_TEXT),
+                FontPrefs.effectiveWeight(context, FontPrefs.CHAT_TEXT)
+            ) ?: Typeface.DEFAULT
+            textSize = sizePx
+        }
+        val fm = paint.fontMetricsInt
+        return (fm.descent - fm.ascent + fm.leading).coerceAtLeast(1)
     }
 
     fun apply(view: TextView, category: String) {
