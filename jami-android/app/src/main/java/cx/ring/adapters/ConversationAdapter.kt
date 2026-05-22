@@ -1287,11 +1287,13 @@ class ConversationAdapter(
                 viewHolder.mIcon?.setPadding(res.getDimensionPixelSize(R.dimen.padding_large))
                 viewHolder.mIcon?.setClipToOutline(true)
                 viewHolder.mIcon?.imageTintList = context.getColorStateList(R.color.file_icon_out)
-                viewHolder.mIcon?.backgroundTintList = context.getColorStateList(if (file.isOutgoing) R.color.file_icon_background_out else R.color.file_icon_background_in)
+                // shiroikuma: no runtime background tint — the authored black square + yellow border shows through
+                viewHolder.mIcon?.backgroundTintList = null
                 viewHolder.mFileTitle?.text = file.displayName
                 viewHolder.mFileInfoLayout?.setOnClickListener(null)
                 // Set the tint of the file background
-                if (file.isOutgoing) viewHolder.mFileInfoLayout?.background?.setTint(convColor)
+                // shiroikuma: clear the conversation-colour tint so the authored yellow stroke survives
+                if (file.isOutgoing) viewHolder.mFileInfoLayout?.background?.setTintList(null)
 
                 when {
                     !file.hasExactContent && (status == TransferStatus.TRANSFER_AWAITING_HOST ||
