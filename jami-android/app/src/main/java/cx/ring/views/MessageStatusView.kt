@@ -43,7 +43,7 @@ class MessageStatusView @JvmOverloads constructor(
 
     @IdRes
     private var attachedMessage: Int = View.NO_ID
-    private val iconSize = resources.getDimensionPixelSize(R.dimen.conversation_status_icon_size)
+    private var iconSize = resources.getDimensionPixelSize(R.dimen.conversation_status_icon_size)
     private val iconTint: ColorStateList =
         ColorStateList.valueOf(ContextCompat.getColor(context, R.color.grey_500))
 
@@ -107,6 +107,18 @@ class MessageStatusView @JvmOverloads constructor(
 
             else -> Log.w(TAG, "Error layout params.")
         }
+    }
+
+    /** Resize the status icon(s) to a pixel size (e.g. one chat-text line tall). */
+    fun setIconSize(px: Int) {
+        if (px <= 0 || px == iconSize) return
+        iconSize = px
+        for (i in 0 until childCount) {
+            getChildAt(i).layoutParams = LayoutParams(iconSize, iconSize).apply {
+                marginStart = if (i != 0) -iconSize / 3 else 0
+            }
+        }
+        requestLayout()
     }
 
     fun attachToMessage(@IdRes resId: Int) {
