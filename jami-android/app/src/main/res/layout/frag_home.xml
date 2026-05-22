@@ -54,6 +54,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 android:backgroundTint="#000000"
                 android:textColorHint="#FFFF00"
                 android:foreground="@drawable/search_bar_border"
+                android:theme="@style/ShiroikumaToolbar"
                 android:hint="@string/searchbar_hint"
                 app:autoShowKeyboard="true"
                 app:navigationContentDescription="@string/searchbar_navigation_account"

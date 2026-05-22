@@ -142,6 +142,8 @@
         <item name="colorOnSurfaceVariant">#FFFF00</item>
         <item name="android:textColorPrimary">#FFFF00</item>
         <item name="android:textColorSecondary">#FFFF00</item>
+            <item name="elevationOverlayEnabled">false</item>
+        <item name="android:textColorHint">#FFFF00</item>
     </style>
 
     <!-- HomeScreen style -->
