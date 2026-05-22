@@ -114,6 +114,7 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                         binding.root.setBackgroundResource(R.drawable.background_item_smartlist)
                     }
                     cx.ring.utils.FontUtil.apply(binding.convParticipant, cx.ring.utils.FontPrefs.LIST_TITLE)
+                    cx.ring.utils.FontUtil.apply(binding.convLastItem, cx.ring.utils.FontPrefs.LIST_PREVIEW)
                     if (fade) {
                         binding.convInfo.startAnimation(fadeIn())
                     }
