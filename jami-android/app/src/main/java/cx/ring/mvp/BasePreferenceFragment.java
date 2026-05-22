@@ -36,6 +36,12 @@ public abstract class BasePreferenceFragment<T extends RootPresenter> extends Pr
     }
 
     @Override
+    public void onViewCreated(@androidx.annotation.NonNull android.view.View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        cx.ring.utils.FontUtil.INSTANCE.installSettingsFont(getListView());
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
         presenter.unbindView();
