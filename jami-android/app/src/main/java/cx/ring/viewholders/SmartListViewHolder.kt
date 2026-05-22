@@ -115,6 +115,14 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                     }
                     cx.ring.utils.FontUtil.apply(binding.convParticipant, cx.ring.utils.FontPrefs.LIST_TITLE)
                     cx.ring.utils.FontUtil.apply(binding.convLastItem, cx.ring.utils.FontPrefs.LIST_PREVIEW)
+                    val b = binding
+                    if (b != null) {
+                        val d = b.root.resources.displayMetrics.density
+                        val sz = maxOf((56 * d).toInt(),
+                            b.convParticipant.lineHeight + b.convLastItem.lineHeight + (3 * d).toInt())
+                        val lp = b.photo.layoutParams
+                        if (lp.width != sz || lp.height != sz) { lp.width = sz; lp.height = sz; b.photo.layoutParams = lp }
+                    }
                     if (fade) {
                         binding.convInfo.startAnimation(fadeIn())
                     }
