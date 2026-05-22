@@ -24,6 +24,7 @@ class FontsSettingsFragment : Fragment() {
         FontPrefs.CONV_TITLE to "Conversation title",
         FontPrefs.LIST_TITLE to "Chat-list title",
         FontPrefs.LIST_PREVIEW to "Chat-list preview",
+        FontPrefs.SETTINGS to "Settings",
     )
     private var container: LinearLayout? = null
 
