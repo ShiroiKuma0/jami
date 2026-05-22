@@ -21,6 +21,7 @@ android {
     buildToolsVersion = "37.0.0"
     ndkVersion = "30.0.16248370"
     defaultConfig {
+        applicationId = "shiroikuma.jami"
         minSdk = 26
         targetSdk = 37
         versionCode = 507
@@ -37,7 +38,7 @@ android {
                     "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
                     "-DJAMI_JNI=ON",
                     "-DJAMI_JNI_PACKAGEDIR="+rootProject.projectDir.resolve("libjamiclient/src/main/java"),
-                    "-DJAMI_DATADIR=/data/data/$namespace/files",
+                    "-DJAMI_DATADIR=/data/data/shiroikuma.jami/files",
                 )
             }
             ndk {
