@@ -16,6 +16,7 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_centerVertical="true"
+        android:layout_marginStart="6dp"
         android:scaleType="centerCrop"
         tools:src="@tools:sample/backgrounds/scenic" />
 
