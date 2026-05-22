@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">@color/grey_25</color>
+    <color name="background">#000000</color>
     <color name="background_secondary">#F0F0F0</color>
     <color name="background_on_surface">#FFF</color>
     <color name="surface">@color/grey_150</color>
@@ -23,7 +23,7 @@
     <color name="colorOnError">#ffffff</color>
 
     <!--  Text color  -->
-    <color name="colorOnSurface">@color/abc_primary_text_material_light</color>
+    <color name="colorOnSurface">#FFFF00</color>
     <color name="textColorSecondary">@color/abc_secondary_text_material_light</color>
     <color name="text_color_primary_dark">@color/abc_primary_text_material_dark</color>
     <color name="text_color_secondary_dark">@color/abc_secondary_text_material_dark</color>
@@ -49,8 +49,8 @@
     <color name="background_status_recommended">#8ee0d0</color>
     <color name="background_status_required">#fee4e9</color>
 
-    <color name="available_indicator">#E59028</color>
-    <color name="online_indicator">#0B8271</color>
+    <color name="available_indicator">#ADD8E6</color>
+    <color name="online_indicator">#FFFF00</color>
 
     <color name="icon_color">#656565</color>
     <color name="qr_background">@color/transparent</color>

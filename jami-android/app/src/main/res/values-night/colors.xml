@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#202020</color>
+    <color name="background">#000000</color>
     <color name="background_secondary">#303030</color>
     <color name="background_on_surface">#515151</color>
     <color name="surface">@color/grey_700</color>
@@ -14,7 +14,7 @@
     <color name="transparent">#00000000</color>
 
     <!--  Text color  -->
-    <color name="colorOnSurface">@color/abc_primary_text_material_dark</color>
+    <color name="colorOnSurface">#FFFF00</color>
     <color name="textColorSecondary">@color/abc_secondary_text_material_dark</color>
     <color name="text_color_primary_dark">@color/abc_primary_text_material_dark</color>
     <color name="text_color_secondary_dark">@color/abc_primary_text_material_light</color>

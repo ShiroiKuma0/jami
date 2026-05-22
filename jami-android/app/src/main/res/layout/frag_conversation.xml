@@ -30,7 +30,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:animateLayoutChanges="true"
-        android:background="?attr/colorSurfaceContainer"
+        android:background="@color/background"
         android:elevation="4dp"
         android:fitsSystemWindows="true"
         app:liftOnScroll="false">
@@ -55,7 +55,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:menu="@menu/conversation_actions"
-            app:navigationIcon="@drawable/abc_ic_ab_back_material">
+            app:navigationIcon="@drawable/abc_ic_ab_back_material"
+            app:navigationIconTint="#FFFF00"
+            android:theme="@style/ShiroikumaToolbar">
 
             <ImageView
                 android:id="@+id/conversation_avatar"
