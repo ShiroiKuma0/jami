@@ -53,6 +53,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 android:layout_height="wrap_content"
                 android:backgroundTint="#000000"
                 android:textColorHint="#FFFF00"
+                android:textAppearance="@style/TextAppearance.Shiroikuma.SearchBar"
                 android:foreground="@drawable/search_bar_border"
                 android:theme="@style/ShiroikumaToolbar"
                 android:hint="@string/searchbar_hint"
