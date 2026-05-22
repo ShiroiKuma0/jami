@@ -157,6 +157,9 @@ class SettingsFragment :
             settingsSharedServicesLayout.setOnClickListener {
                 goToSharedServicesSettings()
             }
+            settingsFontsLayout.setOnClickListener {
+                goToFontsSettings()
+            }
 
             val singleItems = arrayOf(
                 getString(R.string.notification_private),
@@ -329,6 +332,19 @@ class SettingsFragment :
 
             else -> ConnectivityType.CUSTOM
         }
+    }
+
+    private fun goToFontsSettings() {
+        val binding = binding ?: return
+        val content = FontsSettingsFragment()
+        childFragmentManager
+            .beginTransaction()
+            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+            .replace(R.id.fragment_container, content, "FontsSettings")
+            .addToBackStack("FontsSettings").commit()
+        binding.fragmentContainer.isVisible = true
+        binding.donateButton.isVisible = false
+        backPressedCallback.isEnabled = true
     }
 
     private fun goToVideoSettings() {
