@@ -75,6 +75,7 @@ class VideoSettingsFragment : PreferenceFragmentCompat() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        cx.ring.utils.FontUtil.installSettingsFont(listView)
         val appbarHostFragment = parentFragment as? AppBarStateListener
         appbarHostFragment?.onToolbarTitleChanged(getString(R.string.video_setting_title))
         appbarHostFragment?.onAppBarScrollTargetViewChanged(listView)
