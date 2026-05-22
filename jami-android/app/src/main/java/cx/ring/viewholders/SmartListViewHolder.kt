@@ -106,10 +106,12 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                         binding.convParticipant.setTypeface(null, Typeface.BOLD)
                         binding.convLastTime.setTypeface(null, Typeface.BOLD)
                         binding.convLastItem.setTypeface(null, Typeface.BOLD)
+                        binding.root.setBackgroundResource(R.drawable.background_item_smartlist_unread)
                     } else {
                         binding.convParticipant.setTypeface(null, Typeface.NORMAL)
                         binding.convLastTime.setTypeface(null, Typeface.NORMAL)
                         binding.convLastItem.setTypeface(null, Typeface.NORMAL)
+                        binding.root.setBackgroundResource(R.drawable.background_item_smartlist)
                     }
                     if (fade) {
                         binding.convInfo.startAnimation(fadeIn())
