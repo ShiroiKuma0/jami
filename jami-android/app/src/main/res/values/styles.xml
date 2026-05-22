@@ -410,8 +410,8 @@
     <!--For the messages-->
     <style name="OutgoingTextMesssage">
         <item name="colorControlActivated">@color/conversation_primary_selection_handles</item>
-        <item name="android:textColorLink">@color/text_color_primary_dark</item>
-        <item name="android:textColor">@color/text_color_primary_dark</item>
+        <item name="android:textColorLink">@color/colorOnSurface</item>
+        <item name="android:textColor">@color/colorOnSurface</item>
     </style>
     <style name="IncomingTextMessage">
         <item name="android:textColorLink">@color/colorOnSurface</item>
