@@ -135,6 +135,15 @@
     <!-- DarkToolBar style -->
     <style name="AppTheme.DarkToolbar" parent="AppThemeBase.DarkToolbar" />
 
+    <!-- shiroikuma: yellow toolbar icons/text on black -->
+    <style name="ShiroikumaToolbar" parent="">
+        <item name="colorControlNormal">#FFFF00</item>
+        <item name="colorOnSurface">#FFFF00</item>
+        <item name="colorOnSurfaceVariant">#FFFF00</item>
+        <item name="android:textColorPrimary">#FFFF00</item>
+        <item name="android:textColorSecondary">#FFFF00</item>
+    </style>
+
     <!-- HomeScreen style -->
     <style name="AppTheme.Navigation" parent="AppThemeBase">
         <item name="android:windowTranslucentStatus">true</item>

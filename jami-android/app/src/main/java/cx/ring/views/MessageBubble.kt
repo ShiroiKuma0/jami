@@ -114,13 +114,9 @@ class MessageBubble(context: Context, attrs: AttributeSet?) : ViewGroup(context,
      * Updates the tint color of the bubble.
      */
     fun setBubbleColor(@ColorInt color: Int?) {
-        if (color == null) {
-            background?.setTintList(null)
-            backgroundTintList = null
-            return
-        }
-        background?.setTintList(ColorStateList.valueOf(color))
-        backgroundTintList = ColorStateList.valueOf(color)
+        // shiroikuma base theme: never tint; bubble look (black fill + yellow border) comes from the drawables
+        backgroundTintList = null
+        background?.setTintList(null)
     }
 
     /**
@@ -174,7 +170,7 @@ class MessageBubble(context: Context, attrs: AttributeSet?) : ViewGroup(context,
     private fun updateTextColor(@ColorInt color: Int) {
         val colorAlpha60 = ColorUtils.setAlphaComponent(color, 0x99)
         messageText.setTextColor(color)
-        messageTime.setTextColor(colorAlpha60)
+        messageTime.setTextColor(context.getColor(R.color.textColorSecondary))
         TextViewCompat.setCompoundDrawableTintList(
             messageEdited,
             ColorStateList.valueOf(colorAlpha60)
