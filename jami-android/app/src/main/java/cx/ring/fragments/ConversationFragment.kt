@@ -1149,6 +1149,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         binding?.apply {
             conversationAvatar.setImageDrawable(img)
             contactTitle.text = conversation.title
+            cx.ring.utils.FontUtil.apply(contactTitle, cx.ring.utils.FontPrefs.CONV_TITLE)
             if (conversation.uriTitle != conversation.title) {
                 contactSubtitle.text = conversation.uriTitle
                 contactSubtitle.visibility = View.VISIBLE
