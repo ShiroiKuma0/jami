@@ -428,8 +428,10 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         mSearchAdapter?.convColor = getConversationColor(requireContext(), color)
     }
 
+    private var conversationSymbol: CharSequence = "\uD83D\uDC4D"
+
     override fun setConversationSymbol(symbol: CharSequence) {
-        binding?.emojiSend?.text = getConversationSymbol(requireContext(), symbol)
+        conversationSymbol = getConversationSymbol(requireContext(), symbol)
     }
 
     override fun onDestroyView() {
@@ -466,7 +468,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
     }
 
     fun sendEmoji() {
-        presenter.sendTextMessage(binding!!.emojiSend.text.toString(), replyingTo)
+        presenter.sendTextMessage(conversationSymbol.toString(), replyingTo)
         clearReply()
     }
 
