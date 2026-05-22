@@ -1490,6 +1490,7 @@ class ConversationAdapter(
                 message
             }
             messageBubble.updateStandard(markdown, messageTime, isEdited)
+            viewHolder.mStatusIcon?.setIconSize(messageBubble.textLineHeight())
 
             // Manage layout for message with a link inside.
             if (showLinkPreviews && !isDeleted) {
