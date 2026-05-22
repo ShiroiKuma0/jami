@@ -1276,7 +1276,7 @@ class ConversationAdapter(
                 viewHolder.mIcon?.setPadding(res.getDimensionPixelSize(R.dimen.padding_large))
                 viewHolder.mIcon?.setClipToOutline(true)
                 viewHolder.mIcon?.imageTintList = context.getColorStateList(R.color.file_icon_out)
-                viewHolder.mIcon?.backgroundTintList = context.getColorStateList(if (file.isOutgoing) R.color.file_icon_background_out else R.color.file_icon_background_in)
+                viewHolder.mIcon?.backgroundTintList = null
                 viewHolder.mIcon?.setImageResource(
                     if (status.isError) R.drawable.baseline_warning_24
                     else R.drawable.baseline_attach_file_24
@@ -1284,7 +1284,7 @@ class ConversationAdapter(
                 viewHolder.mFileTitle?.text = file.displayName
                 viewHolder.mFileInfoLayout?.setOnClickListener(null)
                 // Set the tint of the file background
-                if (file.isOutgoing) viewHolder.mFileInfoLayout?.background?.setTint(convColor)
+                if (file.isOutgoing) viewHolder.mFileInfoLayout?.background?.setTintList(null)
                 // Show the download button
                 when (status) {
                     TransferStatus.TRANSFER_AWAITING_HOST, TransferStatus.FILE_AVAILABLE -> {
