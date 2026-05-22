@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Typeface
 import android.os.Build
 import android.util.TypedValue
+import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import java.io.File
 
@@ -29,10 +31,13 @@ object FontUtil {
         "Black (900)" to 900,
     )
 
+    private val fileCache = HashMap<String, Typeface?>()
     private fun base(family: String): Typeface? = when {
         family.isEmpty() -> null
-        family.startsWith("file:") ->
-            try { Typeface.createFromFile(family.removePrefix("file:")) } catch (_: Exception) { null }
+        family.startsWith("file:") -> {
+            val path = family.removePrefix("file:")
+            fileCache.getOrPut(path) { try { Typeface.createFromFile(path) } catch (_: Exception) { null } }
+        }
         else -> Typeface.create(family, Typeface.NORMAL)
     }
 
@@ -47,9 +52,31 @@ object FontUtil {
     fun apply(view: TextView, category: String) {
         val c = view.context
         val tf = resolveTypeface(FontPrefs.effectiveFamily(c, category), FontPrefs.effectiveWeight(c, category))
-        if (tf != null) view.typeface = tf
+        if (tf != null && view.typeface !== tf) view.typeface = tf
         val size = FontPrefs.effectiveSize(c, category)
-        if (size > 0f) view.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+        if (size > 0f) {
+            val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, size, c.resources.displayMetrics)
+            if (view.textSize != px) view.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+        }
+    }
+
+    /** Recursively apply [category] to every TextView under [root]. */
+    fun applyTree(root: View?, category: String) {
+        when (root) {
+            is TextView -> apply(root, category)
+            is ViewGroup -> for (i in 0 until root.childCount) applyTree(root.getChildAt(i), category)
+        }
+    }
+
+    private val settingsInstalled = java.util.WeakHashMap<View, Boolean>()
+    /** Apply SETTINGS to a settings/preference subtree now and on every relayout, so recycled
+     *  preference rows keep the font. apply() is idempotent, so the relayout walk can't loop. */
+    fun installSettingsFont(root: View?) {
+        root ?: return
+        applyTree(root, FontPrefs.SETTINGS)
+        if (settingsInstalled.put(root, true) == null) {
+            root.viewTreeObserver.addOnGlobalLayoutListener { applyTree(root, FontPrefs.SETTINGS) }
+        }
     }
 
     fun labelForFamily(value: String): String {
