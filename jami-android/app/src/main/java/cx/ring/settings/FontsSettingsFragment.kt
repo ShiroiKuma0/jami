@@ -22,7 +22,7 @@ class FontsSettingsFragment : Fragment() {
         FontPrefs.DEFAULT to "Default (all text)",
         FontPrefs.CHAT_TEXT to "Chat text",
         FontPrefs.CONV_TITLE to "Conversation title",
-        FontPrefs.LIST_TITLE to "Chat-list title",
+        FontPrefs.LIST_TITLE to "Chat-list contact name",
         FontPrefs.LIST_PREVIEW to "Chat-list preview",
         FontPrefs.SETTINGS to "Settings",
     )
