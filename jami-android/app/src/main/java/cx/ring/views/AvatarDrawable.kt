@@ -63,8 +63,13 @@ class AvatarDrawable : Drawable {
     private val clipPaint: Array<Paint>?
     private val textPaint = Paint().apply {
         isAntiAlias = true
-        color = Color.WHITE
+        color = Color.YELLOW
         typeface = Typeface.SANS_SERIF
+    }
+    private val avatarRingPaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.STROKE
+        color = Color.YELLOW
     }
     private val presenceFillPaint: Paint
     private val presenceStrokePaint: Paint
@@ -375,7 +380,7 @@ class AvatarDrawable : Drawable {
             backgroundBounds = null
             inBounds = null
             avatarText = convertNameToAvatarText(name)
-            color = ContextCompat.getColor(context, getAvatarColor(id))
+            color = Color.BLACK
             clipPaint = if (cropCircle) arrayOf(Paint()) else null
             if (avatarText == null) {
                 placeholder = context.getDrawable(
@@ -383,7 +388,7 @@ class AvatarDrawable : Drawable {
                     else R.drawable.baseline_account_crop_24
                 )?.mutate() as VectorDrawable?
             } else {
-                textPaint.color = Color.WHITE
+                textPaint.color = Color.YELLOW
                 textPaint.typeface = Typeface.SANS_SERIF
             }
         }
@@ -488,6 +493,11 @@ class AvatarDrawable : Drawable {
                 }
             } else {
                 finalCanvas.drawCircle(cx.toFloat(), firstWorkspace.height - cy, r, clipPaint!![0])
+                if (bitmaps == null) {
+                    avatarRingPaint.strokeWidth = (r * 0.08f).coerceAtLeast(2f)
+                    finalCanvas.drawCircle(cx.toFloat(), firstWorkspace.height - cy,
+                        r - avatarRingPaint.strokeWidth / 2f, avatarRingPaint)
+                }
             }
             finalCanvas.restore()
         } else {
@@ -525,7 +535,7 @@ class AvatarDrawable : Drawable {
                 canvas.drawText(avatarText!!, textStartXPoint, textStartYPoint, textPaint)
             } else {
                 placeholder?.let {
-                    it.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN)
+                    it.setColorFilter(Color.YELLOW, PorterDuff.Mode.SRC_IN)
                     it.draw(canvas)
                 }
             }
