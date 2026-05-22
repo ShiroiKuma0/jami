@@ -110,6 +110,9 @@ class MessageBubble(context: Context, attrs: AttributeSet?) : ViewGroup(context,
 
     fun getText(): CharSequence = messageText.text
 
+    /** Height of one line of the message text (tracks the chat-text font). */
+    fun textLineHeight(): Int = messageText.lineHeight
+
     /**
      * Updates the tint color of the bubble.
      */
