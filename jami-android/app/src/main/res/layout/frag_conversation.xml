@@ -513,6 +513,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="8dp"
                             android:textSize="18sp"
+                            app:drawableStartCompat="@drawable/ic_thumb_yellow"
                             tools:text="@string/conversation_default_emoji" />
 
                         <ImageButton
