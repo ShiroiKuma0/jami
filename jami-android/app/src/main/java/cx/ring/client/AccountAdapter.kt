@@ -71,6 +71,7 @@ class AccountAdapter(
         // - a button to create a new account (type=TYPE_CREATE_ACCOUNT)
         val type = getItemViewType(position)
         if (type == TYPE_ACCOUNT) {
+            holder.binding.logo.imageTintList = null
             val account = getItem(position)!!
 
             // Update the unread counter (sum of unread conversations and pending conversations)
@@ -123,6 +124,7 @@ class AccountAdapter(
                 else R.string.add_sip_account_title
             )
             holder.binding.logo.setImageResource(R.drawable.baseline_add_24)
+            holder.binding.logo.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.YELLOW)
             holder.binding.subtitle.visibility = View.GONE
         }
         return view

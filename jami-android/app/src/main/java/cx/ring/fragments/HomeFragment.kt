@@ -178,7 +178,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         // - Menu (for settings, about jami)
         searchBar.setNavigationOnClickListener { // Account selection
             mDisposable.add(mAccountService.observableAccountList.firstElement().subscribe { accounts ->
-                MaterialAlertDialogBuilder(requireContext())
+                MaterialAlertDialogBuilder(requireContext(), R.style.ShiroikumaDialog)
                     .setTitle(getString(R.string.account_selection))
                     .setAdapter(
                             AccountAdapter(
@@ -194,7 +194,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                             searchBar.menu.findItem(R.id.menu_account_settings).isEnabled = false
                             mAccountService.currentAccount = accounts[index]
                         }
-                    }.show()
+                    }.show().apply {
+                        window?.setBackgroundDrawable(requireContext().getDrawable(R.drawable.dialog_black_yellow))
+                    }
             })
         }
         searchView.editText.addTextChangedListener { // Search bar
