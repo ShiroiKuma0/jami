@@ -79,10 +79,14 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:clickable="false"
-            app:chipBackgroundColor="?attr/colorSecondary"
+            app:chipBackgroundColor="#000000"
+            app:chipStrokeColor="#FFFF00"
+            app:chipStrokeWidth="2dp"
+            app:chipCornerRadius="8dp"
             app:textEndPadding="4dp"
             app:textStartPadding="4dp"
-            android:textColor="@color/invitation_card_on_badge_text_color"
+            android:textColor="#FFFF00"
+            android:textStyle="bold"
             tools:text="4" />
     </RelativeLayout>
 
