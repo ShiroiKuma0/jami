@@ -379,6 +379,8 @@ class ConversationAdapter(
 
         // Attach the statusIcon to the message layout.
         statusIcon.attachToMessage(messageToAttach)
+        // Size the status icon (sent check / read avatar) to one chat-text line tall.
+        statusIcon.setIconSize(cx.ring.utils.FontUtil.chatTextLineHeightPx(conversationViewHolder.itemView.context))
 
         // Remove user from statusMap.
         val modifiedStatusMap = interaction.statusMap
@@ -1490,7 +1492,6 @@ class ConversationAdapter(
                 message
             }
             messageBubble.updateStandard(markdown, messageTime, isEdited)
-            viewHolder.mStatusIcon?.setIconSize(messageBubble.textLineHeight())
 
             // Manage layout for message with a link inside.
             if (showLinkPreviews && !isDeleted) {
