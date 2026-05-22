@@ -21,6 +21,7 @@ class FontsSettingsFragment : Fragment() {
     private val categories = listOf(
         FontPrefs.DEFAULT to "Default (all text)",
         FontPrefs.CHAT_TEXT to "Chat text",
+        FontPrefs.CONV_TITLE to "Conversation title",
     )
     private var container: LinearLayout? = null
 
