@@ -465,6 +465,7 @@ class SettingsFragment :
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        cx.ring.utils.FontUtil.installSettingsFont(view)
         // loading preferences
         presenter.loadSettings()
 
