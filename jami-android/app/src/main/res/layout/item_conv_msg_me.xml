@@ -105,7 +105,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         android:paddingVertical="5dp"
         android:theme="@style/OutgoingTextMesssage"
         app:layout_constrainedWidth="true"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/status_icon"
         app:layout_constraintHorizontal_bias="1"
         app:layout_constraintStart_toStartOf="@id/left_guideline"
         app:layout_constraintTop_toBottomOf="@id/reply_bubble"
