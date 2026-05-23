@@ -85,6 +85,15 @@ class TwoPaneLayout @JvmOverloads constructor(
     var isSlideable = false
         private set
 
+    /** When true, never show both panes side-by-side (forces single-pane / slideable). */
+    var forceSinglePane = false
+        set(value) {
+            if (field != value) {
+                field = value
+                requestLayout()
+            }
+        }
+
     /**
      * The child view that can slide, if any.
      */
@@ -298,7 +307,7 @@ class TwoPaneLayout @JvmOverloads constructor(
             if (i == 0) {
                 continue
             }
-            lp.slideable = widthRemaining < 0
+            lp.slideable = forceSinglePane || widthRemaining < 0
             canSlide = canSlide or lp.slideable
             if (lp.slideable) {
                 mSlideableView = child
