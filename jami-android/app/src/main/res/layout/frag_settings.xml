@@ -864,6 +864,40 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_status_icon_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/CustomRelativeLayout"
+                android:padding="@dimen/padding_large">
+
+                <TextView
+                    android:id="@+id/settings_status_icon_value"
+                    style="@style/ListPrimary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="16dp" />
+
+                <TextView
+                    android:id="@+id/status_icon_title"
+                    style="@style/ListPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/settings_status_icon_value"
+                    android:text="Message status icon height" />
+
+                <TextView
+                    style="@style/ListSecondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/settings_status_icon_value"
+                    android:text="Sent / read indicator size, in text lines"
+                    android:layout_below="@id/status_icon_title" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_video_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
