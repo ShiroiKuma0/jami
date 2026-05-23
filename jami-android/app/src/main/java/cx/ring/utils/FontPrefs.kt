@@ -34,6 +34,11 @@ object FontPrefs {
     fun effectiveSize(c: Context, cat: String): Float =
         getSize(c, cat).let { if (it > 0f) it else getSize(c, DEFAULT) }
 
+    fun getStatusIconLines(c: Context): Float = p(c).getFloat("status_icon_lines", 1f)
+    fun setStatusIconLines(c: Context, lines: Float) {
+        p(c).edit().putFloat("status_icon_lines", lines).apply()
+    }
+
     fun fontsDir(c: Context): File = File(c.filesDir, "fonts").apply { mkdirs() }
     fun getFontFiles(c: Context): List<File> =
         fontsDir(c).listFiles()?.filter { it.isFile }?.sortedBy { it.name } ?: emptyList()
