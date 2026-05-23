@@ -898,6 +898,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_split_view_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/CustomRelativeLayout"
+                android:padding="@dimen/padding_large">
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/settings_split_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="16dp" />
+
+                <TextView
+                    android:id="@+id/split_view_title"
+                    style="@style/ListPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/settings_split_view"
+                    android:text="Split view" />
+
+                <TextView
+                    style="@style/ListSecondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/settings_split_view"
+                    android:text="Show the conversation beside the list on wide screens"
+                    android:layout_below="@id/split_view_title" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_video_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
