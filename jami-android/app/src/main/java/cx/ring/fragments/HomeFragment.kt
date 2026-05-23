@@ -164,6 +164,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         // Inflate Menu and connect it
         searchBar.inflateMenu(R.menu.smartlist_menu)
+        searchBar.menu.findItem(R.id.menu_split_view)?.isChecked =
+            (activity as? HomeActivity)?.isSplitViewEnabled() ?: true
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
@@ -173,6 +175,13 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 R.id.menu_about -> (activity as? HomeActivity)?.goToAbout()
 
                 R.id.menu_donate -> openJamiDonateWebPage(requireContext())
+
+                R.id.menu_split_view -> {
+                    val ha = activity as? HomeActivity
+                    val newState = !(ha?.isSplitViewEnabled() ?: true)
+                    ha?.setSplitViewEnabled(newState)
+                    it.isChecked = newState
+                }
             }
             true
         }
