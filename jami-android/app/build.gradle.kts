@@ -1,3 +1,6 @@
+@file:Suppress("DEPRECATION")
+
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val buildFirebase = project.hasProperty("buildFirebase") || gradle.startParameter.taskRequests.toString().contains("Firebase")
@@ -18,8 +21,10 @@ android {
         applicationId = "shiroikuma.jami"
         minSdk = 26
         targetSdk = 37
-        versionCode = 502
-        versionName = "20260731-01"
+        val shiroikumaBuild = (project.findProperty("shiroikumaBuild") as String?)?.toIntOrNull() ?: 0
+        versionCode = 502 * 10000 + shiroikumaBuild
+        // The tail is zero-padded to three digits so builds sort correctly by name.
+        versionName = "20260731-01" + (if (shiroikumaBuild > 0) "+" + "%03d".format(shiroikumaBuild) else "")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
@@ -78,6 +83,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_17
+            suppressWarnings = true
+        }
     }
     externalNativeBuild {
         cmake {
