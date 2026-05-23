@@ -72,6 +72,7 @@ import cx.ring.utils.ContentUri.toJamiLink
 import cx.ring.utils.ConversationPath
 import cx.ring.utils.DeviceUtils
 import cx.ring.utils.getUiCustomizationFromConfigJson
+import cx.ring.utils.UiPrefs
 import cx.ring.viewmodel.WelcomeJamiViewModel
 import cx.ring.views.AvatarDrawable
 import cx.ring.views.AvatarFactory.toAdaptiveIcon
@@ -490,9 +491,21 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
     private val iconSize by lazy { max(ShortcutManagerCompat.getIconMaxHeight(this), ShortcutManagerCompat.getIconMaxWidth(this)) }
     private val maxShortcuts by lazy { getMaxShareShortcuts() }
 
+    fun isSplitViewEnabled(): Boolean = UiPrefs.isSplitView(this)
+
+    fun applySplitViewPref() {
+        mBinding?.panel?.forceSinglePane = !UiPrefs.isSplitView(this)
+    }
+
+    fun setSplitViewEnabled(enabled: Boolean) {
+        UiPrefs.setSplitView(this, enabled)
+        applySplitViewPref()
+    }
+
     override fun onStart() {
         Log.d(TAG, "onStart")
         super.onStart()
+        applySplitViewPref()
 
         mDisposable.add(
             mAccountService.observableAccountList
