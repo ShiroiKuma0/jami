@@ -41,6 +41,12 @@
                 android:title="@string/menu_item_about"
                 app:showAsAction="ifRoom" />
 
+            <item
+                android:id="@+id/menu_split_view"
+                android:checkable="true"
+                android:title="Split view"
+                app:showAsAction="never" />
+
         </menu>
 
     </item>
