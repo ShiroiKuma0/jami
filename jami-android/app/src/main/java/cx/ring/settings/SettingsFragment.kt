@@ -38,6 +38,7 @@ import cx.ring.BuildConfig
 import cx.ring.R
 import cx.ring.application.JamiApplication
 import cx.ring.client.LogsActivity
+import cx.ring.client.HomeActivity
 import cx.ring.client.PushNotificationLogsActivity
 import cx.ring.databinding.FragSettingsBinding
 import cx.ring.fragments.ConnectionMonitorFragment
@@ -49,6 +50,7 @@ import cx.ring.settings.extensionssettings.ExtensionSettingsFragment
 import cx.ring.settings.extensionssettings.ExtensionsListSettingsFragment
 import cx.ring.utils.ActionHelper.openJamiDonateWebPage
 import cx.ring.utils.FontPrefs
+import cx.ring.utils.UiPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import net.jami.daemon.JamiService
@@ -163,6 +165,11 @@ class SettingsFragment :
             }
             settingsStatusIconLayout.setOnClickListener { showStatusIconSizeDialog() }
             settingsStatusIconValue.text = String.format(java.util.Locale.US, "%.2f×", FontPrefs.getStatusIconLines(requireContext()))
+            settingsSplitView.isChecked = UiPrefs.isSplitView(requireContext())
+            settingsSplitView.setOnCheckedChangeListener { _, checked ->
+                UiPrefs.setSplitView(requireContext(), checked)
+                (activity as? HomeActivity)?.applySplitViewPref()
+            }
 
             val singleItems = arrayOf(
                 getString(R.string.notification_private),
