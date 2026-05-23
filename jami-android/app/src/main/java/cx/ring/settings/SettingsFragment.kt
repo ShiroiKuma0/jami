@@ -48,6 +48,7 @@ import cx.ring.settings.extensionssettings.ExtensionPathPreferenceFragment
 import cx.ring.settings.extensionssettings.ExtensionSettingsFragment
 import cx.ring.settings.extensionssettings.ExtensionsListSettingsFragment
 import cx.ring.utils.ActionHelper.openJamiDonateWebPage
+import cx.ring.utils.FontPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import net.jami.daemon.JamiService
@@ -160,6 +161,8 @@ class SettingsFragment :
             settingsFontsLayout.setOnClickListener {
                 goToFontsSettings()
             }
+            settingsStatusIconLayout.setOnClickListener { showStatusIconSizeDialog() }
+            settingsStatusIconValue.text = String.format(java.util.Locale.US, "%.2f×", FontPrefs.getStatusIconLines(requireContext()))
 
             val singleItems = arrayOf(
                 getString(R.string.notification_private),
@@ -440,6 +443,44 @@ class SettingsFragment :
     override fun onDestroyView() {
         super.onDestroyView()
         binding = null
+    }
+
+    private fun showStatusIconSizeDialog() {
+        val binding = binding ?: return
+        val ctx = requireContext()
+        fun lines(pr: Int) = 0.5f + pr * 0.25f
+        val current = FontPrefs.getStatusIconLines(ctx)
+        val seek = android.widget.SeekBar(ctx).apply {
+            max = 10
+            progress = ((current - 0.5f) / 0.25f).toInt().coerceIn(0, 10)
+        }
+        val label = TextView(ctx).apply {
+            text = String.format(java.util.Locale.US, "%.2f lines", lines(seek.progress))
+        }
+        seek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: android.widget.SeekBar, pr: Int, fromUser: Boolean) {
+                label.text = String.format(java.util.Locale.US, "%.2f lines", lines(pr))
+            }
+            override fun onStartTrackingTouch(s: android.widget.SeekBar) {}
+            override fun onStopTrackingTouch(s: android.widget.SeekBar) {}
+        })
+        val pad = (16 * ctx.resources.displayMetrics.density).toInt()
+        val box = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, 0)
+            addView(label)
+            addView(seek)
+        }
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Message status icon height")
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val v = lines(seek.progress)
+                FontPrefs.setStatusIconLines(ctx, v)
+                binding.settingsStatusIconValue.text = String.format(java.util.Locale.US, "%.2f×", v)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

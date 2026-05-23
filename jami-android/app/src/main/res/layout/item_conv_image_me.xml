@@ -50,7 +50,7 @@
         android:contentDescription="@null"
         android:padding="0dp"
         android:transitionName="picture"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/status_icon"
         app:layout_constraintTop_toBottomOf="@id/msg_details_txt_perm"
         tools:src="@tools:sample/backgrounds/scenic" />
 

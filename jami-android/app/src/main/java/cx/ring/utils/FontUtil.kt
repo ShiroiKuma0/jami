@@ -67,6 +67,10 @@ object FontUtil {
         return (fm.descent - fm.ascent + fm.leading).coerceAtLeast(1)
     }
 
+    /** Status-icon height (px) = configured multiple of the chat-text line height. */
+    fun statusIconSizePx(context: Context): Int =
+        (chatTextLineHeightPx(context) * FontPrefs.getStatusIconLines(context)).toInt().coerceAtLeast(1)
+
     fun apply(view: TextView, category: String) {
         val c = view.context
         val tf = resolveTypeface(FontPrefs.effectiveFamily(c, category), FontPrefs.effectiveWeight(c, category))
