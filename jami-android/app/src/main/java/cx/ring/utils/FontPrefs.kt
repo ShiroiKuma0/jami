@@ -11,6 +11,9 @@ object FontPrefs {
     const val LIST_TITLE = "list_title"
     const val LIST_PREVIEW = "list_preview"
     const val SETTINGS = "settings"
+    const val LIST_DATE = "list_date"
+    const val MSG_TIME = "msg_time"
+    const val SEARCH_HINT = "search_hint"
 
     private const val PREFS = "shiroikuma_fonts"
     private fun p(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
