@@ -47,10 +47,14 @@ class FontsSettingsFragment : Fragment() {
             Element("Link-preview card", null, listOf(
                 ColorRole("Title", ColorPrefs.LINK_TITLE),
                 ColorRole("Description", ColorPrefs.LINK_DESC),
-                ColorRole("Domain", ColorPrefs.LINK_DOMAIN))),
+                ColorRole("Domain", ColorPrefs.LINK_DOMAIN),
+                ColorRole("Card fill", ColorPrefs.LINK_CARD_FILL),
+                ColorRole("Card border", ColorPrefs.LINK_CARD_BORDER))),
             Element("File message", null, listOf(
                 ColorRole("Name / size", ColorPrefs.FILE_NAME),
-                ColorRole("Download arrow", ColorPrefs.FILE_ARROW))))),
+                ColorRole("Download arrow", ColorPrefs.FILE_ARROW),
+                ColorRole("Card fill", ColorPrefs.FILE_CARD_FILL),
+                ColorRole("Card border", ColorPrefs.FILE_CARD_BORDER))))),
         Group("Top bar", listOf(
             Element("Search hint", FontPrefs.SEARCH_HINT, listOf(ColorRole("Color", ColorPrefs.SEARCH_HINT))))),
         Group("Settings", listOf(
@@ -58,6 +62,10 @@ class FontsSettingsFragment : Fragment() {
         Group("Presence dots (chat list)", listOf(
             Element("Online (connected)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_CONNECTED))),
             Element("Reachable (available)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_AVAILABLE))))),
+        Group("Account list", listOf(
+            Element("Invitation badge", null, listOf(
+                ColorRole("Fill", ColorPrefs.BADGE_FILL),
+                ColorRole("Border", ColorPrefs.BADGE_BORDER))))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()

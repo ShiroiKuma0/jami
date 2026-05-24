@@ -89,6 +89,11 @@ class AccountAdapter(
                         if (it > 0) {
                             holder.binding.invitationBadge.visibility = View.VISIBLE
                             holder.binding.invitationBadge.text = it.toString()
+                            (holder.binding.invitationBadge.background?.mutate() as? android.graphics.drawable.GradientDrawable)?.apply {
+                                val c = holder.binding.root.context
+                                setColor(cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_FILL))
+                                setStroke((2f * c.resources.displayMetrics.density).toInt(), cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_BORDER))
+                            }
                         } else holder.binding.invitationBadge.visibility = View.GONE
                     }
             )
