@@ -105,6 +105,10 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
 
     fun refreshTheme() {
         mAdapter?.notifyDataSetChanged()
+        binding?.contactTitle?.let {
+            cx.ring.utils.FontUtil.apply(it, cx.ring.utils.FontPrefs.CONV_TITLE)
+            it.setTextColor(cx.ring.utils.ColorPrefs.getColor(it.context, cx.ring.utils.ColorPrefs.CONV_TITLE))
+        }
     }
     private var mSearchAdapter: ConversationAdapter? = null
     private val animation = ValueAnimator()
