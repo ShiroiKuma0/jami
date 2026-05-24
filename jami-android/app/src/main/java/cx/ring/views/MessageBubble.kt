@@ -110,6 +110,14 @@ class MessageBubble(context: Context, attrs: AttributeSet?) : ViewGroup(context,
 
     fun getText(): CharSequence = messageText.text
 
+    /** shiroikuma: per-element message-text + time colours and the timestamp font. */
+    fun applyShiroikuma(@ColorInt textColor: Int, @ColorInt timeColor: Int) {
+        defaultTextColor = textColor
+        messageText.setTextColor(textColor)
+        messageTime.setTextColor(timeColor)
+        cx.ring.utils.FontUtil.apply(messageTime, cx.ring.utils.FontPrefs.MSG_TIME)
+    }
+
     /** Height of one line of the message text (tracks the chat-text font). */
     fun textLineHeight(): Int = messageText.lineHeight
 
