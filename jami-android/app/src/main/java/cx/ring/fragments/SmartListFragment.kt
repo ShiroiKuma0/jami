@@ -49,6 +49,10 @@ import androidx.core.net.toUri
 class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>(),
     SmartListListeners, ConversationActionCallback, SmartListView {
     private var mSmartListAdapter: SmartListAdapter? = null
+
+    fun refreshTheme() {
+        mSmartListAdapter?.notifyDataSetChanged()
+    }
     private var binding: FragSmartlistBinding? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
