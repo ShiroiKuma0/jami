@@ -86,6 +86,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
     private var mBinding: FragHomeBinding? = null
     private var mSmartListFragment: SmartListFragment? = null
+
+    fun refreshSmartListTheme() {
+        mSmartListFragment?.refreshTheme()
+    }
     private val mDisposable = CompositeDisposable()
     private var mSearchView: SearchView? = null
     private var searchDisposable: Disposable? = null
@@ -165,6 +169,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         // Inflate Menu and connect it
         searchBar.inflateMenu(R.menu.smartlist_menu)
+        cx.ring.utils.FontUtil.apply(searchBar.textView, cx.ring.utils.FontPrefs.SEARCH_HINT)
+        searchBar.textView.setHintTextColor(cx.ring.utils.ColorPrefs.getColor(requireContext(), cx.ring.utils.ColorPrefs.SEARCH_HINT))
         searchBar.menu.findItem(R.id.menu_split_view)?.isChecked =
             (activity as? HomeActivity)?.isSplitViewEnabled() ?: true
         val accountStatusItem = searchBar.menu.findItem(R.id.menu_account_status)
@@ -180,6 +186,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
 
                 R.id.menu_advanced_settings -> (activity as? HomeActivity)?.goToAdvancedSettings()
+
+                R.id.menu_ui_fonts_colors -> (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
 
                 R.id.menu_about -> (activity as? HomeActivity)?.goToAbout()
 
