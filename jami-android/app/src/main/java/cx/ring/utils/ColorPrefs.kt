@@ -26,9 +26,14 @@ object ColorPrefs {
     const val SETTINGS = "settings"
     const val PRESENCE_CONNECTED = "presence_connected"
     const val PRESENCE_AVAILABLE = "presence_available"
+    const val MSG_SENT_FILL = "msg_sent_fill"
+    const val MSG_SENT_BORDER = "msg_sent_border"
+    const val MSG_RECEIVED_FILL = "msg_received_fill"
+    const val MSG_RECEIVED_BORDER = "msg_received_border"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
+    private const val BLACK = 0xFF000000.toInt()
     private fun p(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private fun key(role: String) = "color_$role"
 
@@ -36,6 +41,7 @@ object ColorPrefs {
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
+        MSG_SENT_FILL, MSG_RECEIVED_FILL -> BLACK
         else -> YELLOW
     }
 

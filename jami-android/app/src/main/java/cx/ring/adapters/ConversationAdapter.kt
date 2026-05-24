@@ -1421,7 +1421,24 @@ class ConversationAdapter(
                         .setColor(convColor)
                 }
             } else if (convColor != 0 && !isIncoming) messageBubble.setBubbleColor(convColor)
+            applyBubbleColors(messageBubble, isIncoming)
         }
+    }
+
+    /** shiroikuma: recolour the bubble fill + border from ColorPrefs (defaults == current black/yellow). */
+    private fun applyBubbleColors(messageBubble: MessageBubble, isIncoming: Boolean) {
+        val ctx = messageBubble.context
+        val fill = cx.ring.utils.ColorPrefs.getColor(ctx, if (isIncoming) cx.ring.utils.ColorPrefs.MSG_RECEIVED_FILL else cx.ring.utils.ColorPrefs.MSG_SENT_FILL)
+        val border = cx.ring.utils.ColorPrefs.getColor(ctx, if (isIncoming) cx.ring.utils.ColorPrefs.MSG_RECEIVED_BORDER else cx.ring.utils.ColorPrefs.MSG_SENT_BORDER)
+        val w = (2f * ctx.resources.displayMetrics.density).toInt()
+        val bg = messageBubble.background?.mutate()
+        val shape = when (bg) {
+            is GradientDrawable -> bg
+            is LayerDrawable -> bg.findDrawableByLayerId(R.id.main_bubble) as? GradientDrawable
+            else -> null
+        }
+        shape?.apply { setColor(fill); setStroke(w, border) }
+        if (bg != null) messageBubble.background = bg
     }
 
     /** Configures the background of the LinkPreview to follow shape of MessageBubble. */
