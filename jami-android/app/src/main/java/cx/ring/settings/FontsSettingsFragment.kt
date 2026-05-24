@@ -60,11 +60,6 @@ class FontsSettingsFragment : Fragment() {
             Element("Reachable (available)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_AVAILABLE))))),
     )
 
-    private val presets = listOf(
-        0xFFFFFF00.toInt(), 0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0xFFAAAAAA.toInt(),
-        0xFF9FD0E8.toInt(), 0xFFFF5555.toInt(), 0xFF55FF55.toInt(),
-    )
-
     private val yellow = 0xFFFFFF00.toInt()
     private val grey = 0xFFAAAAAA.toInt()
     private val sample = "AaIiMmOoQqWw 012 白い熊相撲道 áÁčČďĎéÉěĚíÍňŇóÓřŘšŠ"
@@ -365,36 +360,76 @@ class FontsSettingsFragment : Fragment() {
 
     private fun showColorPicker(role: ColorRole) {
         val ctx = context ?: return
+        val initial = ColorPrefs.getColor(ctx, role.key)
+        // channels: 0=alpha 1=red 2=green 3=blue
+        val ch = intArrayOf(Color.alpha(initial), Color.red(initial), Color.green(initial), Color.blue(initial))
+        fun current() = Color.argb(ch[0], ch[1], ch[2], ch[3])
+
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20f), dp(8f), dp(20f), 0)
         }
+        val preview = View(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56f))
+            background = swatch(initial)
+        }
+        box.addView(preview)
+
+        var updating = false
         val hexInput = EditText(ctx).apply {
-            setText(hex(ColorPrefs.getColor(ctx, role.key)))
-            hint = "#RRGGBB or #AARRGGBB"
+            setText(hex(initial)); hint = "#AARRGGBB"
+            inputType = InputType.TYPE_CLASS_TEXT
+            setPadding(0, dp(10f), 0, dp(2f))
         }
         box.addView(hexInput)
-        val presetRow = LinearLayout(ctx).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(12f), 0, 0)
+
+        val names = arrayOf("Alpha (opacity)", "Red", "Green", "Blue")
+        val labels = arrayOfNulls<TextView>(4)
+        val bars = arrayOfNulls<SeekBar>(4)
+
+        fun syncPreviewAndLabels() {
+            preview.background = swatch(current())
+            for (i in 0..3) labels[i]?.text = "${names[i]}:  ${ch[i]}"
         }
-        for (col in presets) {
-            presetRow.addView(View(ctx).apply {
-                layoutParams = LinearLayout.LayoutParams(dp(32f), dp(32f)).apply { marginEnd = dp(8f) }
-                background = swatch(col)
-                isClickable = true
-                setOnClickListener { hexInput.setText(hex(col)) }
-            })
+        for (i in 0..3) {
+            labels[i] = miniLabel("${names[i]}:  ${ch[i]}").also { box.addView(it) }
+            bars[i] = SeekBar(ctx).apply {
+                max = 255; progress = ch[i]
+                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                        if (!fromUser) return
+                        ch[i] = p
+                        labels[i]?.text = "${names[i]}:  $p"
+                        preview.background = swatch(current())
+                        updating = true
+                        hexInput.setText(hex(current())); hexInput.setSelection(hexInput.text.length)
+                        updating = false
+                    }
+                    override fun onStartTrackingTouch(sb: SeekBar) {}
+                    override fun onStopTrackingTouch(sb: SeekBar) {}
+                })
+            }.also { box.addView(it) }
         }
-        box.addView(presetRow)
+        hexInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (updating) return
+                var x = s.toString().trim()
+                if (x.isNotEmpty() && !x.startsWith("#")) x = "#$x"
+                val parsed = try { Color.parseColor(x) } catch (e: Exception) { null } ?: return
+                ch[0] = Color.alpha(parsed); ch[1] = Color.red(parsed); ch[2] = Color.green(parsed); ch[3] = Color.blue(parsed)
+                updating = true
+                for (i in 0..3) bars[i]?.progress = ch[i]
+                updating = false
+                syncPreviewAndLabels()
+            }
+        })
+
         MaterialAlertDialogBuilder(ctx)
             .setTitle(role.label)
             .setView(box)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                val parsed = try { Color.parseColor(hexInput.text.toString().trim()) } catch (e: Exception) { null }
-                if (parsed == null) Toast.makeText(ctx, "Invalid colour", Toast.LENGTH_SHORT).show()
-                else { ColorPrefs.setColor(ctx, role.key, parsed); rebuild() }
-            }
+            .setPositiveButton(android.R.string.ok) { _, _ -> ColorPrefs.setColor(ctx, role.key, current()); rebuild() }
             .setNeutralButton("Default") { _, _ -> ColorPrefs.reset(ctx, role.key); rebuild() }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
