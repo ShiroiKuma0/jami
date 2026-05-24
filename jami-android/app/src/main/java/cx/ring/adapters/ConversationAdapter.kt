@@ -1284,6 +1284,9 @@ class ConversationAdapter(
                     else R.drawable.baseline_attach_file_24
                 )
                 viewHolder.mFileTitle?.text = file.displayName
+                viewHolder.mFileTitle?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_NAME))
+                viewHolder.mFileSize?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_NAME))
+                viewHolder.mFileDownloadButton?.imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_ARROW))
                 viewHolder.mFileInfoLayout?.setOnClickListener(null)
                 // Set the tint of the file background
                 if (file.isOutgoing) viewHolder.mFileInfoLayout?.background?.setTintList(null)
@@ -1485,6 +1488,7 @@ class ConversationAdapter(
         answerLayout?.visibility = View.GONE
         if (StringUtils.isOnlyEmoji(message) && !isReplying) {
             messageBubble.updateEmoji(message, messageTime, isEdited)
+            messageBubble.applyShiroikuma(cx.ring.utils.ColorPrefs.getColor(context, if (interaction.isIncoming) cx.ring.utils.ColorPrefs.MSG_RECEIVED else cx.ring.utils.ColorPrefs.MSG_SENT), cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.MSG_TIME))
         } else {
             val markdown = try {
                 markwon.toMarkdown(message)
@@ -1492,6 +1496,7 @@ class ConversationAdapter(
                 message
             }
             messageBubble.updateStandard(markdown, messageTime, isEdited)
+            messageBubble.applyShiroikuma(cx.ring.utils.ColorPrefs.getColor(context, if (interaction.isIncoming) cx.ring.utils.ColorPrefs.MSG_RECEIVED else cx.ring.utils.ColorPrefs.MSG_SENT), cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.MSG_TIME))
 
             // Manage layout for message with a link inside.
             if (showLinkPreviews && !isDeleted) {
@@ -1518,9 +1523,11 @@ class ConversationAdapter(
                             image.visibility = View.GONE
                         }
                         viewHolder.mHistTxt?.text = data.title
+                        viewHolder.mHistTxt?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.LINK_TITLE))
                         if (data.description.isNotEmpty()) {
                             viewHolder.mHistDetailTxt?.visibility = View.VISIBLE
                             viewHolder.mHistDetailTxt?.text = data.description
+                            viewHolder.mHistDetailTxt?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.LINK_DESC))
                         } else {
                             viewHolder.mHistDetailTxt?.visibility = View.GONE
                         }
@@ -1531,6 +1538,7 @@ class ConversationAdapter(
                         linkPreviewLayout.visibility = View.VISIBLE
                         val url = data.baseUrl.toUri()
                         viewHolder.mPreviewDomain?.text = url.host
+                        viewHolder.mPreviewDomain?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.LINK_DOMAIN))
                         linkPreviewLayout.setOnClickListener {
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, url))

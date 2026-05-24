@@ -11,6 +11,8 @@ import cx.ring.R
 import java.io.File
 
 object FontUtil {
+    const val SKIP_SETTINGS_FONT_TAG = "shiroikuma_no_settings_font"
+
     val FAMILIES: List<Pair<String, String>> = listOf(
         "Default" to "",
         "Sans Serif" to "sans-serif",
@@ -84,6 +86,7 @@ object FontUtil {
 
     /** Recursively apply [category] to every TextView under [root]. */
     fun applyTree(root: View?, category: String) {
+        if (root?.tag == SKIP_SETTINGS_FONT_TAG) return
         when (root) {
             is TextView -> apply(root, category)
             is ViewGroup -> for (i in 0 until root.childCount) applyTree(root.getChildAt(i), category)
@@ -96,8 +99,24 @@ object FontUtil {
     fun installSettingsFont(root: View?) {
         root ?: return
         applyTree(root, FontPrefs.SETTINGS)
+        applySettingsColor(root)
         if (settingsInstalled.put(root, true) == null) {
-            root.viewTreeObserver.addOnGlobalLayoutListener { applyTree(root, FontPrefs.SETTINGS) }
+            root.viewTreeObserver.addOnGlobalLayoutListener {
+                applyTree(root, FontPrefs.SETTINGS); applySettingsColor(root)
+            }
+        }
+    }
+
+    private fun applySettingsColor(root: View?) {
+        val ctx = root?.context ?: return
+        if (!ColorPrefs.isSet(ctx, ColorPrefs.SETTINGS)) return
+        colorTree(root, ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS))
+    }
+    private fun colorTree(root: View?, color: Int) {
+        if (root?.tag == SKIP_SETTINGS_FONT_TAG) return
+        when (root) {
+            is TextView -> root.setTextColor(color)
+            is ViewGroup -> for (i in 0 until root.childCount) colorTree(root.getChildAt(i), color)
         }
     }
 
