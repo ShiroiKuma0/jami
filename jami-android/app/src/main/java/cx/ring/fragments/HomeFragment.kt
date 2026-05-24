@@ -60,6 +60,7 @@ import cx.ring.utils.DeviceUtils
 import cx.ring.viewholders.SmartListViewHolder
 import cx.ring.views.AvatarDrawable
 import dagger.hilt.android.AndroidEntryPoint
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
@@ -166,6 +167,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         searchBar.inflateMenu(R.menu.smartlist_menu)
         searchBar.menu.findItem(R.id.menu_split_view)?.isChecked =
             (activity as? HomeActivity)?.isSplitViewEnabled() ?: true
+        val accountStatusItem = searchBar.menu.findItem(R.id.menu_account_status)
+        mDisposable.add(mAccountService.currentAccountSubject
+            .switchMap { acc -> acc.registrationStateObservable.map { acc } }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { acc ->
+                accountStatusItem?.setIcon(
+                    if (acc.isRegistered) R.drawable.ic_status_online else R.drawable.ic_status_offline)
+            })
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
@@ -181,6 +190,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     val newState = !(ha?.isSplitViewEnabled() ?: true)
                     ha?.setSplitViewEnabled(newState)
                     it.isChecked = newState
+                }
+
+                R.id.menu_account_status -> mAccountService.currentAccount?.let { acc ->
+                    mAccountService.setAccountEnabled(acc.accountId, !acc.isRegistered)
                 }
             }
             true
