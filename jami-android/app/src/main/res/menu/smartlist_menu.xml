@@ -36,6 +36,11 @@
                 app:showAsAction="ifRoom" />
 
             <item
+                android:id="@+id/menu_ui_fonts_colors"
+                android:title="UI fonts &amp; colors"
+                app:showAsAction="never" />
+
+            <item
                 android:id="@+id/menu_donate"
                 android:icon="@drawable/baseline_favorite_24"
                 android:title="@string/donation_donate"

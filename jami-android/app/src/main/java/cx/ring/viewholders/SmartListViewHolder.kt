@@ -115,6 +115,10 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                     }
                     cx.ring.utils.FontUtil.apply(binding.convParticipant, cx.ring.utils.FontPrefs.LIST_TITLE)
                     cx.ring.utils.FontUtil.apply(binding.convLastItem, cx.ring.utils.FontPrefs.LIST_PREVIEW)
+                    cx.ring.utils.FontUtil.apply(binding.convLastTime, cx.ring.utils.FontPrefs.LIST_DATE)
+                    binding.convParticipant.setTextColor(cx.ring.utils.ColorPrefs.getColor(binding.convParticipant.context, cx.ring.utils.ColorPrefs.LIST_NAME))
+                    binding.convLastItem.setTextColor(cx.ring.utils.ColorPrefs.getColor(binding.convLastItem.context, cx.ring.utils.ColorPrefs.LIST_PREVIEW))
+                    binding.convLastTime.setTextColor(cx.ring.utils.ColorPrefs.getColor(binding.convLastTime.context, cx.ring.utils.ColorPrefs.LIST_DATE))
                     val b = binding
                     if (b != null) {
                         val d = b.root.resources.displayMetrics.density
