@@ -14,7 +14,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Fonts"
+            android:text="UI fonts &amp; colors"
             android:textColor="#FFFF00"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -24,17 +24,5 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
-
-        <TextView
-            android:id="@+id/fonts_add_custom"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="16dp"
-            android:text="+  Add custom font…"
-            android:textColor="#FFFF00"
-            android:textSize="16sp" />
     </LinearLayout>
 </ScrollView>
