@@ -107,6 +107,11 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                         binding.convLastTime.setTypeface(null, Typeface.BOLD)
                         binding.convLastItem.setTypeface(null, Typeface.BOLD)
                         binding.root.setBackgroundResource(R.drawable.background_item_smartlist_unread)
+                        (binding.root.background?.mutate() as? android.graphics.drawable.LayerDrawable)?.let { ll ->
+                            (ll.getDrawable(1) as? android.graphics.drawable.GradientDrawable)?.setStroke(
+                                (2f * itemView.context.resources.displayMetrics.density).toInt(),
+                                cx.ring.utils.ColorPrefs.getColor(itemView.context, cx.ring.utils.ColorPrefs.UNREAD_BORDER))
+                        }
                     } else {
                         binding.convParticipant.setTypeface(null, Typeface.NORMAL)
                         binding.convLastTime.setTypeface(null, Typeface.NORMAL)

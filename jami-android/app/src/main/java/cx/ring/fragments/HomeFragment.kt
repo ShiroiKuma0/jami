@@ -180,6 +180,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             .subscribe { acc ->
                 accountStatusItem?.setIcon(
                     if (acc.isRegistered) R.drawable.ic_status_online else R.drawable.ic_status_offline)
+                accountStatusItem?.let { mi ->
+                    val role = if (acc.isRegistered) cx.ring.utils.ColorPrefs.STATUS_ONLINE else cx.ring.utils.ColorPrefs.STATUS_OFFLINE
+                    val ic = mi.icon?.mutate()
+                    if (cx.ring.utils.ColorPrefs.isSet(searchBar.context, role))
+                        ic?.setTint(cx.ring.utils.ColorPrefs.getColor(searchBar.context, role))
+                    else ic?.setTintList(null)
+                    mi.icon = ic
+                }
             })
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
