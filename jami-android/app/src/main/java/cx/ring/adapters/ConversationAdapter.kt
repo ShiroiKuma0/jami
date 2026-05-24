@@ -1419,6 +1419,8 @@ class ConversationAdapter(
                 viewHolder.mFileTitle?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_NAME))
                 viewHolder.mFileSize?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_NAME))
                 viewHolder.mFileDownloadButton?.imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_ARROW))
+                applyCardColors(viewHolder.mFileInfoLayout, cx.ring.utils.ColorPrefs.FILE_CARD_FILL, cx.ring.utils.ColorPrefs.FILE_CARD_BORDER)
+                viewHolder.mFileInfoLayout?.background?.setTintList(null)
                 viewHolder.mFileInfoLayout?.setOnClickListener(null)
                 // Set the tint of the file background
                 // shiroikuma: clear the conversation-colour tint so the authored yellow stroke survives
@@ -1589,6 +1591,23 @@ class ConversationAdapter(
         if (bg != null) messageBubble.background = bg
     }
 
+    /** shiroikuma: recolour a card/badge shape (fill + 2dp border) from ColorPrefs. */
+    private fun applyCardColors(view: View?, fillRole: String, borderRole: String) {
+        view ?: return
+        val ctx = view.context
+        val fill = cx.ring.utils.ColorPrefs.getColor(ctx, fillRole)
+        val border = cx.ring.utils.ColorPrefs.getColor(ctx, borderRole)
+        val w = (2f * ctx.resources.displayMetrics.density).toInt()
+        val bg = view.background?.mutate()
+        val shape = when (bg) {
+            is GradientDrawable -> bg
+            is LayerDrawable -> bg.findDrawableByLayerId(R.id.main_bubble) as? GradientDrawable
+            else -> null
+        }
+        shape?.apply { setColor(fill); setStroke(w, border) }
+        if (bg != null) view.background = bg
+    }
+
     /** Configures the background of the LinkPreview to follow shape of MessageBubble. */
     private fun updateLinkPreviewBackground(
         linkPreviewLayout: ViewGroup,
@@ -1602,6 +1621,7 @@ class ConversationAdapter(
                 linkPreviewLayout.setBackgroundResource(R.drawable.linkpreview_bg_out_last_or_single)
             }
         }
+        applyCardColors(linkPreviewLayout, cx.ring.utils.ColorPrefs.LINK_CARD_FILL, cx.ring.utils.ColorPrefs.LINK_CARD_BORDER)
     }
 
     /**
