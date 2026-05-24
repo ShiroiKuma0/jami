@@ -24,6 +24,8 @@ object ColorPrefs {
     const val FILE_ARROW = "file_arrow"
     const val SEARCH_HINT = "search_hint"
     const val SETTINGS = "settings"
+    const val PRESENCE_CONNECTED = "presence_connected"
+    const val PRESENCE_AVAILABLE = "presence_available"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -33,6 +35,7 @@ object ColorPrefs {
     /** The original hardcoded palette colour for [role]; painter and settings UI both read this. */
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
+        PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
         else -> YELLOW
     }
 
