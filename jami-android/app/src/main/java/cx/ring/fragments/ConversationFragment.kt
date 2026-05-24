@@ -103,6 +103,10 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
     private var binding: FragConversationBinding? = null
     private var currentBottomView: View? = null
     private var mAdapter: ConversationAdapter? = null
+
+    fun refreshTheme() {
+        mAdapter?.notifyDataSetChanged()
+    }
     private var mSearchAdapter: ConversationAdapter? = null
     private val animation = ValueAnimator()
     private var mPreferences: SharedPreferences? = null
@@ -1159,6 +1163,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             conversationAvatar.setImageDrawable(img)
             contactTitle.text = conversation.title
             cx.ring.utils.FontUtil.apply(contactTitle, cx.ring.utils.FontPrefs.CONV_TITLE)
+            contactTitle.setTextColor(cx.ring.utils.ColorPrefs.getColor(contactTitle.context, cx.ring.utils.ColorPrefs.CONV_TITLE))
             if (conversation.uriTitle != conversation.title) {
                 contactSubtitle.text = conversation.uriTitle
                 contactSubtitle.visibility = View.VISIBLE
