@@ -392,8 +392,8 @@ class AvatarDrawable : Drawable {
                 textPaint.typeface = Typeface.SANS_SERIF
             }
         }
-        presenceAvailableColor = ContextCompat.getColor(context, R.color.available_indicator)
-        presenceConnectedColor = ContextCompat.getColor(context, R.color.online_indicator)
+        presenceAvailableColor = cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.PRESENCE_AVAILABLE)
+        presenceConnectedColor = cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.PRESENCE_CONNECTED)
         presenceFillPaint = Paint().apply {
             style = Paint.Style.FILL
             isAntiAlias = true
