@@ -29,7 +29,7 @@
 
     <color name="material_switch_thumb_checked">@color/black</color>
     <color name="material_switch_thumb_unchecked">@color/icon_color</color>
-    <color name="material_switch_track_checked">@color/color_primary_light</color>
+    <color name="material_switch_track_checked">#FFFF00</color>
     <color name="material_switch_track_unchecked">@color/settings_option_background</color>
 
     <!--  TwoButton EditText  -->
