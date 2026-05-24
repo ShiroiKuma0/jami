@@ -36,6 +36,11 @@ object ColorPrefs {
     const val FILE_CARD_BORDER = "file_card_border"
     const val BADGE_FILL = "badge_fill"
     const val BADGE_BORDER = "badge_border"
+    const val STATUS_SENDING = "status_sending"
+    const val STATUS_SUCCESS = "status_success"
+    const val STATUS_ONLINE = "status_online"
+    const val STATUS_OFFLINE = "status_offline"
+    const val UNREAD_BORDER = "unread_border"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -48,6 +53,8 @@ object ColorPrefs {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
         MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL -> BLACK
+        STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
+        STATUS_ONLINE -> 0xFF4CAF50.toInt()
         else -> YELLOW
     }
 

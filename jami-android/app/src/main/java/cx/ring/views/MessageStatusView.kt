@@ -135,7 +135,8 @@ class MessageStatusView @JvmOverloads constructor(
         resize(1)
         (getChildAt(0) as ImageView).apply {
             setImageResource(R.drawable.sent)
-            ImageViewCompat.setImageTintList(this, iconTint)
+            ImageViewCompat.setImageTintList(this, if (cx.ring.utils.ColorPrefs.isSet(context, cx.ring.utils.ColorPrefs.STATUS_SENDING))
+                android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.STATUS_SENDING)) else iconTint)
             iconState = IconState.SENDING
         }
         visibility = View.VISIBLE
@@ -145,7 +146,8 @@ class MessageStatusView @JvmOverloads constructor(
         resize(1)
         (getChildAt(0) as ImageView).apply {
             setImageResource(R.drawable.receive)
-            ImageViewCompat.setImageTintList(this, null)
+            ImageViewCompat.setImageTintList(this, if (cx.ring.utils.ColorPrefs.isSet(context, cx.ring.utils.ColorPrefs.STATUS_SUCCESS))
+                android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.STATUS_SUCCESS)) else null)
             iconState = IconState.SUCCESS
         }
         visibility = View.VISIBLE
