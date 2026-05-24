@@ -66,6 +66,12 @@ class FontsSettingsFragment : Fragment() {
             Element("Invitation badge", null, listOf(
                 ColorRole("Fill", ColorPrefs.BADGE_FILL),
                 ColorRole("Border", ColorPrefs.BADGE_BORDER))))),
+        Group("Status & indicators", listOf(
+            Element("Sending icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SENDING))),
+            Element("Sent / delivered icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SUCCESS))),
+            Element("Account online icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_ONLINE))),
+            Element("Account offline icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_OFFLINE))),
+            Element("Unread row border", null, listOf(ColorRole("Border", ColorPrefs.UNREAD_BORDER))))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()
