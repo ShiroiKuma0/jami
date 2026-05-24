@@ -501,6 +501,10 @@ class SettingsFragment :
             pendingOpenSharedServices = false
             view.post { goToSharedServicesSettings() }
         }
+        if (arguments?.getBoolean("open_fonts") == true) {
+            arguments?.remove("open_fonts")
+            view.post { goToFontsSettings() }
+        }
     }
 
     private fun saveDonationSettings(binding: FragSettingsBinding) {
