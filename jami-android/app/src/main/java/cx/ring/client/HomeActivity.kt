@@ -570,18 +570,21 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
         mBinding?.panel?.openPane()
     }
 
-    fun goToAdvancedSettings() {
-        goToAdvancedSettings(false)
+    fun refreshThemedViews() {
+        mHomeFragment?.refreshSmartListTheme()
+        fConversation?.refreshTheme()
     }
 
-    fun goToAdvancedSettings(openSharedServices: Boolean) {
+    fun goToAdvancedSettings(openSharedServices: Boolean = false, openFonts: Boolean = false) {
         (frameContent as? SettingsFragment)?.let {
             if (openSharedServices) it.openSharedServices()
             return
         }
         val fragment = SettingsFragment().apply {
-            if (openSharedServices)
-                arguments = Bundle().apply { putBoolean(SettingsFragment.ARG_OPEN_SHARED_SERVICES, true) }
+            val args = Bundle()
+            if (openSharedServices) args.putBoolean(SettingsFragment.ARG_OPEN_SHARED_SERVICES, true)
+            if (openFonts) args.putBoolean("open_fonts", true)
+            if (!args.isEmpty) arguments = args
         }
         frameContent = fragment
         supportFragmentManager
