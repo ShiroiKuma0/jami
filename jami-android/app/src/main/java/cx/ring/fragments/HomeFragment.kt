@@ -182,11 +182,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     if (acc.isRegistered) R.drawable.ic_status_online else R.drawable.ic_status_offline)
                 accountStatusItem?.let { mi ->
                     val role = if (acc.isRegistered) cx.ring.utils.ColorPrefs.STATUS_ONLINE else cx.ring.utils.ColorPrefs.STATUS_OFFLINE
-                    val ic = mi.icon?.mutate()
-                    if (cx.ring.utils.ColorPrefs.isSet(searchBar.context, role))
-                        ic?.setTint(cx.ring.utils.ColorPrefs.getColor(searchBar.context, role))
-                    else ic?.setTintList(null)
-                    mi.icon = ic
+                    // Tint via the MenuItem API so the setIcon() shape swap (filled<->hollow) is left intact.
+                    androidx.core.view.MenuItemCompat.setIconTintList(mi,
+                        if (cx.ring.utils.ColorPrefs.isSet(searchBar.context, role))
+                            android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(searchBar.context, role))
+                        else null)
                 }
             })
         searchBar.setOnMenuItemClickListener {
