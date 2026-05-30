@@ -94,6 +94,7 @@ The `custom` stack is ~31 commits as of handoff (`git log master..custom --oneli
 - **Install identity, stable targets** — `app_name` → `白い熊 GNU Jami` in `app/src/main/res/values/strings.xml`; FileProvider `<provider>` `android:authorities="${applicationId}.file_provider"` in `app/src/main/AndroidManifest.xml`.
 - **Theme / fonts / split-view layers** — localized to the files enumerated in jami-build's *Customization layers* (e.g. `values/colors.xml`, `values-night/colors.xml`, `values/styles.xml`, drawables, `java/cx/ring/utils/{FontPrefs,ColorPrefs,FontUtil,UiPrefs}.kt`, `FontsSettingsFragment.kt`, the recolour/apply sites in `ConversationAdapter`/`MessageBubble`/`SmartListViewHolder`/`HomeFragment`/`AccountAdapter`/`AvatarDrawable.kt`, the menu/layout XML). If upstream renamed/moved a binding site, re-point the same edit there.
 - **`.gitmodules` drift guard** — `git diff master:.gitmodules custom:.gitmodules` (and vs upstream). If upstream ever changes the daemon URL/path, adjust before the submodule update.
+- **Known upstream bug — invalid resource-directory qualifiers (the `nn_NO` class).** Upstream's recurring `i18n: automatic bump` commits sometimes add a `res/values-<lang>_<REGION>/` directory with an **underscore** (e.g. `values-nn_NO`, first seen in the `20260522-01` bump). An underscore is **not** a legal Android resource qualifier — AGP aborts late, at `:app:mergeNoPushReleaseResources`, with `Invalid resource directory name` (a clean rebase, then a build failure tens of minutes in). The valid form uses `-r<REGION>`: `values-nn_NO` → `values-nn-rNO` (matches the sibling `values-nb-rNO`). This is **not** a rebase conflict, so it slips through Step 3 untouched and is caught by the scan in **Step 4** below. The rename is a *new committed edit* on `custom` (it lands at push time under the normal `jami-android/app/src/main` staging) — it will recur on future bumps until upstream fixes it.
 
 **Reconciliation rule of thumb:** the install-identity targets (`defaultConfig`, `app_name`, `JAMI_DATADIR`, FileProvider authority) are stable across versions; the build-config flags sit on upstream's own flags and so conflict most often but resolve to the fixed shape above; the theme/fonts edits are additive and rarely conflict unless upstream rewrote the same file. Never resolve a conflict by touching `daemon/` or by changing the daemon gitlink.
 
@@ -112,9 +113,23 @@ fi
 
 r git log master..custom --oneline   # the replayed custom stack; subjects should look familiar
 r git status --short                  # only daemon/contrib (the gnutls sed) may be dirty; the app tree should be clean
+
+# Invalid resource-dir qualifier guard (the nn_NO class — see Step 3). Underscores are illegal;
+# the region form is -r<REGION>. Auto-rename every offender so the build's resource-merge won't abort.
+shopt -s nullglob
+for d in jami-android/app/src/main/res/values-*_*; do
+  base=$(basename "$d")                                    # e.g. values-nn_NO
+  fixed="values-$(echo "${base#values-}" | sed 's/_\([A-Z][A-Z]*\)$/-r\1/')"   # -> values-nn-rNO
+  if [ "$fixed" != "$base" ]; then
+    echo -e "\033[1;33m>>> invalid resource dir $base -> $fixed (upstream nn_NO-class bug); renaming\033[0m"
+    git mv "$d" "jami-android/app/src/main/res/$fixed"
+  fi
+done
+shopt -u nullglob
+echo -e "\033[1;36m>>> remaining underscore res dirs (must be NONE): $(ls -d jami-android/app/src/main/res/values-*_* 2>/dev/null || echo none)\033[0m"
 ```
 
-If the gitlink diverged, stop and investigate — a rebase that absorbed a daemon change is wrong.
+If the gitlink diverged, stop and investigate — a rebase that absorbed a daemon change is wrong. The resource-dir guard above auto-fixes the `nn_NO`-class upstream bug; if it renames anything, that rename is committed at push time (Step 6) under the normal `jami-android/app/src/main` staging.
 
 ## Step 5 — build, sign, deploy (apply the jami-build skill)
 
@@ -159,4 +174,10 @@ Staging discipline still applies if any conflict resolution required a *new comm
 
 ## One-line summary of the flow
 
-`fetch upstream` → new version? (else stop) → ff `master` → rebase `custom` (reconcile per Step 3) → submodule update → verify daemon gitlink → **apply jami-build to build/sign/deploy** → user tests → on "Push": push `master`, force-with-lease `custom`, verify gitlink.
+`fetch upstream` → new version? (else stop) → ff `master` → rebase `custom` (reconcile per Step 3) → submodule update → verify daemon gitlink + auto-fix invalid `values-*_*` resource dirs (nn_NO class) → **apply jami-build to build/sign/deploy** → user tests → on "Push": push `master`, force-with-lease `custom`, verify gitlink.
+
+## Banked failures from real runs
+
+- **`nn_NO` resource-qualifier bug** (first hit on the `20260515-01 → 20260522-01` sync). Upstream's i18n bump added `res/values-nn_NO/`; underscore qualifiers are illegal and AGP aborts at `:app:mergeNoPushReleaseResources` *after* a clean rebase and a long contrib build. Fixed by `values-nn_NO → values-nn-rNO`; now auto-handled by the Step 4 guard. Watch for the same shape on any future `i18n: automatic bump`.
+- **`SDK location not found`** if the build runs in a shell that didn't inherit the interactive profile: the jami-build block exports `JAVA_HOME`/`PATH` but **not** `ANDROID_HOME`. When building from a non-login/background shell (as this skill may), also `export ANDROID_HOME="$HOME/android-sdk"` (and `ANDROID_SDK_ROOT`) — or rely on a committed `jami-android/local.properties` (untracked here). The daemon still cross-compiles fine; only the AGP config step needs the SDK path.
+- **Stale-APK trap.** Only sign/deploy after confirming the build returned `BUILD SUCCESSFUL` *and* the unsigned APK's mtime is newer than the build start — a failed Gradle run leaves the previous APK in the output dir, and signing it ships the wrong version. The build counter (`~/tmp/.shiroikuma_jami_build`) must be consumed only on success.
