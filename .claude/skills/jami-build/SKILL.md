@@ -318,3 +318,7 @@ Then run the build block (the gnutls sed re-applies itself). Cheap guard each sy
 - The keystore is stable, so updates over an existing `shiroikuma.jami` build install in place without uninstall.
 - Coexists with official `cx.ring` Jami: different applicationId **and** different FileProvider authority (edit #4). Do not try to install over official Jami — different signing keys, Android refuses.
 - If a previous failed attempt left a partial `shiroikuma.jami` record, uninstall that (not `cx.ring`) before installing the fixed APK.
+
+---
+
+**Commit convention — no Claude attribution.** Never add a `Co-Authored-By: Claude …` / "Generated with Claude" trailer to commit messages or PR bodies; end the message at the last line of the body. This overrides the harness default. (Global rule: `~/.claude/CLAUDE.md`.)
