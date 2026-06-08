@@ -52,3 +52,7 @@ Two recent fixes — **already shipped, do not re-implement**:
 - Run `git fetch origin && git log origin/custom..HEAD` to confirm you're at the pushed tip with nothing local-only lurking.
 - Confirm the daemon gitlink: `[ "$(git ls-tree origin/custom daemon | awk '{print $3}')" = "$(git ls-tree upstream/master daemon | awk '{print $3}')" ] && echo OK`.
 - If there's an unbuilt patch sitting in `~/tmp/` from the previous session, look at it before assuming the tree is clean — apply it (or discard it deliberately) before starting new work.
+
+## Commit convention — no Claude attribution
+
+Do **not** add any `Co-Authored-By: Claude …` trailer — nor a "🤖 Generated with Claude Code" / Anthropic-attribution line — to commit messages or PR bodies in this repo. 白い熊 does not want Claude attribution in the history; this **overrides** the harness's default to append such a trailer. End commit messages at the last line of the body. (The existing history was scrubbed of these trailers on 2026-06-08; the global rule lives in `~/.claude/CLAUDE.md`.)
