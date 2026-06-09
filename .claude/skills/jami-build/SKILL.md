@@ -129,7 +129,7 @@ Two committed `jami-android/app/build.gradle.kts` tweaks (localized to that file
 > 1. `[CXX5304] This version only understands SDK XML versions up to 3 but … version 4 …` — a native-build note from an **NDK/SDK-tooling version skew on the build machine** (the NDK's bundled SDK parser is older than the installed SDK packages). Fixable only by aligning the NDK / cmdline-tools versions locally, never by a source patch.
 > 2. javac `ノート:` deprecation/unchecked notes (host-locale Japanese) — javac **mandatory** notes from the app's Java sources + the SWIG-generated daemon bindings. No reliable global mute flag (`-nowarn`/`-Xlint:none` don't suppress mandatory notes); only durable fix is `@SuppressWarnings` at each site, and the generated bindings regenerate each build. Can be **enumerated** with a one-off `-Xlint:deprecation,unchecked` JavaCompile arg if the user ever wants the offender list.
 
-- **Per-build version tail.** `versionCode` and `versionName` honour a Gradle property `shiroikumaBuild` (default 0): `versionCode = <upstreamCode> * 10000 + shiroikumaBuild`, `versionName = "<upstreamBase>" + (if N>0 then "+N")`. A build invoked with `-PshiroikumaBuild=N` comes out as `20260515-01+N` / versionCode `4940000+N` — always an upgrade over prior builds and above the next upstream code bump. The build block keeps **N in a local counter** `~/tmp/.shiroikuma_jami_build` (one line: `<upstreamBase> <N>`): it increments per **successful** build and **resets to 1 when the upstream base changes**; consumed only on success. APK name is `shiroikuma-jami_<versionName>_arm64-v8a.apk` (no timestamp).
+- **Per-build version tail.** `versionCode` and `versionName` honour a Gradle property `shiroikumaBuild` (default 0): `versionCode = <upstreamCode> * 10000 + shiroikumaBuild`, `versionName = "<upstreamBase>" + (if N>0 then "+N")`. A build invoked with `-PshiroikumaBuild=N` comes out as `20260515-01+N` / versionCode `4940000+N` — always an upgrade over prior builds and above the next upstream code bump. The build block keeps **N in a TRACKED, COMMITTED counter** `jami-android/shiroikuma-build.txt` (one line: `<upstreamBase> <N>`): it increments per **successful** build and **resets to 1 when the upstream base changes**; consumed only on success. APK name is `shiroikuma-jami_<versionName>_arm64-v8a.apk` (no timestamp). **The counter is in-repo (not `~/tmp`) on purpose — a `~/tmp` counter was ephemeral and got lost, resetting N to 1 and producing a *downgrade* APK. On every successful build the block stages ONLY `jami-android/shiroikuma-build.txt`, commits it (`build: bump version tail to <vn>`), and pushes to `origin custom` — this push is the one exception to "no push until the user says Push" (the user requested the bump number always be committed+pushed). It is narrow: never let that commit pick up `daemon/`, generated JNI, or feature code.**
 - **Build config — AGP-9 built-in Kotlin (committed, `jami-android/gradle.properties` + both `build.gradle.kts`).** `android.builtInKotlin=true`, and the standalone `alias(libs.plugins.kotlin.android)` is **removed** from `:app` and the root `plugins { }` (built-in Kotlin provides it → removes #1b). **`android.newDsl=false` MUST stay** — the `protobuf-gradle-plugin` casts the Android extension to the legacy `BaseExtension`, which doesn't exist under the new DSL (config-time `GroovyCastException` at `ProtobufPlugin.doApply`; this cost a failed build). `android.suppressUnsupportedOptionWarnings` is kept and **self-included** (`=android.builtInKotlin,android.newDsl,android.suppressUnsupportedOptionWarnings`) so it no longer warns about itself → removes #1a. Built-in Kotlin tolerates the legacy DSL here (verified by a fast `./gradlew :app:help --console=plain` config check before the full build). **`:libjamiclient/build.gradle.kts` has `suppressWarnings = true`** in its `kotlin { compilerOptions { } }` (mirroring `:app`) to silence the pre-existing upstream `w:` lines that surface on a clean recompile. `@file:Suppress("DEPRECATION")` atop `:app`'s `build.gradle.kts` still silences the build-script DSL deprecation.
 - **The `BasePreferenceFragment.java` unchecked note** (`@SuppressWarnings("unchecked")` on `onCreatePreferences`) is committed and independent of the above — leave it.
 - **Migration caveat for rebases:** built-in Kotlin fights upstream's deliberate `builtInKotlin=false` (blame `90da59f`, chosen for the Hilt+KSP+protobuf+kapt+native-CMake build). It can't be statically verified in the sandbox. If a future rebase/upstream bump breaks the build on this, suspect the `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` block / `tasks.withType<KotlinCompile>()` / the `JvmTarget`/`KotlinCompile` imports in `:app`; fallback is to restore `builtInKotlin=false` + the `kotlin.android` plugin alias in `:app`+root and re-mute via the self-included suppress line.
@@ -237,9 +237,9 @@ r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls
 # SWIG JNI bindings (compile.sh's prerequisite step)
 ( cd daemon/bin/jni && PACKAGEDIR="$HOME/git/shiroikuma-jami/jami-android/libjamiclient/src/main/java" ./make-swig.sh )
 
-# per-build +N tail (local counter; resets when the upstream base changes)
+# per-build +N tail (TRACKED in-repo counter; resets when the upstream base changes)
 VG="$HOME/git/shiroikuma-jami/jami-android/app/build.gradle.kts"
-counter="$HOME/tmp/.shiroikuma_jami_build"
+counter="$HOME/git/shiroikuma-jami/jami-android/shiroikuma-build.txt"
 base_vn=$(grep -oP 'versionName = "\K[^"]+' "$VG" | head -1)
 code_base=$(grep -oP 'versionCode = \K[0-9]+' "$VG" | head -1)
 stored_vn=""; stored_n=0
@@ -260,6 +260,14 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
     echo -e '\033[1;31m>>> Gradle FAILED — NO APK signed. Paste What went wrong / Caused by. Do NOT install any leftover APK.\033[0m'
   else
     echo "$base_vn $N" > "$counter"   # consume the build number only on success
+    # Persist the bump number in git so it can never be lost (a lost counter = downgrade APK).
+    # Narrow stage: ONLY the counter file. Then commit + push to origin custom.
+    ( cd ~/git/shiroikuma-jami \
+        && git add jami-android/shiroikuma-build.txt \
+        && git commit -m "build: bump version tail to ${base_vn}+${N}" \
+        && git push origin custom ) \
+      && echo -e "\033[1;36m>>> counter ${base_vn}+${N} committed + pushed\033[0m" \
+      || echo -e "\033[1;31m>>> counter commit/push failed — push jami-android/shiroikuma-build.txt manually\033[0m"
     unsigned_apk=$(ls -t app/build/outputs/apk/noPush/release/*.apk 2>/dev/null | head -1)
     r ls -lh "$unsigned_apk"
     r zipalign -p -f 4 "$unsigned_apk" /tmp/jami-aligned.apk
