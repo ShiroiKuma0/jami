@@ -643,6 +643,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
 
     fun refreshThemedViews() {
         mHomeFragment?.refreshSmartListTheme()
+        mHomeFragment?.refreshStatusDot()
         fConversation?.refreshTheme()
     }
 
