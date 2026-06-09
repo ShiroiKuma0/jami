@@ -28,12 +28,14 @@ import android.view.ViewGroup
 import android.view.accessibility.AccessibilityManager
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.SearchView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -173,22 +175,28 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         searchBar.textView.setHintTextColor(cx.ring.utils.ColorPrefs.getColor(requireContext(), cx.ring.utils.ColorPrefs.SEARCH_HINT))
         searchBar.menu.findItem(R.id.menu_split_view)?.isChecked =
             (activity as? HomeActivity)?.isSplitViewEnabled() ?: true
-        val accountStatusItem = searchBar.menu.findItem(R.id.menu_account_status)
-        mDisposable.add(mAccountService.currentAccountSubject
-            .switchMap { acc -> acc.registrationStateObservable.map { acc } }
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { acc ->
-                accountStatusItem?.setIcon(
-                    if (acc.isRegistered) R.drawable.ic_status_online else R.drawable.ic_status_offline)
-                accountStatusItem?.let { mi ->
-                    val role = if (acc.isRegistered) cx.ring.utils.ColorPrefs.STATUS_ONLINE else cx.ring.utils.ColorPrefs.STATUS_OFFLINE
-                    // Tint via the MenuItem API so the setIcon() shape swap (filled<->hollow) is left intact.
-                    androidx.core.view.MenuItemCompat.setIconTintList(mi,
-                        if (cx.ring.utils.ColorPrefs.isSet(searchBar.context, role))
-                            android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(searchBar.context, role))
-                        else null)
+        // Account online/offline dot: a resizable action view (size set in the UI page) tapped to
+        // toggle the account. Its filled<->hollow shape + colour are driven by the onStart
+        // registration subscription, which re-subscribes each onStart so the dot keeps updating
+        // after navigating away (the avatar presence dot already did; this matches it).
+        searchBar.menu.findItem(R.id.menu_account_status)?.actionView = ImageView(requireContext()).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = ViewGroup.LayoutParams(statusDotSizePx(), statusDotSizePx())
+            setImageResource(R.drawable.ic_status_offline)
+            setOnClickListener {
+                mAccountService.currentAccount?.let { acc ->
+                    mAccountService.setAccountEnabled(acc.accountId, !acc.isRegistered)
                 }
-            })
+            }
+        }
+        // Long-press the overflow ("hamburger") menu to jump straight to the UI page.
+        // doOnLayout: the action-item views only exist once the bar has been laid out.
+        searchBar.doOnLayout {
+            searchBar.findViewById<View>(R.id.menu_overflow)?.setOnLongClickListener {
+                (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
+                true
+            }
+        }
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
@@ -206,10 +214,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     val newState = !(ha?.isSplitViewEnabled() ?: true)
                     ha?.setSplitViewEnabled(newState)
                     it.isChecked = newState
-                }
-
-                R.id.menu_account_status -> mAccountService.currentAccount?.let { acc ->
-                    mAccountService.setAccountEnabled(acc.accountId, !acc.isRegistered)
                 }
             }
             true
@@ -583,8 +587,40 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             }
         )
 
+        // Drive the account online/offline dot (filled<->hollow + colour). Re-subscribed here so it
+        // keeps tracking the registration state after the fragment is stopped and restarted.
+        mDisposable.add(mAccountService.currentAccountSubject
+            .switchMap { acc -> acc.registrationStateObservable.map { acc } }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { acc -> applyStatusDot(acc.isRegistered) })
+
         if (mBinding!!.searchView.isShowing)
             startSearch()
+    }
+
+    /** Account dot side length in px, from the user-set scale (UI page) over the 24dp base. */
+    private fun statusDotSizePx(): Int = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP,
+        24f * cx.ring.utils.UiPrefs.getStatusDotScale(requireContext()),
+        resources.displayMetrics
+    ).toInt()
+
+    /** Set the dot's shape (online = filled, offline = hollow) and colour (yellow until overridden). */
+    private fun applyStatusDot(online: Boolean) {
+        val dot = mBinding?.searchBar?.menu?.findItem(R.id.menu_account_status)?.actionView as? ImageView ?: return
+        dot.setImageResource(if (online) R.drawable.ic_status_online else R.drawable.ic_status_offline)
+        val role = if (online) cx.ring.utils.ColorPrefs.STATUS_ONLINE else cx.ring.utils.ColorPrefs.STATUS_OFFLINE
+        dot.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (cx.ring.utils.ColorPrefs.isSet(dot.context, role))
+                cx.ring.utils.ColorPrefs.getColor(dot.context, role)
+            else 0xFFFFFF00.toInt())
+    }
+
+    /** Re-apply the dot size + colour after they are changed in the UI page (live refresh). */
+    fun refreshStatusDot() {
+        val dot = mBinding?.searchBar?.menu?.findItem(R.id.menu_account_status)?.actionView as? ImageView ?: return
+        dot.updateLayoutParams { width = statusDotSizePx(); height = statusDotSizePx() }
+        applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
     }
 
     override fun onStop() {
