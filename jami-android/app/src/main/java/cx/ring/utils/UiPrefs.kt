@@ -12,4 +12,10 @@ object UiPrefs {
     fun setSplitView(c: Context, on: Boolean) {
         p(c).edit().putBoolean("split_view", on).apply()
     }
+
+    /** Account online/offline dot size, as a multiple of the 24dp base. Default 1.5 (150%). */
+    fun getStatusDotScale(c: Context): Float = p(c).getFloat("status_dot_scale", 1.5f)
+    fun setStatusDotScale(c: Context, v: Float) {
+        p(c).edit().putFloat("status_dot_scale", v).apply()
+    }
 }

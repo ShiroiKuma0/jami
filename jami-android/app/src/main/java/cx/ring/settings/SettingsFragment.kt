@@ -354,6 +354,7 @@ class SettingsFragment :
             .addToBackStack("FontsSettings").commit()
         binding.fragmentContainer.isVisible = true
         binding.donateButton.isVisible = false
+        onToolbarTitleChanged("白い熊 GNU Jami UI")
         backPressedCallback.isEnabled = true
     }
 

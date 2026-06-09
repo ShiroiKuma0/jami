@@ -25,11 +25,25 @@ import cx.ring.R
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.FontPrefs
 import cx.ring.utils.FontUtil
+import cx.ring.utils.UiPrefs
 
 /** "UI fonts & colors" — grouped, inline per-element font + colour controls (App Manager treatment). */
 class FontsSettingsFragment : Fragment() {
     private data class ColorRole(val label: String, val key: String)
-    private data class Element(val label: String, val fontCategory: String?, val colors: List<ColorRole>)
+    /** A percentage slider backed by a pref (e.g. the account dot size). */
+    private data class ScaleRole(
+        val label: String,
+        val getPct: (android.content.Context) -> Int,
+        val setPct: (android.content.Context, Int) -> Unit,
+        val minPct: Int,
+        val maxPct: Int,
+    )
+    private data class Element(
+        val label: String,
+        val fontCategory: String?,
+        val colors: List<ColorRole>,
+        val scale: ScaleRole? = null,
+    )
     private data class Group(val title: String, val elements: List<Element>)
 
     private val groups = listOf(
@@ -71,6 +85,9 @@ class FontsSettingsFragment : Fragment() {
             Element("Sent / delivered icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SUCCESS))),
             Element("Account online icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_ONLINE))),
             Element("Account offline icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_OFFLINE))),
+            Element("Account dot size", null, emptyList(), ScaleRole("Size (% of default)",
+                { c -> (UiPrefs.getStatusDotScale(c) * 100f).toInt() },
+                { c, v -> UiPrefs.setStatusDotScale(c, v / 100f) }, 50, 300)),
             Element("Unread row border", null, listOf(ColorRole("Border", ColorPrefs.UNREAD_BORDER))))),
     )
 
@@ -131,7 +148,7 @@ class FontsSettingsFragment : Fragment() {
         return LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(12f), dp(30f), dp(12f), dp(6f))
+            setPadding(dp(36f), dp(30f), dp(12f), dp(6f))
             addView(TextView(ctx).apply {
                 text = title
                 setTextColor(yellow)
@@ -151,7 +168,7 @@ class FontsSettingsFragment : Fragment() {
         val col = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(28f), dp(16f), dp(12f), dp(4f))
+            setPadding(dp(84f), dp(16f), dp(12f), dp(4f))
         }
         // sub-heading: underline spans only the text width (bottom band drawable on a wrap_content view)
         col.addView(TextView(ctx).apply {
@@ -169,11 +186,12 @@ class FontsSettingsFragment : Fragment() {
             val box = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = matchWrap()
-                setPadding(dp(20f), dp(6f), 0, 0)
+                setPadding(dp(60f), dp(6f), 0, 0)
             }
             for (role in e.colors) box.addView(colorRow(role))
             col.addView(box)
         }
+        e.scale?.let { col.addView(scaleControls(it)) }
         return col
     }
 
@@ -190,7 +208,7 @@ class FontsSettingsFragment : Fragment() {
         val controls = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(20f), dp(6f), 0, 0)
+            setPadding(dp(60f), dp(6f), 0, 0)
         }
         controls.addView(miniLabel("Font"))
         controls.addView(valueRow(
@@ -236,6 +254,39 @@ class FontsSettingsFragment : Fragment() {
                     sizeValue.text = if (ns > 0f) "${ns.toInt()} sp" else "default"
                     val eff = FontPrefs.effectiveSize(ctx, category)
                     preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (eff > 0f) eff else 16f)
+                }
+                override fun onStartTrackingTouch(s: SeekBar) {}
+                override fun onStopTrackingTouch(s: SeekBar) {}
+            })
+        })
+        return controls
+    }
+
+    private fun scaleControls(role: ScaleRole): View {
+        val ctx = requireContext()
+        val controls = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(60f), dp(6f), 0, 0)
+        }
+        val cur = role.getPct(ctx)
+        controls.addView(miniLabel(role.label))
+        val value = TextView(ctx).apply {
+            text = "$cur %"
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setPadding(0, dp(2f), 0, dp(2f))
+        }
+        controls.addView(value)
+        controls.addView(SeekBar(ctx).apply {
+            max = role.maxPct - role.minPct
+            progress = (cur - role.minPct).coerceIn(0, max)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    val v = role.minPct + p
+                    role.setPct(ctx, v)
+                    value.text = "$v %"
                 }
                 override fun onStartTrackingTouch(s: SeekBar) {}
                 override fun onStopTrackingTouch(s: SeekBar) {}
