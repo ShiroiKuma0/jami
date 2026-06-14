@@ -541,6 +541,13 @@ class ConversationFacade(
                 mAccountService.setMessageDisplayed(txt.account, uri, txt.daemonIdString!!)
             }
             else mAccountService.setMessageDisplayed(txt.account, uri, txt.messageId!!)
+            // A message that arrives already-read (read on another device, or replayed by a
+            // swarm re-sync on reconnect) must never raise a notification — only clear a stale
+            // one if the conversation is now fully read.
+            startConversation(accountId, uri).subscribe { c ->
+                if (c.unreadTextMessages.isEmpty()) mNotificationService.cancelTextNotification(accountId, uri)
+            }
+            return
         }
 
         startConversation(accountId, uri).subscribe(mNotificationService::showTextNotification)

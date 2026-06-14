@@ -692,6 +692,51 @@ class AccountService(
     }
 
     /**
+     * Recover Jami accounts that have silently fallen off the DHT (stale swarms,
+     * lost presence) by replaying the manual "toggle account off/on": a sendRegister
+     * unregister→register cycle. The lighter setAccountActive flag used on plain
+     * connectivity changes does NOT rebuild the swarm/peer connections, so we
+     * re-register here instead.
+     *
+     * @param force when true (a network transport change), re-register every enabled
+     *   Jami account — existing peer/swarm connections are presumed dead even if the
+     *   account still reports REGISTERED. When false (the periodic watchdog) only
+     *   accounts that are genuinely STUCK are re-registered: an in-progress TRYING
+     *   attempt and a healthy REGISTERED account are left alone, and unrecoverable
+     *   states (ERROR_AUTH / ERROR_NEED_MIGRATION) are skipped since re-registering
+     *   can't fix them.
+     */
+    fun reconnectStaleAccounts(force: Boolean) {
+        mExecutor.execute {
+            for (a in mAccountList) {
+                if (!a.isJami || !a.isEnabled || a.isDhtProxyEnabled) continue
+                val state = a.registrationState
+                if (!force) {
+                    val stuck = when (state) {
+                        AccountConfig.RegistrationState.UNREGISTERED,
+                        AccountConfig.RegistrationState.ERROR_GENERIC,
+                        AccountConfig.RegistrationState.ERROR_NETWORK,
+                        AccountConfig.RegistrationState.ERROR_HOST,
+                        AccountConfig.RegistrationState.ERROR_SERVICE_UNAVAILABLE -> true
+                        else -> false  // REGISTERED / TRYING / INITIALIZING / ERROR_AUTH / ERROR_NEED_MIGRATION
+                    }
+                    if (!stuck) continue
+                }
+                val id = a.accountId
+                Log.w(TAG, "reconnectStaleAccounts: re-registering $id (state=$state, force=$force)")
+                JamiService.sendRegister(id, false)
+                scheduler.scheduleDirect({
+                    // Re-registering replays the swarm history; mute the stale "new message"
+                    // notifications that replay would otherwise raise on already-read conversations.
+                    NotificationService.suppressNewMessageNotificationsUntil =
+                        System.currentTimeMillis() + 15_000L
+                    JamiService.sendRegister(id, true)
+                }, 1500, TimeUnit.MILLISECONDS)
+            }
+        }
+    }
+
+    /**
      * Sets the video activation state of all the accounts in the local cache
      */
     fun setAccountsVideoEnabled(isEnabled: Boolean) {
