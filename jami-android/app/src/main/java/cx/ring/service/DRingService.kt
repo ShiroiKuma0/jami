@@ -341,6 +341,7 @@ class DRingService : Service() {
             }
             ACTION_CONV_READ, ACTION_CONV_ACCEPT, ACTION_CONV_DISMISS, ACTION_CONV_REPLY_INLINE ->
                 handleConvAction(intent, action, extras)
+            ACTION_AUTOMATION_SEND -> handleAutomationSend(intent)
             ACTION_FILE_ACCEPT, ACTION_FILE_CANCEL -> extras?.let {
                 handleFileAction(intent.data, action, it)
             }
@@ -358,6 +359,27 @@ class DRingService : Service() {
         } else if (action == ACTION_FILE_CANCEL) {
             mConversationFacade.cancelFileTransfer(path.accountId, path.conversationUri, messageId, id)
         }
+    }
+
+    /**
+     * Headless send for the external-automation surface ([cx.ring.automation.AutomationActivity]).
+     * Same proven path as [ACTION_CONV_REPLY_INLINE], but the message text rides in a plain
+     * [KEY_TEXT_REPLY] extra instead of a RemoteInput. Authorization is enforced upstream in the
+     * exported activity; by the time we get here the request is already vetted. The Rx chain waits
+     * on account load (via startConversation), so a cold-process start works.
+     */
+    private fun handleAutomationSend(intent: Intent) {
+        val path = ConversationPath.fromIntent(intent) ?: return
+        if (path.conversationId.isEmpty()) return
+        val message = intent.getStringExtra(KEY_TEXT_REPLY)?.takeIf { it.isNotEmpty() } ?: return
+        val uri = path.conversationUri
+        mDisposableBag.add(mConversationFacade.startConversation(path.accountId, uri)
+            .flatMapCompletable { c: Conversation ->
+                mConversationFacade.sendTextMessage(c, uri, message)
+                    .doOnComplete { mNotificationService.showTextNotification(c) }
+            }
+            .subscribe({ Log.i(TAG, "automation send ok -> ${path.accountId}") },
+                { e -> Log.w(TAG, "automation send failed", e) }))
     }
 
     private fun handleTrustRequestAction(uri: Uri?, action: String) {
@@ -474,6 +496,7 @@ class DRingService : Service() {
         const val ACTION_CONV_DISMISS = BuildConfig.APPLICATION_ID + ".action.CONV_DISMISS"
         const val ACTION_CONV_ACCEPT = BuildConfig.APPLICATION_ID + ".action.CONV_ACCEPT"
         const val ACTION_CONV_REPLY_INLINE = BuildConfig.APPLICATION_ID + ".action.CONV_REPLY"
+        const val ACTION_AUTOMATION_SEND = BuildConfig.APPLICATION_ID + ".action.AUTOMATION_SEND"
         const val ACTION_FILE_ACCEPT = BuildConfig.APPLICATION_ID + ".action.FILE_ACCEPT"
         const val ACTION_FILE_CANCEL = BuildConfig.APPLICATION_ID + ".action.FILE_CANCEL"
         const val KEY_MESSAGE_ID = "messageId"
