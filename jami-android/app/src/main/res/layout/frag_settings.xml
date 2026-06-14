@@ -864,6 +864,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_automation_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/CustomRelativeLayout"
+                android:padding="@dimen/padding_large">
+
+                <TextView
+                    android:id="@+id/automation_title"
+                    style="@style/ListPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Automation" />
+
+                <TextView
+                    style="@style/ListSecondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Send messages and place calls from scripts (Tasker / am)"
+                    android:layout_below="@id/automation_title" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_status_icon_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
