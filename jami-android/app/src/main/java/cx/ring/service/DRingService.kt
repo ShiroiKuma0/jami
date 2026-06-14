@@ -40,7 +40,6 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import net.jami.model.Conversation
 import net.jami.model.Settings
 import net.jami.services.*
-import java.net.InetAddress
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -92,21 +91,41 @@ class DRingService : Service() {
     private val mHandler = Handler(Looper.myLooper()!!)
     private val mDisposableBag = CompositeDisposable()
     private val mConnectivityChecker = Runnable { updateConnectivityState() }
-    private var networkDeactivationScheduled = false
-    private val mDeactivateAfterNetworkLoss = Runnable {
-        networkDeactivationScheduled = false
-        if (mDaemonService.isStarted && !mPreferencesService.hasNetworkConnected())
-            mAccountService.setAccountsActive(false)
+
+    // --- Connectivity resilience: survive network-change signals + reconnect when stale ---
+    private var mLastNetworkKey: String? = null
+    private var mNetworkPathChanged = false
+    private var mLastForceReconnect = 0L
+    private val mNetworkSettleRunnable = Runnable { onNetworkSettled() }
+    private val mForceReconnectRunnable = Runnable {
+        if (mCallService.hasActiveCall()) {
+            Log.w(TAG, "skip force-reconnect: active call")
+            return@Runnable
+        }
+        val now = SystemClock.elapsedRealtime()
+        if (now - mLastForceReconnect < FORCE_RECONNECT_MIN_INTERVAL_MS) {
+            Log.w(TAG, "skip force-reconnect: backoff")
+            return@Runnable
+        }
+        mLastForceReconnect = now
+        mAccountService.reconnectStaleAccounts(true)
+    }
+    private val mWatchdogRunnable = object : Runnable {
+        override fun run() {
+            runStaleWatchdog()
+            mHandler.postDelayed(this, WATCHDOG_INTERVAL_MS)
+        }
     }
 
     private val monitor = object : NetworkCallback() {
-        private var defaultNetwork: Network? = null
-        private var defaultAddresses: Set<InetAddress> = emptySet()
-
         fun enable(context: Context) {
             val connectivityManager = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager?
             try {
-                connectivityManager?.registerDefaultNetworkCallback(this, mHandler)
+                // Track the *default* network — the transport this app actually egresses
+                // on (for a VPN-excluded app, the underlying physical network). This is
+                // what lets us notice the path moving *under* an active VPN/WireGuard
+                // tunnel, which onAvailable alone never reported.
+                connectivityManager?.registerDefaultNetworkCallback(this)
             } catch (e: Exception) {
                 Log.e(TAG, "Can't register network callback", e)
             }
@@ -123,32 +142,18 @@ class DRingService : Service() {
         }
 
         override fun onAvailable(network: Network) {
-            if (defaultNetwork != network) {
-                Log.i(TAG, "Default network changed to $network")
-                defaultNetwork = network
-                defaultAddresses = emptySet()
-            }
-            // A network is back: keep the accounts active while its link
-            // properties are reported.
-            cancelNetworkDeactivation()
-        }
-
-        override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
-            if (network != defaultNetwork || !isRunning) return
-            val addresses = linkProperties.linkAddresses.map { it.address }.toSet()
-            if (addresses.isEmpty() || addresses == defaultAddresses) return
-            defaultAddresses = addresses
-            updateConnectivityState(true)
-            if (mDaemonService.isStarted)
-                mHardwareService.networkInterfaceChanged()
+            Log.w(TAG, "net onAvailable $network")
+            onNetworkChanged(network)
         }
 
         override fun onLost(network: Network) {
-            if (network != defaultNetwork) return
-            Log.i(TAG, "Default network lost: $network")
-            defaultNetwork = null
-            defaultAddresses = emptySet()
-            updateConnectivityState(false)
+            Log.w(TAG, "net onLost $network")
+            mLastNetworkKey = null
+            scheduleNetworkSettle()
+        }
+
+        override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+            onNetworkChanged(network, linkProperties.interfaceName)
         }
     }
 
@@ -168,6 +173,9 @@ class DRingService : Service() {
                     mConnectivityChecker.run()
                     mHandler.postDelayed(mConnectivityChecker, 100)
                 }
+                Intent.ACTION_SCREEN_ON -> {
+                    runStaleWatchdog()
+                }
             }
         }
     }
@@ -182,6 +190,7 @@ class DRingService : Service() {
         val intentFilter = IntentFilter().apply {
             addAction(ConnectivityManager.CONNECTIVITY_ACTION)
             addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
+            addAction(Intent.ACTION_SCREEN_ON)
         }
         registerReceiver(receiver, intentFilter)
         updateConnectivityState()
@@ -189,6 +198,7 @@ class DRingService : Service() {
             showSystemNotification(settings)
         })
         monitor.enable(this)
+        mHandler.postDelayed(mWatchdogRunnable, WATCHDOG_INTERVAL_MS)
         JamiApplication.instance!!.apply {
             bindDaemon()
             bootstrapDaemon()
@@ -201,8 +211,9 @@ class DRingService : Service() {
         unregisterReceiver(receiver)
         contentResolver.unregisterContentObserver(contactContentObserver)
         monitor.disable(this)
-        cancelNetworkDeactivation()
-        mHandler.removeCallbacks(mConnectivityChecker)
+        mHandler.removeCallbacks(mWatchdogRunnable)
+        mHandler.removeCallbacks(mNetworkSettleRunnable)
+        mHandler.removeCallbacks(mForceReconnectRunnable)
         mHardwareService.unregisterCameraDetectionCallback()
         mDisposableBag.clear()
         isRunning = false
@@ -255,27 +266,68 @@ class DRingService : Service() {
         updateConnectivityState(mPreferencesService.hasNetworkConnected())
     }
 
-    private fun cancelNetworkDeactivation() {
-        mHandler.removeCallbacks(mDeactivateAfterNetworkLoss)
-        networkDeactivationScheduled = false
-    }
-
     private fun updateConnectivityState(isConnected: Boolean) {
         if (mDaemonService.isStarted) {
-            if (isConnected) {
-                cancelNetworkDeactivation()
-                mAccountService.setAccountsActive(true)
-            } else if (mCallService.hasActiveCalls()) {
-                if (!networkDeactivationScheduled) {
-                    networkDeactivationScheduled = true
-                    mHandler.postDelayed(mDeactivateAfterNetworkLoss, CALL_RECOVERY_TIMEOUT_MS)
-                }
-            } else {
-                cancelNetworkDeactivation()
-                mAccountService.setAccountsActive(false)
-            }
+            mAccountService.setAccountsActive(isConnected)
             mHardwareService.connectivityChanged(isConnected)
         }
+    }
+
+    /**
+     * Called from the default-network callback. Builds a stable identity for the
+     * current network path (network handle + interface name); a change means the
+     * transport actually moved (Wi-Fi↔cell, roaming, or the path under a VPN/
+     * WireGuard tunnel changing) and existing peer/swarm connections are now dead.
+     * Coalesces bursts of callbacks via [scheduleNetworkSettle].
+     */
+    private fun onNetworkChanged(network: Network, iface: String? = null) {
+        val name = iface ?: try {
+            (getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager?)
+                ?.getLinkProperties(network)?.interfaceName
+        } catch (e: Exception) { null }
+        val key = "$network/${name ?: "?"}"
+        if (key == mLastNetworkKey) return  // no real path change (capability/keepalive churn)
+        Log.w(TAG, "network path changed: $mLastNetworkKey -> $key")
+        mLastNetworkKey = key
+        mNetworkPathChanged = true
+        scheduleNetworkSettle()
+    }
+
+    private fun scheduleNetworkSettle() {
+        mHandler.removeCallbacks(mNetworkSettleRunnable)
+        mHandler.postDelayed(mNetworkSettleRunnable, NETWORK_DEBOUNCE_MS)
+    }
+
+    /**
+     * Runs once the network has stopped flapping. Pushes current connectivity to
+     * the daemon, and — if the transport path actually moved — force-reconnects
+     * stale accounts so swarms rebuild instead of sitting dead until a manual toggle.
+     */
+    private fun onNetworkSettled() {
+        val connected = mPreferencesService.hasNetworkConnected()
+        val pathChanged = mNetworkPathChanged
+        mNetworkPathChanged = false
+        Log.w(TAG, "onNetworkSettled connected=$connected pathChanged=$pathChanged")
+        updateConnectivityState(connected)
+        if (connected && pathChanged) {
+            // Let the daemon settle on the new path, then replay the manual toggle.
+            mHandler.removeCallbacks(mForceReconnectRunnable)
+            mHandler.postDelayed(mForceReconnectRunnable, TRANSITION_RECONNECT_DELAY_MS)
+        }
+    }
+
+    /**
+     * Periodic + screen-on safety net: re-register any account that has drifted out
+     * of REGISTERED while the network is up (catches silent stalls with no further
+     * network-change signal).
+     */
+    private fun runStaleWatchdog() {
+        if (!mDaemonService.isStarted) return
+        if (!mPreferencesService.hasNetworkConnected()) return
+        if (mCallService.hasActiveCall()) return
+        // Don't pile onto a transport-change reconnect that just ran — let it settle.
+        if (SystemClock.elapsedRealtime() - mLastForceReconnect < FORCE_RECONNECT_MIN_INTERVAL_MS) return
+        mAccountService.reconnectStaleAccounts(false)
     }
 
     private fun parseIntent(intent: Intent) {
@@ -406,6 +458,12 @@ class DRingService : Service() {
 
     companion object {
         private val TAG = DRingService::class.java.simpleName
+
+        // Connectivity resilience tuning.
+        private const val NETWORK_DEBOUNCE_MS = 1500L            // coalesce callback bursts
+        private const val TRANSITION_RECONNECT_DELAY_MS = 4000L  // settle on new path before re-register
+        private const val FORCE_RECONNECT_MIN_INTERVAL_MS = 20_000L // backoff against flapping
+        private const val WATCHDOG_INTERVAL_MS = 90_000L         // periodic stale-account safety net
         const val ACTION_TRUST_REQUEST_ACCEPT = BuildConfig.APPLICATION_ID + ".action.TRUST_REQUEST_ACCEPT"
         const val ACTION_TRUST_REQUEST_REFUSE = BuildConfig.APPLICATION_ID + ".action.TRUST_REQUEST_REFUSE"
         const val ACTION_TRUST_REQUEST_BLOCK = BuildConfig.APPLICATION_ID + ".action.TRUST_REQUEST_BLOCK"
@@ -422,7 +480,6 @@ class DRingService : Service() {
         const val KEY_TRANSFER_ID = "transferId"
         const val KEY_TEXT_REPLY = "textReply"
         private const val NOTIFICATION_ID = 1
-        private const val CALL_RECOVERY_TIMEOUT_MS = 20_000L
         var isRunning = false
     }
 }
