@@ -348,6 +348,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:theme="@style/AppTheme.Fullscreen"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Exported, headless entry point for external automation (Tasker / OpenTasker / am).
+             Token-gated at runtime via AutomationPrefs; see AutomationActivity. -->
+        <activity
+            android:name=".automation.AutomationActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="shiroikuma.jami.action.SEND_MESSAGE" />
+                <action android:name="shiroikuma.jami.action.PLACE_CALL" />
+                <action android:name="shiroikuma.jami.action.PLACE_VIDEO_CALL" />
+                <action android:name="shiroikuma.jami.action.OPEN_CONVERSATION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="jami-cmd" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".service.DRingService"
             android:exported="false"
