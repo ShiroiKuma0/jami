@@ -552,6 +552,13 @@ class NotificationServiceImpl(
         if ((conversation.isBubble && texts.isEmpty()) || texts.lastEntry()!!.value.isNotified) {
             return
         }
+        // Mute stale notifications during the post-reconnect swarm re-sync window: a re-register
+        // replays old messages and, before their read markers re-apply, they momentarily look
+        // unread and would re-notify already-read conversations across every account.
+        if (System.currentTimeMillis() < NotificationService.suppressNewMessageNotificationsUntil) {
+            Log.w(TAG, "showTextNotification: suppressed during reconnect re-sync window")
+            return
+        }
         Log.w(TAG, "showTextNotification " + conversation.accountId + " " + conversation.uri)
         mContactService.getLoadedConversation(conversation)
             .subscribe({ cvm -> textNotification(texts, cvm) })
