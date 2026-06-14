@@ -47,6 +47,10 @@ abstract class CallService(
     // ConcurrentHashMap: mutated by daemon callbacks while hasActiveCalls()/currentConferences()
     // iterate it from another thread, so its iterator must not throw on concurrent edits.
     private val conferences: MutableMap<String, Conference> = ConcurrentHashMap()
+
+    /** True if any call is currently tracked — used to avoid re-registering an
+     *  account (which can disrupt signaling) while a call is in progress. */
+    fun hasActiveCall(): Boolean = synchronized(calls) { calls.isNotEmpty() }
     private val callSubject = PublishSubject.create<Call>()
     private val conferenceSubject = PublishSubject.create<Conference>()
 
