@@ -19,6 +19,8 @@ package cx.ring.fragments
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
@@ -29,6 +31,8 @@ import android.view.accessibility.AccessibilityManager
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.SearchView
@@ -68,6 +72,8 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import net.jami.home.HomePresenter
 import net.jami.home.HomeView
+import net.jami.model.Account
+import net.jami.model.AccountConfig
 import net.jami.model.Conversation
 import net.jami.services.AccountService
 import net.jami.services.ConversationFacade
@@ -183,11 +189,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = ViewGroup.LayoutParams(statusDotSizePx(), statusDotSizePx())
             setImageResource(R.drawable.ic_status_offline)
-            setOnClickListener {
-                mAccountService.currentAccount?.let { acc ->
-                    mAccountService.setAccountEnabled(acc.accountId, !acc.isRegistered)
-                }
-            }
+            // Tap: live connection-status diagnostic (with a Reconnect action inside).
+            setOnClickListener { showConnectionStatusDialog() }
+            // Long-press: reconnect / re-register everything immediately.
+            setOnLongClickListener { reconnectAllWithFeedback(); true }
         }
         // Long-press the overflow ("hamburger") menu to jump straight to the UI page.
         // doOnLayout: the action-item views only exist once the bar has been laid out.
@@ -621,6 +626,111 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val dot = mBinding?.searchBar?.menu?.findItem(R.id.menu_account_status)?.actionView as? ImageView ?: return
         dot.updateLayoutParams { width = statusDotSizePx(); height = statusDotSizePx() }
         applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
+    }
+
+    /** Tap the account dot → live connection-status diagnostic + a Reconnect action.
+     *  Surfaces the one signal that distinguishes a healthy account from the
+     *  "registered but swarms dead" state: the daemon's live peer-connection count. */
+    private fun showConnectionStatusDialog() {
+        val ctx = context ?: return
+        val account = mAccountService.currentAccount ?: run {
+            Toast.makeText(ctx, "No account", Toast.LENGTH_SHORT).show(); return
+        }
+        val pad = (20 * ctx.resources.displayMetrics.density).toInt()
+        val tv = TextView(ctx).apply {
+            setPadding(pad, pad, pad, pad)
+            setTextColor(0xFFFFFF00.toInt())
+            text = "Checking…"
+        }
+        val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
+            .setTitle("Connection status")
+            .setView(tv)
+            .setPositiveButton("Reconnect now") { _, _ -> reconnectAllWithFeedback() }
+            .setNegativeButton("Close", null)
+            .create()
+        val dis = CompositeDisposable()
+        dialog.setOnDismissListener { dis.clear() }
+        dis.add(mAccountService.monitorConnections()
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ (_, peers) ->
+                val conns = peers.sumOf { it.second.size }
+                tv.text = buildConnectionStatusText(account, conns, peers.size)
+            }, { e ->
+                tv.text = "Error reading connections:\n${e.message}"
+            }))
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(
+            AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow))
+        styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE))
+        styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE))
+    }
+
+    /** Black fill, yellow text + 2dp yellow border — matches the app's black/yellow chrome. */
+    private fun styleDialogButton(button: android.widget.Button?) {
+        val b = button ?: return
+        val yellow = 0xFFFFFF00.toInt()
+        b.setTextColor(yellow)
+        if (b is com.google.android.material.button.MaterialButton) {
+            b.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFF000000.toInt())
+            b.strokeColor = android.content.res.ColorStateList.valueOf(yellow)
+            b.strokeWidth = (2 * resources.displayMetrics.density).toInt()
+        } else {
+            b.setBackgroundResource(R.drawable.dialog_black_yellow)
+        }
+    }
+
+    private fun buildConnectionStatusText(account: Account, conns: Int, peers: Int): String {
+        val netLabel = networkLabel()
+        val reg = account.registrationState.name
+        val name = account.registeredName.ifBlank { account.alias.orEmpty() }.ifBlank { account.accountId }
+        val verdict = when {
+            netLabel == null -> "✗ No network"
+            account.registrationState != AccountConfig.RegistrationState.REGISTERED -> "✗ Off the DHT ($reg)"
+            conns == 0 -> "⚠ Stale — registered but no peer connections.\nTap “Reconnect now”."
+            else -> "✓ Healthy"
+        }
+        return buildString {
+            append("Account: $name\n")
+            append("Registration: $reg\n")
+            append("Network: ${netLabel ?: "none"}\n")
+            append("Peer connections: $conns (across $peers peer(s))\n\n")
+            append(verdict)
+        }
+    }
+
+    private fun networkLabel(): String? {
+        val cm = context?.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return null
+        val n = cm.activeNetwork ?: return null
+        val caps = cm.getNetworkCapabilities(n) ?: return null
+        return when {
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "VPN"
+            else -> "Other"
+        }
+    }
+
+    /** Long-press the dot / "Reconnect now": replay the manual toggle for all accounts.
+     *  The dot blinks hollow→filled as the account re-registers (built-in feedback). */
+    private fun reconnectAllWithFeedback() {
+        mAccountService.reconnectStaleAccounts(true)
+        showReconnectFlash("Reconnecting…")
+    }
+
+    /** Brief flash, same black / yellow-text / yellow-border look as the dialog buttons. */
+    private fun showReconnectFlash(msg: String) {
+        val ctx = context ?: return
+        val padH = (16 * ctx.resources.displayMetrics.density).toInt()
+        val padV = (10 * ctx.resources.displayMetrics.density).toInt()
+        val tv = TextView(ctx).apply {
+            text = msg
+            setTextColor(0xFFFFFF00.toInt())
+            setPadding(padH, padV, padH, padV)
+            background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
+        }
+        @Suppress("DEPRECATION")
+        Toast(ctx).apply { duration = Toast.LENGTH_SHORT; view = tv; show() }
     }
 
     override fun onStop() {
