@@ -49,6 +49,11 @@ interface NotificationService {
     fun testPushNotification(accountId: String)
 
     companion object {
+        /** Wall-clock millis (System.currentTimeMillis) until which new-message notifications
+         *  are muted. Set during a reconnect: the sendRegister re-sync replays a swarm's old
+         *  messages, which would otherwise re-notify already-read conversations. */
+        @Volatile var suppressNewMessageNotificationsUntil: Long = 0L
+
         const val NOTIF_TRUST_REQUEST_ACCOUNT_ID = "NOTIF_TRUST_REQUEST_ACCOUNT_ID"
         const val NOTIF_TRUST_REQUEST_MULTIPLE = "NOTIFICATION_TRUST_REQUEST_MULTIPLE"
         const val KEY_CALL_ID = "callId"
