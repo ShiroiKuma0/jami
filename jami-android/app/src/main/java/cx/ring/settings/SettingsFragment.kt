@@ -163,6 +163,9 @@ class SettingsFragment :
             settingsFontsLayout.setOnClickListener {
                 goToFontsSettings()
             }
+            settingsAutomationLayout.setOnClickListener {
+                goToAutomationSettings()
+            }
             settingsStatusIconLayout.setOnClickListener { showStatusIconSizeDialog() }
             settingsStatusIconValue.text = String.format(java.util.Locale.US, "%.2f×", FontPrefs.getStatusIconLines(requireContext()))
             settingsSplitView.isChecked = UiPrefs.isSplitView(requireContext())
@@ -355,6 +358,20 @@ class SettingsFragment :
         binding.fragmentContainer.isVisible = true
         binding.donateButton.isVisible = false
         onToolbarTitleChanged("白い熊 GNU Jami UI")
+        backPressedCallback.isEnabled = true
+    }
+
+    private fun goToAutomationSettings() {
+        val binding = binding ?: return
+        val content = AutomationSettingsFragment()
+        childFragmentManager
+            .beginTransaction()
+            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+            .replace(R.id.fragment_container, content, "AutomationSettings")
+            .addToBackStack("AutomationSettings").commit()
+        binding.fragmentContainer.isVisible = true
+        binding.donateButton.isVisible = false
+        onToolbarTitleChanged("Automation")
         backPressedCallback.isEnabled = true
     }
 
