@@ -31,6 +31,7 @@ import android.view.ViewConfiguration
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomappbar.BottomAppBar
@@ -194,8 +195,8 @@ class MediaViewerFragment : Fragment() {
             data?.data?.let { uri ->
                 AndroidFileUtils.copyUri(requireContext().contentResolver, mUri!!, uri)
                     .observeOn(DeviceUtils.uiScheduler)
-                    .subscribe({ Toast.makeText(context, R.string.file_saved_successfully, Toast.LENGTH_SHORT).show() })
-                    { Toast.makeText(context, R.string.generic_error, Toast.LENGTH_SHORT).show() }
+                    .subscribe({ Flash.show(context, R.string.file_saved_successfully, Toast.LENGTH_SHORT) })
+                    { Flash.show(context, R.string.generic_error, Toast.LENGTH_SHORT) }
             }
         } else
             super.onActivityResult(requestCode, resultCode, data)
