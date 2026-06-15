@@ -21,6 +21,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -97,11 +98,11 @@ class ConversationActionsFragment : Fragment() {
 
         descriptionPanel.setOnClickListener {
             if (!conversation.isUserGroupAdmin()) {
-                Toast.makeText(
+                Flash.show(
                     requireContext(),
                     R.string.not_admin_toast,
                     Toast.LENGTH_SHORT
-                ).show()
+                )
                 return@setOnClickListener
             }
             val dialogBinding = DialogSwarmTitleBinding.inflate(LayoutInflater.from(requireContext())).apply {

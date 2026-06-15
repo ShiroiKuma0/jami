@@ -26,6 +26,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -313,11 +314,11 @@ class RingtoneActivity : AppCompatActivity() {
                 AndroidFileUtils.getCacheFile(this, uri)
                     .observeOn(DeviceUtils.uiScheduler)
                     .subscribe({ ringtone: File -> onFileFound(ringtone) }) {
-                        Toast.makeText(
+                        Flash.show(
                             this,
                             getString(R.string.load_ringtone_error),
                             Toast.LENGTH_SHORT
-                        ).show()
+                        )
                     }
             }
         }

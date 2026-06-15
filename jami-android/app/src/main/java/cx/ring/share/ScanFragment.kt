@@ -32,6 +32,7 @@ import cx.ring.fragments.QRCodeFragment
 import com.google.zxing.ResultPoint
 import android.view.View
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import cx.ring.client.HomeActivity
@@ -68,11 +69,11 @@ class ScanFragment : BaseSupportFragment<ScanPresenter, ScanView>(), ScanView {
             if (uri.isEmpty || !uri.isJami) {
                 val now = System.currentTimeMillis()
                 if (now - lastFailTime > INVALID_SCAN_MIN_TIME) {
-                    Toast.makeText(
+                    Flash.show(
                         context,
                         getString(R.string.qr_code_not_contact),
                         Toast.LENGTH_SHORT
-                    ).show()
+                    )
                     lastFailTime = now
                 }
                 return

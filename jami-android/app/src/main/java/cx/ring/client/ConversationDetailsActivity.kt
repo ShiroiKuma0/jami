@@ -31,6 +31,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.widget.ImageView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
@@ -236,7 +237,7 @@ class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.O
                     // Block conversation edition for non-admin users.
                     binding.addMember.isVisible = true
                     fun showNotAdminToast() =
-                        Toast.makeText(this, R.string.not_admin_toast, Toast.LENGTH_SHORT).show()
+                        Flash.show(this, R.string.not_admin_toast, Toast.LENGTH_SHORT)
                     binding.conversationTitle.setOnClickListener { showNotAdminToast() }
                     binding.conversationAvatar.setOnClickListener { showNotAdminToast() }
                 } else {
@@ -402,7 +403,7 @@ class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.O
         } catch (e: Exception) {
             Log.e(TAG, "Error launching camera", e)
         } finally {
-            Toast.makeText(this, getString(R.string.camera_error), Toast.LENGTH_SHORT).show()
+            Flash.show(this, getString(R.string.camera_error), Toast.LENGTH_SHORT)
         }
     }
 

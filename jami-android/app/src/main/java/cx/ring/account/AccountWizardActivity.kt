@@ -25,6 +25,7 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -214,11 +215,11 @@ class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWiz
     }
 
     override fun displayCreationError() {
-        Toast.makeText(
+        Flash.show(
             this@AccountWizardActivity,
             getString(R.string.account_creation_error),
             Toast.LENGTH_SHORT
-        ).show()
+        )
     }
 
     override fun blockOrientation() {

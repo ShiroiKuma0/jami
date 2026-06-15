@@ -27,6 +27,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -111,7 +112,7 @@ class ExtensionsListSettingsFragment : Fragment(), ExtensionListItemListener {
             unloadExtension(extensionDetails.rootPath)
             status = getString(R.string.unload_success, extensionDetails.name)
         }
-        Toast.makeText(requireContext(), status, Toast.LENGTH_SHORT).show()
+        Flash.show(requireContext(), status, Toast.LENGTH_SHORT)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -171,8 +172,7 @@ class ExtensionsListSettingsFragment : Fragment(), ExtensionListItemListener {
                     }
                     mAdapter!!.updateExtensionsList(getInstalledExtensions(requireContext()))
                     showLoading(false)
-                    Toast.makeText(requireContext(), getString(R.string.install_success, filename), Toast.LENGTH_LONG)
-                        .show()
+                    Flash.show(requireContext(), getString(R.string.install_success, filename), Toast.LENGTH_LONG)
                 }) { e: Throwable ->
                     if (binding != null) {
                         Log.e(TAG, "An error occurred while importing the extension.", e)
