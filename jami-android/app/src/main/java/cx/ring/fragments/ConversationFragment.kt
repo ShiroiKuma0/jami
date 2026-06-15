@@ -16,6 +16,8 @@
  */
 package cx.ring.fragments
 
+import cx.ring.utils.Flash
+
 import android.Manifest
 import android.animation.LayoutTransition
 import android.animation.ValueAnimator
@@ -229,7 +231,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             Error.NO_SPACE_LEFT -> getString(R.string.no_space_left_on_device)
             else -> getString(R.string.generic_error)
         }
-        Toast.makeText(requireContext(), errorString, Toast.LENGTH_LONG).show()
+        Flash.show(requireContext(), errorString, Toast.LENGTH_LONG)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -658,7 +660,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
                 startActivityForResult(intent, REQUEST_CODE_CAPTURE_VIDEO)
             } catch (ex: Exception) {
                 Log.e(TAG, "sendVideoMessage: error", ex)
-                Toast.makeText(activity, getString(R.string.video_recorder_error), Toast.LENGTH_SHORT).show()
+                Flash.show(activity, getString(R.string.video_recorder_error), Toast.LENGTH_SHORT)
             }
         }
     }
@@ -681,8 +683,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             mCurrentPhoto = photoFile
             startActivityForResult(takePictureIntent, REQUEST_CODE_TAKE_PICTURE)
         } catch (e: Exception) {
-            Toast.makeText(c, getString(R.string.taking_picture_error), Toast.LENGTH_SHORT)
-                .show()
+            Flash.show(c, getString(R.string.taking_picture_error), Toast.LENGTH_SHORT)
         }
     }
 
@@ -751,7 +752,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             if (sendingFile != null)
                 startFileSend(sendingFile.flatMapCompletable { f -> sendFile(f) })
             else
-                Toast.makeText(activity, getString(R.string.find_picture_error), Toast.LENGTH_SHORT).show()
+                Flash.show(activity, getString(R.string.find_picture_error), Toast.LENGTH_SHORT)
         } else if (requestCode == REQUEST_CODE_SAVE_FILE) {
             val uri = resultData?.data
             if (resultCode == Activity.RESULT_OK && uri != null) {
@@ -772,8 +773,8 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         val cr = context?.contentResolver ?: return
         mCompositeDisposable.add(AndroidFileUtils.copyFileToUri(cr, File(path), data)
             .observeOn(DeviceUtils.uiScheduler)
-            .subscribe({ Toast.makeText(context, R.string.file_saved_successfully, Toast.LENGTH_SHORT).show() })
-            { Toast.makeText(context, R.string.generic_error, Toast.LENGTH_SHORT).show() })
+            .subscribe({ Flash.show(context, R.string.file_saved_successfully, Toast.LENGTH_SHORT) })
+            { Flash.show(context, R.string.generic_error, Toast.LENGTH_SHORT) })
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
