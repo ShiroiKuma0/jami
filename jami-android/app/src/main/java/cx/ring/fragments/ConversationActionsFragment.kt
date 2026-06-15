@@ -21,6 +21,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -39,16 +40,15 @@ import cx.ring.utils.ActionHelper
 import cx.ring.utils.ConversationPath
 import cx.ring.utils.DeviceUtils
 import cx.ring.utils.TextUtils.copyAndShow
-import cx.ring.views.setDate
 import dagger.hilt.android.AndroidEntryPoint
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 import net.jami.model.Contact
 import net.jami.model.Conversation
 import net.jami.model.Uri
 import net.jami.services.AccountService
 import net.jami.services.ConversationFacade
+import net.jami.utils.Log
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -80,16 +80,29 @@ class ConversationActionsFragment : Fragment() {
         conversationIdPanel.setOnClickListener {
             copyAndShow(requireContext(), getString(R.string.swarm_id), path.conversationId)
         }
+        userNamePanel.setOnClickListener {
+            copyAndShow(
+                requireContext(),
+                getString(R.string.clip_contact_uri), binding?.userName?.text.toString()
+            )
+        }
+        identifierPanel.setOnClickListener {
+            copyAndShow(
+                requireContext(),
+                getString(R.string.clip_contact_uri), binding?.identifier?.text.toString()
+            )
+        }
+
         conversationId.text = conversationUri
         conversationPath = path
 
         descriptionPanel.setOnClickListener {
-            if (!conversation.isUserGroupAdmin() || !conversation.canUpdateProfile()) {
-                Toast.makeText(
+            if (!conversation.isUserGroupAdmin()) {
+                Flash.show(
                     requireContext(),
-                    if (conversation.effectiveMode == Conversation.Mode.Feed) R.string.feed_not_admin else R.string.not_admin_toast,
+                    R.string.not_admin_toast,
                     Toast.LENGTH_SHORT
-                ).show()
+                )
                 return@setOnClickListener
             }
             val dialogBinding = DialogSwarmTitleBinding.inflate(LayoutInflater.from(requireContext())).apply {
@@ -98,18 +111,13 @@ class ConversationActionsFragment : Fragment() {
             }
             MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogBinding.root)
-                .setTitle(if (conversation.effectiveMode == Conversation.Mode.Feed) R.string.feed_edit_description else R.string.dialogtitle_description)
+                .setTitle(getString(R.string.dialogtitle_description))
                 .setPositiveButton(R.string.rename_btn) { d, _: Int ->
                     val input = dialogBinding.titleTxt.text.toString().trim { it <= ' ' }
-                    mDisposableBag.add(mAccountService.updateConversationInfo(
+                    mAccountService.updateConversationInfo(
                         conversationPath.accountId,
                         conversationPath.conversationUri.host,
                         mapOf("description" to input))
-                        .observeOn(DeviceUtils.uiScheduler)
-                        .subscribe({}, { error ->
-                            net.jami.utils.Log.e("ConversationActions", "Cannot update conversation profile", error)
-                            Toast.makeText(requireContext(), R.string.generic_error, Toast.LENGTH_SHORT).show()
-                        }))
                     d.dismiss()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -154,20 +162,9 @@ class ConversationActionsFragment : Fragment() {
             if (!path.conversationUri.isSwarm) conversation.setNotification(!isMuted)
         }
 
-        mDisposableBag.add(Observable.combineLatest(
-            conversation.profile, conversation.permissions.startWithItem(emptySet())
-        ) { profile, _ -> profile }
+        mDisposableBag.add(conversation.profile
             .observeOn(DeviceUtils.uiScheduler)
-            .subscribe { profile ->
-                description.text = profile.description
-                descriptionPanel.isClickable = conversation.isUserGroupAdmin() && conversation.canUpdateProfile()
-            })
-
-        mDisposableBag.add(conversation.joinedDate
-            .observeOn(DeviceUtils.uiScheduler)
-            .subscribe {
-                conversationJoinedDate.setDate(R.string.conversation_joined_date, it)
-            })
+            .subscribe { profile -> description.text = profile.description })
 
         // Update color on RX color signal.
         mDisposableBag.add(conversation.getColor()
@@ -187,45 +184,39 @@ class ConversationActionsFragment : Fragment() {
         // Setup card with
         //  - conversation type (such as "Private swarm")
         //  - conversation id (such as swarm:1234)"
-        val conversationMode = conversation.effectiveMode
+        // The real conversation mode is hidden in TrustRequest when it's a request.
+        val conversationMode =
+            if (conversation.mode.blockingFirst() == Conversation.Mode.Request)
+                conversation.request!!.mode
+            else conversation.mode.blockingFirst()
 
         if (conversationMode == Conversation.Mode.OneToOne || conversation.isLegacy()) {
-            mDisposableBag.add(conversation.contactUpdates
-                .map { contacts -> contacts.filterNot { it.isUser } }
-                .filter(List<Contact>::isNotEmpty)
-                .map { it.first() }
-                .switchMap { contact ->
-                    contact.updatesSubject.startWithItem(contact).flatMapSingle {
-                        (it.username ?: Single.just("")).map { name -> Pair(it, name) }
+            mDisposableBag.add(
+                conversation.contactUpdates
+                    // Filter out the user.
+                    .map { contacts -> contacts.filterNot { it.isUser } }
+                    .filter(List<Contact>::isNotEmpty)
+                    .map { it.first() }
+                    .flatMapSingle { contact ->
+                        contact.username?.map { username -> Pair(username, contact.uri) }
+                            ?: Single.just(Pair("", contact.uri))
+                    }.observeOn(DeviceUtils.uiScheduler)
+                    .subscribe { (registeredName, identifier) ->
+                        userNamePanel.isVisible = registeredName.isNotEmpty()
+                        userName.text = registeredName
+                        this.identifier.text = identifier.uri
+                        secureP2pConnection.setOnClickListener {
+                            startActivity(Intent(Intent.ACTION_VIEW, ConversationPath.toUri(
+                                conversation.accountId,
+                                identifier.rawRingId
+                            )).setClass(requireContext(), CertificateViewerActivity::class.java))
+                        }
+                        shareButton.setOnClickListener {
+                            shareContact(registeredName.ifEmpty { identifier.uri })
+                        }
+                        qrCode.setOnClickListener { showContactQRCode(identifier) }
                     }
-                }
-                .observeOn(DeviceUtils.uiScheduler)
-                .subscribe { (contact, registeredName) ->
-                    val identifier = contact.uri
-                    contactPanel.isVisible = true
-                    contactSectionHeader.isVisible = true
-                    userNamePanel.isVisible = registeredName.isNotEmpty()
-                    userName.text = registeredName
-                    this.identifier.text = identifier.uri
-                    contactAddedDate.setDate(R.string.contact_added_date, contact.addedDate?.time ?: 0L)
-                    contactRemovedDate.setDate(R.string.contact_removed_date, contact.removedDate?.time ?: 0L)
-                    identifierPanel.setOnClickListener {
-                        copyAndShow(requireContext(), getString(R.string.clip_contact_uri), identifier.uri)
-                    }
-                    userNamePanel.setOnClickListener {
-                        copyAndShow(requireContext(), getString(R.string.clip_contact_uri), registeredName)
-                    }
-                    secureP2pConnection.setOnClickListener {
-                        startActivity(Intent(Intent.ACTION_VIEW, ConversationPath.toUri(
-                            conversation.accountId,
-                            identifier.rawRingId
-                        )).setClass(requireContext(), CertificateViewerActivity::class.java))
-                    }
-                    shareButton.setOnClickListener {
-                        shareContact(registeredName.ifEmpty { identifier.uri })
-                    }
-                    qrCode.setOnClickListener { showContactQRCode(identifier) }
-                })
+            )
             conversationDelete.setOnClickListener {
                 if (conversation.isLegacy())
                     ActionHelper.launchAddContactAction(
@@ -242,8 +233,7 @@ class ConversationActionsFragment : Fragment() {
                 else if (conversation.mode.blockingFirst() == Conversation.Mode.Request)
                     mDisposableBag.add(ActionHelper.launchAcceptInvitation(
                         context = requireContext(),
-                        conversation = conversation,
-                        conversationFacade = mConversationFacade
+                        conversation = conversation
                     ) {
                         mConversationFacade.acceptRequest(it)
                         val resultIntent = Intent()
@@ -328,7 +318,6 @@ class ConversationActionsFragment : Fragment() {
                 conversationRemove.isVisible = false
                 blockContact.text = resources.getString(R.string.conversation_action_unblock_this)
                 conversationDetailsPanel.visibility = View.GONE
-                conversationSectionHeader.visibility = View.GONE
                 conversationActionsPanel.visibility = View.GONE
             }
 
@@ -338,7 +327,6 @@ class ConversationActionsFragment : Fragment() {
                 conversationRemove.isVisible = false
                 conversationActionsPanel.visibility = View.GONE
                 conversationDetailsPanel.visibility = View.GONE
-                conversationSectionHeader.visibility = View.GONE
                 conversationDelete.isVisible = !mAccountService.currentAccount!!.isSip
                 conversationDelete.text = resources.getString(R.string.ab_action_contact_add)
             } else if (conversation.mode.blockingFirst() == Conversation.Mode.Request) {
@@ -349,15 +337,14 @@ class ConversationActionsFragment : Fragment() {
                 conversationDelete.text = resources.getString(R.string.delete_contact)
             }
         } else {    // If conversation mode is not one to one
-            contactPanel.isVisible = false
-            contactSectionHeader.isVisible = false
-            conversationDelete.setText(if (conversationMode == Conversation.Mode.Feed) R.string.leave_feed else R.string.leave_conversation)
+            privateConversationPanel.isVisible = false
+            userNamePanel.isVisible = false
+            conversationDelete.text = resources.getString(R.string.leave_conversation)
             conversationDelete.setOnClickListener {
                 if (conversation.mode.blockingFirst() == Conversation.Mode.Request)
                     mDisposableBag.add(ActionHelper.launchAcceptInvitation(
                         context = requireContext(),
-                        conversation = conversation,
-                        conversationFacade = mConversationFacade
+                        conversation = conversation
                     ) {
                         mConversationFacade.acceptRequest(it)
                         val resultIntent = Intent()
@@ -370,7 +357,6 @@ class ConversationActionsFragment : Fragment() {
                         context = requireContext(),
                         accountId = mAccountService.currentAccount!!.accountId,
                         uri = conversation.uri,
-                        isFeed = conversationMode == Conversation.Mode.Feed,
                         callback = { accountId: String, conversationUri: Uri ->
                             mConversationFacade.removeConversation(accountId, conversationUri)
                                 .subscribe().apply { mDisposableBag.add(this) }
@@ -382,9 +368,7 @@ class ConversationActionsFragment : Fragment() {
             }
 
             if (conversation.mode.blockingFirst() == Conversation.Mode.Request) {
-                conversationDelete.setText(
-                    if (conversationMode == Conversation.Mode.Feed) R.string.join_feed else R.string.accept_invitation
-                )
+                conversationDelete.text = resources.getString(R.string.accept_invitation)
                 conversationActionsPanel.visibility = View.GONE
             }
 
@@ -394,10 +378,10 @@ class ConversationActionsFragment : Fragment() {
 
         @StringRes val infoString =
             if (conversation.isSwarm) {
-                when (conversationMode) {
-                    Conversation.Mode.OneToOne -> R.string.conversation_type_private
-                    Conversation.Mode.Feed -> R.string.conversation_type_feed
-                    else -> R.string.conversation_type_group
+                if (conversationMode == Conversation.Mode.OneToOne)
+                    R.string.conversation_type_private
+                else {
+                    R.string.conversation_type_group
                 }
             } else R.string.conversation_type_contact
 
@@ -450,7 +434,11 @@ class ConversationActionsFragment : Fragment() {
         sharingIntent.putExtra(Intent.EXTRA_SUBJECT, getText(R.string.share_contact_intent_title))
         sharingIntent.putExtra(
             Intent.EXTRA_TEXT,
-            getString(R.string.share_contact_intent_body, displayName, getText(R.string.app_website))
+            getString(
+                R.string.share_contact_intent_body,
+                displayName,
+                getText(R.string.app_website)
+            )
         )
         startActivity(Intent.createChooser(sharingIntent, getText(R.string.share_via)))
     }

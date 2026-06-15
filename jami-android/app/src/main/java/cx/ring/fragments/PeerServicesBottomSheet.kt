@@ -26,6 +26,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
@@ -80,7 +81,7 @@ class PeerServicesBottomSheet : BottomSheetDialogFragment() {
     private fun copyToClipboard(text: String) {
         val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText("Service endpoint", text))
-        Toast.makeText(requireContext(), cx.ring.R.string.peer_services_link_copied, Toast.LENGTH_SHORT).show()
+        Flash.show(requireContext(), cx.ring.R.string.peer_services_link_copied, Toast.LENGTH_SHORT)
     }
 
     private fun render(b: FragPeerServicesBinding, adapter: ServiceAdapter, state: PeerServicesUiState) {

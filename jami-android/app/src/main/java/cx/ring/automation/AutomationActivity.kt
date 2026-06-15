@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.ComponentActivity
 import cx.ring.BuildConfig
 import cx.ring.client.CallActivity
@@ -154,7 +155,7 @@ class AutomationActivity : ComponentActivity() {
 
     private fun reject(reason: String) {
         Log.w(TAG, "automation $reason")
-        Toast.makeText(applicationContext, "Jami automation $reason", Toast.LENGTH_SHORT).show()
+        Flash.show(applicationContext, "Jami automation $reason", Toast.LENGTH_SHORT)
     }
 
     companion object {

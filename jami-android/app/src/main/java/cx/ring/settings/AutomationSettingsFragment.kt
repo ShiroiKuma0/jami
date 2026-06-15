@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.fragment.app.Fragment
 import com.google.android.material.materialswitch.MaterialSwitch
 import cx.ring.utils.AutomationPrefs
@@ -91,14 +92,14 @@ class AutomationSettingsFragment : Fragment() {
             setOnClickListener {
                 val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 cm.setPrimaryClip(ClipData.newPlainText("Jami automation token", AutomationPrefs.getToken(ctx)))
-                Toast.makeText(ctx, "Token copied", Toast.LENGTH_SHORT).show()
+                Flash.show(ctx, "Token copied", Toast.LENGTH_SHORT)
             }
         })
         buttons.addView(Button(ctx).apply {
             text = "Regenerate"
             setOnClickListener {
                 tokenView?.text = AutomationPrefs.regenerateToken(ctx)
-                Toast.makeText(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG).show()
+                Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
             }
         })
         root.addView(buttons)

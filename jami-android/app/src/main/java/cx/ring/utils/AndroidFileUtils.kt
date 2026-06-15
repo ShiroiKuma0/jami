@@ -573,8 +573,8 @@ object AndroidFileUtils {
                 putExtra(Intent.EXTRA_STREAM, uri)
             })
         } catch (e: Exception) {
-            Toast.makeText(c,
-                c.getString(R.string.error_open_no_app_found, displayName), Toast.LENGTH_SHORT).show()
+            Flash.show(c,
+                c.getString(R.string.error_open_no_app_found, displayName), Toast.LENGTH_SHORT)
         }
     }
 

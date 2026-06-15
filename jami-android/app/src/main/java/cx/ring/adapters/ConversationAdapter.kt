@@ -42,6 +42,7 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.annotation.ColorInt
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityOptionsCompat
@@ -1053,7 +1054,7 @@ class ConversationAdapter(
 
         imageView.setOnClickListener {
             if (!path.exists()) {
-                Toast.makeText(context, R.string.video_not_found, Toast.LENGTH_SHORT).show()
+                Flash.show(context, R.string.video_not_found, Toast.LENGTH_SHORT)
                 return@setOnClickListener
             }
             try {
@@ -1750,7 +1751,7 @@ class ConversationAdapter(
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, url))
                             } catch (_: Exception) {
-                                Toast.makeText(context, R.string.conversation_open_file_error, Toast.LENGTH_SHORT).show()
+                                Flash.show(context, R.string.conversation_open_file_error, Toast.LENGTH_SHORT)
                             }
                         }
                     }) { e -> Log.e(TAG, "Can't load preview", e) })
