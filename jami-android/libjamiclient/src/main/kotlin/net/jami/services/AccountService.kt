@@ -760,6 +760,46 @@ class AccountService(
     }
 
     /**
+     * User-initiated "Reconnect now" (the connection-status dialog / status-dot long-press):
+     * idempotently bring **every** Jami account fully online from whatever state it is in —
+     * including an account left Offline/disabled (ACCOUNT_ENABLE == false) or merely inactive
+     * after an airplane-mode cycle.
+     *
+     * Unlike [reconnectStaleAccounts] (the automatic watchdog / transport-change path, which
+     * deliberately skips disabled accounts so it never re-enables one the user turned off), this
+     * is an explicit recovery tap: a disabled account is re-enabled first, then registered. That
+     * is the only thing that recovers the "zero sockets / Offline and won't re-register" state —
+     * the connectivity nudge alone is a no-op on an account that isn't active.
+     */
+    fun forceReconnectAllAccounts() {
+        mExecutor.execute {
+            for (a in mAccountList) {
+                if (!a.isJami) continue
+                val id = a.accountId
+                // Ensure the volatile active flag is set (an airplane on/off cycle can leave it false).
+                JamiService.setAccountActive(id, true)
+                if (!a.isEnabled) {
+                    // Offline/disabled: re-enable (sendRegister persists ACCOUNT_ENABLE) and register.
+                    Log.w(TAG, "forceReconnect: re-enabling Offline account $id")
+                    a.isEnabled = true
+                    NotificationService.suppressNewMessageNotificationsUntil =
+                        System.currentTimeMillis() + 15_000L
+                    JamiService.sendRegister(id, true)
+                } else {
+                    // Enabled but possibly stuck: unregister -> re-register nudge.
+                    Log.w(TAG, "forceReconnect: re-registering $id (state=${a.registrationState})")
+                    JamiService.sendRegister(id, false)
+                    scheduler.scheduleDirect({
+                        NotificationService.suppressNewMessageNotificationsUntil =
+                            System.currentTimeMillis() + 15_000L
+                        JamiService.sendRegister(id, true)
+                    }, 1500, TimeUnit.MILLISECONDS)
+                }
+            }
+        }
+    }
+
+    /**
      * Sets the video activation state of all the accounts in the local cache
      */
     fun setAccountsVideoEnabled(isEnabled: Boolean) {
