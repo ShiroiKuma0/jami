@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -33,7 +34,7 @@ class ProfilePhotoFragment : Fragment() {
             if (isGranted) {
                 startCamera()
             } else {
-                Toast.makeText(requireContext(), R.string.camera_permission_denied, Toast.LENGTH_SHORT).show()
+                Flash.show(requireContext(), R.string.camera_permission_denied, Toast.LENGTH_SHORT)
                 parentFragmentManager.popBackStack()
             }
         }
