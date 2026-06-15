@@ -138,14 +138,14 @@ object BiometricHelper {
             BiometricPrompt(fragment, ContextCompat.getMainExecutor(context),
                 object: BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        Toast.makeText(context.applicationContext, context.getString(R.string.account_auth_error, errString), Toast.LENGTH_SHORT).show()
+                        Flash.show(context.applicationContext, context.getString(R.string.account_auth_error, errString), Toast.LENGTH_SHORT)
                         callback(null)
                     }
 
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                         val decryptedKey: ByteArray? = result.cryptoObject?.cipher?.doFinal(biometricInfo.encryptedKey)
-                        Toast.makeText(context.applicationContext,
-                            if (decryptedKey == null) R.string.account_auth_key_error else R.string.account_auth_success, Toast.LENGTH_SHORT).show()
+                        Flash.show(context.applicationContext,
+                            if (decryptedKey == null) R.string.account_auth_key_error else R.string.account_auth_success, Toast.LENGTH_SHORT)
                         callback(decryptedKey)
                     }
 
@@ -206,7 +206,7 @@ object BiometricHelper {
 
         private val biometricPromptCallback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                Toast.makeText(applicationContext, applicationContext.getString(R.string.account_auth_error, errString), Toast.LENGTH_SHORT).show()
+                Flash.show(applicationContext, applicationContext.getString(R.string.account_auth_error, errString), Toast.LENGTH_SHORT)
                 callback(null)
             }
 
@@ -227,12 +227,12 @@ object BiometricHelper {
                     .observeOn(DeviceUtils.uiScheduler)
                     .subscribe({ (a, bi) ->
                         Log.d(TAG, "Encrypted information: " + bi.encryptedKey.contentToString())
-                        Toast.makeText(applicationContext, R.string.account_auth_success, Toast.LENGTH_SHORT).show()
+                        Flash.show(applicationContext, R.string.account_auth_success, Toast.LENGTH_SHORT)
                         accountService.refreshAccount(a.accountId)
                         callback(bi)
                     }) {
                         Log.e(TAG, "Failed to encrypt account key", it)
-                        Toast.makeText(applicationContext, R.string.account_auth_key_error, Toast.LENGTH_SHORT).show()
+                        Flash.show(applicationContext, R.string.account_auth_key_error, Toast.LENGTH_SHORT)
                         callback(null)
                     })
             }

@@ -29,6 +29,7 @@ import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -559,7 +560,7 @@ class SettingsFragment :
         val activity: Activity? = activity
         if (null != activity) {
             val toastMessage = getString(R.string.permission_dialog_read_contacts_message)
-            Toast.makeText(activity, toastMessage, Toast.LENGTH_LONG).show()
+            Flash.show(activity, toastMessage, Toast.LENGTH_LONG)
         }
     }
 
@@ -571,7 +572,7 @@ class SettingsFragment :
         val activity: Activity? = activity
         if (null != activity) {
             val toastMessage = getString(R.string.permission_dialog_write_call_log_message)
-            Toast.makeText(activity, toastMessage, Toast.LENGTH_LONG).show()
+            Flash.show(activity, toastMessage, Toast.LENGTH_LONG)
         }
     }
 

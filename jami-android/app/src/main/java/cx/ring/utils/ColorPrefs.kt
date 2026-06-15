@@ -41,6 +41,9 @@ object ColorPrefs {
     const val STATUS_ONLINE = "status_online"
     const val STATUS_OFFLINE = "status_offline"
     const val UNREAD_BORDER = "unread_border"
+    const val FLASH_TEXT = "flash_text"
+    const val FLASH_FILL = "flash_fill"
+    const val FLASH_BORDER = "flash_border"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -52,7 +55,7 @@ object ColorPrefs {
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
-        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL -> BLACK
+        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL -> BLACK
         STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
         STATUS_ONLINE -> 0xFF4CAF50.toInt()
         else -> YELLOW

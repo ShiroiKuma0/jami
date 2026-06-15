@@ -41,6 +41,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
@@ -532,7 +533,7 @@ class LocationSharingFragment : Fragment() {
                 ContextCompat.startForegroundService(ctx, intent)
             }
         } catch (e: Exception) {
-            Toast.makeText(ctx, "Error starting location sharing: " + e.localizedMessage, Toast.LENGTH_SHORT).show()
+            Flash.show(ctx, "Error starting location sharing: " + e.localizedMessage, Toast.LENGTH_SHORT)
         }
     }
 
