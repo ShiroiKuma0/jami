@@ -711,10 +711,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         }
     }
 
-    /** Long-press the dot / "Reconnect now": replay the manual toggle for all accounts.
+    /** Long-press the dot / "Reconnect now": bring every account fully online, re-enabling any
+     *  that are Offline/disabled — not just nudging connectivity on already-enabled ones.
      *  The dot blinks hollow→filled as the account re-registers (built-in feedback). */
     private fun reconnectAllWithFeedback() {
-        mAccountService.reconnectStaleAccounts(true)
+        mAccountService.forceReconnectAllAccounts()
         showReconnectFlash("Reconnecting…")
     }
 
