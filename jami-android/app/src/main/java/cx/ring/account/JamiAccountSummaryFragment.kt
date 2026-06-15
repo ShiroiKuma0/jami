@@ -16,6 +16,8 @@
  */
 package cx.ring.account
 
+import cx.ring.utils.Flash
+
 import android.Manifest
 import android.animation.Animator
 import android.animation.ValueAnimator
@@ -488,11 +490,11 @@ class JamiAccountSummaryFragment :
             tmpProfilePhotoUri = uri
             cameraLauncher.launch(intent)
         } catch (e: Exception) {
-            Toast.makeText(
+            Flash.show(
                 requireContext(),
                 getString(R.string.starting_camera_error),
                 Toast.LENGTH_SHORT
-            ).show()
+            )
             Log.e(TAG, "Can't create temp file", e)
         }
     }

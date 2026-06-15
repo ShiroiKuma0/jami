@@ -24,6 +24,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.fragment.app.Fragment
 import cx.ring.databinding.FragExtensionsPathPreferenceBinding
 import cx.ring.interfaces.AppBarStateListener
@@ -127,7 +128,7 @@ class ExtensionPathPreferenceFragment : Fragment(), PathListItemListener {
                 AndroidFileUtils.getCacheFile(requireContext(), uri)
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({ file: File -> setPreferencePath(file.absolutePath) })
-                    { e: Throwable -> context?.let { c -> Toast.makeText(c, e.message, Toast.LENGTH_LONG).show() }}
+                    { e: Throwable -> context?.let { c -> Flash.show(c, e.message, Toast.LENGTH_LONG) }}
             }
         }
     }

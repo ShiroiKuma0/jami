@@ -33,6 +33,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.SearchView
@@ -634,7 +635,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     private fun showConnectionStatusDialog() {
         val ctx = context ?: return
         val account = mAccountService.currentAccount ?: run {
-            Toast.makeText(ctx, "No account", Toast.LENGTH_SHORT).show(); return
+            Flash.show(ctx, "No account", Toast.LENGTH_SHORT); return
         }
         val pad = (20 * ctx.resources.displayMetrics.density).toInt()
         val tv = TextView(ctx).apply {
@@ -719,19 +720,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         showReconnectFlash("Reconnecting…")
     }
 
-    /** Brief flash, same black / yellow-text / yellow-border look as the dialog buttons. */
+    /** Brief flash — the shared [Flash] style (black / yellow text + border, settable). */
     private fun showReconnectFlash(msg: String) {
-        val ctx = context ?: return
-        val padH = (16 * ctx.resources.displayMetrics.density).toInt()
-        val padV = (10 * ctx.resources.displayMetrics.density).toInt()
-        val tv = TextView(ctx).apply {
-            text = msg
-            setTextColor(0xFFFFFF00.toInt())
-            setPadding(padH, padV, padH, padV)
-            background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
-        }
-        @Suppress("DEPRECATION")
-        Toast(ctx).apply { duration = Toast.LENGTH_SHORT; view = tv; show() }
+        Flash.show(context, msg)
     }
 
     override fun onStop() {

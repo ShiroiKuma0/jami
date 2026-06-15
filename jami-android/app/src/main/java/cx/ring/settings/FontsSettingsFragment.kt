@@ -18,6 +18,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -89,6 +90,11 @@ class FontsSettingsFragment : Fragment() {
                 { c -> (UiPrefs.getStatusDotScale(c) * 100f).toInt() },
                 { c, v -> UiPrefs.setStatusDotScale(c, v / 100f) }, 50, 300)),
             Element("Unread row border", null, listOf(ColorRole("Border", ColorPrefs.UNREAD_BORDER))))),
+        Group("Flashes (toasts)", listOf(
+            Element("Flash message (e.g. \"Copied to clipboard\")", FontPrefs.FLASH, listOf(
+                ColorRole("Text", ColorPrefs.FLASH_TEXT),
+                ColorRole("Background", ColorPrefs.FLASH_FILL),
+                ColorRole("Border", ColorPrefs.FLASH_BORDER))))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()
@@ -110,10 +116,10 @@ class FontsSettingsFragment : Fragment() {
             val file = FontPrefs.addFontFile(ctx, name, bytes)
             if (cat != null) FontPrefs.setFont(ctx, cat, "file:${file.absolutePath}",
                 FontPrefs.getWeight(ctx, cat), FontPrefs.getSize(ctx, cat))
-            Toast.makeText(ctx, "Added $name", Toast.LENGTH_SHORT).show()
+            Flash.show(ctx, "Added $name", Toast.LENGTH_SHORT)
             rebuild()
         } catch (e: Exception) {
-            Toast.makeText(ctx, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
+            Flash.show(ctx, "Import failed: ${e.message}", Toast.LENGTH_LONG)
         }
     }
 
