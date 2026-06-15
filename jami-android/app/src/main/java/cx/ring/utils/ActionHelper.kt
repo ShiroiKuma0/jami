@@ -70,8 +70,8 @@ object ActionHelper {
                 Intent(Intent.ACTION_VIEW, context.getString(R.string.donation_url).toUri())
             )
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(context, context.getString(R.string.error_open_no_app_found, context.getString(R.string.donation_url)),
-                Toast.LENGTH_LONG).show()
+            Flash.show(context, context.getString(R.string.error_open_no_app_found, context.getString(R.string.donation_url)),
+                Toast.LENGTH_LONG)
         }
     }
 
