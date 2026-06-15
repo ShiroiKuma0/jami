@@ -56,6 +56,7 @@ import android.widget.LinearLayout
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import android.widget.Toast
+import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.view.*
@@ -1372,7 +1373,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     override fun finish(hangupReason: CallPresenter.HangupReason) {
         // Display a toast if the call was not allowed
         if (hangupReason == CallPresenter.HangupReason.ERROR)
-            Toast.makeText(context, R.string.call_error, Toast.LENGTH_SHORT).show()
+            Flash.show(context, R.string.call_error, Toast.LENGTH_SHORT)
 
         activity?.let { activity ->
             activity.finishAndRemoveTask()
@@ -1503,11 +1504,11 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 displayLocalVideo(false)
             }
         } else {
-            Toast.makeText(
+            Flash.show(
                 requireContext(),
                 getString(R.string.screen_sharing_error),
                 Toast.LENGTH_SHORT
-            ).show()
+            )
         }
     }
 
