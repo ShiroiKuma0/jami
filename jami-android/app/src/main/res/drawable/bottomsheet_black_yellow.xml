@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Black fill + 2dp yellow border, rounded top corners — for the conversation
+     long-press ActionListBottomSheet, matching the fork's black/yellow dialogs. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#000000" />
+    <stroke android:width="2dp" android:color="#FFFF00" />
+    <corners
+        android:topLeftRadius="@dimen/bottom_sheet_radius"
+        android:topRightRadius="@dimen/bottom_sheet_radius" />
+</shape>
