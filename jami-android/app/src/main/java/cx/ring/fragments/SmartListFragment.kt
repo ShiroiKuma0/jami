@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
+import cx.ring.utils.Flash
 import cx.ring.adapters.SmartListAdapter
 import cx.ring.client.CallActivity
 import cx.ring.client.HomeActivity
@@ -180,6 +181,11 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
         binding?.confsList?.scrollToPosition(0)
     }
 
+    override fun onNameLookupResult(name: String) {
+        Flash.show(context, if (name.isNotEmpty()) getString(R.string.name_lookup_found, name)
+                            else getString(R.string.name_lookup_none))
+    }
+
     override fun onItemClick(item: Conversation) {
         goToConversation(item.accountId, item.uri)
     }
@@ -216,6 +222,7 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                         1 -> presenter.clearConversation(item)
                         2 -> presenter.removeConversation(item)
                         3 -> presenter.blockContact(item)
+                        4 -> presenter.lookUpName(item)
                     }
                 }.show(childFragmentManager, "SmartListFragment")
             }
@@ -229,6 +236,7 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                     ActionHelper.ACTION_CLEAR -> presenter.clearConversation(item)
                     ActionHelper.ACTION_DELETE -> presenter.removeConversation(item)
                     ActionHelper.ACTION_BLOCK -> presenter.blockContact(item)
+                    ActionHelper.ACTION_LOOKUP_NAME -> presenter.lookUpName(item)
                 }
             }.show(childFragmentManager, "SmartListFragment")
         }

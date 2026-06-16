@@ -23,6 +23,7 @@ import net.jami.model.Conversation
 import net.jami.model.Uri
 import net.jami.mvp.RootPresenter
 import net.jami.services.AccountService
+import net.jami.services.ContactService
 import net.jami.services.ConversationFacade
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -31,6 +32,7 @@ import javax.inject.Named
 class SmartListPresenter @Inject constructor(
     private val conversationFacade: ConversationFacade,
     private val mAccountService: AccountService,
+    private val mContactService: ContactService,
     @param:Named("UiScheduler") private val uiScheduler: Scheduler
 ) : RootPresenter<SmartListView>() {
 
@@ -95,5 +97,27 @@ class SmartListPresenter @Inject constructor(
     fun removeConversation(accountId: String, uri: Uri) {
         mCompositeDisposable.add(conversationFacade.removeConversation(accountId, uri)
             .subscribe())
+    }
+
+    /**
+     * Force a fresh reverse name-server lookup for a one-to-one contact and, if it resolves,
+     * persist the registered name as the contact's local name so it shows immediately (and sticks
+     * across restarts) — an escape hatch when the passive lookup got stuck on the raw Jami ID.
+     */
+    fun lookUpName(conversation: Conversation) {
+        val contact = conversation.contact ?: return
+        contact.username = null // drop any stale/empty cached lookup so the daemon is re-queried
+        mCompositeDisposable.add(
+            mAccountService.findRegistrationByAddress(conversation.accountId, "", contact.uri.rawRingId)
+                .observeOn(uiScheduler)
+                .subscribe({ registration ->
+                    val name = if (registration.state == AccountService.LookupState.Success) registration.name else ""
+                    if (name.isNotEmpty())
+                        mContactService.setCustomName(conversation.accountId, contact, name)
+                    view?.onNameLookupResult(name)
+                }, {
+                    view?.onNameLookupResult("")
+                })
+        )
     }
 }
