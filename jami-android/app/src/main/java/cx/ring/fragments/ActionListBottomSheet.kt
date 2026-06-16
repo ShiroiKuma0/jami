@@ -37,6 +37,9 @@ class ActionListBottomSheet(
     private val onActionSelected: ((Int) -> Unit)? = null
 ) : BottomSheetDialogFragment() {
 
+    // Black background, yellow labels/icons/handle — matches the fork's yellow-on-black theme.
+    override fun getTheme(): Int = R.style.Theme_Shiroikuma_BottomSheetDialog
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -53,10 +56,14 @@ class ActionListBottomSheet(
         super.onStart()
         (dialog as BottomSheetDialog?)
             ?.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
-            ?.let { BottomSheetBehavior.from(it) }
-            ?.apply {
-                state = BottomSheetBehavior.STATE_EXPANDED
-                skipCollapsed = true
+            ?.let { sheet ->
+                // Kill Material's grey tonal-surface background so our black/yellow-border drawable
+                // on the content root is the only visible sheet background.
+                sheet.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                BottomSheetBehavior.from(sheet).apply {
+                    state = BottomSheetBehavior.STATE_EXPANDED
+                    skipCollapsed = true
+                }
             }
     }
     private inner class ActionAdapter : RecyclerView.Adapter<ActionViewHolder>() {
