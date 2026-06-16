@@ -27,7 +27,7 @@
         android:id="@+id/contact_reactions_table"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layoutManager=".views.RtlGridLayoutManager"
+        app:layoutManager="cx.ring.views.RtlGridLayoutManager"
         tools:itemCount="7"
         app:spanCount="3"
         tools:listitem="@layout/item_reaction_chip" />
