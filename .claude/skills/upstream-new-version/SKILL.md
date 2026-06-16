@@ -127,9 +127,23 @@ for d in jami-android/app/src/main/res/values-*_*; do
 done
 shopt -u nullglob
 echo -e "\033[1;36m>>> remaining underscore res dirs (must be NONE): $(ls -d jami-android/app/src/main/res/values-*_* 2>/dev/null || echo none)\033[0m"
+
+# Runtime relative-class guard (applicationId shiroikuma.jami != namespace cx.ring — see Banked failures).
+# Leading-dot class names in RUNTIME attrs (app:layoutManager / app:layout_behavior / class / android:name)
+# resolve via the applicationId at runtime, NOT the namespace, so :app:lintVitalNoPushRelease aborts late
+# (RelativeClassResolution) and the app would ClassNotFound-crash. tools:* attrs are design-time and exempt.
+# NOT auto-fixed (rewriting class attrs is riskier than the nn_NO dir rename) — fully-qualify each by hand.
+rel=$(grep -rnE '(app:layoutManager|app:layout_behavior|class|android:name)="\.[a-zA-Z]' jami-android/app/src/main/res 2>/dev/null)
+if [ -n "$rel" ]; then
+  echo -e "\033[1;31m>>> runtime relative-class refs — fully-qualify each to cx.ring.* before building:\033[0m"
+  echo -e "\033[1;31m$rel\033[0m"
+  echo -e "\033[1;33m    e.g. app:layoutManager=\".views.RtlGridLayoutManager\" -> \"cx.ring.views.RtlGridLayoutManager\"\033[0m"
+else
+  echo -e "\033[1;36m>>> runtime relative-class refs: none — clean.\033[0m"
+fi
 ```
 
-If the gitlink diverged, stop and investigate — a rebase that absorbed a daemon change is wrong. The resource-dir guard above auto-fixes the `nn_NO`-class upstream bug; if it renames anything, that rename is committed at push time (Step 6) under the normal `jami-android/app/src/main` staging.
+If the gitlink diverged, stop and investigate — a rebase that absorbed a daemon change is wrong. The resource-dir guard above auto-fixes the `nn_NO`-class upstream bug; if it renames anything, that rename is committed at push time (Step 6) under the normal `jami-android/app/src/main` staging. The runtime relative-class guard only **reports** (it does not auto-rewrite) — fully-qualify each listed `.foo.Bar` to `cx.ring.foo.Bar` by hand before building, or `:app:lintVitalNoPushRelease` aborts late.
 
 ## Step 5 — build, sign, deploy (apply the jami-build skill)
 
@@ -178,7 +192,8 @@ Staging discipline still applies if any conflict resolution required a *new comm
 
 ## Banked failures from real runs
 
-- **`nn_NO` resource-qualifier bug** (first hit on the `20260515-01 → 20260522-01` sync). Upstream's i18n bump added `res/values-nn_NO/`; underscore qualifiers are illegal and AGP aborts at `:app:mergeNoPushReleaseResources` *after* a clean rebase and a long contrib build. Fixed by `values-nn_NO → values-nn-rNO`; now auto-handled by the Step 4 guard. Watch for the same shape on any future `i18n: automatic bump`.
+- **`nn_NO` resource-qualifier bug** (first hit on the `20260515-01 → 20260522-01` sync). Upstream's i18n bump added `res/values-nn_NO/`; underscore qualifiers are illegal and AGP aborts at `:app:mergeNoPushReleaseResources` *after* a clean rebase and a long contrib build. Fixed by `values-nn_NO → values-nn-rNO`; now auto-handled by the Step 4 guard. Watch for the same shape on any future `i18n: automatic bump`. (On the `20260522-01 → 20260612-01` sync upstream had *removed* `values-nn_NO` itself and shipped a valid `values-nn`, so our rename commit became a rename/delete conflict — resolve by dropping our orphan; the fix commit goes empty and is skipped.)
+- **`RelativeClassResolution` lintVital fatal** — a **class** of failure from `applicationId` (`shiroikuma.jami`) **≠** `namespace` (`cx.ring`). Leading-dot class names in **runtime** layout attrs (`app:layoutManager` / `app:layout_behavior` / `class` / `android:name`) resolve via the *applicationId* at runtime, not the namespace — so they ClassNotFound-crash in this fork (never upstream, where the two are equal) and `:app:lintVitalNoPushRelease` aborts **late, after the long native build**. First hit on the `20260522-01 → 20260612-01` sync: `res/layout/item_reaction_visualizer.xml` had `app:layoutManager=".views.RtlGridLayoutManager"`; fixed by fully-qualifying to `cx.ring.views.RtlGridLayoutManager` (committed as a normal `jami-android/app/src/main` edit). `tools:context=".client.X"` and other `tools:*` are design-time, stripped at build, and **not** flagged — leave them. Upstream keeps writing relative names in their layouts, so this recurs; the Step 4 guard now greps and reports offenders pre-build.
 - **`SDK location not found`** if the build runs in a shell that didn't inherit the interactive profile: the jami-build block exports `JAVA_HOME`/`PATH` but **not** `ANDROID_HOME`. When building from a non-login/background shell (as this skill may), also `export ANDROID_HOME="$HOME/android-sdk"` (and `ANDROID_SDK_ROOT`) — or rely on a committed `jami-android/local.properties` (untracked here). The daemon still cross-compiles fine; only the AGP config step needs the SDK path.
 - **Stale-APK trap.** Only sign/deploy after confirming the build returned `BUILD SUCCESSFUL` *and* the unsigned APK's mtime is newer than the build start — a failed Gradle run leaves the previous APK in the output dir, and signing it ships the wrong version. The build counter (`~/tmp/.shiroikuma_jami_build`) must be consumed only on success.
 
