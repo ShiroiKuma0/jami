@@ -34,4 +34,5 @@ interface SmartListView {
     fun updateList(conversations: ConversationFacade.ConversationList, conversationFacade: ConversationFacade, parentDisposable: CompositeDisposable)
     fun goToCallActivity(accountId: String, conversationUri: Uri, contactId: String)
     fun scrollToTop()
+    fun onNameLookupResult(name: String)
 }

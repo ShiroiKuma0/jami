@@ -44,6 +44,10 @@ abstract class ContactService(
     abstract fun loadContactData(contact: Contact, accountId: String): Single<Profile>
     abstract fun loadCustomProfileData(contact: Contact, accountId: String): Single<Profile>
 
+    /** Persist a locally-set display name for a contact and refresh its reactive custom profile
+     *  (so the change shows immediately). Used by the contact-rename UI and the look-up-name action. */
+    abstract fun setCustomName(accountId: String, contact: Contact, name: String)
+
     abstract fun saveContact(uri: String, profile: Profile)
     abstract fun deleteContact(uri: String)
 
@@ -89,8 +93,13 @@ abstract class ContactService(
                 mAccountService.findRegistrationByAddress(accountId, "", uriString)
                     .map { registration ->
                         // Log.w(TAG, "username lookup response $registration")
-                        if (registration.state == AccountService.LookupState.NetworkError)
-                            throw RuntimeException("lookup failed")
+                        // Only a Success lookup with a non-empty name is a usable, final answer.
+                        // Any other outcome (NetworkError / NotFound / Invalid / empty name) is an
+                        // unresolved lookup — throw so it is NOT cached and a later observe retries,
+                        // instead of permanently showing the raw Jami ID after a transient
+                        // name-server miss (the registered name is eventually consistent).
+                        if (registration.state != AccountService.LookupState.Success || registration.name.isEmpty())
+                            throw RuntimeException("name unresolved")
                         registration.name
                     }
                     .doOnError { contact.username = null }

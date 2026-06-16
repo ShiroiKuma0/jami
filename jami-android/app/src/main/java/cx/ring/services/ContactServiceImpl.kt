@@ -447,6 +447,14 @@ class ContactServiceImpl(val mContext: Context, preferenceService: PreferencesSe
         }.onErrorReturn { Profile.EMPTY_PROFILE }
     }
 
+    override fun setCustomName(accountId: String, contact: Contact, name: String) {
+        val id = Base64.encodeToString(contact.primaryNumber.toByteArray(), Base64.NO_WRAP)
+        VCardUtils.saveToCustomProfiles(name, null, accountId, id, mContext.filesDir)
+        // Reassigning customProfile pushes the new value through customProfileSubject, so the
+        // merged contact.profile re-emits and the name updates live in the list/conversation.
+        contact.customProfile = loadCustomProfileData(contact, accountId)
+    }
+
     private fun loadVCardContactData(contact: Contact, accountId: String): Single<Profile> =
         Single.fromCallable {
             val id = Base64.encodeToString(contact.primaryNumber.toByteArray(), Base64.NO_WRAP)
