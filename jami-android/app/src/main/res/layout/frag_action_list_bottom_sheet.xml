@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bottomsheet_black_yellow"
     android:orientation="vertical"
     android:paddingBottom="8dp">
 
