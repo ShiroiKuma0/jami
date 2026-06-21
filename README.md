@@ -1,104 +1,100 @@
-# Jami Android
+<div align="center">
 
-The Jami client for Android
+<img src="jami-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="120" alt="白い熊 GNU Jami app icon" />
 
-| App | CI
-| :-: | :-: |
-| [![Download on the Play Store](https://img.shields.io/badge/download-play%20store-blue.svg)](https://play.google.com/store/apps/details?id=cx.ring) [![Download on F-Droid](https://img.shields.io/badge/download-fdroid-blue.svg)](https://f-droid.org/repository/browse/?fdid=cx.ring) | [![Build Status](https://jenkins.jami.net/buildStatus/icon?job=client-android)](https://jenkins.jami.net/job/client-android/)
+# 白い熊 GNU Jami
 
-## Environment
+**Private, peer-to-peer messaging & calling — themed and tuned to taste.**
 
-### Submodule
+A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
+per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience**
+with one-tap account recovery, token-gated **automation intents**, smarter **registered-name**
+lookups, and a **split-view** toggle.
 
-Download the project including the daemon submodule with:
+**📥 Latest release: [`20260619-01+1`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
-```sh
-git clone --recursive https://review.jami.net/jami-client-android
-```
+</div>
 
-Or to download the daemon submodule from the existing project directory:
+---
 
-```sh
-git submodule update --init --recursive
-```
+## Installs side-by-side with official Jami
 
-### Dependencies
+This fork ships as **`shiroikuma.jami`** (label **白い熊 GNU Jami**) with its own FileProvider
+authority, so it installs **right next to** the official `cx.ring` from F-Droid / Play — two apps,
+two accounts, no conflict. It's signed with its own key, so it never installs *over* official Jami
+(Android refuses mismatched keys); grab the APK from the [releases page](https://github.com/ShiroiKuma0/jami/releases)
+and install it as its own app.
 
-Make sure to have autotools, autopoint, swig, yasm, m4, ninja-build and cmake available on your system.
+Built for **arm64-v8a**; the C++ Jami daemon and all of its contrib are compiled from source. Jami
+itself is unchanged underneath — same protocol, same distributed network, same end-to-end
+encryption — this fork only adds a thick layer of personalization and a few reliability and
+automation tools on top.
 
-> [!WARNING]
->
-> Jami needs at least swig 4.2 to work. Else it will raise errors at compilation.
-> See if the package is available with this version from your package manager, else you will need to install it [from sources](https://github.com/swig/swig).
+## 🎨 Yellow-on-black theme
 
-##### On Debian/Ubuntu
+The fork's signature look: black backgrounds with a `#FFFF00` foreground, applied consistently
+across the chat list, conversation bubbles, toolbars, the search and compose bars, dialogs and the
+long-press bottom sheet, file and link-preview cards, unread/pending badges, and the
+account-selection dialog. Generated (no-photo) avatars are drawn black with yellow initials and a
+yellow ring; presence dots, the home top bar and the expanded search view are themed to match. The
+settings screen carries the same black/yellow treatment, down to the switches.
 
-```sh
-apt install cmake build-essential swig yasm ninja-build m4 autotools-dev autopoint libtool
-```
+## 🔤 UI fonts & colours
 
-##### On Arch
+A single **UI fonts & colours** screen lets you restyle every text surface independently. For each
+element — chat text, conversation title, chat-list name / preview / date, message time, link-preview
+title/description/domain, file name, settings text, the search hint and more — you can pick a **font
+family, weight and size**, *and* set its **text, fill and border colours**.
 
-```sh
-pacman -S cmake ninja automake swig yasm m4 patch autoconf pkgconf
-```
+- **RGBA-slider colour picker** with a live preview swatch and a two-way `#AARRGGBB` hex field, so
+  every colour (including translucency) is exactly what you choose.
+- **Bubble, card and badge fills + borders** are recoloured at runtime — sent/received bubbles,
+  link-preview and file cards, and the account badge.
+- **Import your own fonts** (`.ttf` / `.otf`) straight from storage — no permission needed.
+- Every control **defaults to the current palette value**, so anything you leave unset looks exactly
+  like stock. Changes apply live when you leave the screen.
+- Line-driven sizing keeps larger fonts legible — list rows, avatars and the message status icon grow
+  with the text instead of clipping, and the **status-icon height** is itself adjustable.
 
-##### On macOS:
+Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settings → Appearance**.
 
-```sh
-brew install cmake automake autotools libtool pkg-config yasm swig
-```
+## 📶 Connectivity resilience
 
-When using brew on macOS, the 'libtoolize' binary might be available as 'glibtoolize'.
-In that case, the following command makes it avaialble to the build system:
+Jami can quietly drift offline; this fork helps it heal itself. It adds DHT reconnect logic, an
+on-device **connection-diagnostics indicator**, and a one-tap action to **recover Offline / disabled
+accounts** — so a stuck link comes back without digging through account settings or restarting the
+app.
 
-```sh
-ln -s /opt/homebrew/bin/glibtoolize /opt/homebrew/bin/libtoolize
-```
+## 🤖 Automation intents
 
-### Android SDK & NDK
+Token-gated, exported **send / call / open** intents let external scripts and automation apps drive
+Jami headlessly — send a message, place a call, or open a conversation from anywhere on the device,
+guarded by a secret token so only your own automations can trigger them.
 
-Make sure to have the Android SDK and NDK available.
+## 🔎 Registered-name resolution
 
-## Build instructions
+Username lookups that get stuck are retried automatically, and a dedicated **“Look up name”** action
+lets you resolve a registered name on demand instead of waiting on a silent failure.
 
-### With Android Studio:
+## 🪟 Split-view toggle
 
-* Add 'jami-android' in Android Studio
-* Click on build
-* Enjoy!
+On foldables and tablets, Jami shows the conversation list and the open chat side by side. A toggle
+(in **Settings → Appearance** and the chat-list overflow menu) forces **single-pane** when you'd
+rather focus on one screen at a time.
 
-### With the command line:
+## 💬 Quality-of-life
 
-```sh
-cd jami-client-android/jami-android
-./gradlew assembleDebug
-```
+- Settable styled **“flash” messages** (toasts) for in-app feedback.
+- An **account online/offline toggle** right in the chat-list top bar.
+- A resizable account-avatar dot with reliable presence swapping.
+- A black/yellow knot **launcher icon** so the fork is easy to spot.
 
-### Troubleshoot
+---
 
-Jami Android doesn't use the system's `pkg-config`; it builds its own version with custom parameters to support cross-compilation. However, after cleaning the project, `pkg-config` may not be rebuilt, which could result in falling back to the system's version, leading to errors when attempting to locate shared libraries.
+## Built on GNU Jami
 
-```sh
-cd jami-client-android/daemon/extras/tools
-./bootstrap && make .pkg-config
-```
-
-## Update translations
-
-Update translations using the Transifex client (tx) :
-```sh
-./update-translations.sh
-```
-
-## Generate new release commit
-
-Generate a new release commit updating the version code and version string:
-```sh
-./update_version.py --commit
-```
-
-## Report issues
-
-Report issues on Gitlab:
-https://git.jami.net/savoirfairelinux/jami-client-android
+This is a downstream personalization of [GNU Jami](https://jami.net) for Android
+([savoirfairelinux/jami-client-android](https://github.com/savoirfairelinux/jami-client-android)).
+All credit for Jami — the protocol, the daemon, the network and the client — goes to its authors at
+Savoir-faire Linux and the Jami community. Like upstream, this fork is licensed under the
+**GNU General Public License v3.0** (see [`COPYING`](COPYING)).
