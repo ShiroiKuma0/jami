@@ -146,6 +146,27 @@
         <item name="android:textColorHint">#FFFF00</item>
     </style>
 
+    <!-- shiroikuma: expanded SearchView surface forced black, foreground yellow (mirrors ShiroikumaToolbar).
+         Material SearchView paints its root from colorSurfaceContainerHigh (a tonal grey); override every
+         surface-container variant to black so the whole expanded pane is black, not grey. -->
+    <style name="ShiroikumaSearchView" parent="">
+        <item name="colorSurface">#000000</item>
+        <item name="colorSurfaceContainer">#000000</item>
+        <item name="colorSurfaceContainerLow">#000000</item>
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorSurfaceContainerHigh">#000000</item>
+        <item name="colorSurfaceContainerHighest">#000000</item>
+        <item name="colorSurfaceBright">#000000</item>
+        <item name="colorSurfaceDim">#000000</item>
+        <item name="colorControlNormal">#FFFF00</item>
+        <item name="colorOnSurface">#FFFF00</item>
+        <item name="colorOnSurfaceVariant">#FFFF00</item>
+        <item name="android:textColorPrimary">#FFFF00</item>
+        <item name="android:textColorSecondary">#FFFF00</item>
+        <item name="android:textColorHint">#FFFF00</item>
+        <item name="elevationOverlayEnabled">false</item>
+    </style>
+
     <!-- shiroikuma: 50% larger search-bar text -->
     <style name="TextAppearance.Shiroikuma.SearchBar" parent="@style/TextAppearance.Material3.BodyLarge">
         <item name="android:textSize">24sp</item>
