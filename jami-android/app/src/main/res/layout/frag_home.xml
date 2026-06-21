@@ -87,6 +87,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true"
+        android:theme="@style/ShiroikumaSearchView"
         android:hint="@string/searchbar_hint"
         app:animateNavigationIcon="false"
         app:layout_anchor="@id/search_bar"
@@ -109,8 +110,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     android:id="@+id/qr_code"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:icon="@drawable/baseline_qr_code_2_black_24dp"
                     android:text="@string/qr_code"
+                    android:textColor="#FFFF00"
+                    app:backgroundTint="#000000"
+                    app:icon="@drawable/baseline_qr_code_2_black_24dp"
+                    app:iconTint="#FFFF00"
+                    app:strokeColor="#FFFF00"
+                    app:strokeWidth="1dp"
                     tools:visibility="visible" />
 
                 <!-- New swarm button -->
@@ -118,8 +124,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     android:id="@+id/new_swarm"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:icon="@drawable/baseline_group_add_24"
                     android:text="@string/new_group"
+                    android:textColor="#FFFF00"
+                    app:backgroundTint="#000000"
+                    app:icon="@drawable/baseline_group_add_24"
+                    app:iconTint="#FFFF00"
+                    app:strokeColor="#FFFF00"
+                    app:strokeWidth="1dp"
                     tools:visibility="visible" />
 
             </com.google.android.material.button.MaterialButtonGroup>
