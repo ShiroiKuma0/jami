@@ -20,3 +20,5 @@ jami-android/captures/
 # Claude Code — transient session files (if Claude Code ever drops them in-tree)
 .claude/sessions/
 .claude/.cache/
+
+.scratch/
