@@ -115,9 +115,11 @@ git push origin custom
 git tag -a "<versionName>" -m "白い熊 GNU Jami <versionName>"
 git push origin "<versionName>"
 
-# Release notes = just this version's CHANGELOG section (strip the "## <versionName> — date" header line).
+# Release notes = this version's CHANGELOG section. Use a LITERAL match (index($0,h)==1), NOT a regex:
+# the "+N" tail puts a "+" in the versionName, and "+" is a regex metachar, so /^## <versionName>/
+# would fail to match. index() treats the header as a plain string.
 mkdir -p .scratch
-awk '/^## <versionName>/{p=1;next} /^## /{p=0} p' CHANGELOG.md > .scratch/release-notes.md
+awk -v h="## <versionName>" 'index($0,h)==1{p=1;next} /^## /{if(p)exit} p' CHANGELOG.md > .scratch/release-notes.md
 gh release create "<versionName>" \
   --repo ShiroiKuma0/jami \
   --title "白い熊 GNU Jami <versionName>" \
