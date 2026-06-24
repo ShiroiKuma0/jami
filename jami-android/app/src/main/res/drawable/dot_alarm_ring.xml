@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma.jami fork: thick red ring drawn behind the account dot when there are dead
+     peer links, so a connection problem is obvious at a glance. Transparent fill so the
+     yellow online/offline icon still shows inside it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@android:color/transparent" />
+    <stroke
+        android:width="3dp"
+        android:color="#FFFF1744" />
+</shape>

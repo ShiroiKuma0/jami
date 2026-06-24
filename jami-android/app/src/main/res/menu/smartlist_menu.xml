@@ -37,7 +37,7 @@
 
             <item
                 android:id="@+id/menu_ui_fonts_colors"
-                android:title="UI fonts &amp; colors"
+                android:title="白い熊 GNU Jami UI"
                 app:showAsAction="never" />
 
             <item

@@ -44,6 +44,11 @@ object ColorPrefs {
     const val FLASH_TEXT = "flash_text"
     const val FLASH_FILL = "flash_fill"
     const val FLASH_BORDER = "flash_border"
+    const val MONITOR_HEALTHY = "monitor_healthy"
+    const val MONITOR_CONNECTING = "monitor_connecting"
+    const val MONITOR_PROBLEM = "monitor_problem"
+    const val MONITOR_CONNECTED = "monitor_connected"
+    const val MONITOR_IDLE = "monitor_idle"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -58,6 +63,9 @@ object ColorPrefs {
         MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL -> BLACK
         STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
         STATUS_ONLINE -> 0xFF4CAF50.toInt()
+        MONITOR_IDLE, MONITOR_CONNECTING -> 0xFF2196F3.toInt()   // blue — in-progress / connecting
+        MONITOR_PROBLEM -> 0xFFFF5252.toInt()                    // red — offline / not syncing
+        // MONITOR_HEALTHY and MONITOR_CONNECTED fall through to the YELLOW (#FFFF00) default
         else -> YELLOW
     }
 
