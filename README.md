@@ -7,11 +7,11 @@
 **Private, peer-to-peer messaging & calling — themed and tuned to taste.**
 
 A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
-per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience**
-with one-tap account recovery, token-gated **automation intents**, smarter **registered-name**
-lookups, and a **split-view** toggle.
+per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience** —
+a live multi-account **connection monitor**, **Google-free push**, and one-tap account recovery —
+token-gated **automation intents**, smarter **registered-name** lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260619-01+1`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260619-01+9`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -33,8 +33,9 @@ automation tools on top.
 ## 🎨 Yellow-on-black theme
 
 The fork's signature look: black backgrounds with a `#FFFF00` foreground, applied consistently
-across the chat list, conversation bubbles, toolbars, the search and compose bars, dialogs and the
-long-press bottom sheet, file and link-preview cards, unread/pending badges, and the
+across the chat list, conversation bubbles, toolbars, the search and compose bars, **every dialog
+app-wide** (including Android's own preference dialogs) and the long-press bottom sheet, file and
+link-preview cards, unread/pending badges, and the
 account-selection dialog. Generated (no-photo) avatars are drawn black with yellow initials and a
 yellow ring; presence dots, the home top bar and the expanded search view are themed to match. The
 settings screen carries the same black/yellow treatment, down to the switches.
@@ -55,15 +56,27 @@ family, weight and size**, *and* set its **text, fill and border colours**.
   like stock. Changes apply live when you leave the screen.
 - Line-driven sizing keeps larger fonts legible — list rows, avatars and the message status icon grow
   with the text instead of clipping, and the **status-icon height** is itself adjustable.
+- The **connection-monitor state colours** (connected/healthy, connecting, problem) are settable here
+  too, and an **app-language override** lets you run the UI in a language independent of the phone
+  locale.
 
 Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settings → Appearance**.
 
-## 📶 Connectivity resilience
+## 📶 Connectivity, push & a real connection monitor
 
-Jami can quietly drift offline; this fork helps it heal itself. It adds DHT reconnect logic, an
-on-device **connection-diagnostics indicator**, and a one-tap action to **recover Offline / disabled
-accounts** — so a stuck link comes back without digging through account settings or restarting the
-app.
+Jami can quietly drift offline; this fork helps it heal itself **and** shows you the truth about its
+links. It builds the **Google-free `withUnifiedPush` flavor**: paired with a UnifiedPush distributor
+(e.g. [ntfy](https://ntfy.sh)) and the DHT proxy, backgrounded accounts deactivate and wake on a
+push — so idle CPU drops to near zero **with no Google/Firebase dependency**. It also adds DHT
+reconnect logic and a one-tap action to **recover Offline / disabled accounts**.
+
+The **connection monitor** — tap the account dot, or open it from Settings — is an all-accounts
+diagnostics screen that reports *true* health: an account is **healthy** when it's registered and
+actually syncing, **connecting** while it establishes, and only **offline / not-syncing** when it
+genuinely can't reach the network. It deliberately won't cry wolf over the normal, constant
+open-and-close of swarm-conversation sync connections. Account rows carry avatars and fold open to
+their live links; tap any link for device details and a **per-account Reconnect**, and a built-in
+legend explains every colour and icon (all of which you can recolour in *UI fonts & colours*).
 
 ## 🤖 Automation intents
 
