@@ -4,6 +4,50 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260619-01+9 — 2026-06-25
+
+Connectivity, push and a rebuilt connection monitor, plus app-wide dialog theming. Still on upstream
+base **20260619-01** (versionCode 498). The `+2`…`+8` builds were on-device test iterations of this
+work; `+9` is the shipped result.
+
+### Connectivity & push
+- Ship the **`withUnifiedPush` flavor** (Google-free push): paired with a UnifiedPush distributor
+  (e.g. ntfy) and the DHT proxy, backgrounded accounts deactivate and wake on a push, dropping idle
+  CPU to near zero with **no Google/Firebase dependency**. Retires the always-awake `noPush` flavor,
+  which kept four same-device accounts at 10–35% idle and overheated the phone.
+- Diagnosed (no code change needed): the daemon's frequent `Broken pipe` / "TLS non-properly
+  terminated" ERROR logs are **normal swarm-conversation sync teardown**, not connectivity failures;
+  local peer discovery (mDNS) only helps on a multi-device LAN and is otherwise unnecessary.
+
+### Connection monitor (rebuilt)
+- The monitor and the account-dot **status dialog now cover all accounts**, not just the current one.
+- **Honest health model:** an account is **healthy** (yellow) when registered and actually syncing,
+  **connecting** (blue) while it establishes, and red only when genuinely **offline** (unregistered)
+  or **not-syncing** (registered but isolated > 2.5 min). Short-lived sync connections are shown
+  neutral and **never flagged red** — the monitor no longer cries wolf over normal churn, and the dot
+  alarm ring fires only for a real, otherwise-invisible isolation.
+- **Per-account avatars** on foldable account headers, large fold chevrons, indented sub-rows, and a
+  failing-first layout; tap any connection for **device detail** (device / contact IDs, status, copy)
+  with a **per-account Reconnect**; an **icon & colour legend** behind a “?”.
+- Opening the monitor from the status dialog returns to that dialog on Back.
+
+### Theme & dialogs
+- **Every dialog is black/yellow app-wide** now — the app theme routes `alertDialogTheme` /
+  `materialAlertDialogTheme` through the fork's dialog style, so even Android's own **preference
+  dialogs** (e.g. the DHT-proxy-address editor) match; hand-built dialogs share a `DialogTheme` helper
+  (black fill, yellow rounded border, yellow buttons).
+
+### UI fonts & colours
+- The screen is renamed **白い熊 GNU Jami UI** and gains an **app-language override** (run the UI in a
+  chosen language independent of the phone locale).
+- Five new **settable connection-monitor colour roles** — connected/healthy (defaults to `#FFFF00`),
+  in-progress/connecting (blue), problem (red) — recolourable like every other role.
+
+### Build / infra
+- The **`jami-build` skill now builds `withUnifiedPush`** as the canonical flavor (output under
+  `app/build/outputs/apk/withUnifiedPush/release/`).
+- Version tail advanced to **20260619-01+9**.
+
 ## 20260619-01+1 — 2026-06-21
 
 First public release of the fork, built on upstream GNU Jami **20260619-01** (versionCode 498) with
