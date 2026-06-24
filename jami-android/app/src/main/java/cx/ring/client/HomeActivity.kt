@@ -647,15 +647,17 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
         fConversation?.refreshTheme()
     }
 
-    fun goToAdvancedSettings(openSharedServices: Boolean = false, openFonts: Boolean = false) {
+    fun goToAdvancedSettings(openSharedServices: Boolean = false, openFonts: Boolean = false, openConnectionMonitor: Boolean = false) {
         (frameContent as? SettingsFragment)?.let {
             if (openSharedServices) it.openSharedServices()
+            if (openConnectionMonitor) it.goToConnectionMonitor()
             return
         }
         val fragment = SettingsFragment().apply {
             val args = Bundle()
             if (openSharedServices) args.putBoolean(SettingsFragment.ARG_OPEN_SHARED_SERVICES, true)
             if (openFonts) args.putBoolean("open_fonts", true)
+            if (openConnectionMonitor) args.putBoolean("open_connection_monitor", true)
             if (!args.isEmpty) arguments = args
         }
         frameContent = fragment

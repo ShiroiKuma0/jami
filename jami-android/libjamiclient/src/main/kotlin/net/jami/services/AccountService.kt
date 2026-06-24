@@ -775,27 +775,39 @@ class AccountService(
         mExecutor.execute {
             for (a in mAccountList) {
                 if (!a.isJami) continue
-                val id = a.accountId
-                // Ensure the volatile active flag is set (an airplane on/off cycle can leave it false).
-                JamiService.setAccountActive(id, true)
-                if (!a.isEnabled) {
-                    // Offline/disabled: re-enable (sendRegister persists ACCOUNT_ENABLE) and register.
-                    Log.w(TAG, "forceReconnect: re-enabling Offline account $id")
-                    a.isEnabled = true
-                    NotificationService.suppressNewMessageNotificationsUntil =
-                        System.currentTimeMillis() + 15_000L
-                    JamiService.sendRegister(id, true)
-                } else {
-                    // Enabled but possibly stuck: unregister -> re-register nudge.
-                    Log.w(TAG, "forceReconnect: re-registering $id (state=${a.registrationState})")
-                    JamiService.sendRegister(id, false)
-                    scheduler.scheduleDirect({
-                        NotificationService.suppressNewMessageNotificationsUntil =
-                            System.currentTimeMillis() + 15_000L
-                        JamiService.sendRegister(id, true)
-                    }, 1500, TimeUnit.MILLISECONDS)
-                }
+                reconnectOne(a)
             }
+        }
+    }
+
+    /** Force-reconnect a single account (used by the per-account Reconnect in the monitor). */
+    fun forceReconnectAccount(accountId: String) {
+        mExecutor.execute {
+            val a = mAccountList.firstOrNull { it.accountId == accountId } ?: return@execute
+            if (a.isJami) reconnectOne(a)
+        }
+    }
+
+    private fun reconnectOne(a: Account) {
+        val id = a.accountId
+        // Ensure the volatile active flag is set (an airplane on/off cycle can leave it false).
+        JamiService.setAccountActive(id, true)
+        if (!a.isEnabled) {
+            // Offline/disabled: re-enable (sendRegister persists ACCOUNT_ENABLE) and register.
+            Log.w(TAG, "forceReconnect: re-enabling Offline account $id")
+            a.isEnabled = true
+            NotificationService.suppressNewMessageNotificationsUntil =
+                System.currentTimeMillis() + 15_000L
+            JamiService.sendRegister(id, true)
+        } else {
+            // Enabled but possibly stuck: unregister -> re-register nudge.
+            Log.w(TAG, "forceReconnect: re-registering $id (state=${a.registrationState})")
+            JamiService.sendRegister(id, false)
+            scheduler.scheduleDirect({
+                NotificationService.suppressNewMessageNotificationsUntil =
+                    System.currentTimeMillis() + 15_000L
+                JamiService.sendRegister(id, true)
+            }, 1500, TimeUnit.MILLISECONDS)
         }
     }
 
@@ -2066,17 +2078,17 @@ class AccountService(
         val connectionTime: Long
     )
 
-    fun monitorConnections(): Observable<Pair<String, List<Pair<String, List<DeviceConnection>>>>> =
+    fun monitorConnections(includeFailing: Boolean = false): Observable<Pair<String, List<Pair<String, List<DeviceConnection>>>>> =
         currentAccountSubject
-            .switchMap { monitorConnections(it.accountId) }
+            .switchMap { monitorConnections(it.accountId, includeFailing) }
 
-    private fun monitorConnections(accountId: String): Observable<Pair<String, List<Pair<String, List<DeviceConnection>>>>> =
+    private fun monitorConnections(accountId: String, includeFailing: Boolean): Observable<Pair<String, List<Pair<String, List<DeviceConnection>>>>> =
         Observable.interval(0, 2, TimeUnit.SECONDS, scheduler)
             .map { _ ->
                 Pair(accountId, JamiService.getConnectionList(accountId, "")
                     .mapNotNull { it: Map<String, String> ->
                         val status = ConnectionStatus.fromInt(it["status"]?.toInt() ?: 4)
-                        if (status == ConnectionStatus.Waiting || status == ConnectionStatus.Connecting) {
+                        if (!includeFailing && (status == ConnectionStatus.Waiting || status == ConnectionStatus.Connecting)) {
                             null
                         } else {
                             DeviceConnection(
@@ -2098,6 +2110,49 @@ class AccountService(
                     .sortedBy { it.first }
                 )
             }
+
+    data class AccountConnections(
+        val accountId: String,
+        val name: String,
+        val uri: String,
+        val registered: Boolean,
+        val peers: List<Pair<String, List<DeviceConnection>>>
+    )
+
+    private fun connectionListFor(accountId: String, includeFailing: Boolean): List<Pair<String, List<DeviceConnection>>> =
+        JamiService.getConnectionList(accountId, "")
+            .mapNotNull { it: Map<String, String> ->
+                val status = ConnectionStatus.fromInt(it["status"]?.toInt() ?: 4)
+                if (!includeFailing && (status == ConnectionStatus.Waiting || status == ConnectionStatus.Connecting)) null
+                else DeviceConnection(
+                    accountId = accountId,
+                    id = it["id"]!!,
+                    device = it["device"]!!,
+                    status = status,
+                    peer = it["peer"]!!,
+                    remoteAddress = it["remoteAddress"],
+                    channels = JamiService.getChannelList(accountId, it["id"]!!).map { c -> c["name"]!! },
+                    connectionTime = it["created"]?.toLongOrNull()?.let { c -> System.currentTimeMillis() - c } ?: 0L
+                )
+            }
+            .groupBy { it.peer }
+            .map { Pair(it.key, it.value) }
+            .sortedBy { it.first }
+
+    /** Every Jami account's connections, polled together — for the multi-account connection monitor,
+     *  the dot dialog, and the dead-link alarm (so they reflect ALL accounts, not just the current one). */
+    fun monitorAllConnections(includeFailing: Boolean = false): Observable<List<AccountConnections>> =
+        Observable.interval(0, 2, TimeUnit.SECONDS, scheduler).map { _ ->
+            mAccountList.filter { it.isJami }.map { acc ->
+                AccountConnections(
+                    accountId = acc.accountId,
+                    name = acc.registeredName.ifBlank { acc.alias.orEmpty() }.ifBlank { acc.accountId },
+                    uri = acc.uri ?: "",
+                    registered = acc.isRegistered,
+                    peers = connectionListFor(acc.accountId, includeFailing)
+                )
+            }
+        }
 
     enum class AuthState(val value: Int) {
         INIT(0),
