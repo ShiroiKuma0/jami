@@ -40,8 +40,8 @@
 
         <item name="colorPrimaryDark">@color/background</item>
 
-        <item name="alertDialogTheme">@style/RoundedMaterialAlertDialog</item>
-        <item name="materialAlertDialogTheme">@style/RoundedMaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ShiroikumaDialog</item>
+        <item name="materialAlertDialogTheme">@style/ShiroikumaDialog</item>
         <item name="extendedFloatingActionButtonStyle">@style/Widget.AppTheme.MainActionButton</item>
         <item name="materialSearchBarStyle">@style/Widget.Material3Expressive.SearchBar.CenteredText</item>
 

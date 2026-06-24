@@ -600,6 +600,30 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe { acc -> applyStatusDot(acc.isRegistered) })
 
+        // Health alarm: while the home screen is shown, poll connectivity across accounts and ring the
+        // dot red ONLY for a genuine hidden problem — an account registered but unable to sync for
+        // >2.5min (ConnectionHealth.NOT_SYNCING). Transient sync churn never triggers it. Foreground-only.
+        mDisposable.add(mAccountService.monitorAllConnections(true)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ accounts ->
+                val now = System.currentTimeMillis()
+                cx.ring.utils.ConnectionHealth.update(now, accounts.map { a ->
+                    a.accountId to a.peers.any { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
+                })
+                // Ring the dot ONLY for a genuine hidden problem: an account REGISTERED but unable to
+                // sync for >2.5 min. Normal short-lived sync churn never lights it; plain offline is
+                // already shown by the hollow dot icon.
+                val problems = accounts.count { a ->
+                    cx.ring.utils.ConnectionHealth.classify(a.accountId, now, a.registered,
+                        a.peers.any { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } },
+                        a.peers.isNotEmpty()) == cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING
+                }
+                if (problems != dotAlarmCount) {
+                    dotAlarmCount = problems
+                    applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
+                }
+            }, {}))
+
         if (mBinding!!.searchView.isShowing)
             startSearch()
     }
@@ -611,7 +635,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         resources.displayMetrics
     ).toInt()
 
-    /** Set the dot's shape (online = filled, offline = hollow) and colour (yellow until overridden). */
+    /** >0 when there are dead peer links — rings the account dot red as an alarm. */
+    private var dotAlarmCount = 0
+
+    /** Set the dot's shape (online = filled, offline = hollow) and colour (yellow until overridden),
+     *  plus a thick red alarm ring around it when there are dead peer links. */
     private fun applyStatusDot(online: Boolean) {
         val dot = mBinding?.searchBar?.menu?.findItem(R.id.menu_account_status)?.actionView as? ImageView ?: return
         dot.setImageResource(if (online) R.drawable.ic_status_online else R.drawable.ic_status_offline)
@@ -620,6 +648,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             if (cx.ring.utils.ColorPrefs.isSet(dot.context, role))
                 cx.ring.utils.ColorPrefs.getColor(dot.context, role)
             else 0xFFFFFF00.toInt())
+        if (dotAlarmCount > 0) {
+            dot.setBackgroundResource(R.drawable.dot_alarm_ring)
+            val p = (3 * dot.resources.displayMetrics.density).toInt()
+            dot.setPadding(p, p, p, p)
+        } else {
+            dot.background = null
+            dot.setPadding(0, 0, 0, 0)
+        }
     }
 
     /** Re-apply the dot size + colour after they are changed in the UI page (live refresh). */
@@ -638,32 +674,56 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             Flash.show(ctx, "No account", Toast.LENGTH_SHORT); return
         }
         val pad = (20 * ctx.resources.displayMetrics.density).toInt()
-        val tv = TextView(ctx).apply {
+        val container = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
-            setTextColor(0xFFFFFF00.toInt())
-            text = "Checking…"
+            addView(TextView(ctx).apply { setTextColor(0xFFFFFF00.toInt()); text = "Checking…" })
         }
+        val scroll = android.widget.ScrollView(ctx).apply { addView(container) }
         val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
             .setTitle("Connection status")
-            .setView(tv)
+            .setView(scroll)
             .setPositiveButton("Reconnect now") { _, _ -> reconnectAllWithFeedback() }
+            .setNeutralButton("Monitor", null)  // click wired below so it does NOT dismiss the dialog
             .setNegativeButton("Close", null)
             .create()
         val dis = CompositeDisposable()
         dialog.setOnDismissListener { dis.clear() }
-        dis.add(mAccountService.monitorConnections()
+        // Account avatars (by accountId) for the dialog rows, loaded async; rebuild on either source.
+        val avatars = HashMap<String, android.graphics.drawable.Drawable>()
+        var lastAccounts: List<AccountService.AccountConnections> = emptyList()
+        fun rebuild() = populateConnectionStatusView(container, lastAccounts, System.currentTimeMillis(), avatars)
+        dis.add(mAccountService.observableAccountList
+            .switchMap { accs -> io.reactivex.rxjava3.core.Observable.merge(
+                accs.filter { it.isJami }.map { mAccountService.getObservableAccountProfile(it.accountId) }) }
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ (_, peers) ->
-                val conns = peers.sumOf { it.second.size }
-                tv.text = buildConnectionStatusText(account, conns, peers.size)
+            .subscribe({ (account, profile) ->
+                avatars[account.accountId] = AvatarDrawable.build(ctx, account, profile, true, account.presenceStatus)
+                rebuild()
+            }, { /* ignore */ }))
+        dis.add(mAccountService.monitorAllConnections(true)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ accounts ->
+                val now = System.currentTimeMillis()
+                cx.ring.utils.ConnectionHealth.update(now, accounts.map { a ->
+                    a.accountId to a.peers.any { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
+                })
+                lastAccounts = accounts
+                rebuild()
             }, { e ->
-                tv.text = "Error reading connections:\n${e.message}"
+                container.removeAllViews()
+                container.addView(TextView(ctx).apply { setTextColor(0xFFFF5252.toInt()); text = "Error: ${e.message}" })
             }))
         dialog.show()
         dialog.window?.setBackgroundDrawable(
             AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow))
         styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE))
+        styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL))
         styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE))
+        // Open the monitor WITHOUT dismissing this dialog, so Back from the monitor returns here.
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.setOnClickListener {
+            startActivity(android.content.Intent(requireContext(), cx.ring.client.ConnectionMonitorActivity::class.java))
+        }
     }
 
     /** Black fill, yellow text + 2dp yellow border — matches the app's black/yellow chrome. */
@@ -680,22 +740,64 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         }
     }
 
-    private fun buildConnectionStatusText(account: Account, conns: Int, peers: Int): String {
-        val netLabel = networkLabel()
-        val reg = account.registrationState.name
-        val name = account.registeredName.ifBlank { account.alias.orEmpty() }.ifBlank { account.accountId }
-        val verdict = when {
-            netLabel == null -> "✗ No network"
-            account.registrationState != AccountConfig.RegistrationState.REGISTERED -> "✗ Off the DHT ($reg)"
-            conns == 0 -> "⚠ Stale — registered but no peer connections.\nTap “Reconnect now”."
-            else -> "✓ Healthy"
+    /** Render the all-accounts connection status into [container] with avatars: a verdict line, then
+     *  one row per account (avatar + name + TRUE health). Transient sync connections are not failures,
+     *  so health = registered + actually-syncing (ConnectionHealth.classify); only OFFLINE / NOT_SYNCING
+     *  read as a problem. */
+    private fun populateConnectionStatusView(
+        container: android.widget.LinearLayout,
+        accounts: List<AccountService.AccountConnections>,
+        now: Long,
+        avatars: Map<String, android.graphics.drawable.Drawable>,
+    ) {
+        val ctx = container.context
+        val d = ctx.resources.displayMetrics.density
+        val red = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.MONITOR_PROBLEM)
+        val amber = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.MONITOR_CONNECTING)
+        val healthyCol = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.MONITOR_HEALTHY)
+        val grey = 0xFFAAAAAA.toInt()
+        container.removeAllViews()
+        fun text(s: String, color: Int, bold: Boolean = false, sizeSp: Float = 14f) = TextView(ctx).apply {
+            text = s; setTextColor(color); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sizeSp)
+            if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
-        return buildString {
-            append("Account: $name\n")
-            append("Registration: $reg\n")
-            append("Network: ${netLabel ?: "none"}\n")
-            append("Peer connections: $conns (across $peers peer(s))\n\n")
-            append(verdict)
+        data class Row(val ac: AccountService.AccountConnections,
+                       val health: cx.ring.utils.ConnectionHealth.Health, val connected: Int)
+        val rows = accounts.map { ac ->
+            val byDevice = ac.peers.flatMap { it.second }.groupBy { it.device }
+            val connectedNow = byDevice.any { (_, l) -> l.any { it.status == AccountService.ConnectionStatus.Connected } }
+            val connected = byDevice.count { (_, l) -> l.any { it.status == AccountService.ConnectionStatus.Connected } }
+            Row(ac, cx.ring.utils.ConnectionHealth.classify(ac.accountId, now, ac.registered, connectedNow, ac.peers.isNotEmpty()), connected)
+        }
+        val problems = rows.count { cx.ring.utils.ConnectionHealth.isProblem(it.health) }
+        container.addView(text(
+            if (problems > 0) "⚠ $problems account(s) need attention" else "✓ All accounts healthy",
+            if (problems > 0) red else healthyCol, bold = true, sizeSp = 15f))
+        container.addView(text("Network: ${networkLabel() ?: "none"}", grey, sizeSp = 12f))
+        for (r in rows) {
+            val word = when (r.health) {
+                cx.ring.utils.ConnectionHealth.Health.HEALTHY -> "online · healthy"
+                cx.ring.utils.ConnectionHealth.Health.CONNECTING -> "connecting…"
+                cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> "NOT SYNCING"
+                cx.ring.utils.ConnectionHealth.Health.OFFLINE -> "OFFLINE"
+            }
+            val col = when (r.health) {
+                cx.ring.utils.ConnectionHealth.Health.HEALTHY -> healthyCol
+                cx.ring.utils.ConnectionHealth.Health.CONNECTING -> amber
+                else -> red
+            }
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, (8 * d).toInt(), 0, 0)
+            }
+            val s = (40 * d).toInt()
+            row.addView(ImageView(ctx).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(s, s).apply { marginEnd = (10 * d).toInt() }
+                avatars[r.ac.accountId]?.let { setImageDrawable(it) }
+            })
+            row.addView(text("${r.ac.name} — $word · ${r.connected} connected", col))
+            container.addView(row)
         }
     }
 

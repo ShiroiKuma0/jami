@@ -95,6 +95,12 @@ class FontsSettingsFragment : Fragment() {
                 ColorRole("Text", ColorPrefs.FLASH_TEXT),
                 ColorRole("Background", ColorPrefs.FLASH_FILL),
                 ColorRole("Border", ColorPrefs.FLASH_BORDER))))),
+        Group("Connection monitor", listOf(
+            Element("Account healthy", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_HEALTHY))),
+            Element("Account connecting", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_CONNECTING))),
+            Element("Account problem (offline / not syncing)", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_PROBLEM))),
+            Element("Connection: connected", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_CONNECTED))),
+            Element("Connection: in progress", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_IDLE))))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()
@@ -143,10 +149,73 @@ class FontsSettingsFragment : Fragment() {
     private fun rebuild() {
         val c = container ?: return
         c.removeAllViews()
+        c.addView(groupHeader("App language"))
+        c.addView(languageRow())
         for (g in groups) {
             c.addView(groupHeader(g.title))
             for (e in g.elements) c.addView(elementView(e))
         }
+    }
+
+    /** A tappable row showing the current app language; opens a locale picker. Overrides the
+     *  phone locale for this app only (AppCompat per-app locales; localeConfig is declared). */
+    private fun languageRow(): View {
+        val ctx = requireContext()
+        val current = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+        val label = if (current.isEmpty) "System default" else {
+            val loc = java.util.Locale.forLanguageTag(current.toLanguageTags())
+            loc.getDisplayName(loc).replaceFirstChar { it.uppercase() }
+        }
+        return TextView(ctx).apply {
+            text = "Language: $label"
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setPadding(dp(84f), dp(16f), dp(12f), dp(16f))
+            layoutParams = matchWrap()
+            setOnClickListener { showLanguageDialog() }
+        }
+    }
+
+    private fun readSupportedLocaleTags(): List<String> {
+        val tags = ArrayList<String>()
+        try {
+            val parser = resources.getXml(R.xml.locales_config)
+            var event = parser.eventType
+            while (event != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                if (event == org.xmlpull.v1.XmlPullParser.START_TAG && parser.name == "locale") {
+                    val name = parser.getAttributeValue(
+                        "http://schemas.android.com/apk/res/android", "name")
+                    if (!name.isNullOrEmpty()) tags.add(name)
+                }
+                event = parser.next()
+            }
+        } catch (_: Exception) {}
+        return tags
+    }
+
+    private fun showLanguageDialog() {
+        val ctx = context ?: return
+        val pairs = ArrayList<Pair<String, String>>()
+        pairs.add("" to "System default")
+        readSupportedLocaleTags().forEach { tag ->
+            val loc = java.util.Locale.forLanguageTag(tag)
+            pairs.add(tag to "${loc.getDisplayName(loc).replaceFirstChar { it.uppercase() }}  ($tag)")
+        }
+        val ordered = listOf(pairs.first()) + pairs.drop(1).sortedBy { it.second }
+        val names = ordered.map { it.second }.toTypedArray()
+        val currentTag = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
+        val checked = ordered.indexOfFirst { it.first == currentTag }.let { if (it < 0) 0 else it }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("App language")
+            .setSingleChoiceItems(names, checked) { d, which ->
+                val tag = ordered[which].first
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                    if (tag.isEmpty()) androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                    else androidx.core.os.LocaleListCompat.forLanguageTags(tag))
+                d.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun groupHeader(title: String): View {
@@ -377,7 +446,7 @@ class FontsSettingsFragment : Fragment() {
                 return tv
             }
         }
-        MaterialAlertDialogBuilder(ctx)
+        cx.ring.utils.DialogTheme.builder(ctx)
             .setTitle("Font")
             .setAdapter(adapter) { _, which ->
                 val o = opts[which]
@@ -389,20 +458,20 @@ class FontsSettingsFragment : Fragment() {
                     rebuild()
                 }
             }
-            .show()
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun showWeightPicker(cat: String) {
         val ctx = context ?: return
         val labels = FontUtil.WEIGHTS.map { it.first }.toTypedArray()
-        MaterialAlertDialogBuilder(ctx)
+        cx.ring.utils.DialogTheme.builder(ctx)
             .setTitle("Weight")
             .setItems(labels) { _, which ->
                 FontPrefs.setFont(ctx, cat, FontPrefs.getFamily(ctx, cat),
                     FontUtil.WEIGHTS[which].second, FontPrefs.getSize(ctx, cat))
                 rebuild()
             }
-            .show()
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun showSizeDialog(cat: String) {
@@ -413,7 +482,7 @@ class FontsSettingsFragment : Fragment() {
             val s = FontPrefs.getSize(ctx, cat)
             if (s > 0f) setText(s.toInt().toString())
         }
-        MaterialAlertDialogBuilder(ctx)
+        cx.ring.utils.DialogTheme.builder(ctx)
             .setTitle("Size")
             .setView(input)
             .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -426,7 +495,7 @@ class FontsSettingsFragment : Fragment() {
                 rebuild()
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun showColorPicker(role: ColorRole) {
@@ -497,13 +566,13 @@ class FontsSettingsFragment : Fragment() {
             }
         })
 
-        MaterialAlertDialogBuilder(ctx)
+        cx.ring.utils.DialogTheme.builder(ctx)
             .setTitle(role.label)
             .setView(box)
             .setPositiveButton(android.R.string.ok) { _, _ -> ColorPrefs.setColor(ctx, role.key, current()); rebuild() }
             .setNeutralButton("Default") { _, _ -> ColorPrefs.reset(ctx, role.key); rebuild() }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun queryName(uri: Uri): String? {

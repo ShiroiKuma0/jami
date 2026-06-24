@@ -524,6 +524,24 @@ class SettingsFragment :
             arguments?.remove("open_fonts")
             view.post { goToFontsSettings() }
         }
+        if (arguments?.getBoolean("open_connection_monitor") == true) {
+            arguments?.remove("open_connection_monitor")
+            view.post { goToConnectionMonitor() }
+        }
+    }
+
+    /** Open the Connection monitor sub-screen (also reachable from the tap-the-dot dialog). */
+    fun goToConnectionMonitor() {
+        val binding = binding ?: return
+        val content = cx.ring.fragments.ConnectionMonitorFragment()
+        childFragmentManager
+            .beginTransaction()
+            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+            .replace(R.id.fragment_container, content, "ConnectionMonitor")
+            .addToBackStack("ConnectionMonitor").commit()
+        binding.fragmentContainer.isVisible = true
+        binding.donateButton.isVisible = false
+        backPressedCallback.isEnabled = true
     }
 
     private fun saveDonationSettings(binding: FragSettingsBinding) {
