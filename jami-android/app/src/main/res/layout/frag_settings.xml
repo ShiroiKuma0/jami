@@ -852,13 +852,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     style="@style/ListPrimary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="UI fonts &amp; colors" />
+                    android:text="白い熊 GNU Jami UI" />
 
                 <TextView
                     style="@style/ListSecondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Fonts and colors for each UI element"
+                    android:text="Fonts, colours and app language for each UI element"
                     android:layout_below="@id/fonts_title" />
 
             </RelativeLayout>

@@ -36,7 +36,7 @@ Only the **Android client repo** is forked — not the `jami-project` meta-tree.
 | Custom applicationId | `shiroikuma.jami` |
 | Custom app label | `白い熊 GNU Jami` |
 | Java/Kotlin namespace (unchanged) | `cx.ring` |
-| Product flavor | `noPush` (no Firebase / no Google) → task `assembleNoPushRelease` |
+| Product flavor | `withUnifiedPush` (Google-free push via a UnifiedPush distributor, e.g. ntfy) → task `assembleWithUnifiedPushRelease`. Needs an installed UnifiedPush distributor + DHT proxy ON so backgrounded accounts deactivate (idle CPU ~0%). The old `noPush` flavor kept the daemon awake 24/7 (10-35% idle) and is retired. Also keep **local peer discovery / mDNS OFF** unless on a multi-device LAN — it's useless for a single internet-connected device. |
 | Target ABI | `arm64-v8a` only, via `-Parchs=arm64-v8a` |
 | Custom signing keystore | `~/.android-keystores/jami-custom.jks` (PKCS12, alias `jami-custom`, passphrase `jami-shiroikuma`) |
 | Output APK directory | `~/tmp/` (local backup) + on-device `/sdcard/tmp/` |
@@ -253,7 +253,7 @@ read -p $'\033[1;33m>>> Continue with the daemon + app build? (y/n) \033[0m' ans
 if [[ "$ans" =~ ^[Yy]$ ]]; then
   cd ~/git/shiroikuma-jami/jami-android
   build_ok=0
-  r ./gradlew -Parchs=arm64-v8a -PshiroikumaBuild="$N" assembleNoPushRelease && build_ok=1
+  r ./gradlew -Parchs=arm64-v8a -PshiroikumaBuild="$N" assembleWithUnifiedPushRelease && build_ok=1
 
   if [ "$build_ok" != 1 ]; then
     # Only sign on success — a failed Gradle run leaves a stale APK in the output dir that ls would happily pick up and sign.
@@ -268,7 +268,7 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
         && git push origin custom ) \
       && echo -e "\033[1;36m>>> counter ${base_vn}+${N} committed + pushed\033[0m" \
       || echo -e "\033[1;31m>>> counter commit/push failed — push jami-android/shiroikuma-build.txt manually\033[0m"
-    unsigned_apk=$(ls -t app/build/outputs/apk/noPush/release/*.apk 2>/dev/null | head -1)
+    unsigned_apk=$(ls -t app/build/outputs/apk/withUnifiedPush/release/*.apk 2>/dev/null | head -1)
     r ls -lh "$unsigned_apk"
     r zipalign -p -f 4 "$unsigned_apk" /tmp/jami-aligned.apk
     r apksigner sign --ks ~/.android-keystores/jami-custom.jks --ks-key-alias jami-custom --ks-pass pass:jami-shiroikuma --key-pass pass:jami-shiroikuma --out /tmp/jami-signed.apk /tmp/jami-aligned.apk
@@ -300,7 +300,7 @@ else
 fi
 ```
 
-`assembleNoPushRelease` triggers the CMake daemon build automatically (the CMake tasks are wired as dependencies of Kotlin compilation), so there's no separate daemon step beyond the SWIG generation.
+`assembleWithUnifiedPushRelease` triggers the CMake daemon build automatically (the CMake tasks are wired as dependencies of Kotlin compilation), so there's no separate daemon step beyond the SWIG generation.
 
 ## Sync to a new upstream version
 
