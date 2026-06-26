@@ -11,7 +11,7 @@ per-element **UI fonts & colours** system with an RGBA colour picker, **connecti
 a live multi-account **connection monitor**, **Google-free push**, and one-tap account recovery —
 token-gated **automation intents**, smarter **registered-name** lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260619-01+9`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260619-01+29`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -67,16 +67,27 @@ Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settin
 Jami can quietly drift offline; this fork helps it heal itself **and** shows you the truth about its
 links. It builds the **Google-free `withUnifiedPush` flavor**: paired with a UnifiedPush distributor
 (e.g. [ntfy](https://ntfy.sh)) and the DHT proxy, backgrounded accounts deactivate and wake on a
-push — so idle CPU drops to near zero **with no Google/Firebase dependency**. It also adds DHT
-reconnect logic and a one-tap action to **recover Offline / disabled accounts**.
+push — so idle CPU drops to near zero **with no Google/Firebase dependency**, while incoming external
+messages still wake the app instantly. (That tradeoff was *measured*, not guessed: a controlled
+on-device A/B test of every connectivity setting showed the DHT proxy is the one lever that matters.)
+It also adds DHT reconnect logic and a one-tap action to **recover Offline / disabled accounts**.
+
+**The alarm tracks your actual messages, not just sockets.** When a message you sent hasn't been
+delivered, the account turns red and the chat-list dot rings — and because it reads true message
+delivery, it catches **group swarms** that a raw connection view can't even see. The dot rings **red**
+for a stuck message and **blue** while an account is merely connecting; normal churn and idle never
+cry wolf. And the proxy's one downside — a message between your *own* same-device accounts occasionally
+stranding — is a one-tap fix: the new **Sync** icon (left of the dot) briefly cycles connectivity to
+flush those messages through.
 
 The **connection monitor** — tap the account dot, or open it from Settings — is an all-accounts
-diagnostics screen that reports *true* health: an account is **healthy** when it's registered and
-actually syncing, **connecting** while it establishes, and only **offline / not-syncing** when it
-genuinely can't reach the network. It deliberately won't cry wolf over the normal, constant
-open-and-close of swarm-conversation sync connections. Account rows carry avatars and fold open to
-their live links; tap any link for device details and a **per-account Reconnect**, and a built-in
-legend explains every colour and icon (all of which you can recolour in *UI fonts & colours*).
+diagnostics screen that reports that *true* health. Problem accounts sort to the top with a red
+**"⚠ message not delivered → \<chat\>"** line naming exactly what's stuck; "connecting" reads blue and
+is never itself treated as a fault; your other same-device accounts read **reachable** rather than a
+misleading "offline". Accounts are folded by default and fold open — three levels deep — to each
+contact and its individual device connections; the same foldable, three-level view is now also built
+right into the **tap-the-dot status dialog**. Every colour, and the fold-triangle size, is settable in
+*UI fonts & colours*.
 
 ## 🤖 Automation intents
 

@@ -4,6 +4,47 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260619-01+29 — 2026-06-26
+
+A measured connectivity study turned into a set of self-healing connection-health features. Still on
+upstream base **20260619-01** (versionCode 498); `+10`…`+28` were on-device test iterations and `+29`
+is the shipped result.
+
+### Connectivity: measured, then defaulted
+- Ran a controlled on-device A/B test of every connectivity setting (UPnP, DHT proxy, local peer
+  discovery, TURN), measuring delivery success, latency and idle CPU. Result: **"Use DHT proxy" is the
+  only setting that materially matters** — proxy on ≈ 0–2% idle CPU with reliable external delivery
+  (including an instant push-wake on an incoming external message), proxy off ≈ 10–12% CPU; UPnP, local
+  peer discovery and TURN had no measurable effect on delivery. The one cost of proxy-on: a message
+  between your **own same-device accounts** can strand until nudged.
+- New accounts now default to **UPnP + TURN + local peer discovery + DHT proxy all ON**.
+
+### “Sync now” — clear stranded inter-account messages
+- A new **sync icon** in the chat-list top bar (left of the connection dot). Under DHT-proxy mode a
+  message to one of your own same-device accounts (or a same-device group swarm) can sit undelivered;
+  tapping Sync briefly drops every account to the full-DHT path and back, flushing those messages. The
+  toggle is **sequential and spaced** — doing it all at once / too fast crashed the daemon, so it now
+  mirrors the safe manual sequence.
+
+### Honest connection health (dot + monitor + status dialog)
+- The “needs attention” alarm is now driven by the **actual undelivered message** (an outgoing text
+  whose delivery never confirms) in same-device conversations — which also catches **group swarms** the
+  connection table can’t even see. A genuinely stuck message turns the account red and rings the dot;
+  normal connecting and idle never false-alarm.
+- **Account dot ring:** red when a message is stuck, **blue while an account is still connecting**.
+- **Connection monitor:** problem accounts sort to the top; a red **“⚠ message not delivered → \<chat\>”**
+  row (with the account avatar) names exactly what is stuck; “connecting” reads blue and is never itself
+  a problem; your other same-device accounts show **“reachable”** instead of a false “offline”; all
+  accounts are **folded by default**; the fold indicator is a filled ▶/▼ triangle whose **size is
+  settable** in UI fonts & colours.
+- **Connection-status dialog (tap the dot):** now a **3-level foldable** view mirroring the monitor —
+  account → contact (with avatar) → individual device connections — with the full-page **Monitor** button
+  kept.
+
+### Fixes
+- The **Diagnostic logs** screen no longer auto-pops the “Last crash report” sheet on every visit (it is
+  still reachable via the bug icon).
+
 ## 20260619-01+9 — 2026-06-25
 
 Connectivity, push and a rebuilt connection monitor, plus app-wide dialog theming. Still on upstream
