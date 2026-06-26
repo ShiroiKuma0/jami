@@ -780,6 +780,42 @@ class AccountService(
         }
     }
 
+    /**
+     * "Sync now" (the top-bar sync icon). Proven manual fix (白い熊): under DHT-proxy mode a
+     * same-device receiver's connection stalls, so swarm commits strand; dropping every account to
+     * the full-DHT path (Use DHT proxy OFF) completes the connection and flushes the stranded
+     * commits, then restoring proxy returns to low-power mode.
+     *
+     * CRITICAL: toggling all accounts' proxy at once / too fast (1 s) crashed the daemon (native
+     * SIGSEGV in libjami-core-jni). So we mirror the SAFE manual sequence — toggle ONE account at a
+     * time, spaced by SYNC_STAGGER_MS, all OFF, then after a SYNC_SETTLE_MS window (full-DHT delivers
+     * the stranded messages here) toggle them back ON, again one at a time.
+     */
+    fun syncAllAccounts() {
+        mExecutor.execute {
+            restoreProxyAccountsOnExecutor()
+            val ids = mAccountList.filter { it.isJami && it.isDhtProxyEnabled }.map { it.accountId }
+            ids.forEachIndexed { i, id ->
+                scheduler.scheduleDirect({ setAccountProxy(id, false) }, i * SYNC_STAGGER_MS, TimeUnit.MILLISECONDS)
+            }
+            val onStart = ids.size * SYNC_STAGGER_MS + SYNC_SETTLE_MS
+            ids.forEachIndexed { i, id ->
+                scheduler.scheduleDirect({ setAccountProxy(id, true) }, onStart + i * SYNC_STAGGER_MS, TimeUnit.MILLISECONDS)
+            }
+        }
+    }
+
+    /** Toggle one account's DHT proxy (used by the staggered syncAllAccounts; never all-at-once). */
+    private fun setAccountProxy(accountId: String, enabled: Boolean) {
+        val acc = mAccountList.firstOrNull { it.accountId == accountId } ?: return
+        if (acc.isDhtProxyEnabled == enabled) return
+        Log.d(TAG, (if (enabled) "Sync: re-enabling" else "Sync: disabling") + " proxy for $accountId")
+        acc.isDhtProxyEnabled = enabled
+        val details = JamiService.getAccountDetails(accountId)
+        details[ConfigKey.PROXY_ENABLED.key] = if (enabled) "true" else "false"
+        JamiService.setAccountDetails(accountId, details)
+    }
+
     /** Force-reconnect a single account (used by the per-account Reconnect in the monitor). */
     fun forceReconnectAccount(accountId: String) {
         mExecutor.execute {
@@ -2265,6 +2301,11 @@ class AccountService(
         private const val VCARD_CHUNK_SIZE = 1000
         private const val DATA_TRANSFER_REFRESH_PERIOD: Long = 500
         private const val DATA_TRANSFER_INFO_MAX_RETRIES = 4
+        // "Sync now" timing (ms). Per-account proxy toggles are spaced by STAGGER (sequential, gentle
+        // on the daemon — simultaneous/fast toggling crashed it); SETTLE is the full-DHT window between
+        // all-off and all-on, during which the stranded messages deliver.
+        private const val SYNC_STAGGER_MS: Long = 400
+        private const val SYNC_SETTLE_MS: Long = 3000
 
         const val ACCOUNT_SCHEME_NONE = ""
         const val ACCOUNT_SCHEME_PASSWORD = "password"
