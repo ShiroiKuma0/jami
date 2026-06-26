@@ -176,7 +176,13 @@ class AccountWizardPresenter @Inject constructor(
     private fun initJamiAccountDetails(defaultAccountName: String): Single<HashMap<String, String>> =
         initAccountDetails().map { accountDetails: HashMap<String, String> ->
             accountDetails[ConfigKey.ACCOUNT_ALIAS.key] = mAccountService.getNewAccountName(defaultAccountName)
+            // shiroikuma default: all four connectivity options ON for new accounts (measured A/B
+            // test — DHT proxy on = ~0-2% idle CPU + reliable external incl. instant inbound push-wake;
+            // UPnP/TURN/local-discovery are harmless fallbacks). See jami-connectivity-ab-test memory.
             accountDetails[ConfigKey.ACCOUNT_UPNP_ENABLE.key] = AccountConfig.TRUE_STR
+            accountDetails[ConfigKey.TURN_ENABLE.key] = AccountConfig.TRUE_STR
+            accountDetails[ConfigKey.ACCOUNT_PEER_DISCOVERY.key] = AccountConfig.TRUE_STR
+            accountDetails[ConfigKey.PROXY_ENABLED.key] = AccountConfig.TRUE_STR
             accountDetails
         }
 
