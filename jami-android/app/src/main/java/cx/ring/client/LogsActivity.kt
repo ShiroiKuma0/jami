@@ -105,9 +105,9 @@ class LogsActivity : AppCompatActivity() {
             }
         }
 
-        // Check for previous crash reasons, if any.
-        if (savedInstanceState == null)
-            showNativeCrashes()
+        // Previous native crashes are NOT shown automatically (shiroikuma): the "Last crash report"
+        // sheet popped up on every visit to the diagnostic-logs screen. It stays available on demand
+        // via the bug icon in the toolbar (R.id.menu_log_crashes -> showNativeCrashes(true)).
 
         if (mHardwareService.isLogging) startLogging()
     }

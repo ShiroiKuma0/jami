@@ -100,7 +100,11 @@ class FontsSettingsFragment : Fragment() {
             Element("Account connecting", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_CONNECTING))),
             Element("Account problem (offline / not syncing)", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_PROBLEM))),
             Element("Connection: connected", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_CONNECTED))),
-            Element("Connection: in progress", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_IDLE))))),
+            Element("Connection: in progress", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_IDLE))),
+            Element("Contact: disconnected / offline", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_OFFLINE))),
+            Element("Fold triangle size", null, emptyList(), ScaleRole("Size (% of row text)",
+                { c -> (UiPrefs.getMonitorFoldScale(c) * 100f).toInt() },
+                { c, v -> UiPrefs.setMonitorFoldScale(c, v / 100f) }, 20, 300)))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()
