@@ -49,6 +49,7 @@ object ColorPrefs {
     const val MONITOR_PROBLEM = "monitor_problem"
     const val MONITOR_CONNECTED = "monitor_connected"
     const val MONITOR_IDLE = "monitor_idle"
+    const val MONITOR_OFFLINE = "monitor_offline"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -64,7 +65,7 @@ object ColorPrefs {
         STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
         STATUS_ONLINE -> 0xFF4CAF50.toInt()
         MONITOR_IDLE, MONITOR_CONNECTING -> 0xFF2196F3.toInt()   // blue — in-progress / connecting
-        MONITOR_PROBLEM -> 0xFFFF5252.toInt()                    // red — offline / not syncing
+        MONITOR_OFFLINE, MONITOR_PROBLEM -> 0xFFFF5252.toInt()   // red — offline / not reachable / not syncing
         // MONITOR_HEALTHY and MONITOR_CONNECTED fall through to the YELLOW (#FFFF00) default
         else -> YELLOW
     }
