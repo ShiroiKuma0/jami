@@ -210,6 +210,13 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
                 true
             }
+            // Long-press the Sync icon: deeper "network re-sync" — fire connectivityChanged() so the
+            // daemon re-evaluates the network and rebuilds every peer connection (re-gathers ICE), the
+            // same signal Jami gets when a VPN/Wi-Fi toggles. Recovers the stuck state a plain proxy
+            // re-toggle (short-press) can't (e.g. when kojiki's VPN was up at connect time).
+            searchBar.findViewById<View>(R.id.menu_sync)?.setOnLongClickListener {
+                networkResyncWithFeedback(); true
+            }
         }
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
@@ -757,7 +764,13 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                             val uri = cvm.contact.uri.rawRingId ?: cvm.contact.uri.toString()
                             cvm to (connByUri[uri] ?: emptyList())
                         })
-                    }
+                    }   // resilience: a slow/stalled contact load (an account in a poor state) must not
+                        // blank the whole dialog. monitorAllConnections re-emits every 2 s and switchMap
+                        // cancels any zip that has not finished — so a >2 s contact load leaves `loaded`
+                        // empty: zero rows AND a false "all healthy". Cap each account's load so the zip
+                        // always completes inside the poll window; the header + health come from ac.peers.
+                        .timeout(1500, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        .onErrorReturn { DlgAcct(ac, emptyList()) }
                 }
                 if (singles.isEmpty()) io.reactivex.rxjava3.core.Single.just(emptyList<DlgAcct>())
                 else io.reactivex.rxjava3.core.Single.zip(singles) { arr -> arr.map { it as DlgAcct } }
@@ -835,8 +848,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             da.peers.forEach { (cvm, _) -> cvm.contact.uri.rawRingId?.let { nameOf[it] = cvm.displayName } }
         }
         fun healthOf(da: DlgAcct): cx.ring.utils.ConnectionHealth.Health {
-            val cn = da.peers.any { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
-            val at = da.peers.any { (_, c) -> c.any { it.status != AccountService.ConnectionStatus.Connected } }
+            // Use the raw connection list (ac.peers), not the contact-keyed da.peers — so health stays
+            // accurate even when the contact roster timed out (da.peers empty but connections known).
+            val cn = da.ac.peers.any { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
+            val at = da.ac.peers.any { (_, c) -> c.any { it.status != AccountService.ConnectionStatus.Connected } }
             val stuck = mAccountService.getAccount(da.ac.accountId)
                 ?.let { H.accountStuckConvUris(it, now, myUris).isNotEmpty() } ?: false
             return H.classify(da.ac.registered, cn, stuck, at)
@@ -881,7 +896,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 layoutParams = android.widget.LinearLayout.LayoutParams(s, s).apply { marginEnd = (10 * d).toInt() }
                 avatars[ac.accountId]?.let { setImageDrawable(it) }
             })
-            val cnt = da.peers.count { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
+            val cnt = da.ac.peers.count { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
             val stuckWord = if (stuckUris.isNotEmpty()) " (${stuckUris.size} msg stuck)" else ""
             header.addView(text("${ac.name} — $word$stuckWord · $cnt connected", col))
             container.addView(header)
@@ -982,6 +997,15 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     private fun syncAllWithFeedback() {
         mAccountService.syncAllAccounts()
         showReconnectFlash("Syncing all accounts…")
+    }
+
+    /** Long-press Sync: deeper recovery — tell the daemon the network changed so it rebuilds every peer
+     *  connection (re-gathers ICE). The app can't toggle Wi-Fi/airplane itself (Android blocks that for
+     *  non-system apps), but this is the same connectivity-change signal such a toggle delivers — which
+     *  is what recovers the stuck state a plain proxy re-toggle (short-press) can't. */
+    private fun networkResyncWithFeedback() {
+        mAccountService.nudgeConnectivity()
+        showReconnectFlash("Re-syncing network…")
     }
 
     /** Brief flash — the shared [Flash] style (black / yellow text + border, settable). */
