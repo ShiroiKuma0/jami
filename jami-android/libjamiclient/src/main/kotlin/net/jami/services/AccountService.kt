@@ -782,6 +782,17 @@ class AccountService(
         }
     }
 
+    /**
+     * Tell the daemon the network changed → it re-evaluates connectivity and rebuilds every peer
+     * connection (re-gathers ICE candidates, reconnects the DHT/proxy). This is the same signal the
+     * daemon receives when a VPN or Wi-Fi toggles, and it recovers a stuck state that a proxy
+     * re-toggle alone can't (e.g. peers that couldn't establish while a filtering VPN was up at the
+     * time the connection was first attempted). Wired to the Sync icon's long-press.
+     */
+    fun nudgeConnectivity() {
+        mExecutor.execute { JamiService.connectivityChanged() }
+    }
+
     /** Toggle one account's DHT proxy (used by the staggered syncAllAccounts; never all-at-once). */
     private fun setAccountProxy(accountId: String, enabled: Boolean) {
         val acc = mAccountList.firstOrNull { it.accountId == accountId } ?: return
