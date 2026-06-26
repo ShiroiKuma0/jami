@@ -36,7 +36,7 @@ Only the **Android client repo** is forked — not the `jami-project` meta-tree.
 | Custom applicationId | `shiroikuma.jami` |
 | Custom app label | `白い熊 GNU Jami` |
 | Java/Kotlin namespace (unchanged) | `cx.ring` |
-| Product flavor | `withUnifiedPush` (Google-free push via a UnifiedPush distributor, e.g. ntfy) → task `assembleWithUnifiedPushRelease`. Needs an installed UnifiedPush distributor + DHT proxy ON so backgrounded accounts deactivate (idle CPU ~0%). The old `noPush` flavor kept the daemon awake 24/7 (10-35% idle) and is retired. Also keep **local peer discovery / mDNS OFF** unless on a multi-device LAN — it's useless for a single internet-connected device. |
+| Product flavor | `withUnifiedPush` (Google-free push via a UnifiedPush distributor, e.g. ntfy) → task `assembleWithUnifiedPushRelease`. Working runtime config, confirmed on-device by 白い熊: pick the **UnifiedPush connectivity mode** (Settings → Connectivity; sets `enablePushNotifications=true` + `enablePermanentService=false`), keep **UPnP ON**, keep **"Run in background" OFF** (that flag = `enablePermanentService` = always-on Local-DHT-node mode ≈ 11% CPU). Push works with **"Use DHT proxy" OFF** (it is NOT required for push — proven). Do NOT prescribe proxy/UPnP/background changes from theory; trust 白い熊's tested setup. The old `noPush` flavor kept the daemon awake 24/7 and is retired. |
 | Target ABI | `arm64-v8a` only, via `-Parchs=arm64-v8a` |
 | Custom signing keystore | `~/.android-keystores/jami-custom.jks` (PKCS12, alias `jami-custom`, passphrase `jami-shiroikuma`) |
 | Output APK directory | `~/tmp/` (local backup) + on-device `/sdcard/tmp/` |

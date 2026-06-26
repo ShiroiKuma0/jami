@@ -18,4 +18,11 @@ object UiPrefs {
     fun setStatusDotScale(c: Context, v: Float) {
         p(c).edit().putFloat("status_dot_scale", v).apply()
     }
+
+    /** Connection-monitor fold triangle (▶/▼) size, as a RelativeSizeSpan multiple of the row text.
+     *  Default 0.94 (half the previous 1.88). Settable in the UI fonts & colours page. */
+    fun getMonitorFoldScale(c: Context): Float = p(c).getFloat("monitor_fold_scale", 0.94f)
+    fun setMonitorFoldScale(c: Context, v: Float) {
+        p(c).edit().putFloat("monitor_fold_scale", v).apply()
+    }
 }
