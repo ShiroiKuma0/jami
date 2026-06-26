@@ -23,7 +23,9 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
 import android.text.format.DateUtils
+import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
 import android.util.TypedValue
@@ -44,6 +46,7 @@ import cx.ring.databinding.ItemDeviceConnectionBinding
 import cx.ring.databinding.ItemListContactBinding
 import cx.ring.interfaces.AppBarStateListener
 import cx.ring.utils.ColorPrefs
+import cx.ring.utils.UiPrefs
 import cx.ring.utils.ConnectionHealth
 import cx.ring.utils.ConnectionHealth.Health
 import cx.ring.utils.DialogTheme
@@ -54,6 +57,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import net.jami.model.Contact
 import net.jami.model.ContactViewModel
 import net.jami.services.AccountService
 import net.jami.services.AccountService.ConnectionStatus
@@ -75,11 +79,14 @@ class ConnectionMonitorFragment: Fragment() {
     private val disposableBag = CompositeDisposable()
 
     private val collapsed = HashSet<String>()
+    private var firstLoad = true   // collapse all accounts on the first load (fold-by-default)
     private var lastLoaded: List<LoadedAccount> = emptyList()
     private val accountAvatars = HashMap<String, Drawable>()
     private var peerNames: Map<String, String> = emptyMap()
     private var uriToAccountId: Map<String, String> = emptyMap()
 
+    /** Every account row carries its FULL contact roster (people), each paired with its live device
+     *  connections (empty when the contact is currently disconnected). */
     data class LoadedAccount(
         val account: AccountService.AccountConnections,
         val peers: List<Pair<ContactViewModel, List<AccountService.DeviceConnection>>>
@@ -105,6 +112,7 @@ class ConnectionMonitorFragment: Fragment() {
             connectionList.adapter = ConnectionAdapter(
                 onToggle = { id -> if (!collapsed.remove(id)) collapsed.add(id); rebuildRows() },
                 onConnectionClick = { conn -> showDeviceDialog(conn) },
+                onContactClick = { id, cvm -> testLink(id, cvm) },
                 avatarFor = { id -> accountAvatars[id] }
             )
             list = connectionList
@@ -136,12 +144,17 @@ class ConnectionMonitorFragment: Fragment() {
     data class DeviceConnectionViewModel(
         val accountHeader: AccountHeader? = null,
         val contact: ContactViewModel? = null,
+        val contactStatusText: String? = null,
+        val contactStatusColor: Int = 0,
+        val accountId: String? = null,
         val connection: AccountService.DeviceConnection? = null,
+        val stuckLabel: String? = null,   // a "message not delivered → <chat>" sub-row (account avatar)
     )
 
     class ConnectionAdapter(
         val onToggle: (String) -> Unit,
         val onConnectionClick: (AccountService.DeviceConnection) -> Unit,
+        val onContactClick: (String, ContactViewModel) -> Unit,
         val avatarFor: (String) -> Drawable?,
         var connections: List<DeviceConnectionViewModel> = emptyList()
     ): RecyclerView.Adapter<ConnectionAdapter.ConnectionViewHolder>() {
@@ -155,6 +168,7 @@ class ConnectionMonitorFragment: Fragment() {
 
         override fun getItemViewType(position: Int): Int = when {
             connections[position].accountHeader != null -> 2
+            connections[position].stuckLabel != null -> 3
             connections[position].contact != null -> 0
             else -> 1
         }
@@ -164,6 +178,28 @@ class ConnectionMonitorFragment: Fragment() {
                 .let { ConnectionViewHolder(it.root, binding = it) }
             1 -> ItemDeviceConnectionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
                 .let { ConnectionViewHolder(it.root, connBinding = it) }
+            3 -> {
+                // Stuck-message sub-row: account avatar + red "message not delivered → <chat>".
+                val ctx = parent.context
+                val d = ctx.resources.displayMetrics.density
+                val row = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding((58 * d).toInt(), (8 * d).toInt(), (12 * d).toInt(), (8 * d).toInt())
+                    layoutParams = RecyclerView.LayoutParams(
+                        RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT)
+                }
+                val iv = ImageView(ctx).apply {
+                    val s = (38 * d).toInt()
+                    layoutParams = LinearLayout.LayoutParams(s, s).apply { marginEnd = (12 * d).toInt() }
+                }
+                val tv = TextView(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                }
+                row.addView(iv); row.addView(tv)
+                ConnectionViewHolder(row, headerIcon = iv, headerText = tv)
+            }
             else -> {
                 val ctx = parent.context
                 val d = ctx.resources.displayMetrics.density
@@ -190,25 +226,35 @@ class ConnectionMonitorFragment: Fragment() {
 
         override fun onBindViewHolder(holder: ConnectionViewHolder, position: Int) {
             holder.headerText?.let { tv ->
-                val h = connections[position].accountHeader!!
-                holder.headerIcon?.setImageDrawable(avatarFor(h.accountId))
-                val arrow = if (h.collapsed) "›" else "⌄"
-                val text = "$arrow  ${h.name}  —  ${h.statusWord} · ${h.total} device(s)"
-                tv.text = SpannableString(text).apply {
-                    setSpan(RelativeSizeSpan(2.8f), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    setSpan(StyleSpan(Typeface.BOLD), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val vm = connections[position]
+                if (vm.stuckLabel != null) {
+                    holder.headerIcon?.setImageDrawable(avatarFor(vm.accountId ?: ""))
+                    tv.text = vm.stuckLabel
+                    tv.setTextColor(vm.contactStatusColor)
+                    holder.root.setOnClickListener(null)
+                } else {
+                    val h = vm.accountHeader!!
+                    holder.headerIcon?.setImageDrawable(avatarFor(h.accountId))
+                    // Filled disclosure triangle (▶ folded / ▼ open) — immediately apparent, unlike the
+                    // old "⌄" that read as a "v". Size is settable in the UI page (default 0.94×).
+                    val arrow = if (h.collapsed) "▶" else "▼"
+                    val text = "$arrow  ${h.name}  —  ${h.statusWord} · ${h.total} contact(s)"
+                    tv.text = SpannableString(text).apply {
+                        setSpan(RelativeSizeSpan(UiPrefs.getMonitorFoldScale(tv.context)), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                        setSpan(StyleSpan(Typeface.BOLD), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
+                    tv.setTextColor(h.color)
+                    holder.root.setOnClickListener { onToggle(h.accountId) }
                 }
-                tv.setTextColor(h.color)
-                holder.root.setOnClickListener { onToggle(h.accountId) }
             }
             holder.connBinding?.let {
                 val connection = connections[position].connection!!
                 val ctx = it.root.context
                 val d = ctx.resources.displayMetrics.density
-                it.root.setPaddingRelative((76 * d).toInt(), it.root.paddingTop, it.root.paddingEnd, it.root.paddingBottom)
+                it.root.setPaddingRelative((92 * d).toInt(), it.root.paddingTop, it.root.paddingEnd, it.root.paddingBottom)
                 val connected = connection.status == ConnectionStatus.Connected
-                // Connected = green (a real, live link). Anything else is a transient sync connection —
-                // shown neutral grey, NEVER red. Short-lived connections are normal swarm sync.
+                val connectedColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTED)
+                val idleColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
                 it.name.text = connection.device
                 val stage = when (connection.status) {
                     ConnectionStatus.Waiting -> "waiting…"
@@ -217,12 +263,10 @@ class ConnectionMonitorFragment: Fragment() {
                     ConnectionStatus.TLS -> "securing (TLS)…"
                     ConnectionStatus.Connected -> connection.remoteAddress ?: "connected"
                 }
-                val connectedColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTED)
-                val idleColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
                 val tint = if (connected) connectedColor else idleColor
                 it.device.text = stage
                 it.device.isVisible = stage.isNotEmpty()
-                it.device.setTextColor(if (connected) connectedColor else idleColor)
+                it.device.setTextColor(tint)
                 it.icon.setImageResource(when (connection.status) {
                     ConnectionStatus.Waiting -> R.drawable.baseline_radar_24
                     ConnectionStatus.Connecting -> R.drawable.baseline_radar_24
@@ -255,23 +299,29 @@ class ConnectionMonitorFragment: Fragment() {
                 it.root.setOnClickListener { onConnectionClick(connection) }
             }
             holder.binding?.let {
+                val vm = connections[position]
                 val d = it.root.resources.displayMetrics.density
                 it.root.setPaddingRelative((58 * d).toInt(), it.root.paddingTop, it.root.paddingEnd, it.root.paddingBottom)
                 val sub = (38 * d).toInt()
                 it.photo.layoutParams.apply { width = sub; height = sub }
                 it.photo.requestLayout()
-                val contact = connections[position].contact!!
+                val contact = vm.contact!!
                 it.photo.setAvatar(AvatarDrawable.Builder()
                     .withContact(contact)
+                    .withPresence(true)
+                    .withOnlineState(contact.presence)
                     .withCircleCrop(true)
                     .build(it.root.context))
                 it.convParticipant.text = contact.displayName
-                it.convLastItem.text = contact.displayUri
+                it.convLastItem.text = "● ${vm.contactStatusText ?: contact.displayUri}"
+                it.convLastItem.setTextColor(if (vm.contactStatusColor != 0) vm.contactStatusColor else YELLOW)
+                it.root.setOnClickListener { onContactClick(vm.accountId ?: "", contact) }
             }
         }
 
         private fun key(v: DeviceConnectionViewModel): String = when {
             v.accountHeader != null -> "acct:${v.accountHeader.accountId}"
+            v.stuckLabel != null -> "stuck:${v.accountId}:${v.stuckLabel}"
             v.contact != null -> "contact:${v.contact.contact.uri}"
             else -> "conn:${v.connection?.id}"
         }
@@ -286,7 +336,8 @@ class ConnectionMonitorFragment: Fragment() {
                     val a = connections[o]; val b = newConnections[n]
                     return when {
                         a.accountHeader != null && b.accountHeader != null -> a.accountHeader == b.accountHeader
-                        a.contact != null && b.contact != null -> a.contact.displayName == b.contact.displayName
+                        a.contact != null && b.contact != null ->
+                            a.contact.displayName == b.contact.displayName && a.contactStatusText == b.contactStatusText
                         else -> false
                     }
                 }
@@ -298,32 +349,93 @@ class ConnectionMonitorFragment: Fragment() {
     }
 
     private fun rebuildRows() {
+        val ctx = context ?: return
         val now = System.currentTimeMillis()
+        val connectedColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTED)
+        val idleColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
+        val offlineColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_OFFLINE)
+        val problemColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
         val rows = ArrayList<DeviceConnectionViewModel>()
-        var peers = 0; var connectedDevs = 0; var healthy = 0; var problem = 0
+        var healthy = 0; var problem = 0; var connectedContacts = 0
+        // My own accounts' uris → tells SAME-DEVICE conversations (where a stuck message is a real
+        // problem) from external ones (a normal wait on an offline contact is not a fault).
+        val myUris = lastLoaded.mapNotNull { it.account.uri.takeIf(String::isNotEmpty) }.toSet()
+        // My own accounts that are registered/online — they're reachable by definition (same device),
+        // even though same-device accounts don't publish presence to each other (so their contact
+        // presence reads stale-OFFLINE). Used to show them "reachable" instead of a false "offline".
+        val myOnlineUris = lastLoaded.filter { it.account.registered && it.account.uri.isNotEmpty() }
+            .map { it.account.uri }.toSet()
+        // Per-account stuck (undelivered) outgoing messages — the real "not going through" signal,
+        // works for group swarms (invisible to the connection table) — named by the stuck chat's member.
+        val stuckChats = HashMap<String, List<String>>()
         for (la in lastLoaded) {
+            val model = service.getAccount(la.account.accountId)
+            val uris = model?.let { ConnectionHealth.accountStuckConvUris(it, now, myUris) } ?: emptyList()
+            stuckChats[la.account.accountId] = uris.map { peerNames[it] ?: it.take(8) }.distinct()
+        }
+        fun healthOf(la: LoadedAccount): Health {
+            val cn = la.peers.any { (_, c) -> c.any { it.status == ConnectionStatus.Connected } }
+            val at = la.peers.any { (_, c) -> c.any { it.status != ConnectionStatus.Connected } }
+            return ConnectionHealth.classify(la.account.registered, cn, (stuckChats[la.account.accountId]?.isNotEmpty() == true), at)
+        }
+        // Sort problem (red) accounts to the TOP; keep account order otherwise (stable sort).
+        val ranked = lastLoaded.sortedBy { if (ConnectionHealth.isProblem(healthOf(it))) 0 else 1 }
+        for (la in ranked) {
             val ac = la.account
-            val accConns = la.peers.flatMap { it.second }
-            val byDevice = accConns.groupBy { it.device }
-            val connectedNow = byDevice.any { (_, l) -> l.any { it.status == ConnectionStatus.Connected } }
-            val health = ConnectionHealth.classify(ac.accountId, now, ac.registered, connectedNow, la.peers.isNotEmpty())
+            val health = healthOf(la)
             if (ConnectionHealth.isProblem(health)) problem++ else healthy++
-            connectedDevs += byDevice.count { (_, l) -> l.any { it.status == ConnectionStatus.Connected } }
-            peers += la.peers.size
             val isCollapsed = ac.accountId in collapsed
+            val chats = stuckChats[ac.accountId] ?: emptyList()
+            val word = healthWord(health) + if (chats.isNotEmpty()) " (${chats.size} msg stuck)" else ""
             rows.add(DeviceConnectionViewModel(accountHeader =
-                AccountHeader(ac.accountId, ac.name, healthWord(health), healthColor(health), byDevice.size, isCollapsed)))
+                AccountHeader(ac.accountId, ac.name, word, healthColor(health), la.peers.size, isCollapsed)))
+            // Stuck-message sub-rows (account avatar + red "not delivered → chat") — shown even when
+            // the account is collapsed, since they ARE the problem the user needs to see.
+            for (chat in chats) {
+                rows.add(DeviceConnectionViewModel(
+                    accountId = ac.accountId,
+                    stuckLabel = "⚠ message not delivered → $chat",
+                    contactStatusColor = problemColor))
+            }
             if (!isCollapsed) {
-                la.peers.sortedByDescending { (_, conns) -> conns.count { it.status == ConnectionStatus.Connected } }
-                    .forEach { (contact, conns) ->
-                        rows.add(DeviceConnectionViewModel(contact = contact))
-                        conns.sortedByDescending { it.status == ConnectionStatus.Connected }
-                            .forEach { rows.add(DeviceConnectionViewModel(connection = it)) }
+                // connected first, then reconnecting, then disconnected; alphabetical within each.
+                val sorted = la.peers.sortedWith(compareBy({ (_, conns) ->
+                    when {
+                        conns.any { it.status == ConnectionStatus.Connected } -> 0
+                        conns.isNotEmpty() -> 1
+                        else -> 2
                     }
+                }, { (cvm, _) -> cvm.displayName.lowercase() }))
+                for ((cvm, conns) in sorted) {
+                    val connected = conns.any { it.status == ConnectionStatus.Connected }
+                    val attempting = conns.isNotEmpty() && !connected
+                    val peerKey = cvm.contact.uri.rawRingId ?: cvm.contact.uri.uri
+                    if (connected) connectedContacts++
+                    val (stext, scolor) = when {
+                        connected -> "connected" to connectedColor                  // yellow — live link
+                        attempting -> "connecting…" to idleColor                     // blue — establishing (in progress, not a problem)
+                        // A same-device account of mine (always reachable here), or a contact present on
+                        // the network → reachable. Same-device accounts don't publish presence to each
+                        // other, so without this they'd falsely read "offline".
+                        peerKey in myOnlineUris || cvm.presence != Contact.PresenceStatus.OFFLINE ->
+                            "reachable" to connectedColor
+                        else -> "offline" to offlineColor                           // grey — not reachable now
+                    }
+                    rows.add(DeviceConnectionViewModel(contact = cvm, contactStatusText = stext,
+                        contactStatusColor = scolor, accountId = ac.accountId))
+                    conns.sortedByDescending { it.status == ConnectionStatus.Connected }
+                        .forEach { rows.add(DeviceConnectionViewModel(connection = it)) }
+                }
             }
         }
-        val tail = if (problem > 0) " · ⚠ $problem need attention" else ""
-        summaryView?.text = "${lastLoaded.size} account(s) · $healthy healthy · $connectedDevs connected$tail"
+        val base = "${lastLoaded.size} account(s) · $healthy healthy · $connectedContacts connected"
+        summaryView?.text = if (problem > 0) {
+            val warn = " · ⚠ $problem need attention"
+            SpannableStringBuilder(base).append(warn).apply {
+                setSpan(ForegroundColorSpan(problemColor), base.length, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(StyleSpan(Typeface.BOLD), base.length, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        } else base
         (list?.adapter as? ConnectionAdapter)?.setData(rows)
     }
 
@@ -366,14 +478,16 @@ class ConnectionMonitorFragment: Fragment() {
         val cProblem = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
         val cConnected = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTED)
         val cIdle = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
+        val cOffline = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_OFFLINE)
         header("Account health")
         row(dot(cHealthy), "Healthy — registered & syncing")
         row(dot(cConnecting), "Connecting — establishing (transient)")
         row(dot(cProblem), "OFFLINE (not registered) or NOT SYNCING (registered but isolated >2.5 min)")
-        header("A connection row")
-        row(dot(cConnected), "Connected — a live link right now")
-        row(dot(cIdle), "A short-lived sync connection in progress (NORMAL, not a failure)")
-        header("Icons (handshake stage)")
+        header("Each contact (full list)")
+        row(dot(cConnected), "Connected or reachable — messages will get through")
+        row(dot(cIdle), "Connecting — a link is being established")
+        row(dot(cOffline), "Offline — not reachable right now; messages queue until they return")
+        header("Connection icons (handshake stage)")
         row(icon(R.drawable.baseline_radar_24, cIdle), "Radar — looking up the peer / waiting")
         row(icon(R.drawable.p2p_24, cIdle), "Two phones — ICE: finding a direct path")
         row(icon(R.drawable.baseline_private_connectivity_24, cConnected), "Shield — secured (TLS) & connected")
@@ -382,7 +496,7 @@ class ConnectionMonitorFragment: Fragment() {
             text = "ⓘ"; setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams((30 * d).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
                 .apply { marginEnd = (14 * d).toInt() }
-        }, "Connections constantly open & close — that's normal swarm-conversation sync, not a fault. Tap a row for device/contact IDs.")
+        }, "Every contact is listed with its status. Connections constantly open & close — that's normal swarm sync, not a fault. Tap a contact to test/wake its link; tap a device row for its IDs.")
         val scroll = android.widget.ScrollView(ctx).apply { addView(root) }
         DialogTheme.builder(ctx)
             .setTitle("What this means")
@@ -427,6 +541,20 @@ class ConnectionMonitorFragment: Fragment() {
         builder.show().let { DialogTheme.theme(it, ctx) }
     }
 
+    /** Tap a contact → test / wake a link to them: re-check presence AND trigger a real connection
+     *  attempt by syncing their conversation (opens a channel to their device). Feedback = a flash now,
+     *  plus the contact's status flipping live in the list (connecting → connected, or staying offline). */
+    private fun testLink(accountId: String, cvm: ContactViewModel) {
+        val ctx = context ?: return
+        if (accountId.isEmpty()) return
+        val name = cvm.displayName
+        service.subscribeBuddy(accountId, cvm.contact.uri.uri, true)
+        service.getAccount(accountId)?.getByUri(cvm.contact.uri)?.let { conv ->
+            disposableBag.add(service.loadMore(conv, 1).subscribe({}, {}))
+        }
+        Flash.show(ctx, "Testing link to $name… watch the status")
+    }
+
     override fun onStart() {
         super.onStart()
         disposableBag.add(service.observableAccountList
@@ -444,12 +572,23 @@ class ConnectionMonitorFragment: Fragment() {
         disposableBag.add(service.monitorAllConnections(true)
             .switchMapSingle { accounts ->
                 val singles = accounts.map { ac ->
-                    if (ac.peers.isEmpty()) Single.just(LoadedAccount(ac, emptyList()))
-                    else Single.zip(ac.peers.map { (peer, conns) ->
-                        contactService.getLoadedContact(ac.accountId, peer).map { Pair(it, conns) }
-                    }) { arr ->
-                        @Suppress("UNCHECKED_CAST")
-                        LoadedAccount(ac, arr.map { it as Pair<ContactViewModel, List<AccountService.DeviceConnection>> })
+                    val account = service.getAccount(ac.accountId)
+                    val connByUri = HashMap<String, List<AccountService.DeviceConnection>>()
+                    ac.peers.forEach { (peer, conns) -> connByUri[peer] = conns }
+                    // Full roster: all the account's contacts (people) ∪ any connected non-contact peers.
+                    val contactObjs = LinkedHashMap<String, Contact>()
+                    account?.contacts?.values?.forEach { c ->
+                        if (!c.isUser) c.uri.rawRingId?.let { contactObjs[it] = c }
+                    }
+                    connByUri.keys.forEach { uri ->
+                        if (uri !in contactObjs) account?.getContactFromCache(uri)?.let { contactObjs[uri] = it }
+                    }
+                    if (contactObjs.isEmpty()) Single.just(LoadedAccount(ac, emptyList()))
+                    else contactService.getLoadedContact(ac.accountId, contactObjs.values, true).map { cvms ->
+                        LoadedAccount(ac, cvms.map { cvm ->
+                            val uri = cvm.contact.uri.rawRingId ?: cvm.contact.uri.toString()
+                            cvm to (connByUri[uri] ?: emptyList())
+                        })
                     }
                 }
                 if (singles.isEmpty()) Single.just(emptyList<LoadedAccount>())
@@ -457,19 +596,23 @@ class ConnectionMonitorFragment: Fragment() {
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ loaded ->
+                // Start with every account FOLDED; the user expands what they want. Only on the first
+                // load (so later live updates don't re-collapse what the user opened).
+                if (firstLoad && loaded.isNotEmpty()) {
+                    collapsed.addAll(loaded.map { it.account.accountId })
+                    firstLoad = false
+                }
                 lastLoaded = loaded
                 uriToAccountId = loaded.filter { it.account.uri.isNotEmpty() }
                     .associate { it.account.uri to it.account.accountId }
                 val names = HashMap<String, String>()
                 loaded.forEach { la ->
                     if (la.account.uri.isNotEmpty()) names[la.account.uri] = la.account.name
-                    la.peers.forEach { (c, conns) -> conns.firstOrNull()?.peer?.let { names[it] = c.displayName } }
+                    la.peers.forEach { (c, _) ->
+                        c.contact.uri.rawRingId?.let { names[it] = c.displayName }
+                    }
                 }
                 peerNames = names
-                val now = System.currentTimeMillis()
-                ConnectionHealth.update(now, loaded.map { la ->
-                    la.account.accountId to la.peers.any { (_, c) -> c.any { it.status == ConnectionStatus.Connected } }
-                })
                 rebuildRows()
             }, { /* ignore transient errors */ }))
     }
