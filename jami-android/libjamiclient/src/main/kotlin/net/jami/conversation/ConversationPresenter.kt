@@ -185,7 +185,7 @@ class ConversationPresenter @Inject constructor(
             .subscribe { this.view?.updateConversationPermissions() })
         disposable.add(c.mode
             .switchMap { mode: Conversation.Mode ->
-                val showPresence = !c.isSwarmGroup() // Don't show presence for swarm groups.
+                val showPresence = true // Reachability dot for every conversation (1:1 and groups).
                 conversationFacade.observeConversation(account, c, showPresence)
                     .observeOn(uiScheduler)
                     .doOnNext { convViewModel -> initContact(account, convViewModel, this.view!!) }

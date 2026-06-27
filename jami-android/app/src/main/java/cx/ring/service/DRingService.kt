@@ -116,6 +116,16 @@ class DRingService : Service() {
             mHandler.postDelayed(this, WATCHDOG_INTERVAL_MS)
         }
     }
+    // Online-recovery watchdog: detects the DHT-proxy wedge (proxy on → connection-setup signaling
+    // dead → external strands) and recovers by dropping to the full DHT. Own cadence (the configurable
+    // tick), guarded against running during a call (the recovery toggles proxy).
+    private val mOnlineRecoveryRunnable = object : Runnable {
+        override fun run() {
+            if (!mCallService.hasActiveCall())
+                cx.ring.utils.ConnectionWatchdog.tick(this@DRingService, mAccountService)
+            mHandler.postDelayed(this, cx.ring.utils.UiPrefs.getRecoveryTickMinutes(this@DRingService) * 60_000L)
+        }
+    }
 
     private val monitor = object : NetworkCallback() {
         fun enable(context: Context) {
@@ -199,6 +209,8 @@ class DRingService : Service() {
         })
         monitor.enable(this)
         mHandler.postDelayed(mWatchdogRunnable, WATCHDOG_INTERVAL_MS)
+        mHandler.postDelayed(mOnlineRecoveryRunnable,
+            cx.ring.utils.UiPrefs.getRecoveryTickMinutes(this) * 60_000L)
         JamiApplication.instance!!.apply {
             bindDaemon()
             bootstrapDaemon()
@@ -212,6 +224,7 @@ class DRingService : Service() {
         contentResolver.unregisterContentObserver(contactContentObserver)
         monitor.disable(this)
         mHandler.removeCallbacks(mWatchdogRunnable)
+        mHandler.removeCallbacks(mOnlineRecoveryRunnable)
         mHandler.removeCallbacks(mNetworkSettleRunnable)
         mHandler.removeCallbacks(mForceReconnectRunnable)
         mHardwareService.unregisterCameraDetectionCallback()

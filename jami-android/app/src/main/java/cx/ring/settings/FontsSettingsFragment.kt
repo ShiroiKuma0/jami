@@ -28,8 +28,13 @@ import cx.ring.utils.FontPrefs
 import cx.ring.utils.FontUtil
 import cx.ring.utils.UiPrefs
 
-/** "UI fonts & colors" — grouped, inline per-element font + colour controls (App Manager treatment). */
+/** "白い熊 GNU Jami UI" — the Online-recovery section on top, then grouped, inline per-element font +
+ *  colour controls (App Manager treatment). */
+@dagger.hilt.android.AndroidEntryPoint
 class FontsSettingsFragment : Fragment() {
+    @javax.inject.Inject lateinit var mAccountService: net.jami.services.AccountService
+    @javax.inject.Inject lateinit var mConversationFacade: net.jami.services.ConversationFacade
+    private val recoveryDisposable = io.reactivex.rxjava3.disposables.CompositeDisposable()
     private data class ColorRole(val label: String, val key: String)
     /** A percentage slider backed by a pref (e.g. the account dot size). */
     private data class ScaleRole(
@@ -143,6 +148,7 @@ class FontsSettingsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        recoveryDisposable.clear()
         (activity as? cx.ring.client.HomeActivity)?.refreshThemedViews()
     }
 
@@ -153,6 +159,7 @@ class FontsSettingsFragment : Fragment() {
     private fun rebuild() {
         val c = container ?: return
         c.removeAllViews()
+        addOnlineRecoverySection(c)
         c.addView(groupHeader("App language"))
         c.addView(languageRow())
         for (g in groups) {
@@ -219,6 +226,216 @@ class FontsSettingsFragment : Fragment() {
                 d.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    // ---- Online recovery section (top of the page) -----------------------------------------
+    private fun addOnlineRecoverySection(c: LinearLayout) {
+        val ctx = requireContext()
+        c.addView(groupHeader("Online recovery"))
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(84f), dp(6f), dp(12f), dp(4f))
+        }
+        box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
+            UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping
+        })
+        box.addView(orTapRow("How this works  ⓘ") { showRecoveryInfo() })
+        box.addView(orSwitchRow("Ping check — send test pings", UiPrefs.isRecoveryPingEnabled(ctx)) {
+            UiPrefs.setRecoveryPingEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect base
+        })
+        box.addView(orTapRow("①  Send pings from:  ${recoveryAccountLabel(ctx)}") { showRecoveryAccountPicker() })
+        box.addView(orTapRow("②  Pick test conversation…") { showRecoverySwarmPicker() })
+        box.addView(orMini("…or paste the conversation ID (without “swarm:”)"))
+        box.addView(orSwarmField(ctx))
+        box.addView(orTapRow("Check every:  ${UiPrefs.getRecoveryTickMinutes(ctx)} min") {
+            showRecoveryNumber("Check interval (minutes)", UiPrefs.getRecoveryTickMinutes(ctx), 1, 60) {
+                UiPrefs.setRecoveryTickMinutes(ctx, it); rebuild()
+            }
+        })
+        box.addView(orTapRow("Prune test pings older than:  ${UiPrefs.getRecoveryPruneDays(ctx)} days") {
+            showRecoveryNumber("Prune pings older than (days)", UiPrefs.getRecoveryPruneDays(ctx), 0, 90) {
+                UiPrefs.setRecoveryPruneDays(ctx, it); rebuild()
+            }
+        })
+        box.addView(orTapRow("View recovery log") { showRecoveryLog() })
+        c.addView(box)
+    }
+
+    private fun orTapRow(text: String, onClick: () -> Unit): View = TextView(requireContext()).apply {
+        this.text = text
+        setTextColor(yellow)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        setPadding(0, dp(12f), dp(12f), dp(12f))
+        layoutParams = matchWrap()
+        setOnClickListener { onClick() }
+    }
+
+    private fun orMini(text: String): View = TextView(requireContext()).apply {
+        this.text = text
+        setTextColor(0xFFAAAAAA.toInt())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        setPadding(0, dp(12f), 0, dp(2f))
+        layoutParams = matchWrap()
+    }
+
+    private fun orSwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit): View {
+        val ctx = requireContext()
+        return LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = matchWrap()
+            setPadding(0, dp(10f), dp(12f), dp(6f))
+            addView(TextView(ctx).apply {
+                text = label; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(androidx.appcompat.widget.SwitchCompat(ctx).apply {
+                isChecked = checked
+                thumbTintList = android.content.res.ColorStateList.valueOf(yellow)
+                trackTintList = android.content.res.ColorStateList.valueOf(0xFF666600.toInt())
+                setOnCheckedChangeListener { _, v -> onChange(v) }
+            })
+        }
+    }
+
+    private fun orSwarmField(ctx: android.content.Context): View = EditText(ctx).apply {
+        setText(UiPrefs.getRecoveryTestSwarm(ctx))
+        hint = "paste conversation ID"
+        setTextColor(yellow)
+        setHintTextColor(0xFF777777.toInt())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        inputType = InputType.TYPE_CLASS_TEXT
+        layoutParams = matchWrap()
+        addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {
+                UiPrefs.setRecoveryTestSwarm(ctx, s?.toString() ?: "")
+            }
+            override fun beforeTextChanged(s: CharSequence?, st: Int, cnt: Int, a: Int) {}
+            override fun onTextChanged(s: CharSequence?, st: Int, b: Int, cnt: Int) {}
+        })
+    }
+
+    private fun recoveryAccountLabel(ctx: android.content.Context): String {
+        val id = UiPrefs.getRecoveryTestAccount(ctx)
+        if (id.isEmpty()) return "not set"
+        val a = mAccountService.getAccount(id) ?: return id.take(8)
+        return a.registeredName.ifBlank { a.alias.orEmpty() }.ifBlank { a.accountId.take(8) }
+    }
+
+    private fun showRecoveryInfo() {
+        val ctx = context ?: return
+        val html = """
+            <b><u>What this does</u></b><br>
+            When DHT proxy is on, the single proxy link carries the setup of every connection. If it
+            wedges, messages quietly stop flowing in and out while the app still shows “connected”.
+            Online recovery notices that and briefly drops every account to the full distributed DHT
+            (proxy off → settle → on) to recover — keeping the battery benefit of proxy mode the rest of
+            the time.<br><br>
+            <b><u>Base check (no pings)</u></b><br>
+            Passive. Watches for “nothing is connecting” — registered accounts that are trying but have
+            nothing actually established for a few minutes. Sends no messages: zero traffic, zero battery
+            cost. A good always-on safety net.<br><br>
+            <b><u>Ping check (test swarm)</u></b><br>
+            Active and sharper. Pick an always-online account (e.g. your own account on another device),
+            choose a one-to-one test conversation with it, and the watchdog sends a timestamp ping every
+            interval. If a ping isn’t delivered, that is the cue to recover. Set the <b>Send pings from</b>
+            account and the <b>test conversation</b> below (clear the account to switch the pings off).<br><br>
+            <b><u>Choosing a mode</u></b><br>
+            The two checks are <b>mutually exclusive</b> — turning one on turns the other off. With
+            <b>both off, online recovery is disabled</b>: no detection and no automatic recovery. Either
+            way, the <b>Sync</b> button still recovers on demand.<br><br>
+            <b><u>Recovery action</u></b><br>
+            On a detected wedge every account is briefly switched proxy off → settle → on; repeated
+            wedges back off to a longer settle. Every event is written to the recovery log
+            (<b>View recovery log</b>, or tap the Sync icon).
+        """.trimIndent()
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Online recovery")
+            .setMessage(androidx.core.text.HtmlCompat.fromHtml(html, androidx.core.text.HtmlCompat.FROM_HTML_MODE_COMPACT))
+            .setPositiveButton(android.R.string.ok, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    private fun showRecoveryAccountPicker() {
+        val ctx = context ?: return
+        val accs = mAccountService.getAccounts().filter { it.isJami }
+        if (accs.isEmpty()) { Flash.show(ctx, "No accounts"); return }
+        val labels = accs.map { it.registeredName.ifBlank { it.alias.orEmpty() }.ifBlank { it.accountId.take(8) } }.toTypedArray()
+        val current = accs.indexOfFirst { it.accountId == UiPrefs.getRecoveryTestAccount(ctx) }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Send pings from")
+            .setSingleChoiceItems(labels, current) { d, which ->
+                UiPrefs.setRecoveryTestAccount(ctx, accs[which].accountId)
+                d.dismiss(); rebuild()
+            }
+            // Let it be un-set: clearing the account disables the ping check (nothing to send from).
+            .setNeutralButton("Clear") { _, _ -> UiPrefs.setRecoveryTestAccount(ctx, ""); rebuild() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    private fun showRecoverySwarmPicker() {
+        val ctx = context ?: return
+        val accId = UiPrefs.getRecoveryTestAccount(ctx)
+        if (accId.isEmpty()) { Flash.show(ctx, "Pick the send-from account first (①)"); return }
+        val acc = mAccountService.getAccount(accId) ?: return
+        val convs = acc.getConversations().toList()
+        if (convs.isEmpty()) { Flash.show(ctx, "No conversations on this account"); return }
+        // Resolve each conversation's display title (same as the chat list shows), then pick by name.
+        val singles = convs.map { mConversationFacade.getConversationProfile(accId, it.uri) }
+        recoveryDisposable.add(
+            io.reactivex.rxjava3.core.Single.zip(singles) { arr ->
+                arr.map { it as net.jami.smartlist.ConversationItemViewModel } }
+                .observeOn(io.reactivex.rxjava3.android.schedulers.AndroidSchedulers.mainThread())
+                .subscribe({ vms ->
+                    val c2 = context ?: return@subscribe
+                    val labels = vms.map {
+                        it.title.ifBlank { (it.uri.rawRingId ?: it.uri.uri).take(16) + "…" } }.toTypedArray()
+                    cx.ring.utils.DialogTheme.builder(c2)
+                        .setTitle("Pick test conversation")
+                        .setItems(labels) { d, which ->
+                            UiPrefs.setRecoveryTestSwarm(c2, vms[which].uri.rawRingId ?: vms[which].uri.uri)
+                            d.dismiss(); rebuild()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show().let { cx.ring.utils.DialogTheme.theme(it, c2) }
+                }, { context?.let { Flash.show(it, "Could not load conversations") } })
+        )
+    }
+
+    private fun showRecoveryNumber(title: String, current: Int, min: Int, max: Int, onSet: (Int) -> Unit) {
+        val ctx = context ?: return
+        val input = EditText(ctx).apply {
+            setText(current.toString()); inputType = InputType.TYPE_CLASS_NUMBER
+            setTextColor(yellow); setPadding(dp(24f), dp(12f), dp(24f), dp(12f))
+        }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle(title)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val v = input.text.toString().toIntOrNull()?.coerceIn(min, max) ?: current
+                onSet(v)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    private fun showRecoveryLog() {
+        val ctx = context ?: return
+        val log = UiPrefs.getRecoveryLog(ctx)
+        val text = if (log.isEmpty()) "(no events yet)" else log.reversed().joinToString("\n")
+        val tv = TextView(ctx).apply {
+            this.text = text; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(20f), dp(12f), dp(20f), dp(12f)); setTextIsSelectable(true)
+        }
+        val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Recovery log")
+            .setView(scroll)
+            .setPositiveButton("Close", null)
+            .setNegativeButton("Clear") { _, _ -> UiPrefs.clearRecoveryLog(ctx) }
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
