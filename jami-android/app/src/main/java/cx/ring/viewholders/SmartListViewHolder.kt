@@ -137,7 +137,7 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                     }
                 })
 
-            val showPresence = !conversation.isSwarmGroup() // Don't show presence for swarm groups.
+            val showPresence = true // Reachability dot for every conversation (1:1 and groups).
             compositeDisposable
                 .add(conversationFacade.observeConversation(conversation, showPresence)
                 .onErrorComplete()
