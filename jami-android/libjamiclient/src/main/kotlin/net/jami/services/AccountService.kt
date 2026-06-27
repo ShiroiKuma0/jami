@@ -768,19 +768,74 @@ class AccountService(
      * time, spaced by SYNC_STAGGER_MS, all OFF, then after a SYNC_SETTLE_MS window (full-DHT delivers
      * the stranded messages here) toggle them back ON, again one at a time.
      */
-    fun syncAllAccounts() {
+    fun syncAllAccounts() = recoverFromWedge(SYNC_SETTLE_MS)
+
+    /**
+     * The proxy-wedge recovery, used by both the manual Sync button and the online-recovery watchdog:
+     * drop every proxy account to the full DHT (Use DHT proxy OFF), let it settle for [settleMs] (the
+     * full DHT establishes connections and flushes the stranded swarm commits — in AND out), then
+     * restore proxy. Staggered/spaced (never all-at-once — that SIGSEGV'd the daemon). [onDone] runs
+     * after the last account is re-enabled, so a caller can confirm/log recovery.
+     */
+    fun recoverFromWedge(settleMs: Long = SYNC_SETTLE_MS, onDone: (() -> Unit)? = null) {
         mExecutor.execute {
             restoreProxyAccountsOnExecutor()
             val ids = mAccountList.filter { it.isJami && it.isDhtProxyEnabled }.map { it.accountId }
+            if (ids.isEmpty()) { onDone?.invoke(); return@execute }
             ids.forEachIndexed { i, id ->
                 scheduler.scheduleDirect({ setAccountProxy(id, false) }, i * SYNC_STAGGER_MS, TimeUnit.MILLISECONDS)
             }
-            val onStart = ids.size * SYNC_STAGGER_MS + SYNC_SETTLE_MS
+            val onStart = ids.size * SYNC_STAGGER_MS + settleMs
             ids.forEachIndexed { i, id ->
                 scheduler.scheduleDirect({ setAccountProxy(id, true) }, onStart + i * SYNC_STAGGER_MS, TimeUnit.MILLISECONDS)
             }
+            onDone?.let { cb -> scheduler.scheduleDirect({ cb() }, onStart + ids.size * SYNC_STAGGER_MS + 500, TimeUnit.MILLISECONDS) }
         }
     }
+
+    /** Synchronous snapshot for the watchdog heuristic: (any peer Connected, any connection attempt). */
+    fun accountConnectionSnapshot(accountId: String): Pair<Boolean, Boolean> {
+        val conns = JamiService.getConnectionList(accountId, "")
+        var connected = false
+        var attempts = false
+        for (c in conns) {
+            val status = ConnectionStatus.fromInt(c["status"]?.toInt() ?: 4)
+            if (status == ConnectionStatus.Connected) connected = true else attempts = true
+        }
+        return Pair(connected, attempts)
+    }
+
+    /** Current account list snapshot (for the online-recovery watchdog's per-account heuristic). */
+    fun getAccounts(): List<Account> = mAccountList
+
+    /** Shared peer → live-connection-status map for the presence dot's "best status" union (one poll,
+     *  replay + refCount, so it costs nothing when nothing observes it — i.e. chat list not foreground).
+     *  CONNECTED if any connection to the peer is Connected, AVAILABLE if any is attempting; peers absent
+     *  = no live connection. Unioned with each member's DHT presence in ConversationFacade so own /
+     *  same-daemon accounts (a live link, but no broadcast presence) still read connected. */
+    val connectionStatusMap: Observable<Map<String, net.jami.model.Contact.PresenceStatus>> =
+        monitorAllConnections(true)
+            .map<Map<String, net.jami.model.Contact.PresenceStatus>> { accounts ->
+                val m = HashMap<String, net.jami.model.Contact.PresenceStatus>()
+                for (acc in accounts) {
+                    // My own registered accounts are reachable on this daemon even with no remote
+                    // connection and no broadcast presence — so a swarm between two of my own accounts
+                    // reads connected (they appear in neither the connection list nor DHT presence).
+                    if (acc.registered) net.jami.model.Uri.fromString(acc.uri).rawRingId
+                        .takeIf { it.isNotEmpty() }?.let { m[it] = net.jami.model.Contact.PresenceStatus.CONNECTED }
+                    // Remote peers — key by RAW RING-ID so it matches a conversation member's rawRingId
+                    // (the daemon's "peer" string may carry a scheme; normalise both sides).
+                    for ((peer, conns) in acc.peers) {
+                        val key = net.jami.model.Uri.fromString(peer).rawRingId
+                        if (key.isEmpty() || m[key] == net.jami.model.Contact.PresenceStatus.CONNECTED) continue
+                        m[key] = if (conns.any { it.status == ConnectionStatus.Connected })
+                            net.jami.model.Contact.PresenceStatus.CONNECTED
+                        else net.jami.model.Contact.PresenceStatus.AVAILABLE
+                    }
+                }
+                m
+            }
+            .replay(1).refCount()
 
     /**
      * Tell the daemon the network changed → it re-evaluates connectivity and rebuilds every peer
@@ -2124,7 +2179,9 @@ class AccountService(
         // on the daemon — simultaneous/fast toggling crashed it); SETTLE is the full-DHT window between
         // all-off and all-on, during which the stranded messages deliver.
         private const val SYNC_STAGGER_MS: Long = 400
-        private const val SYNC_SETTLE_MS: Long = 3000
+        // Full-DHT settle window: long enough for the distributed DHT to establish connections and
+        // flush the stranded swarm commits (in + out) before proxy is restored. 3 s was too short.
+        private const val SYNC_SETTLE_MS: Long = 15000
 
         const val ACCOUNT_SCHEME_NONE = ""
         const val ACCOUNT_SCHEME_PASSWORD = "password"
