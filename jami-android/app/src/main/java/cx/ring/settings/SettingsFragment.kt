@@ -82,8 +82,14 @@ class SettingsFragment :
     @Inject
     lateinit var mPreferencesService: PreferencesService
 
+    /** Set when the page was opened by jumping straight to fonts (dot / dialog pill / overflow), so
+     *  Back returns to where we came from (the chat list) instead of the Settings list. */
+    private var jumpedDirectlyToFonts = false
     private val backPressedCallback = object : OnBackPressedCallback(false) {
-        override fun handleOnBackPressed() { popBackStack() }
+        override fun handleOnBackPressed() {
+            if (jumpedDirectlyToFonts) { isEnabled = false; parentFragmentManager.popBackStack() }
+            else popBackStack()
+        }
     }
 
     override fun onAttach(context: Context) {
@@ -348,14 +354,14 @@ class SettingsFragment :
         }
     }
 
-    private fun goToFontsSettings() {
+    private fun goToFontsSettings(addToStack: Boolean = true) {
         val binding = binding ?: return
         val content = FontsSettingsFragment()
         childFragmentManager
             .beginTransaction()
             .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
             .replace(R.id.fragment_container, content, "FontsSettings")
-            .addToBackStack("FontsSettings").commit()
+            .apply { if (addToStack) addToBackStack("FontsSettings") }.commit()
         binding.fragmentContainer.isVisible = true
         binding.donateButton.isVisible = false
         onToolbarTitleChanged("白い熊 GNU Jami UI")
@@ -522,7 +528,10 @@ class SettingsFragment :
         }
         if (arguments?.getBoolean("open_fonts") == true) {
             arguments?.remove("open_fonts")
-            view.post { goToFontsSettings() }
+            // Jump-to-fonts (dot / dialog pill / overflow): Back returns to where we came from (the
+            // chat list), not the Settings list — backPressedCallback pops the whole page via this flag.
+            jumpedDirectlyToFonts = true
+            view.post { goToFontsSettings(addToStack = false) }
         }
         if (arguments?.getBoolean("open_connection_monitor") == true) {
             arguments?.remove("open_connection_monitor")
