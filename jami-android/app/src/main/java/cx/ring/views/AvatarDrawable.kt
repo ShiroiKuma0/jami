@@ -77,6 +77,8 @@ class AvatarDrawable : Drawable {
     private val presenceConnectedColor: Int
     @ColorInt
     private val presenceAvailableColor: Int
+    @ColorInt
+    private val presenceOfflineColor: Int
     private val checkedPaint: Paint
     private val cropCircle: Boolean
     private val groupCircle: Boolean = false
@@ -237,7 +239,7 @@ class AvatarDrawable : Drawable {
         fun withContact(contact: ContactViewModel?) = if (contact == null) this else
             withPhoto(contact.profile.avatar as? Bitmap?)
                 .withUri(contact.contact.uri)
-                .withPresence(contact.presence != Contact.PresenceStatus.OFFLINE)
+                .withPresence(true)   // always show a presence dot (offline = red, never empty)
                 .withOnlineState(contact.presence)
                 .withNameData(contact.profile.displayName, contact.registeredName)
 
@@ -292,8 +294,10 @@ class AvatarDrawable : Drawable {
                 withUri(vm.uri)
                     .withContacts(vm.conversationProfile, vm.contacts)
                     .setGroup()
+                    .withPresence(true)            // groups need the dot wired too — it was defaulting
+                    .withOnlineState(vm.presenceStatus)  // to OFFLINE (red) regardless of real status
             else withContact(ConversationItemViewModel.getContact(vm.contacts))
-                .withPresence(vm.showPresence)
+                .withPresence(true)   // always show a presence dot (offline = red, never empty)
                 .withOnlineState(vm.presenceStatus)
                 .withCheck(vm.isChecked)
 
@@ -328,7 +332,11 @@ class AvatarDrawable : Drawable {
 
     fun setPresenceStatus(status: Contact.PresenceStatus) {
         presenceStatus = status
-        presenceFillPaint.color = if (status == Contact.PresenceStatus.CONNECTED) presenceConnectedColor else presenceAvailableColor
+        presenceFillPaint.color = when (status) {
+            Contact.PresenceStatus.CONNECTED -> presenceConnectedColor   // yellow: present
+            Contact.PresenceStatus.AVAILABLE -> presenceAvailableColor   // blue: connecting / available
+            Contact.PresenceStatus.OFFLINE -> presenceOfflineColor       // red: offline
+        }
     }
 
     fun setChecked(checked: Boolean) {
@@ -394,6 +402,7 @@ class AvatarDrawable : Drawable {
         }
         presenceAvailableColor = cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.PRESENCE_AVAILABLE)
         presenceConnectedColor = cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.PRESENCE_CONNECTED)
+        presenceOfflineColor = cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.MONITOR_OFFLINE)
         presenceFillPaint = Paint().apply {
             style = Paint.Style.FILL
             isAntiAlias = true
@@ -444,6 +453,7 @@ class AvatarDrawable : Drawable {
         showPresence = other.showPresence
         presenceConnectedColor = other.presenceConnectedColor
         presenceAvailableColor = other.presenceAvailableColor
+        presenceOfflineColor = other.presenceOfflineColor
         presenceFillPaint = other.presenceFillPaint
         presenceStrokePaint = other.presenceStrokePaint
         checkedPaint = other.checkedPaint
@@ -503,7 +513,7 @@ class AvatarDrawable : Drawable {
         } else {
             finalCanvas.drawBitmap(firstWorkspace, null, bounds, drawPaint)
         }
-        if (showPresence && presenceStatus != Contact.PresenceStatus.OFFLINE) {
+        if (showPresence) {   // draw the dot for every state (offline is red, not empty)
             drawPresence(finalCanvas)
         }
         if (isChecked) {
