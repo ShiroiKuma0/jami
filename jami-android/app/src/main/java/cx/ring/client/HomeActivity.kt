@@ -471,6 +471,9 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
             ACTION_SHOW_SHARED_SERVICES -> {
                 goToAdvancedSettings(openSharedServices = true)
             }
+            ACTION_SHOW_UI_SETTINGS -> {
+                goToAdvancedSettings(openFonts = true)
+            }
         }
     }
 
@@ -649,6 +652,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
     }
 
     fun goToAdvancedSettings(openSharedServices: Boolean = false, openFonts: Boolean = false, openConnectionMonitor: Boolean = false) {
+        mHomeFragment?.dismissConnStatusDialog()
         (frameContent as? SettingsFragment)?.let {
             if (openSharedServices) it.openSharedServices()
             if (openConnectionMonitor) it.goToConnectionMonitor()
@@ -802,6 +806,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
         const val REQUEST_PERMISSION_CAMERA = 113
         const val REQUEST_PERMISSION_READ_STORAGE = 114
         const val ACTION_SHOW_SHARED_SERVICES = "cx.ring.action.SHOW_SHARED_SERVICES"
+        const val ACTION_SHOW_UI_SETTINGS = "cx.ring.action.SHOW_UI_SETTINGS"
         private const val PREFS_LOCAL_NETWORK_PERM = "local_network_permission"
         private const val PREF_LOCAL_NETWORK_PERM_ASKED = "asked_once"
         private const val STATE_LOCAL_NETWORK_PROMPT_SHOWN = "local_network_permission_prompt_shown"

@@ -24,7 +24,10 @@ class ConversationItemViewModel(
     conversation: Conversation,
     val conversationProfile: Profile,
     val contacts: List<ContactViewModel>,
-    val showPresence: Boolean
+    val showPresence: Boolean,
+    // "Best status" of the counterparties (live connection ∪ DHT presence per member, then best across),
+    // computed in ConversationFacade. Preferred over DHT-only so own / same-daemon accounts read connected.
+    private val connectionStatus: Contact.PresenceStatus? = null,
 ) {
     val accountId: String = conversation.accountId
     val uri: Uri = conversation.uri
@@ -35,8 +38,11 @@ class ConversationItemViewModel(
     // - CONNECTED if at least one contact is connected
     // - AVAILABLE if no contact is connected but at least one contact is available
     // - OFFLINE otherwise
-    val presenceStatus: Contact.PresenceStatus = if (showPresence)
-        contacts.let {
+    // Best status across the counterparties (self excluded): any CONNECTED → yellow, else any
+    // AVAILABLE → blue, else OFFLINE → red. Prefer connectionStatus (live connection ∪ presence,
+    // computed in ConversationFacade); fall back to DHT presence alone when it isn't supplied.
+    val presenceStatus: Contact.PresenceStatus = if (!showPresence) Contact.PresenceStatus.OFFLINE
+        else connectionStatus ?: contacts.let {
             var status = Contact.PresenceStatus.OFFLINE
             for (contact in it) {
                 if (contact.contact.isUser) continue // Do not show presence for self
@@ -46,7 +52,7 @@ class ConversationItemViewModel(
                     status = Contact.PresenceStatus.AVAILABLE
             }
             status
-        } else Contact.PresenceStatus.OFFLINE
+        }
 
     var isChecked = false
     var selected: Observable<Boolean>? = conversation.getVisible()
