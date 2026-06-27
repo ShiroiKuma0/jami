@@ -285,8 +285,33 @@ class ConversationFacade(
          Observable.combineLatest(
              conversation.mode,
              conversation.profile,
-             conversation.contactUpdates.switchMap { c -> mContactService.observeContact(conversation.accountId, c, hasPresence) }
-         ) { mode, profile, contacts -> ConversationItemViewModel(conversation, profile, contacts, hasPresence) }
+             conversation.contactUpdates.switchMap { c -> mContactService.observeContact(conversation.accountId, c, hasPresence) },
+             if (hasPresence) mAccountService.connectionStatusMap
+             else Observable.just(emptyMap<String, net.jami.model.Contact.PresenceStatus>())
+         ) { mode, profile, contacts, connMap ->
+             // "Best status" of the counterparties: per member take the better of its live connection and
+             // its DHT presence, then the best across members (self excluded). Own / same-daemon accounts
+             // hold a live link but broadcast no presence, so the connection half keeps them yellow.
+             val status: net.jami.model.Contact.PresenceStatus? = if (!hasPresence) null else run {
+                 var best = net.jami.model.Contact.PresenceStatus.OFFLINE
+                 for (cvm in contacts) {
+                     if (cvm.contact.isUser) continue
+                     val uri = cvm.contact.uri.rawRingId
+                     val conn = (if (uri != null) connMap[uri] else null) ?: net.jami.model.Contact.PresenceStatus.OFFLINE
+                     val s = if (rank(conn) >= rank(cvm.presence)) conn else cvm.presence
+                     if (s == net.jami.model.Contact.PresenceStatus.CONNECTED) { best = s; break }
+                     if (s == net.jami.model.Contact.PresenceStatus.AVAILABLE) best = s
+                 }
+                 best
+             }
+             ConversationItemViewModel(conversation, profile, contacts, hasPresence, status)
+         }
+
+    private fun rank(s: net.jami.model.Contact.PresenceStatus): Int = when (s) {
+        net.jami.model.Contact.PresenceStatus.CONNECTED -> 2
+        net.jami.model.Contact.PresenceStatus.AVAILABLE -> 1
+        net.jami.model.Contact.PresenceStatus.OFFLINE -> 0
+    }
 
     fun observeConversations(
         account: Account,
