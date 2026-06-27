@@ -200,8 +200,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             setImageResource(R.drawable.ic_status_offline)
             // Tap: live connection-status diagnostic (with a Reconnect action inside).
             setOnClickListener { showConnectionStatusDialog() }
-            // Long-press: reconnect / re-register everything immediately.
-            setOnLongClickListener { reconnectAllWithFeedback(); true }
+            // Long-press: open the Online-recovery settings (top of the UI page).
+            setOnLongClickListener {
+                (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true); true
+            }
         }
         // Long-press the overflow ("hamburger") menu to jump straight to the UI page.
         // doOnLayout: the action-item views only exist once the bar has been laid out.
@@ -210,17 +212,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
                 true
             }
-            // Long-press the Sync icon: deeper "network re-sync" — fire connectivityChanged() so the
-            // daemon re-evaluates the network and rebuilds every peer connection (re-gathers ICE), the
-            // same signal Jami gets when a VPN/Wi-Fi toggles. Recovers the stuck state a plain proxy
-            // re-toggle (short-press) can't (e.g. when kojiki's VPN was up at connect time).
+            // Long-press the Sync icon: run the hard sync / online-recovery (tap just shows the log).
             searchBar.findViewById<View>(R.id.menu_sync)?.setOnLongClickListener {
-                networkResyncWithFeedback(); true
+                syncAllWithFeedback(); true
             }
         }
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
-                R.id.menu_sync -> syncAllWithFeedback()
+                R.id.menu_sync -> showRecoveryLogDialog()   // tap: show log; long-press: hard sync
 
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
 
@@ -540,9 +539,23 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         mDisposable.dispose()
     }
 
+    // Foreground online-recovery: while the chat list is open, run the watchdog every minute (faster
+    // than the background tick) and once immediately on open, so a wedge is caught + recovered in ~1 min.
+    private val mFgWatchdogHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val mFgWatchdogRunnable = object : Runnable {
+        override fun run() {
+            context?.let { cx.ring.utils.ConnectionWatchdog.tick(it, mAccountService) }
+            mFgWatchdogHandler.postDelayed(this, 60_000L)
+        }
+    }
+
     override fun onStart() {
         super.onStart()
         activity?.intent?.let { handleIntent(it) }
+        // Online-recovery: an immediate check on open, then a 1-minute foreground cadence.
+        context?.let { cx.ring.utils.ConnectionWatchdog.tick(it, mAccountService) }
+        mFgWatchdogHandler.removeCallbacks(mFgWatchdogRunnable)
+        mFgWatchdogHandler.postDelayed(mFgWatchdogRunnable, 60_000L)
 
         // Enable account settings menu option when an account is loaded
         mDisposable.add(mAccountService.currentAccountSubject
@@ -703,6 +716,13 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
     }
 
+    /** The open connection-status dialog, tracked so it can be dismissed when we navigate away (e.g.
+     *  the monitor's Recovery pill → UI settings) instead of lingering overlaid on the next screen. */
+    private var mConnStatusDialog: androidx.appcompat.app.AlertDialog? = null
+
+    /** Dismiss the connection-status dialog if showing (called by HomeActivity before navigating). */
+    fun dismissConnStatusDialog() { mConnStatusDialog?.dismiss(); mConnStatusDialog = null }
+
     /** Tap the account dot → live connection-status diagnostic + a Reconnect action.
      *  Surfaces the one signal that distinguishes a healthy account from the
      *  "registered but swarms dead" state: the daemon's live peer-connection count. */
@@ -718,15 +738,50 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             addView(TextView(ctx).apply { setTextColor(0xFFFFFF00.toInt()); text = "Checking…" })
         }
         val scroll = android.widget.ScrollView(ctx).apply { addView(container) }
+        // Custom title: "Connection status" on the left, a "Recovery" pill top-right → Online-recovery settings.
+        val d = ctx.resources.displayMetrics.density
+        val recoveryPill = TextView(ctx).apply {
+            text = "ⓘ Recovery"   // ⓘ marks it as the informative Online-recovery settings button
+            setTextColor(0xFFFFFF00.toInt())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
+            background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
+        }
+        val syncNowPill = TextView(ctx).apply {
+            text = "Sync now"
+            setTextColor(0xFFFFFF00.toInt())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
+            background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
+        }
+        val titleRow = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(pad, pad, pad, 0)
+            addView(TextView(ctx).apply {
+                text = "Connection status"
+                setTextColor(0xFFFFFF00.toInt())
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(syncNowPill, android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = (8 * d).toInt() })
+            addView(recoveryPill)
+        }
         val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
-            .setTitle("Connection status")
+            .setCustomTitle(titleRow)
             .setView(scroll)
-            .setPositiveButton("Reconnect now") { _, _ -> reconnectAllWithFeedback() }
             .setNeutralButton("Monitor", null)  // click wired below so it does NOT dismiss the dialog
             .setNegativeButton("Close", null)
             .create()
+        mConnStatusDialog = dialog
+        syncNowPill.setOnClickListener { syncAllWithFeedback() }   // top pill = hard sync (dialog stays open)
+        recoveryPill.setOnClickListener { (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true) }
         val dis = CompositeDisposable()
-        dialog.setOnDismissListener { dis.clear() }
+        dialog.setOnDismissListener { dis.clear(); mConnStatusDialog = null }
         // Account avatars (by accountId) for the dialog rows, loaded async; rebuild on either source.
         val avatars = HashMap<String, android.graphics.drawable.Drawable>()
         val contactAvatars = HashMap<String, android.graphics.drawable.Drawable>()
@@ -992,20 +1047,73 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
      * account, which re-bootstraps each swarm and re-fetches pending commits — this is what clears
      * inter-account (same-device) messages that strand under DHT-proxy mode (the proxy-on tradeoff:
      * a deactivated receiver misses the swarm-sync notification). Same machinery as the dot's
-     * long-press reconnect, surfaced as a one-tap with sync-worded feedback.
+     * long-press reconnect, surfaced on the Sync long-press with sync-worded feedback.
      */
     private fun syncAllWithFeedback() {
-        mAccountService.syncAllAccounts()
-        showReconnectFlash("Syncing all accounts…")
+        cx.ring.utils.ConnectionWatchdog.manualRecover(requireContext(), mAccountService)
+        showReconnectFlash("Recovering connections…")
     }
 
-    /** Long-press Sync: deeper recovery — tell the daemon the network changed so it rebuilds every peer
-     *  connection (re-gathers ICE). The app can't toggle Wi-Fi/airplane itself (Android blocks that for
-     *  non-system apps), but this is the same connectivity-change signal such a toggle delivers — which
-     *  is what recovers the stuck state a plain proxy re-toggle (short-press) can't. */
-    private fun networkResyncWithFeedback() {
-        mAccountService.nudgeConnectivity()
-        showReconnectFlash("Re-syncing network…")
+    /** Tap Sync: show the online-recovery event log (stale detected, recovered, backoff, …). */
+    private fun showRecoveryLogDialog() {
+        val ctx = context ?: return
+        val d = ctx.resources.displayMetrics.density
+        val log = cx.ring.utils.UiPrefs.getRecoveryLog(ctx)
+        val logText = if (log.isEmpty()) "(no recovery events yet)" else log.reversed().joinToString("\n")
+        val tv = TextView(ctx).apply {
+            this.text = logText
+            setTextColor(0xFFFFFF00.toInt())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding((16 * d).toInt(), (12 * d).toInt(), (16 * d).toInt(), (12 * d).toInt())
+            setTextIsSelectable(true)
+        }
+        val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
+        // Custom title: "Recovery log" left, an "ⓘ Recovery" pill top-right → Online-recovery settings.
+        val recoveryPill = TextView(ctx).apply {
+            text = "ⓘ Recovery"
+            setTextColor(0xFFFFFF00.toInt())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
+            background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
+        }
+        val titleRow = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding((16 * d).toInt(), (12 * d).toInt(), (12 * d).toInt(), 0)
+            addView(TextView(ctx).apply {
+                text = "Recovery log"
+                setTextColor(0xFFFFFF00.toInt())
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(recoveryPill)
+        }
+        val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
+            .setCustomTitle(titleRow)
+            .setView(scroll)
+            .setPositiveButton("Close", null)
+            // Clear is the NEUTRAL button so it sits bottom-LEFT, away from Close. Guarded below:
+            // a tap only warns; it clears the log only on a long-tap (prevents accidental loss).
+            .setNeutralButton("Clear", null)
+            .create()
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow))
+        recoveryPill.setOnClickListener { (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true); dialog.dismiss() }
+        styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE))
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.let { clearBtn ->
+            styleDialogButton(clearBtn)
+            clearBtn.setOnClickListener {
+                Flash.show(ctx, "Long-tap Clear to wipe the recovery log — every entry will be LOST.",
+                    android.widget.Toast.LENGTH_LONG)
+            }
+            clearBtn.setOnLongClickListener {
+                cx.ring.utils.UiPrefs.clearRecoveryLog(ctx)
+                Flash.show(ctx, "Recovery log cleared.")
+                dialog.dismiss()
+                true
+            }
+        }
     }
 
     /** Brief flash — the shared [Flash] style (black / yellow text + border, settable). */
@@ -1015,6 +1123,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
     override fun onStop() {
         super.onStop()
+        mFgWatchdogHandler.removeCallbacks(mFgWatchdogRunnable)
         mDisposable.clear()
     }
 
