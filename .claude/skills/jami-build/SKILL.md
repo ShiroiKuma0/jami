@@ -215,7 +215,7 @@ One logical change per patch; build-only until the user says "Push". If several 
 
 ## Build + sign + deploy
 
-> **Use the block below verbatim — do not hand-roll a fresh one from memory.** Every glitch in practice has come from re-deriving the block instead of lifting it: dropping the `JAVA_HOME` export (Gradle aborts on JDK 11), guessing the build-tools path (it is `~/android-sdk/build-tools/36.1.0`, exported onto `PATH` so `zipalign`/`apksigner` are called bare — never `$BT/zipalign`), adding a `$(date)` stamp to the APK name (there is none — `versionName` carries `+N`), and omitting the loud connect-phone gate before `adb push`. Copy this block; change only the patch path and the `-PshiroikumaBuild` plumbing.
+> **Use the block below verbatim — do not hand-roll a fresh one from memory.** Every glitch in practice has come from re-deriving the block instead of lifting it: dropping the `JAVA_HOME` export (Gradle aborts on JDK 11), guessing the build-tools path (it is `~/android-sdk/build-tools/36.1.0`, exported onto `PATH` so `zipalign`/`apksigner` are called bare — never `$BT/zipalign`), adding a `$(date)` stamp to the APK name (there is none — `versionName` carries `+N`), and hand-rolling delivery instead of ending with the **`/after-build`** skill (auto adb-push to the phone, else scp to skhw — no prompt). Copy this block; change only the patch path and the `-PshiroikumaBuild` plumbing.
 
 
 The daemon and all contrib compile from source on the **first** build (long — tens of minutes, a few hundred MB downloaded; LTO is on). Subsequent builds reuse the cache and finish in minutes; contrib only recompiles when the daemon submodule moves.
@@ -278,27 +278,15 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
     r bash -c "mkdir -p ~/tmp && cp /tmp/jami-signed.apk ~/tmp/\"$apk_name\""
     r ls -lh ~/tmp/"$apk_name"
 
-    echo -e '\033[1;33m============================================================\033[0m'
-    echo -e '\033[1;33m>>> CONNECT YOUR PHONE NOW -- USB plugged in, USB debugging ON.\033[0m'
-    echo -e '\033[1;33m>>> The signed APK is already saved in ~/tmp regardless of push.\033[0m'
-    echo -e '\033[1;33m============================================================\033[0m'
-
-    read -t 0.1 -n 10000 _flush 2>/dev/null || true   # flush stray newline from the pasted block
-    read -p $'\033[1;33m>>> Phone connected? Press ENTER to adb push, or type n to skip: \033[0m' pushans
-    if [[ ! "$pushans" =~ ^[Nn]$ ]]; then
-      if r adb push /tmp/jami-signed.apk "/sdcard/tmp/$apk_name"; then
-        echo -e "\033[1;36m>>> pushed -- install /sdcard/tmp/$apk_name via the phone file manager\033[0m"
-      else
-        echo -e "\033[1;31m>>> push failed -- sideload ~/tmp/$apk_name via KDE Connect / Bluetooth instead.\033[0m"
-      fi
-    else
-      echo -e "\033[1;36m>>> Skipped. Sideload ~/tmp/$apk_name however you like.\033[0m"
-    fi
+    echo -e "\033[1;33m>>> Built & signed: ~/tmp/$apk_name\033[0m"
+    echo -e "\033[1;36m>>> Deliver it with /after-build (auto: adb-push if the phone is connected, else scp to skhw).\033[0m"
   fi
 else
   echo "Aborted."
 fi
 ```
+
+**Deliver via `/after-build`.** Once the block ends with the signed APK in `~/tmp/`, invoke the global **`/after-build`** skill: it runs `/adb-check` (UNSANDBOXED — a sandboxed check falsely reports no device), then `/adb-push` to `/sdcard/tmp/` if the phone is connected, otherwise `/scp` to `skhw:~/tmp/`, and announces the filename that landed. Never prompt "is the phone connected?" — `/adb-check` answers that itself. (This replaces the old manual connect-phone gate; the git-push hold in **Push discipline** is unrelated and still applies.)
 
 `assembleWithUnifiedPushRelease` triggers the CMake daemon build automatically (the CMake tasks are wired as dependencies of Kotlin compilation), so there's no separate daemon step beyond the SWIG generation.
 
