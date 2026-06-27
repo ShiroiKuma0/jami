@@ -154,7 +154,7 @@ Hand off to **jami-build** for the build. Use its **Build + sign + deploy block 
 - regenerates the **SWIG JNI bindings** (`daemon/bin/jni/make-swig.sh` with `PACKAGEDIR=.../libjamiclient/src/main/java`),
 - computes the **`+N` version tail** from `~/tmp/.shiroikuma_jami_build` (resets to 1 when the upstream base changes — which it just did, so expect N=1),
 - runs `./gradlew -Parchs=arm64-v8a -PshiroikumaBuild="$N" assembleNoPushRelease`, then zipalign + apksigner with `~/.android-keystores/jami-custom.jks`,
-- backs up to `~/tmp/shiroikuma-jami_<versionName>_arm64-v8a.apk` and offers the gated `adb push` to `/sdcard/tmp/`.
+- backs up to `~/tmp/shiroikuma-jami_<versionName>_arm64-v8a.apk` and delivers it via the **`/after-build`** skill (auto adb-push to the phone, else scp to skhw — no prompt).
 
 Notes specific to a fresh upstream:
 - Because the **daemon submodule moved**, contrib recompiles from source — the build is **long** (tens of minutes, hundreds of MB). This is expected, not a hang.
