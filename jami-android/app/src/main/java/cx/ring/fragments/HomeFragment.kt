@@ -200,9 +200,27 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             setImageResource(R.drawable.ic_status_offline)
             // Tap: live connection-status diagnostic (with a Reconnect action inside).
             setOnClickListener { showConnectionStatusDialog() }
-            // Long-press: open the Online-recovery settings (top of the UI page).
-            setOnLongClickListener {
-                (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true); true
+            // Long-press: the connectivity help / info page (UI settings is on the hamburger long-press).
+            setOnLongClickListener { showConnectionInfoDialog(); true }
+        }
+        // DHT-proxy lightning: an action view (so it sits tight to the overflow, like the dot — a plain
+        // menu icon leaves a wide slot). Tap = recover now (full DHT + re-register); long-press = toggle
+        // forced full-DHT. Colour by state via updateLightningIcon().
+        val lightningPx = (28 * resources.displayMetrics.density).toInt()
+        searchBar.menu.findItem(R.id.menu_lightning)?.actionView = ImageView(requireContext()).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = ViewGroup.LayoutParams(lightningPx, lightningPx)
+            setImageResource(R.drawable.ic_proxy_flash)
+            setOnClickListener {   // tap: smart recover (light if proxy good, full if 0-connected)
+                cx.ring.utils.ConnectionWatchdog.manualRecover(requireContext(), mAccountService)
+                updateLightningIcon(); refreshLightningAtSettle()
+                Flash.show(context, "Recovering…")
+            }
+            setOnLongClickListener {   // long-press: atomic full reset (always proxy off + re-register)
+                cx.ring.utils.ConnectionWatchdog.atomicRecover(requireContext(), mAccountService)
+                updateLightningIcon(); refreshLightningAtSettle()
+                Flash.show(context, "Atomic reset — full DHT + re-register")
+                true
             }
         }
         // Long-press the overflow ("hamburger") menu to jump straight to the UI page.
@@ -212,14 +230,19 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
                 true
             }
-            // Long-press the Sync icon: run the hard sync / online-recovery (tap just shows the log).
+            // Long-press Sync → pin DHT proxy OFF (full DHT, max reliability). Sync turns blue while
+            // pinned; long-press again to release. (Also consumes the long-press, so no white tooltip.)
             searchBar.findViewById<View>(R.id.menu_sync)?.setOnLongClickListener {
-                syncAllWithFeedback(); true
+                val forced = cx.ring.utils.ConnectionWatchdog.toggleForcedOff(requireContext(), mAccountService)
+                updateSyncIcon()
+                Flash.show(context, if (forced) "DHT proxy pinned OFF (full DHT) — long-press Sync again to release"
+                    else "DHT proxy unpinned (auto)")
+                true
             }
         }
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
-                R.id.menu_sync -> showRecoveryLogDialog()   // tap: show log; long-press: hard sync
+                R.id.menu_sync -> showRecoveryLogDialog()   // tap: show the recovery log
 
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
 
@@ -545,8 +568,92 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     private val mFgWatchdogRunnable = object : Runnable {
         override fun run() {
             context?.let { cx.ring.utils.ConnectionWatchdog.tick(it, mAccountService) }
+            updateLightningIcon(); updateSyncIcon()
             mFgWatchdogHandler.postDelayed(this, 60_000L)
         }
+    }
+
+    /** Lightning-icon tint by DHT-proxy state: yellow = on, blue = auto-off (recovery/charging/wedge),
+     *  red = forced off. */
+    /** Lightning: yellow when idle, blue while a recover/reset is settling. */
+    private fun updateLightningIcon() {
+        val iv = mBinding?.searchBar?.menu?.findItem(R.id.menu_lightning)?.actionView as? ImageView ?: return
+        iv.setColorFilter(if (cx.ring.utils.ConnectionWatchdog.isRecovering()) 0xFF0000FF.toInt() else 0xFFFFFF00.toInt())
+    }
+
+    /** Sync: blue while DHT proxy is pinned off (Sync long-press), else yellow. */
+    private fun updateSyncIcon() {
+        val item = mBinding?.searchBar?.menu?.findItem(R.id.menu_sync) ?: return
+        val ctx = context ?: return
+        val color = if (cx.ring.utils.UiPrefs.isProxyForcedOff(ctx)) 0xFF0000FF.toInt() else 0xFFFFFF00.toInt()
+        androidx.core.view.MenuItemCompat.setIconTintList(item, android.content.res.ColorStateList.valueOf(color))
+    }
+
+    /** Flip the lightning back to yellow once the recover settle window passes. */
+    private fun refreshLightningAtSettle() {
+        mFgWatchdogHandler.postDelayed({ updateLightningIcon() }, 31_000L)
+    }
+
+    /** Connectivity help / info page (Account-dot long-press). */
+    private fun showConnectionInfoDialog() {
+        val ctx = context ?: return
+        val dens = resources.displayMetrics.density
+        fun dp(v: Int) = (v * dens).toInt()
+        val yc = 0xFFFFFF00.toInt(); val dim = 0xFFCFCFCF.toInt()
+        val root = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(20), dp(14), dp(20), dp(8))
+        }
+        fun heading(iconRes: Int, title: String) {
+            root.addView(android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(14), 0, dp(4))
+                addView(ImageView(ctx).apply {
+                    setImageResource(iconRes); setColorFilter(yc)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(10) }
+                })
+                addView(android.widget.TextView(ctx).apply {
+                    text = title; setTextColor(yc); setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+                })
+            })
+        }
+        fun line(s: String) = root.addView(android.widget.TextView(ctx).apply {
+            text = s; setTextColor(dim); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
+            setPadding(dp(34), dp(1), 0, dp(3))
+        })
+        fun banner(s: String) = root.addView(android.widget.TextView(ctx).apply {
+            text = s; setTextColor(yc); setTypeface(typeface, android.graphics.Typeface.BOLD)
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f); setPadding(0, dp(18), 0, dp(4))
+        })
+
+        heading(R.drawable.baseline_autorenew_white_24dp, "Sync  ↻")
+        line("Tap — show the connection / recovery log.")
+        line("Long-press — pin DHT proxy OFF (full DHT; maximum reliability, ignores battery). Sync turns blue while pinned; long-press again to release.")
+        heading(R.drawable.ic_status_online, "Account dot  ●")
+        line("Tap — connection status: your accounts and contacts, who's connected (with Sync-now + Recovery).")
+        line("Long-press — this help page.")
+        line("The dot itself shows your selected account: online (filled) / offline (hollow).")
+        heading(R.drawable.ic_proxy_flash, "Lightning  ⚡")
+        line("Tap — smart recover: re-registers to fix a stuck link; drops to full DHT only if nothing is connected. Blue while recovering.")
+        line("Long-press — atomic reset: force full DHT + re-register no matter what. The big hammer.")
+        heading(R.drawable.ic_status_online, "A contact's avatar")
+        line("Tap a contact or group avatar in the list — opens its live monitor: each member's channels (connecting / ICE / TLS / connected), Message ping ⌁ to open a link, and Recover.")
+
+        banner("When something's wrong")
+        line("• A message won't go / a contact is stuck → tap their avatar → Message ping ⌁. Reaches ICE but stalls = online but NAT-blocked (try Recover). Never connects = likely offline.")
+        line("• Everything is stuck (0 connected) → Lightning long-press (atomic reset).")
+        line("• Guaranteed delivery, battery aside → Sync long-press (pin proxy off).")
+        line("• Dot colours: yellow = a live connection right now · blue = online but no open pipe · red = offline.")
+
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Connectivity — how the icons work")
+            .setView(android.widget.ScrollView(ctx).apply { addView(root) })
+            .setPositiveButton("Got it", null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     override fun onStart() {
@@ -554,6 +661,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         activity?.intent?.let { handleIntent(it) }
         // Online-recovery: an immediate check on open, then a 1-minute foreground cadence.
         context?.let { cx.ring.utils.ConnectionWatchdog.tick(it, mAccountService) }
+        updateLightningIcon(); updateSyncIcon()
         mFgWatchdogHandler.removeCallbacks(mFgWatchdogRunnable)
         mFgWatchdogHandler.postDelayed(mFgWatchdogRunnable, 60_000L)
 
