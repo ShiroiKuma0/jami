@@ -284,8 +284,10 @@ class ConversationFacade(
              conversation.profile,
              conversation.contactUpdates.switchMap { c -> mContactService.observeContact(conversation.accountId, c, hasPresence) },
              if (hasPresence) mAccountService.connectionStatusMap
-             else Observable.just(emptyMap<String, net.jami.model.Contact.PresenceStatus>())
-         ) { mode, profile, contacts, connMap ->
+             else Observable.just(emptyMap<String, net.jami.model.Contact.PresenceStatus>()),
+             if (hasPresence) conversation.currentStateObservable.map { lastOutgoingUndelivered(it.first) }.startWithItem(false)
+             else Observable.just(false)
+         ) { mode, profile, contacts, connMap, undelivered ->
              // "Best status" of the counterparties: per member take the better of its live connection and
              // its DHT presence, then the best across members (self excluded). Own / same-daemon accounts
              // hold a live link but broadcast no presence, so the connection half keeps them yellow.
@@ -299,7 +301,10 @@ class ConversationFacade(
                      if (s == net.jami.model.Contact.PresenceStatus.CONNECTED) { best = s; break }
                      if (s == net.jami.model.Contact.PresenceStatus.AVAILABLE) best = s
                  }
-                 best
+                 // Delivery-aware: an undelivered last outgoing message (e.g. an un-accepted invite) means we
+                 // can't actually reach them yet — never show CONNECTED (yellow); cap at AVAILABLE (blue).
+                 if (undelivered && best == net.jami.model.Contact.PresenceStatus.CONNECTED)
+                     net.jami.model.Contact.PresenceStatus.AVAILABLE else best
              }
              ConversationItemViewModel(conversation, profile, contacts, hasPresence, status)
          }
@@ -308,6 +313,22 @@ class ConversationFacade(
         net.jami.model.Contact.PresenceStatus.CONNECTED -> 2
         net.jami.model.Contact.PresenceStatus.AVAILABLE -> 1
         net.jami.model.Contact.PresenceStatus.OFFLINE -> 0
+    }
+
+    /** Is the last outgoing message still undelivered (sending/pending/failed)? Keeps the presence dot
+     *  honest — a contact we can't deliver to right now (e.g. an un-accepted invite) is not shown yellow. */
+    private fun lastOutgoingUndelivered(e: net.jami.model.interaction.Interaction): Boolean {
+        if (e.isIncoming) return false
+        if (e.type != net.jami.model.interaction.Interaction.InteractionType.TEXT &&
+            e.type != net.jami.model.interaction.Interaction.InteractionType.DATA_TRANSFER) return false
+        val delivered = e.status == net.jami.model.interaction.Interaction.InteractionStatus.SUCCESS ||
+            e.status == net.jami.model.interaction.Interaction.InteractionStatus.DISPLAYED ||
+            e.statusMap.values.any { it == net.jami.model.interaction.Interaction.MessageStates.SUCCESS ||
+                it == net.jami.model.interaction.Interaction.MessageStates.DISPLAYED }
+        if (delivered) return false
+        // Only a message stuck for a while counts — a freshly-sent one is pending for a second or two
+        // (e.g. each test-swarm canary ping), and shouldn't flicker the dot off CONNECTED.
+        return System.currentTimeMillis() - e.timestamp > 20_000L
     }
 
     fun observeConversations(
