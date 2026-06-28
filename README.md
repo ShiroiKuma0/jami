@@ -8,10 +8,11 @@
 
 A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
 per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience** —
-a live multi-account **connection monitor**, **Google-free push**, and one-tap account recovery —
-token-gated **automation intents**, smarter **registered-name** lookups, and a **split-view** toggle.
+a self-healing recovery watchdog, a live **connection monitor** (per-contact too), smart one-tap
+recovery and **Google-free push** — token-gated **automation intents**, smarter **registered-name**
+lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260619-01+29`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260619-01+67`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -62,32 +63,40 @@ family, weight and size**, *and* set its **text, fill and border colours**.
 
 Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settings → Appearance**.
 
-## 📶 Connectivity, push & a real connection monitor
+## 📶 Connectivity, self-healing & a live connection monitor
 
 Jami can quietly drift offline; this fork helps it heal itself **and** shows you the truth about its
-links. It builds the **Google-free `withUnifiedPush` flavor**: paired with a UnifiedPush distributor
-(e.g. [ntfy](https://ntfy.sh)) and the DHT proxy, backgrounded accounts deactivate and wake on a
-push — so idle CPU drops to near zero **with no Google/Firebase dependency**, while incoming external
-messages still wake the app instantly. (That tradeoff was *measured*, not guessed: a controlled
-on-device A/B test of every connectivity setting showed the DHT proxy is the one lever that matters.)
-It also adds DHT reconnect logic and a one-tap action to **recover Offline / disabled accounts**.
+links. A measured on-device A/B test settled the base config: **DHT proxy off, UPnP + TURN on** is the
+reliable one — proxy-on routes every connection through a single link that, when it wedges, strands
+delivery while the UI still says "connected" — so new accounts default to that.
 
-**The alarm tracks your actual messages, not just sockets.** When a message you sent hasn't been
-delivered, the account turns red and the chat-list dot rings — and because it reads true message
-delivery, it catches **group swarms** that a raw connection view can't even see. The dot rings **red**
-for a stuck message and **blue** while an account is merely connecting; normal churn and idle never
-cry wolf. And the proxy's one downside — a message between your *own* same-device accounts occasionally
-stranding — is a one-tap fix: the new **Sync** icon (left of the dot) briefly cycles connectivity to
-flush those messages through.
+**Self-healing watchdog.** A background watchdog watches for the wedge — nothing connected, or an
+outgoing message that never confirms (which also catches **group swarms** a raw connection table can't
+see) — and recovers automatically by re-registering on the full DHT. It holds the proxy off while
+charging (reliability is free when you're plugged in) and manages it intelligently otherwise.
 
-The **connection monitor** — tap the account dot, or open it from Settings — is an all-accounts
-diagnostics screen that reports that *true* health. Problem accounts sort to the top with a red
-**"⚠ message not delivered → \<chat\>"** line naming exactly what's stuck; "connecting" reads blue and
-is never itself treated as a fault; your other same-device accounts read **reachable** rather than a
-misleading "offline". Accounts are folded by default and fold open — three levels deep — to each
-contact and its individual device connections; the same foldable, three-level view is now also built
-right into the **tap-the-dot status dialog**. Every colour, and the fold-triangle size, is settable in
-*UI fonts & colours*.
+**Two-tier recovery — the ⚡ lightning.** Tap for a **smart recover**: it just re-registers when your
+links are healthy, and drops to the full DHT only when nothing is connected, so fixing one stuck
+contact never needlessly disables the proxy. Long-press for an **atomic reset** — full DHT +
+re-register, unconditionally. The lightning glows blue while recovering.
+
+**Per-contact live monitor.** Tap any contact's (or group's) avatar to open a live monitor for just
+them: each member's channels colour-coded exactly like the full monitor (connecting → negotiating ICE
+→ securing TLS → connected) with device IDs, a **Message ping** that forces a channel open, and a
+Recover button — so you can tell at a glance whether a contact is reachable, NAT-blocked, or offline,
+group swarms included.
+
+**Honest presence + the full monitor.** The chat-list dot is a real-time light — **yellow = a live
+connection right now, blue = online but no open pipe, red = offline** — and it's delivery-aware, so a
+contact with a message stuck more than a few seconds never reads connected. The all-accounts
+**connection monitor** (tap the dot) sorts problems to the top, names exactly what's stuck, reads
+"connecting" as blue (never a fault), and folds three levels deep to each contact's device
+connections. **Long-press the dot for an in-app help page** explaining every icon and what to do when
+something's wrong. Every colour, and the fold-triangle size, is settable in *UI fonts & colours*.
+
+**Optional Google-free push.** The `withUnifiedPush` flavor, paired with a UnifiedPush distributor
+(e.g. [ntfy](https://ntfy.sh)) and the proxy, lets backgrounded accounts deactivate and wake on a push
+— no Google/Firebase — when you'd rather trade the proxy's wedge-risk for near-zero idle CPU.
 
 ## 🤖 Automation intents
 
@@ -109,8 +118,7 @@ rather focus on one screen at a time.
 ## 💬 Quality-of-life
 
 - Settable styled **“flash” messages** (toasts) for in-app feedback.
-- An **account online/offline toggle** right in the chat-list top bar.
-- A resizable account-avatar dot with reliable presence swapping.
+- A resizable, real-time account-status **dot** in the top bar (tap for full status, long-press for help).
 - A black/yellow knot **launcher icon** so the fork is easy to spot.
 
 ---
