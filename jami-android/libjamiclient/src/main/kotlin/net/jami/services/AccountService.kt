@@ -889,6 +889,17 @@ class AccountService(
         }
     }
 
+    /** Open / wake a P2P channel to a single contact (NOT account-wide): refresh presence and send a
+     *  small probe message — only real content forces the daemon to establish a swarm channel to that
+     *  contact's device, so a stuck link starts a fresh ICE attempt that shows up in the connection
+     *  monitor (a typing nudge alone does not). The probe is visible in the conversation. */
+    fun openConnectionTo(accountId: String, conversation: Conversation) {
+        // contacts.filter, NOT conversation.contact — the latter throws check(size<=2) for group swarms.
+        conversation.contacts.filter { !it.isUser }.forEach { subscribeBuddy(accountId, it.uri.uri, true) }
+        val probe = "⌁ " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+        sendConversationMessage(accountId, conversation.uri, probe, null)
+    }
+
     private fun reconnectOne(a: Account) {
         val id = a.accountId
         // Ensure the volatile active flag is set (an airplane on/off cycle can leave it false).
