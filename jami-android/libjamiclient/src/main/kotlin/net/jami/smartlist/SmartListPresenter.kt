@@ -87,6 +87,11 @@ class SmartListPresenter @Inject constructor(
     fun blockContact(accountId: String, contact: Contact) =
         mAccountService.removeContact(accountId, contact.uri.uri, true)
 
+    /** Long-press a contact → open / wake a direct P2P channel to THEM (not account-wide): presence
+     *  refresh + typing nudge, so a stuck link starts a fresh ICE attempt. */
+    fun openConnection(conversation: Conversation) =
+        mAccountService.openConnectionTo(conversation.accountId, conversation)
+
     fun removeConversation(conversation: Conversation) =
         view?.displayDeleteDialog(
             conversation.accountId,
