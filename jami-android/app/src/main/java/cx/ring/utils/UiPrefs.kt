@@ -47,6 +47,10 @@ object UiPrefs {
     /** Either mode on → recovery is active at all; both off → fully disabled. */
     fun isOnlineRecoveryEnabled(c: Context): Boolean = isRecoveryBaseEnabled(c) || isRecoveryPingEnabled(c)
 
+    /** Lightning long-press: force DHT proxy OFF (full DHT) and keep it off until toggled back. */
+    fun isProxyForcedOff(c: Context): Boolean = p(c).getBoolean("proxy_forced_off", false)
+    fun setProxyForcedOff(c: Context, on: Boolean) { p(c).edit().putBoolean("proxy_forced_off", on).apply() }
+
     /** Optional test-swarm conversation id (stored WITHOUT the "swarm:" prefix). Empty = use the
      *  passive "nothing is connecting" heuristic instead of the active canary. */
     fun getRecoveryTestSwarm(c: Context): String = p(c).getString("recovery_test_swarm", "") ?: ""

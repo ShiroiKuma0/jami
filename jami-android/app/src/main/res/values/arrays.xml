@@ -29,6 +29,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         <item>@string/delete_contact</item>
         <item>@string/conversation_action_block_this</item>
         <item>@string/conversation_action_lookup_name</item>
+        <item>Contact live monitor</item>
     </string-array>
     <string-array name="swarm_group_actions">
         <item>@string/swarm_group_action_leave</item>
@@ -51,6 +52,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         <item>@drawable/baseline_androidtv_deletecontact</item>
         <item>@drawable/baseline_block_24</item>
         <item>@drawable/baseline_search_24</item>
+        <item>@drawable/ic_proxy_flash</item>
     </array>
 
     <string-array name="swarm_request_one_to_one_actions">
