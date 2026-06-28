@@ -73,6 +73,8 @@ class ConnectionMonitorFragment: Fragment() {
     lateinit var service: AccountService
     @Inject
     lateinit var contactService: ContactService
+    @Inject
+    lateinit var conversationFacade: net.jami.services.ConversationFacade
 
     private var list: RecyclerView? = null
     private var summaryView: TextView? = null
@@ -541,18 +543,16 @@ class ConnectionMonitorFragment: Fragment() {
         builder.show().let { DialogTheme.theme(it, ctx) }
     }
 
-    /** Tap a contact → test / wake a link to them: re-check presence AND trigger a real connection
-     *  attempt by syncing their conversation (opens a channel to their device). Feedback = a flash now,
-     *  plus the contact's status flipping live in the list (connecting → connected, or staying offline). */
+    /** Tap a contact with no active channel → a dialog to act on the link: force a reconnect (re-register
+     *  the account on the current DHT — what clears a stuck / partial transfer) or test it (open a channel
+     *  + re-check presence), then watch the monitor for the ICE / connection state coming up. */
     private fun testLink(accountId: String, cvm: ContactViewModel) {
         val ctx = context ?: return
         if (accountId.isEmpty()) return
         val name = cvm.displayName
-        service.subscribeBuddy(accountId, cvm.contact.uri.uri, true)
-        service.getAccount(accountId)?.getByUri(cvm.contact.uri)?.let { conv ->
-            disposableBag.add(service.loadMore(conv, 1).subscribe({}, {}))
-        }
-        Flash.show(ctx, "Testing link to $name… watch the status")
+        val conv = service.getAccount(accountId)?.getByUri(cvm.contact.uri)
+        if (conv != null) showContactConnectionDialog(ctx, service, conversationFacade, conv)
+        else { service.subscribeBuddy(accountId, cvm.contact.uri.uri, true); Flash.show(ctx, "Refreshed $name") }
     }
 
     override fun onStart() {
