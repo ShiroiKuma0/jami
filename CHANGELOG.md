@@ -4,6 +4,65 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260619-01+67 — 2026-06-28
+
+The connectivity study became a full self-healing connectivity layer: an automatic recovery watchdog,
+a two-tier manual recover, honest real-time presence, and a focused per-contact connection monitor —
+all on-device-tested across `+30`…`+67`. Still on upstream base **20260619-01** (versionCode 498).
+
+### Connectivity default corrected
+- The earlier "DHT proxy on" default proved wrong in practice — proxy-on routes every connection-setup
+  through one link that, when it wedges, strands all external delivery (in and out) while the UI still
+  shows "connected". New accounts now default to the reliable config: **DHT proxy OFF, UPnP + TURN on,
+  local discovery off**.
+
+### Self-healing online-recovery watchdog
+- A background watchdog detects the wedge — nothing connected for a while, **or** an outgoing message
+  that never confirms (`NOT SYNCING`, which also catches group swarms a raw connection table can't see)
+  — and recovers automatically by dropping to the full DHT and re-registering.
+- **Charging-aware:** while charging it holds the proxy off (full DHT, maximum reliability — free when
+  plugged in) and manages it normally on battery.
+- A rolling, timestamped recovery **log** records what it did and for how long; an optional test-swarm
+  **canary** can drive detection actively.
+
+### Smart vs atomic recover (the ⚡ lightning)
+- **Tap = smart recover:** re-register on the current proxy when links are healthy; drop to the full
+  DHT only when nothing is connected — so clearing one stuck contact no longer needlessly disables the
+  proxy (and its battery savings) for everyone.
+- **Long-press = atomic reset:** force full DHT + re-register unconditionally — the big hammer.
+- The lightning glows **blue while a recover is settling**, yellow when idle.
+
+### Per-contact live connection monitor
+- Tap any contact's (or group's) **avatar** in the chat list — or a no-connection row in the full
+  monitor — to open a focused live monitor: the avatar + resolved name, then **each member's channels**
+  colour-coded like the monitor (connecting → negotiating ICE → securing TLS → connected) with device
+  IDs (tap to copy).
+- **Message ping (⌁):** sends a tiny probe that forces a direct channel to open (the only thing that
+  does — a typing nudge isn't enough), so you can watch the link come up.
+- **Recover** right inside the dialog, plus a live verdict: a ping that never connects concludes
+  **"offline or unreachable"** instead of sitting on a misleading "reachable".
+
+### Honest real-time presence
+- The chat-list dot now means exactly what the daemon reports: **yellow = a live P2P connection right
+  now, blue = announced online but no open channel, red = offline.**
+- **Delivery-aware:** a conversation whose last outgoing message has been stuck more than a few seconds
+  no longer reads connected — so "delivered but red" / "yellow but undelivered" mismatches are gone.
+  Group dots are wired to the same status.
+
+### Top-bar icons + in-app help
+- **Sync ↻** — tap: the connection/recovery log; long-press: **pin DHT proxy off** (full DHT, maximum
+  reliability; Sync turns blue while pinned).
+- **Account dot ●** — tap: the connection-status dialog; long-press: a new **connectivity help page**
+  that draws every icon, explains its tap/long-press, and recommends a fix for each common situation.
+- **Lightning ⚡** — tap: smart recover; long-press: atomic reset.
+- Icons are tightly grouped (the lightning is a sized action view), and the connection-status dialog
+  gained "Sync now" + "Recovery" controls.
+
+### Fixes
+- **Tapping a group avatar no longer crashes** — the per-contact monitor iterates members instead of
+  the single-contact accessor that throws for group swarms.
+- The connection-status dialog and the per-contact monitor no longer assume a 1:1 conversation shape.
+
 ## 20260619-01+29 — 2026-06-26
 
 A measured connectivity study turned into a set of self-healing connection-health features. Still on
