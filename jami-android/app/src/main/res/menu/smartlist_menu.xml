@@ -19,9 +19,17 @@
         app:showAsAction="always" />
 
     <item
+        android:id="@+id/menu_lightning"
+        android:icon="@drawable/ic_proxy_flash"
+        android:orderInCategory="101"
+        android:title="DHT proxy / recover"
+        app:iconTint="#FFFF00"
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/menu_overflow"
         android:icon="@drawable/ic_baseline_more_vert"
-        android:orderInCategory="101"
+        android:orderInCategory="102"
         android:title=""
         app:iconTint="@color/icon_color"
         app:showAsAction="always">

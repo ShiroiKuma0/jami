@@ -84,6 +84,8 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
                 clickListener.onItemLongClick(conversation)
                 true
             }
+            // Tap just the avatar/icon → the per-contact live monitor (the rest of the row opens the chat).
+            binding.photo.setOnClickListener { clickListener.onItemIconClick(conversation) }
 
             compositeDisposable.add(conversation.currentStateObservable
                 .observeOn(DeviceUtils.uiScheduler)
@@ -199,5 +201,6 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
     interface SmartListListeners {
         fun onItemClick(item: Conversation)
         fun onItemLongClick(item: Conversation)
+        fun onItemIconClick(item: Conversation) {}   // default no-op; the phone smartlist overrides it
     }
 }

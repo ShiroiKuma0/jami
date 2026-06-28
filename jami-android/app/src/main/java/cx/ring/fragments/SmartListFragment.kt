@@ -190,6 +190,13 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
         goToConversation(item.accountId, item.uri)
     }
 
+    @javax.inject.Inject lateinit var mAccountService: net.jami.services.AccountService
+    @javax.inject.Inject lateinit var mConversationFacade: net.jami.services.ConversationFacade
+
+    override fun onItemIconClick(item: Conversation) {
+        showContactConnectionDialog(requireContext(), mAccountService, mConversationFacade, item)
+    }
+
     override fun onItemLongClick(item: Conversation) {
         if (item.isSwarm) {
             val currentMode = item.mode.blockingFirst()
@@ -223,6 +230,7 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                         2 -> presenter.removeConversation(item)
                         3 -> presenter.blockContact(item)
                         4 -> presenter.lookUpName(item)
+                        5 -> showContactConnectionDialog(requireContext(), mAccountService, mConversationFacade, item)
                     }
                 }.show(childFragmentManager, "SmartListFragment")
             }
