@@ -13,6 +13,8 @@
         android:layout_margin="32dp"
         android:minHeight="48dp"
         android:transitionName="messageEdit"
+        android:foreground="@drawable/compose_input_border"
+        app:cardBackgroundColor="#000000"
         app:cardCornerRadius="@dimen/conversation_message_input_radius"
         app:cardElevation="4dp">
 
@@ -26,7 +28,7 @@
                 android:id="@+id/reply_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/surface"
+                android:background="@android:color/transparent"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="4dp"
