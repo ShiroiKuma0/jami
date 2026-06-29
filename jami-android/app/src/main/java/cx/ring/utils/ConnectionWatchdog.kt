@@ -109,7 +109,7 @@ object ConnectionWatchdog {
     }
 
     /** Full recover: drop to the full DHT, re-register so the stuck backlog flushes, and linger off (window
-     *  grows on repeats). For a real proxy wedge or the atomic reset. */
+     *  grows on repeats). For a real proxy wedge or the hard reset. */
     private fun fullRecover(c: Context, accounts: AccountService) {
         val t = now()
         wedgeStrikes = if (recentWedge(t)) (wedgeStrikes + 1).coerceAtMost(5) else 0
@@ -139,9 +139,9 @@ object ConnectionWatchdog {
         else { log(c, "smart recover — 0 connected → full"); fullRecover(c, accounts) }
     }
 
-    /** Atomic full reset (lightning long-press): always proxy off + re-register, no matter the state. */
-    fun atomicRecover(c: Context, accounts: AccountService) {
-        log(c, "ATOMIC reset — forced full DHT + re-register")
+    /** Hard reset (lightning long-press): always proxy off + re-register, no matter the state. */
+    fun hardReset(c: Context, accounts: AccountService) {
+        log(c, "HARD reset — forced full DHT + re-register")
         fullRecover(c, accounts)
     }
 

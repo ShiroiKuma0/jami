@@ -77,7 +77,7 @@ charging (reliability is free when you're plugged in) and manages it intelligent
 
 **Two-tier recovery — the ⚡ lightning.** Tap for a **smart recover**: it just re-registers when your
 links are healthy, and drops to the full DHT only when nothing is connected, so fixing one stuck
-contact never needlessly disables the proxy. Long-press for an **atomic reset** — full DHT +
+contact never needlessly disables the proxy. Long-press for a **hard reset** — full DHT +
 re-register, unconditionally. The lightning glows blue while recovering.
 
 **Per-contact live monitor.** Tap any contact's (or group's) avatar to open a live monitor for just
