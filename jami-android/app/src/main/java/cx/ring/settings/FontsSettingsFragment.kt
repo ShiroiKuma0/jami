@@ -110,6 +110,13 @@ class FontsSettingsFragment : Fragment() {
             Element("Fold triangle size", null, emptyList(), ScaleRole("Size (% of row text)",
                 { c -> (UiPrefs.getMonitorFoldScale(c) * 100f).toInt() },
                 { c, v -> UiPrefs.setMonitorFoldScale(c, v / 100f) }, 20, 300)))),
+        Group("Connectivity help page", listOf(
+            Element("Headings", FontPrefs.INFO_HEADING, listOf(ColorRole("Color", ColorPrefs.INFO_HEADING))),
+            Element("Body text", FontPrefs.INFO_BODY, listOf(ColorRole("Color", ColorPrefs.INFO_BODY))),
+            Element("Button pills", null, listOf(
+                ColorRole("Text", ColorPrefs.INFO_PILL_TEXT),
+                ColorRole("Border", ColorPrefs.INFO_PILL_BORDER),
+                ColorRole("Fill", ColorPrefs.INFO_PILL_FILL))))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()

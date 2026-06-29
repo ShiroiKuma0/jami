@@ -50,6 +50,11 @@ object ColorPrefs {
     const val MONITOR_CONNECTED = "monitor_connected"
     const val MONITOR_IDLE = "monitor_idle"
     const val MONITOR_OFFLINE = "monitor_offline"
+    const val INFO_HEADING = "info_heading"
+    const val INFO_BODY = "info_body"
+    const val INFO_PILL_TEXT = "info_pill_text"
+    const val INFO_PILL_BORDER = "info_pill_border"
+    const val INFO_PILL_FILL = "info_pill_fill"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -61,7 +66,8 @@ object ColorPrefs {
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
-        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL -> BLACK
+        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL -> BLACK
+        INFO_HEADING -> 0xFF0000FF.toInt()   // help-page headings — the vivid "reachable" blue (matches the lightning / live-monitor state)
         STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
         STATUS_ONLINE -> 0xFF4CAF50.toInt()
         MONITOR_IDLE, MONITOR_CONNECTING -> 0xFF2196F3.toInt()   // blue — in-progress / connecting
