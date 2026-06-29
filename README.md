@@ -12,7 +12,7 @@ a self-healing recovery watchdog, a live **connection monitor** (per-contact too
 recovery and **Google-free push** — token-gated **automation intents**, smarter **registered-name**
 lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260619-01+67`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260619-01+77`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -81,10 +81,12 @@ contact never needlessly disables the proxy. Long-press for a **hard reset** —
 re-register, unconditionally. The lightning glows blue while recovering.
 
 **Per-contact live monitor.** Tap any contact's (or group's) avatar to open a live monitor for just
-them: each member's channels colour-coded exactly like the full monitor (connecting → negotiating ICE
-→ securing TLS → connected) with device IDs, a **Message ping** that forces a channel open, and a
-Recover button — so you can tell at a glance whether a contact is reachable, NAT-blocked, or offline,
-group swarms included.
+them — it self-refreshes every couple of seconds. Each member's channels are colour-coded exactly like
+the full monitor (connecting → negotiating ICE → securing TLS → connected) with device IDs, link uptime
+and channel names; an offline contact reads "watching the DHT…" rather than a blank. A **Message ping**
+forces a channel open, and its verdict is honest — it waits for the ⌁'s **delivery receipt** instead of
+guessing from the channel, so it never cries "unreachable" prematurely. If a message is already stuck it
+routes you to the account-wide ⚡ recovery instead of pinging into the void. Group swarms included.
 
 **Honest presence + the full monitor.** The chat-list dot is a real-time light — **yellow = a live
 connection right now, blue = online but no open pipe, red = offline** — and it's delivery-aware, so a
@@ -92,7 +94,8 @@ contact with a message stuck more than a few seconds never reads connected. The 
 **connection monitor** (tap the dot) sorts problems to the top, names exactly what's stuck, reads
 "connecting" as blue (never a fault), and folds three levels deep to each contact's device
 connections. **Long-press the dot for an in-app help page** explaining every icon and what to do when
-something's wrong. Every colour, and the fold-triangle size, is settable in *UI fonts & colours*.
+something's wrong — its button references render as the real pills, and its own headings, body and pill
+colours (plus fonts) are settable too. Every colour, and the fold-triangle size, lives in *UI fonts & colours*.
 
 **Optional Google-free push.** The `withUnifiedPush` flavor, paired with a UnifiedPush distributor
 (e.g. [ntfy](https://ntfy.sh)) and the proxy, lets backgrounded accounts deactivate and wake on a push
