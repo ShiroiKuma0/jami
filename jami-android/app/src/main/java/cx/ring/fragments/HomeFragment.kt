@@ -216,10 +216,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 updateLightningIcon(); refreshLightningAtSettle()
                 Flash.show(context, "Recovering…")
             }
-            setOnLongClickListener {   // long-press: atomic full reset (always proxy off + re-register)
-                cx.ring.utils.ConnectionWatchdog.atomicRecover(requireContext(), mAccountService)
+            setOnLongClickListener {   // long-press: hard reset (always proxy off + re-register)
+                cx.ring.utils.ConnectionWatchdog.hardReset(requireContext(), mAccountService)
                 updateLightningIcon(); refreshLightningAtSettle()
-                Flash.show(context, "Atomic reset — full DHT + re-register")
+                Flash.show(context, "Hard reset — full DHT + re-register")
                 true
             }
         }
@@ -599,55 +599,101 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val ctx = context ?: return
         val dens = resources.displayMetrics.density
         fun dp(v: Int) = (v * dens).toInt()
-        val yc = 0xFFFFFF00.toInt(); val dim = 0xFFCFCFCF.toInt()
+        // All settable in “UI fonts & colours” → “Connectivity help page”.
+        val bodyC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_BODY)        // body — yellow by default
+        val headC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_HEADING)     // headings — white by default
+        val pillText = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_PILL_TEXT)
+        val pillBorder = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_PILL_BORDER)
+        val pillFill = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_PILL_FILL)
         val root = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(dp(20), dp(14), dp(20), dp(8))
+        }
+        // Turn {Button name} markers into real pills that look like the Contact-live-monitor buttons.
+        fun pillify(s: String): CharSequence {
+            if (!s.contains('{')) return s
+            val sb = android.text.SpannableStringBuilder()
+            var i = 0
+            while (i < s.length) {
+                val open = s.indexOf('{', i)
+                if (open < 0) { sb.append(s.substring(i)); break }
+                sb.append(s.substring(i, open))
+                val close = s.indexOf('}', open)
+                if (close < 0) { sb.append(s.substring(open)); break }
+                val st = sb.length
+                sb.append(s.substring(open + 1, close))
+                sb.setSpan(cx.ring.views.PillSpan(pillText, pillBorder, pillFill, dens), st, sb.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                i = close + 1
+            }
+            return sb
         }
         fun heading(iconRes: Int, title: String) {
             root.addView(android.widget.LinearLayout(ctx).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(0, dp(14), 0, dp(4))
+                setPadding(0, dp(17), 0, dp(5))
                 addView(ImageView(ctx).apply {
-                    setImageResource(iconRes); setColorFilter(yc)
+                    setImageResource(iconRes); setColorFilter(bodyC)
                     layoutParams = android.widget.LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(10) }
                 })
                 addView(android.widget.TextView(ctx).apply {
-                    text = title; setTextColor(yc); setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    text = title; setTextColor(headC); setTypeface(typeface, android.graphics.Typeface.BOLD)
                     paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+                    cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_HEADING)
                 })
             })
         }
         fun line(s: String) = root.addView(android.widget.TextView(ctx).apply {
-            text = s; setTextColor(dim); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
-            setPadding(dp(34), dp(1), 0, dp(3))
+            text = pillify(s); setTextColor(bodyC); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(34), dp(2), 0, dp(4))
+            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_BODY)
+        })
+        // "lead — description", lead in bold, rest body-coloured; {pills} in either part become buttons.
+        fun action(lead: String, desc: String) = root.addView(android.widget.TextView(ctx).apply {
+            setTextColor(bodyC); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(34), dp(2), 0, dp(4))
+            text = android.text.SpannableStringBuilder().apply {
+                val st = length; append(lead)
+                setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), st, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                append("   —   ").append(pillify(desc))
+            }
+            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_BODY)
         })
         fun banner(s: String) = root.addView(android.widget.TextView(ctx).apply {
-            text = s; setTextColor(yc); setTypeface(typeface, android.graphics.Typeface.BOLD)
+            text = s; setTextColor(headC); setTypeface(typeface, android.graphics.Typeface.BOLD)
             paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f); setPadding(0, dp(18), 0, dp(4))
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f); setPadding(0, dp(20), 0, dp(5))
+            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_HEADING)
         })
 
-        heading(R.drawable.baseline_autorenew_white_24dp, "Sync  ↻")
-        line("Tap — show the connection / recovery log.")
-        line("Long-press — pin DHT proxy OFF (full DHT; maximum reliability, ignores battery). Sync turns blue while pinned; long-press again to release.")
-        heading(R.drawable.ic_status_online, "Account dot  ●")
-        line("Tap — connection status: your accounts and contacts, who's connected (with Sync-now + Recovery).")
-        line("Long-press — this help page.")
-        line("The dot itself shows your selected account: online (filled) / offline (hollow).")
-        heading(R.drawable.ic_proxy_flash, "Lightning  ⚡")
-        line("Tap — smart recover: re-registers to fix a stuck link; drops to full DHT only if nothing is connected. Blue while recovering.")
-        line("Long-press — atomic reset: force full DHT + re-register no matter what. The big hammer.")
-        heading(R.drawable.ic_status_online, "A contact's avatar")
-        line("Tap a contact or group avatar in the list — opens its live monitor: each member's channels (connecting / ICE / TLS / connected), Message ping ⌁ to open a link, and Recover.")
+        heading(R.drawable.baseline_autorenew_white_24dp, "Sync   ↻")
+        action("Tap", "show the connection / recovery log.")
+        action("Long-press", "pin DHT proxy OFF (full DHT, maximum reliability, ignores battery). {Sync ↻} turns blue while pinned; long-press again to release.")
+
+        heading(R.drawable.ic_status_online, "Account dot   ●")
+        action("Tap", "connection status — your accounts and contacts, and who's connected.")
+        action("Long-press", "this help page.")
+        line("The dot shows your selected account: online (filled) / offline (hollow).")
+
+        heading(R.drawable.ic_proxy_flash, "Lightning   ⚡")
+        action("Tap", "smart recover — re-registers to fix a stuck link; drops to full DHT only if nothing is connected. Blue while recovering.")
+        action("Long-press", "hard reset — force full DHT + re-register no matter what. The big hammer.")
+        line("Account-WIDE: it re-registers every account and affects all your chats, not one contact.")
+
+        heading(R.drawable.ic_status_online, "A contact's avatar   ◎")
+        line("Tap a contact or group avatar to open a LIVE monitor for just them — it re-checks itself every 2 s while open, so there's nothing to refresh by hand.")
+        line("Channels are colour-coded: connecting → negotiating (ICE) → securing (TLS) → connected, with device IDs and uptime.")
+        line("{Message ping ⌁}   —   Jami has no per-contact connect button, so this sends a tiny ⌁ probe; only real content makes the daemon open a direct channel. The per-CONTACT nudge.")
+        line("If your last message is still undelivered, {Message ping ⌁} won't just fire again (the daemon is already retrying) — it says so and points you to {Lightning ⚡}, since one stuck contact usually means YOUR link.")
+        line("Per-contact ({Message ping ⌁}) re-attempts ONE contact. Account-wide ({Lightning ⚡}) re-registers your WHOLE account. Try the ping first; escalate to the lightning if it doesn't land.")
 
         banner("When something's wrong")
-        line("• A message won't go / a contact is stuck → tap their avatar → Message ping ⌁. Reaches ICE but stalls = online but NAT-blocked (try Recover). Never connects = likely offline.")
-        line("• Everything is stuck (0 connected) → Lightning long-press (atomic reset).")
-        line("• Guaranteed delivery, battery aside → Sync long-press (pin proxy off).")
-        line("• Dot colours: yellow = a live connection right now · blue = online but no open pipe · red = offline.")
+        line("•   A message won't go / a contact is stuck → tap their avatar → {Message ping ⌁}. Reaches ICE but stalls = online but NAT-blocked. Never connects = likely offline.")
+        line("•   Already pinged, still undelivered → don't keep pinging; escalate to {Lightning ⚡} (tap = smart recover). It recovers your WHOLE account — all chats — not just this contact.")
+        line("•   Everything stuck (0 connected) → {Lightning ⚡} long-press (hard reset).")
+        line("•   Guaranteed delivery, battery aside → {Sync ↻} long-press (pin proxy off).")
+        line("•   Dot colours:  yellow = a live connection now  ·  blue = online, no open pipe  ·  red = offline.")
 
         cx.ring.utils.DialogTheme.builder(ctx)
             .setTitle("Connectivity — how the icons work")
