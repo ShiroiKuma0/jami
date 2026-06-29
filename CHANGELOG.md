@@ -4,6 +4,41 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260619-01+77 — 2026-06-29
+
+A focused follow-up to the connectivity layer: the per-contact monitor's verdict is now grounded in the
+delivery receipt (no more premature "unreachable"), the help page is restyled and fully settable, and
+"Atomic reset" is renamed to "Hard reset". Still on upstream base **20260619-01** (versionCode 498).
+
+### Contact live monitor
+- **Honest, receipt-based verdict.** The dialog reads the ⌁ ping's **delivery receipt** as ground
+  truth: "delivering…" → "delivered ✓", softening to "may be offline" only after a long wait — it never
+  declares "unreachable" from channel state or a short timeout (that earlier verdict was a false
+  negative and was removed).
+- **Always shows what's happening.** A contact with no open channel reads an explicit state — e.g.
+  "watching the DHT… opens the moment they're reachable" for an offline contact — instead of a blank.
+- **Richer connected rows.** Each live channel shows how long it has been up and its channel names,
+  alongside the device id (tap to copy).
+- **Streamlined buttons.** The account-wide **Recover** button is gone (recovery belongs to the ⚡
+  lightning); the dialog is **Message ping ⌁** (left) + **Close** (right), with a "● re-checks every
+  2 s" live footer.
+- **Escalation, not blind retries.** If your last message is still undelivered, Message ping no longer
+  just fires again — it explains the daemon is already retrying and routes you to the ⚡ lightning,
+  making clear that the lightning recovers your **whole account (all chats)**, with a "Send another
+  anyway" fallback.
+
+### Connectivity help page (long-press the account dot)
+- **Restyled** for clarity: blue headings, yellow body, bold gestures, tighter structure.
+- **Button names render as pills** that look like the real Contact-live-monitor buttons, so the guide
+  matches the UI.
+- **Fully settable** under *UI fonts & colours → "Connectivity help page"*: headings (colour + font &
+  size), body text (colour + font & size), and button-pill text / border / fill colours. Headings
+  default to the vivid `#0000FF` reachable blue.
+
+### Naming
+- **"Atomic reset" → "Hard reset"** everywhere — the lightning long-press, the help page, the recovery
+  log, and the README.
+
 ## 20260619-01+67 — 2026-06-28
 
 The connectivity study became a full self-healing connectivity layer: an automatic recovery watchdog,
