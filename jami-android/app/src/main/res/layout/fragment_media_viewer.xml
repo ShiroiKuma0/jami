@@ -42,6 +42,12 @@
             android:visibility="gone" />
     </FrameLayout>
 
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/media_pager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <com.google.android.material.bottomappbar.BottomAppBar
         app:elevation="0dp"
         app:backgroundTint="@color/transparent"
