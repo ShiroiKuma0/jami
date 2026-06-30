@@ -4,6 +4,35 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260619-01+83 — 2026-06-30
+
+Synced onto the latest upstream tip (`576f22274`, same `20260619-01` base), and added a per-contact
+snapshot cache, a fuller dialog theme, and a self-describing probe message.
+
+### Upstream merge (savoirfairelinux/jami-client-android → 576f22274)
+- **Android 15+ boot-crash fix** — boot-time sync is deferred to a JobScheduler job instead of starting
+  a foreground service from the `BOOT_COMPLETED` receiver (which threw
+  `ForegroundServiceStartNotAllowedException` with "run on startup" enabled).
+- **Video reliability** — prevents a stale `codecStarted` after an encoder fallback, avoiding a video freeze.
+- **Video resolution applies without an app restart** — the camera re-registers when the resolution
+  preference changes (phone + Android TV).
+- Translation bumps.
+
+### Contact live monitor
+- **Exit→reopen snapshot cache** — after a Message ping, leaving and reopening the monitor no longer loses
+  the picture: it re-shows the last attempt's channels under "↻ last attempt — Ns ago (HH:MM:SS)" with a
+  memo (they reconnect soon if reachable, else likely offline; tap Message ping, or the ⚡ lightning if
+  it's your own link). Live data replaces it; snapshots older than 90 s aren't shown.
+- **Header pill** now shows the title big with a two-line "● live — re-checks every 2 s" note beside it.
+- **The ⌁ probe message is two lines** — "Connection refresh:" then "⌁ HH:mm:ss" — so it's self-describing
+  in the conversation.
+
+### Theming
+- **App-wide dialogs** are now pure black with yellow body text, **yellow-outlined pill buttons**, and a
+  yellow border — so confirmation dialogs (e.g. Delete contact) match the rest of the theme.
+- **Message-edit screen** themed: a black editor card with the compose-input border and a transparent
+  reply group.
+
 ## 20260619-01+77 — 2026-06-29
 
 A focused follow-up to the connectivity layer: the per-contact monitor's verdict is now grounded in the
