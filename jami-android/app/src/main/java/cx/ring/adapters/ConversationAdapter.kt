@@ -60,6 +60,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.client.MediaViewerActivity
+import cx.ring.client.MediaViewerFragment
 import cx.ring.client.MessageEditActivity
 import cx.ring.databinding.MenuConversationBinding
 import cx.ring.fragments.ConversationFragment
@@ -88,6 +89,7 @@ import net.jami.model.*
 import net.jami.model.Account.ComposingStatus
 import net.jami.model.interaction.CallHistory
 import net.jami.model.interaction.ContactEvent
+import net.jami.model.Conversation
 import net.jami.model.interaction.DataTransfer
 import net.jami.model.interaction.Interaction
 import net.jami.model.interaction.Interaction.TransferStatus
@@ -700,7 +702,7 @@ class ConversationAdapter(
     private fun configureImage(
         viewHolder: ConversationViewHolder,
         path: File,
-        displayName: String?
+        file: DataTransfer
     ) {
         val context = viewHolder.itemView.context
         val image = viewHolder.mImage ?: return
@@ -711,11 +713,12 @@ class ConversationAdapter(
             .into(image)
         image.setOnClickListener { v: View ->
             try {
-                val contentUri = getUriForFile(v.context, path, displayName)
+                val contentUri = getUriForFile(v.context, path, file.body)
                 val i = Intent(context, MediaViewerActivity::class.java)
                     .setAction(Intent.ACTION_VIEW)
                     .setDataAndType(contentUri, "image/*")
                     .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addSwipeExtras(i, file)
                 val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                     conversationFragment.requireActivity(),
                     viewHolder.mImage,
@@ -726,6 +729,20 @@ class ConversationAdapter(
                 Log.w(TAG, "Can't open picture", e)
             }
         }
+    }
+
+    /**
+     * Attach the data needed by [MediaViewerFragment] to swipe through every picture (or every
+     * video) of this transfer's direction across the whole conversation. Only added for swarm
+     * conversations; otherwise the viewer falls back to showing the single tapped item.
+     */
+    private fun addSwipeExtras(intent: Intent, file: DataTransfer) {
+        val conversation = file.conversation as? Conversation ?: return
+        val accountId = file.account ?: return
+        intent.putExtra(MediaViewerFragment.EXTRA_SWIPE_ACCOUNT, accountId)
+        intent.putExtra(MediaViewerFragment.EXTRA_SWIPE_CONVERSATION, conversation.uri.uri)
+        intent.putExtra(MediaViewerFragment.EXTRA_SWIPE_INCOMING, file.isIncoming)
+        (file.messageId ?: file.fileId)?.let { intent.putExtra(MediaViewerFragment.EXTRA_SWIPE_KEY, it) }
     }
 
     private fun configureAudio(viewHolder: ConversationViewHolder, path: File, isOutgoing: Boolean, cacheKey: String?) {
@@ -882,8 +899,9 @@ class ConversationAdapter(
         }
     }
 
-    private fun configureVideo(viewHolder: ConversationViewHolder, path: File, displayName: String?) {
+    private fun configureVideo(viewHolder: ConversationViewHolder, path: File, file: DataTransfer) {
         val context = viewHolder.itemView.context
+        val displayName = file.body
         val imageView = viewHolder.video ?: return
         val cardLayout = viewHolder.mLayout as? CardView ?: return
         val thumbnail = try {
@@ -930,6 +948,7 @@ class ConversationAdapter(
                     .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     .putExtra("video_width", thumbnail?.width ?: 0)
                     .putExtra("video_height", thumbnail?.height ?: 0)
+                addSwipeExtras(intent, file)
                 val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                     conversationFragment.requireActivity(),
                     imageView,
@@ -1236,7 +1255,7 @@ class ConversationAdapter(
                     topMargin = if (!isMessageSeparationNeeded) 0 else context.resources
                         .getDimensionPixelSize(R.dimen.conversation_message_separation)
                 }
-                configureImage(viewHolder, path, file.body)
+                configureImage(viewHolder, path, file)
             }
 
             MessageType.TransferType.VIDEO -> {
@@ -1245,7 +1264,7 @@ class ConversationAdapter(
                     topMargin = if (!isMessageSeparationNeeded) 0 else context.resources
                         .getDimensionPixelSize(R.dimen.conversation_message_separation)
                 }
-                configureVideo(viewHolder, path, file.body)
+                configureVideo(viewHolder, path, file)
             }
 
             MessageType.TransferType.AUDIO -> {
