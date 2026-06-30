@@ -13,6 +13,22 @@ object UiPrefs {
         p(c).edit().putBoolean("split_view", on).apply()
     }
 
+    // ---- Media viewer: suppressed (hidden-from-swipe) pictures & videos ---------------------
+    // A picture/video the user swiped down on is suppressed: never shown again while swiping
+    // through the media viewer. Keyed by the transfer's swarm messageId (or fileId). Persists.
+    /** A mutable copy of the suppressed-media key set. */
+    fun getSuppressedMedia(c: Context): MutableSet<String> =
+        HashSet(p(c).getStringSet("suppressed_media", emptySet()) ?: emptySet())
+
+    fun isMediaSuppressed(c: Context, key: String): Boolean =
+        p(c).getStringSet("suppressed_media", emptySet())?.contains(key) == true
+
+    fun setMediaSuppressed(c: Context, key: String, suppressed: Boolean) {
+        val s = getSuppressedMedia(c)
+        if (suppressed) s.add(key) else s.remove(key)
+        p(c).edit().putStringSet("suppressed_media", s).apply()
+    }
+
     /** Account online/offline dot size, as a multiple of the 24dp base. Default 1.5 (150%). */
     fun getStatusDotScale(c: Context): Float = p(c).getFloat("status_dot_scale", 1.5f)
     fun setStatusDotScale(c: Context, v: Float) {
