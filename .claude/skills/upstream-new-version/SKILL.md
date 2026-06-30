@@ -55,6 +55,27 @@ fi
 - If there is nothing new, **stop here** — do not ff, do not rebase, do not build. Tell the user the current version and that they're up to date.
 - Also note whether the **daemon submodule moved**: if `git ls-tree upstream/master daemon` differs from `git ls-tree master daemon`, the daemon advanced, so the build will **recompile the daemon + all contrib** (long — tens of minutes, hundreds of MB). Warn the user.
 
+## Step 1.5 — summarise the new upstream changes, then WAIT for go-ahead (proceed-gated)
+
+**Always** show 白い熊 a tabular, descriptive summary of what the new upstream commits introduce, and **stop for an explicit go-ahead before touching anything** — do NOT ff `master` or rebase `custom` until 白い熊 says proceed / continue / yes. This is mandatory on every sync; the rebase is never started silently.
+
+Build the summary from the commit range `<old-master>..upstream/master` (the span Step 1 counted). Capture `<old-master>` **before** any fast-forward:
+
+```bash
+old=$(git rev-parse master)   # capture BEFORE the Step 2 ff
+git log --format='%h | %an | %s' "$old"..upstream/master
+git log --stat --format='%n### %h  %s%n%b' "$old"..upstream/master   # full messages + files touched, to judge relevance
+```
+
+Present a **Markdown table**, one row per non-trivial commit (fold the recurring `i18n: automatic bump` into a single "translations" row), with these columns:
+
+- **Commit** — short SHA.
+- **Area** — subsystem (boot/startup, video, camera, push, daemon, build, UI, i18n…).
+- **What it changes** — a plain-language sentence drawn from the commit *body*, not just the subject.
+- **Relevance to this fork** — High / Medium / Low **and why**: does it touch the **`withUnifiedPush`** flavor we ship (vs the **Firebase** flavor we don't build), the **daemon**, or any **customization-layer** file (theme / fonts / `ColorPrefs` / install-identity)? Flag anything likely to **conflict on rebase** or that is a **genuinely useful fix** for 白い熊.
+
+End with a one-line takeaway (e.g. "one valuable fix — the Android 15 boot crash — plus video QoL; nothing touches the daemon or our customization layers, so the rebase should be clean"), then **wait**. Only on 白い熊's go-ahead proceed to Step 2.
+
 ## Step 2 — fast-forward master, rebase custom (do NOT push yet)
 
 ```bash
@@ -188,7 +209,7 @@ Staging discipline still applies if any conflict resolution required a *new comm
 
 ## One-line summary of the flow
 
-`fetch upstream` → new version? (else stop) → ff `master` → rebase `custom` (reconcile per Step 3) → submodule update → verify daemon gitlink + auto-fix invalid `values-*_*` resource dirs (nn_NO class) → **apply jami-build to build/sign/deploy** → user tests → on "Push": push `master`, force-with-lease `custom`, verify gitlink.
+`fetch upstream` → new version? (else stop) → **tabular summary of the new upstream commits + WAIT for go-ahead** → ff `master` → rebase `custom` (reconcile per Step 3) → submodule update → verify daemon gitlink + auto-fix invalid `values-*_*` resource dirs (nn_NO class) → **apply jami-build to build/sign/deploy** → user tests → on "Push": push `master`, force-with-lease `custom`, verify gitlink.
 
 ## Banked failures from real runs
 
