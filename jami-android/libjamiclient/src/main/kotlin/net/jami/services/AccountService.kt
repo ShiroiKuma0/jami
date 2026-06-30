@@ -897,7 +897,7 @@ class AccountService(
     fun openConnectionTo(accountId: String, conversation: Conversation) {
         // contacts.filter, NOT conversation.contact — the latter throws check(size<=2) for group swarms.
         conversation.contacts.filter { !it.isUser }.forEach { subscribeBuddy(accountId, it.uri.uri, true) }
-        val probe = "⌁ " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+        val probe = "Connection refresh:\n⌁ " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
         sendConversationMessage(accountId, conversation.uri, probe, null)
     }
 

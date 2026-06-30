@@ -465,11 +465,27 @@
         <item name="materialAlertDialogTitleTextStyle">@style/TitleTextStyle</item>
     </style>
     <style name="ShiroikumaDialog" parent="RoundedMaterialAlertDialog">
-        <item name="colorSurface">@color/background</item>
-        <item name="colorSurfaceContainer">@color/background</item>
-        <item name="colorSurfaceContainerHigh">@color/background</item>
-        <item name="colorSurfaceContainerHighest">@color/background</item>
+        <item name="colorSurface">#000000</item>
+        <item name="colorSurfaceContainer">#000000</item>
+        <item name="colorSurfaceContainerHigh">#000000</item>
+        <item name="colorSurfaceContainerHighest">#000000</item>
         <item name="colorOnSurface">#FFFF00</item>
+        <item name="colorOnSurfaceVariant">#FFFF00</item>
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="buttonBarPositiveButtonStyle">@style/ShiroikumaDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/ShiroikumaDialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/ShiroikumaDialogButton</item>
+        <item name="android:windowBackground">@drawable/dialog_black_yellow</item>
+    </style>
+    <!-- Dialog action buttons app-wide: yellow-outlined black pills with yellow text. -->
+    <style name="ShiroikumaDialogButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">#FFFF00</item>
+        <item name="strokeColor">#FFFF00</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="rippleColor">#33FFFF00</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Circle</item>
+        <item name="android:textAllCaps">false</item>
     </style>
     <!-- Black/yellow bottom-sheet (conversation long-press action menu, ActionListBottomSheet).
          The item layout references ?android:textColorPrimary (label) and ?attr/colorOnBackground
