@@ -48,6 +48,9 @@ private const val C_ATTEMPT = 0xFF0000FF.toInt()     // blue — connecting / ne
 private const val C_NONE = 0xFFFF5252.toInt()        // red — offline / unreachable
 private const val C_DIM = 0xFF9E9E9E.toInt()         // grey — IDs / detail
 private const val SOFT_PENDING_MS = 60_000L          // after a ping, if still no receipt by here, SOFTEN to "may be offline" — never a hard verdict
+private const val SNAP_TTL_MS = 90_000L              // how long a cached channel snapshot is worth re-showing after exit→reopen
+// Per-conversation snapshot of the last NON-EMPTY channel set, so exit→reopen doesn't lose the in-flight picture.
+private val snapCache = HashMap<String, Pair<List<AccountService.AccountConnections>, Long>>()
 
 private fun progress(s: ConnectionStatus) = when (s) {
     ConnectionStatus.Connected -> 4
@@ -97,13 +100,10 @@ fun showContactConnectionDialog(
         gravity = Gravity.CENTER_VERTICAL
         addView(avatar); addView(nameTv)
     }
-    val titleBox = TextView(ctx).apply {
-        text = "Contact live monitor"
-        setTypeface(typeface, Typeface.BOLD)
-        setTextColor(C_CONNECTED)
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+    val titleBox = LinearLayout(ctx).apply {
+        orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER
-        setPadding(dp(14), dp(9), dp(14), dp(9))
+        setPadding(dp(16), dp(8), dp(16), dp(8))
         background = android.graphics.drawable.GradientDrawable().apply {
             cornerRadius = 10 * d
             setStroke((2 * d).toInt(), C_CONNECTED)
@@ -112,6 +112,26 @@ fun showContactConnectionDialog(
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { bottomMargin = dp(16) }
+        // Big title (weighted, so the note never clips) + the small live note beside it on two lines.
+        addView(TextView(ctx).apply {
+            text = "Contact live monitor"
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(C_CONNECTED)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        addView(TextView(ctx).apply {
+            text = android.text.SpannableString("● live —\nre-checks every 2 s").apply {
+                setSpan(android.text.style.ForegroundColorSpan(C_CONNECTED), 0, 1, 0)   // dot — yellow
+                setSpan(android.text.style.ForegroundColorSpan(C_DIM), 1, length, 0)     // caption — grey
+            }
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f)
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(12) }
+        })
     }
     val summaryTv = TextView(ctx).apply {
         setTextColor(C_DIM)
@@ -126,19 +146,10 @@ fun showContactConnectionDialog(
         visibility = View.GONE
     }
     val membersContainer = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-    val liveTv = TextView(ctx).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-        setPadding(0, dp(12), 0, dp(2))
-        // yellow dot (live/healthy) + grey caption — it self-refreshes, so there's no manual refresh.
-        text = android.text.SpannableString("● live — re-checks every 2 s").apply {
-            setSpan(android.text.style.ForegroundColorSpan(C_CONNECTED), 0, 1, 0)
-            setSpan(android.text.style.ForegroundColorSpan(C_DIM), 1, length, 0)
-        }
-    }
     val root = LinearLayout(ctx).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(22), dp(20), dp(22), dp(8))
-        addView(titleBox); addView(header); addView(summaryTv); addView(diagTv); addView(membersContainer); addView(liveTv)
+        addView(titleBox); addView(header); addView(summaryTv); addView(diagTv); addView(membersContainer)
     }
     val scroll = ScrollView(ctx).apply { addView(root) }
 
@@ -153,10 +164,15 @@ fun showContactConnectionDialog(
     var lastAccounts: List<AccountService.AccountConnections> = emptyList()
     var pingAtMs = 0L
     var lastUndelivered = false
+    // Snapshot of the last attempt's channels, preserved across exit→reopen (file-level snapCache).
+    val convKey = conversation.uri.uri
+    var cachedAccounts: List<AccountService.AccountConnections>? = null
+    var cacheTs = 0L
+    snapCache[convKey]?.let { if (System.currentTimeMillis() - it.second < SNAP_TTL_MS) { cachedAccounts = it.first; cacheTs = it.second } }
 
-    fun connsFor(raw: String?): List<AccountService.DeviceConnection> {
+    fun connsFor(accounts: List<AccountService.AccountConnections>, raw: String?): List<AccountService.DeviceConnection> {
         if (raw.isNullOrEmpty()) return emptyList()
-        return lastAccounts.firstOrNull { it.accountId == accountId }?.peers
+        return accounts.firstOrNull { it.accountId == accountId }?.peers
             ?.filter { Uri.fromString(it.first).rawRingId == raw }?.flatMap { it.second }.orEmpty()
     }
 
@@ -213,18 +229,41 @@ fun showContactConnectionDialog(
         val isGroup = memberVms.size > 1
         var anyConnected = false; var anyAttempt = false; var anyOnline = false; var totalCh = 0; var maxP = -1
 
-        for (vm in memberVms) {
-            val conns = connsFor(vm.contact.uri.rawRingId)
-            val mConnected = conns.any { it.status == ConnectionStatus.Connected }
-            val mAttempt = conns.any { it.status != ConnectionStatus.Connected }
-            val mOnline = vm.presence != Contact.PresenceStatus.OFFLINE
-            if (mConnected) anyConnected = true
-            if (mAttempt) anyAttempt = true
-            if (mOnline) anyOnline = true
-            totalCh += conns.size
-            conns.forEach { maxP = maxOf(maxP, progress(it.status)) }
+        // LIVE channels drive the summary. If live is empty but we still have a recent snapshot of the last
+        // attempt (e.g. you exited and re-opened), re-show that snapshot so the picture isn't lost.
+        val liveTotal = memberVms.sumOf { connsFor(lastAccounts, it.contact.uri.rawRingId).size }
+        if (liveTotal > 0) { cachedAccounts = lastAccounts; cacheTs = System.currentTimeMillis(); snapCache[convKey] = lastAccounts to cacheTs }
+        val useCache = liveTotal == 0 && cachedAccounts != null && (System.currentTimeMillis() - cacheTs) < SNAP_TTL_MS
+        val src = if (useCache) cachedAccounts!! else lastAccounts
 
+        if (useCache) {
+            val ageS = ((System.currentTimeMillis() - cacheTs) / 1000L).toInt()
+            val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(cacheTs))
+            membersContainer.addView(TextView(ctx).apply {
+                text = "↻ last attempt — ${ageS}s ago ($stamp)"
+                setTextColor(C_ATTEMPT); setTypeface(typeface, Typeface.BOLD)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f); setPadding(dp(4), dp(8), 0, dp(2))
+            })
+            membersContainer.addView(TextView(ctx).apply {
+                text = "These are the channels from your last attempt — the monitor is no longer live for it. If the contact is reachable they reconnect within moments; if nothing changes, they're likely offline. Tap Message ping ⌁ to try again, or the ⚡ lightning (top bar) if it's your own link."
+                setTextColor(C_DIM); setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f); setPadding(dp(4), 0, 0, dp(6))
+            })
+        }
+
+        for (vm in memberVms) {
+            val raw = vm.contact.uri.rawRingId
+            val liveConns = connsFor(lastAccounts, raw)
+            val mOnline = vm.presence != Contact.PresenceStatus.OFFLINE
+            if (liveConns.any { it.status == ConnectionStatus.Connected }) anyConnected = true
+            if (liveConns.any { it.status != ConnectionStatus.Connected }) anyAttempt = true
+            if (mOnline) anyOnline = true
+            totalCh += liveConns.size
+            liveConns.forEach { maxP = maxOf(maxP, progress(it.status)) }
+
+            val rowConns = connsFor(src, raw)   // cached snapshot when useCache, else live
             if (isGroup) {
+                val mConnected = rowConns.any { it.status == ConnectionStatus.Connected }
+                val mAttempt = rowConns.any { it.status != ConnectionStatus.Connected }
                 val mColor = if (mConnected) C_CONNECTED else if (mAttempt || mOnline) C_ATTEMPT else C_NONE
                 membersContainer.addView(TextView(ctx).apply {
                     text = "● ${vm.displayName}"
@@ -232,8 +271,8 @@ fun showContactConnectionDialog(
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f); setPadding(0, dp(12), 0, dp(2))
                 })
             }
-            // No channel for this member → say what's happening, so it's never just a blank/"Delivering".
-            if (conns.isEmpty()) membersContainer.addView(TextView(ctx).apply {
+            // No channel to show (live empty + no snapshot) → say what's happening, never a blank.
+            if (rowConns.isEmpty()) membersContainer.addView(TextView(ctx).apply {
                 text = "   " + when {
                     pingAtMs != 0L && lastUndelivered -> "no channel yet — ⌁ queued; watching the DHT for them, opens the moment they're reachable…"
                     mOnline -> "reachable — no open channel (opens when you message)"
@@ -241,7 +280,7 @@ fun showContactConnectionDialog(
                 }
                 setTextColor(C_DIM); setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f); setPadding(dp(4), if (isGroup) 0 else dp(6), 0, dp(2))
             })
-            conns.forEach { addChannelRow(it) }
+            rowConns.forEach { addChannelRow(it) }
         }
 
         // Verdict from the GROUND TRUTH — the ⌁ ping's delivery receipt — never the (ambiguous)
