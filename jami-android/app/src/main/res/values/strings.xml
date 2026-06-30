@@ -550,6 +550,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="file_transfer_status_timed_out">The operation timed out.</string>
     <string name="file_saved_in">File saved in %s.</string>
     <string name="file_saved_successfully">The file was saved successfully.</string>
+    <string name="media_suppressed_badge">Suppressed</string>
+    <string name="media_suppressed_flash">Suppressed — hidden while swiping</string>
+    <string name="media_unsuppressed_flash">Restored — shown while swiping again</string>
+    <string name="media_view_suppressed">View suppressed media</string>
+    <string name="media_no_suppressed">No suppressed media</string>
+    <string name="media_viewing_suppressed">Viewing suppressed media</string>
+    <string name="media_viewing_all">Viewing all media</string>
     <string name="file_download">Download</string>
     <string name="no_space_left_on_device">No storage space available on the device.</string>
     <string name="title_media_viewer">Media viewer</string>

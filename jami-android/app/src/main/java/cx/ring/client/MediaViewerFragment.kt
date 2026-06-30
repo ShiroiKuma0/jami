@@ -19,26 +19,30 @@ package cx.ring.client
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Color
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import android.widget.ImageButton
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.widget.TextViewCompat
 import cx.ring.utils.Flash
+import cx.ring.utils.UiPrefs
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
-import com.google.android.material.bottomappbar.BottomAppBar
 import com.jsibbold.zoomage.ZoomageView
 import cx.ring.R
 import cx.ring.utils.AndroidFileUtils
@@ -85,6 +89,69 @@ class MediaViewerFragment : Fragment() {
     private val transitionName: String
         get() = if (isVideoMode) "video" else "picture"
 
+    // Suppression (swipe-down to hide from the swipe set, swipe-up to restore).
+    private var incoming = true
+    private var initialUri: Uri? = null
+    private val collected = ArrayList<DataTransfer>()
+    private val suppressedKeys = HashSet<String>()
+    // The key that must be shown even if suppressed (the item opened directly from the chat, so it
+    // can be restored). Cleared once that item is itself suppressed.
+    private var forceIncludeKey: String? = null
+    private var suppressedBadge: TextView? = null
+    // When on, the pager browses only suppressed media of the current type (both directions), so a
+    // hidden item can be found and restored without scrolling the chat.
+    private var suppressedViewMode = false
+
+    private val touchSlop by lazy { ViewConfiguration.get(requireContext()).scaledTouchSlop }
+    private val verticalSwipeMinPx by lazy { 64f * resources.displayMetrics.density }
+
+    // Arbitrates touches at the pager's internal RecyclerView. A drag that is more vertical than
+    // horizontal is stolen from the pager the instant it crosses touch-slop, so the pager can never
+    // mistake a near-vertical swipe for a page change; on release it suppresses (down) or restores
+    // (up). A predominantly-horizontal drag is left to the pager to page. When an image is zoomed
+    // the pager's input is disabled, so this listener is not consulted and panning works normally.
+    private val pagerTouchListener = object : RecyclerView.OnItemTouchListener {
+        private var startX = 0f
+        private var startY = 0f
+        private var decided = false
+        private var stealing = false
+
+        override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = e.x; startY = e.y; decided = false; stealing = false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!decided) {
+                        val dx = abs(e.x - startX)
+                        val dy = abs(e.y - startY)
+                        if (dx > touchSlop || dy > touchSlop) {
+                            decided = true
+                            stealing = dy > dx   // anything past 45° toward vertical is a swipe, not a page
+                        }
+                    }
+                    if (stealing) return true
+                }
+            }
+            return false
+        }
+
+        override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+            when (e.actionMasked) {
+                MotionEvent.ACTION_UP -> {
+                    val dy = e.y - startY
+                    if (abs(dy) >= verticalSwipeMinPx) {
+                        if (dy > 0) onSwipeDown() else onSwipeUp()
+                    }
+                    decided = false; stealing = false
+                }
+                MotionEvent.ACTION_CANCEL -> { decided = false; stealing = false }
+            }
+        }
+
+        override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val intent = requireActivity().intent
@@ -101,8 +168,9 @@ class MediaViewerFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         val view = inflater.inflate(R.layout.fragment_media_viewer, container, false)
-        val bottomAppBar = view.findViewById<BottomAppBar>(R.id.bottomAppBar)
-        val shareButton = view.findViewById<Button>(R.id.shareBtn)
+        suppressedBadge = view.findViewById<TextView>(R.id.suppressed_badge)?.also {
+            TextViewCompat.setCompoundDrawableTintList(it, ColorStateList.valueOf(Color.YELLOW))
+        }
         val uri = mUri ?: return view
         val mimeType = AndroidFileUtils.getMimeType(requireContext().contentResolver, uri)
 
@@ -115,18 +183,17 @@ class MediaViewerFragment : Fragment() {
             setupSingle(view, uri, mimeType)
         }
 
-        bottomAppBar.setOnMenuItemClickListener {
-            val u = mUri ?: return@setOnMenuItemClickListener true
-            when (it.itemId) {
-                R.id.conv_action_share -> AndroidFileUtils.shareFile(requireContext(), u)
-                R.id.conv_action_download -> startSaveFile(u)
-                R.id.conv_action_open -> openFile(u)
-            }
-            true
-        }
-
-        shareButton.setOnClickListener {
+        view.findViewById<ImageButton>(R.id.conv_action_share).setOnClickListener {
             mUri?.let { AndroidFileUtils.shareFile(requireContext(), it) }
+        }
+        view.findViewById<ImageButton>(R.id.conv_action_download).setOnClickListener {
+            mUri?.let { startSaveFile(it) }
+        }
+        view.findViewById<ImageButton>(R.id.conv_action_open).setOnClickListener {
+            mUri?.let { openFile(it) }
+        }
+        view.findViewById<ImageButton>(R.id.action_view_suppressed).setOnClickListener {
+            toggleSuppressedView()
         }
 
         return view
@@ -136,6 +203,8 @@ class MediaViewerFragment : Fragment() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupSingle(view: View, uri: Uri, mimeType: String?) {
+        // No conversation context here (gallery / TV), so there is nothing to browse-suppressed.
+        view.findViewById<View>(R.id.action_view_suppressed).visibility = View.GONE
         val imageView = view.findViewById<View>(R.id.image)
         videoView = view.findViewById(R.id.video_view)
         val edgeThreshold = ViewConfiguration.get(requireContext()).scaledEdgeSlop
@@ -228,6 +297,12 @@ class MediaViewerFragment : Fragment() {
 
     private fun setupSwipe(view: View, accountId: String, conversationId: String, mimeType: String?) {
         isVideoMode = mimeType?.startsWith("video/") == true
+        incoming = requireActivity().intent.getBooleanExtra(EXTRA_SWIPE_INCOMING, true)
+        initialUri = mUri
+        // The item opened from the chat is shown even if suppressed, so it can be restored.
+        forceIncludeKey = tappedKey
+        suppressedKeys.clear()
+        suppressedKeys.addAll(UiPrefs.getSuppressedMedia(requireContext()))
         // Pager replaces the single image/video surfaces. Clear their XML transition names too,
         // so only the pager's hero page owns the shared-element name during the open animation.
         view.findViewById<View>(R.id.image).apply { visibility = View.GONE; transitionName = null }
@@ -239,17 +314,21 @@ class MediaViewerFragment : Fragment() {
         val adapter = MediaPagerAdapter()
         pagerAdapter = adapter
         vp.adapter = adapter
+        (vp.getChildAt(0) as? RecyclerView)?.addOnItemTouchListener(pagerTouchListener)
 
         // Show the tapped item immediately so the open is instant and the shared-element
         // transition lands; the rest of the set is filled in once the search returns.
-        currentItems = listOf(MediaItem(mUri!!, tappedKey))
+        currentItems = buildDisplayList()
         adapter.submitList(currentItems)
+        updateSuppressedBadge()
 
         vp.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 val item = currentItems.getOrNull(position) ?: return
                 mUri = item.uri
                 currentKey = item.key
+                pager?.isUserInputEnabled = true   // a freshly-selected page is at rest
+                updateSuppressedBadge()
                 if (isVideoMode) {
                     attachedVideoHolders.forEach { h ->
                         if (h.bindingAdapterPosition == position) h.play() else h.pauseReset()
@@ -267,28 +346,122 @@ class MediaViewerFragment : Fragment() {
             }
         })
 
-        val incoming = requireActivity().intent.getBooleanExtra(EXTRA_SWIPE_INCOMING, true)
         val convUri = JamiUri.fromString(conversationId)
-        val collected = ArrayList<DataTransfer>()
         disposable.add(
             accountService.searchConversation(accountId, convUri, type = "application/data-transfer+json")
                 .observeOn(DeviceUtils.uiScheduler)
                 .subscribe({ result ->
                     for (i in result.results) if (i is DataTransfer) collected.add(i)
-                    val items = collected.asSequence()
-                        .filter {
-                            it.isComplete && it.isIncoming == incoming &&
-                                (if (isVideoMode) it.isVideo else it.isPicture)
-                        }
-                        .distinctBy { it.messageId ?: it.fileId ?: it.storagePath }
-                        .sortedBy { it.timestamp }
-                        .mapNotNull { buildMediaItem(it) }
-                        .toList()
+                    val items = buildDisplayList()
                     val anchorKey = currentKey ?: tappedKey
                     val hasAnchor = items.any { (it.key != null && it.key == anchorKey) || it.uri == mUri }
                     if (items.isNotEmpty() && hasAnchor) submitItems(items, anchorKey)
                 }, { /* keep the single tapped item on search failure */ })
         )
+    }
+
+    /**
+     * The current swipeable set: every same-direction picture (or video) of the conversation,
+     * minus suppressed ones — except [forceIncludeKey], which is kept so a directly-opened
+     * suppressed item can still be restored. Falls back to the single tapped item before the
+     * search returns.
+     */
+    private fun keyOf(dt: DataTransfer): String? = dt.messageId ?: dt.fileId
+
+    private fun buildDisplayList(): List<MediaItem> {
+        if (collected.isEmpty()) {
+            // Before the search returns, the only thing we can show is the tapped item itself.
+            return if (suppressedViewMode) emptyList()
+            else (initialUri ?: mUri)?.let { listOf(MediaItem(it, tappedKey)) } ?: emptyList()
+        }
+        val typed = collected.asSequence()
+            .filter { it.isComplete && (if (isVideoMode) it.isVideo else it.isPicture) }
+        val scoped = if (suppressedViewMode) {
+            // Every suppressed item of this type, both directions, so any of them can be restored.
+            typed.filter { keyOf(it)?.let { k -> k in suppressedKeys } == true }
+        } else {
+            typed.filter { it.isIncoming == incoming }
+        }
+        val items = scoped
+            .distinctBy { keyOf(it) ?: it.storagePath }
+            .sortedBy { it.timestamp }
+            .mapNotNull { buildMediaItem(it) }
+            .toList()
+        return if (suppressedViewMode) items
+        else items.filter { it.key == null || it.key !in suppressedKeys || it.key == forceIncludeKey }
+    }
+
+    /** Swipe down: suppress the current item and move on to the next immediately. */
+    private fun onSwipeDown() {
+        if (suppressedViewMode) return   // everything here is already suppressed
+        val key = currentKey ?: return
+        val list = currentItems
+        val cur = pager?.currentItem ?: return
+        val nextKey = list.getOrNull(cur + 1)?.key ?: list.getOrNull(cur - 1)?.key
+        suppressedKeys.add(key)
+        UiPrefs.setMediaSuppressed(requireContext(), key, true)
+        if (forceIncludeKey == key) forceIncludeKey = null
+        Flash.show(context, R.string.media_suppressed_flash, Toast.LENGTH_SHORT)
+        val newList = buildDisplayList()
+        if (newList.isEmpty()) {
+            requireActivity().finish()
+            return
+        }
+        submitItems(newList, nextKey)
+    }
+
+    /** Swipe up: restore the current item if it was suppressed. */
+    private fun onSwipeUp() {
+        val key = currentKey ?: return
+        if (key !in suppressedKeys) return
+        val list = currentItems
+        val cur = pager?.currentItem ?: 0
+        val nextKey = list.getOrNull(cur + 1)?.key ?: list.getOrNull(cur - 1)?.key
+        suppressedKeys.remove(key)
+        UiPrefs.setMediaSuppressed(requireContext(), key, false)
+        Flash.show(context, R.string.media_unsuppressed_flash, Toast.LENGTH_SHORT)
+        if (suppressedViewMode) {
+            // The restored item leaves the suppressed view; move on to the next suppressed one.
+            val newList = buildDisplayList()
+            if (newList.isEmpty()) {
+                requireActivity().finish()
+                return
+            }
+            submitItems(newList, nextKey)
+        } else {
+            updateSuppressedBadge()
+        }
+    }
+
+    /** Toggle between the normal swipe set and a browse-only view of every suppressed item. */
+    private fun toggleSuppressedView() {
+        if (suppressedViewMode) {
+            suppressedViewMode = false
+            forceIncludeKey = tappedKey
+            val items = buildDisplayList()
+            if (items.isEmpty()) {
+                requireActivity().finish()
+                return
+            }
+            Flash.show(context, R.string.media_viewing_all, Toast.LENGTH_SHORT)
+            submitItems(items, tappedKey ?: items.firstOrNull()?.key)
+        } else {
+            suppressedViewMode = true
+            val items = buildDisplayList()
+            if (items.isEmpty()) {
+                suppressedViewMode = false
+                Flash.show(context, R.string.media_no_suppressed, Toast.LENGTH_SHORT)
+                return
+            }
+            Flash.show(context, R.string.media_viewing_suppressed, Toast.LENGTH_SHORT)
+            // Land on the most recently suppressed (latest by chat date).
+            submitItems(items, items.last().key)
+        }
+    }
+
+    private fun updateSuppressedBadge() {
+        val k = currentKey
+        suppressedBadge?.visibility = if (k != null && k in suppressedKeys) View.VISIBLE else View.GONE
     }
 
     private fun submitItems(items: List<MediaItem>, anchorKey: String?) {
@@ -300,6 +473,7 @@ class MediaViewerFragment : Fragment() {
                 pager?.setCurrentItem(idx, false)
                 mUri = items[idx].uri
                 currentKey = items[idx].key
+                updateSuppressedBadge()
             }
         }
     }
@@ -453,8 +627,8 @@ class MediaViewerFragment : Fragment() {
             // Only the tapped item carries the transition name, so the open animation is unambiguous.
             image.transitionName = if (item.key != null && item.key == tappedKey) transitionName else null
             Glide.with(this@MediaViewerFragment).load(item.uri).into(image)
-            // Let the pager swipe when the image is at rest, but hand horizontal drags to the
-            // image (panning) once it has been zoomed in.
+            // Enable pager + vertical-swipe arbitration only when the image is at rest; once zoomed,
+            // disabling pager input hands every drag to the image for panning.
             image.setOnTouchListener { _, _ ->
                 pager?.isUserInputEnabled = image.currentScaleFactor <= 1.001f
                 false
