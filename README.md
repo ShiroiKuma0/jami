@@ -12,7 +12,7 @@ a self-healing recovery watchdog, a live **connection monitor** (per-contact too
 recovery and **Google-free push** — token-gated **automation intents**, smarter **registered-name**
 lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260619-01+77`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260619-01+83`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -35,7 +35,8 @@ automation tools on top.
 
 The fork's signature look: black backgrounds with a `#FFFF00` foreground, applied consistently
 across the chat list, conversation bubbles, toolbars, the search and compose bars, **every dialog
-app-wide** (including Android's own preference dialogs) and the long-press bottom sheet, file and
+app-wide** (including Android's own preference dialogs — yellow-outlined pill buttons on a bordered
+black card) and the long-press bottom sheet, file and
 link-preview cards, unread/pending badges, and the
 account-selection dialog. Generated (no-photo) avatars are drawn black with yellow initials and a
 yellow ring; presence dots, the home top bar and the expanded search view are themed to match. The
