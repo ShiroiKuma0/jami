@@ -19,7 +19,9 @@ package cx.ring.client
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import cx.ring.R
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MediaViewerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
