@@ -161,7 +161,9 @@ class AutomationActivity : ComponentActivity() {
     private fun setProtectedContacts(intent: Intent, deepLink: AndroidUri?) {
         val raw = deepLink?.getQueryParameter(KEY_CONTACTS) ?: intent.getStringExtra(KEY_CONTACTS)
         val mode = deepLink?.getQueryParameter(KEY_MODE) ?: intent.getStringExtra(KEY_MODE)
-        ProtectedContacts.apply(this, accountService, raw, mode)
+        val title = deepLink?.getQueryParameter(KEY_TITLE) ?: intent.getStringExtra(KEY_TITLE)
+        val body = deepLink?.getQueryParameter(KEY_BODY) ?: intent.getStringExtra(KEY_BODY)
+        ProtectedContacts.apply(this, accountService, raw, mode, title, body)
     }
 
     /** Android decodes path segments already; just index safely. */
@@ -198,5 +200,7 @@ class AutomationActivity : ComponentActivity() {
         const val KEY_TOKEN = "token"
         const val KEY_CONTACTS = "contacts"
         const val KEY_MODE = "mode"
+        const val KEY_TITLE = "protected_title"
+        const val KEY_BODY = "protected_body"
     }
 }
