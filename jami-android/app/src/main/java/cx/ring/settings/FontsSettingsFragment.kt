@@ -75,6 +75,11 @@ class FontsSettingsFragment : Fragment() {
                 ColorRole("Download arrow", ColorPrefs.FILE_ARROW),
                 ColorRole("Card fill", ColorPrefs.FILE_CARD_FILL),
                 ColorRole("Card border", ColorPrefs.FILE_CARD_BORDER))))),
+        Group("Call events", listOf(
+            Element("Call message", null, listOf(
+                ColorRole("Text", ColorPrefs.CALL_TEXT),
+                ColorRole("Pill fill", ColorPrefs.CALL_FILL),
+                ColorRole("Pill border", ColorPrefs.CALL_BORDER))))),
         Group("Top bar", listOf(
             Element("Search hint", FontPrefs.SEARCH_HINT, listOf(ColorRole("Color", ColorPrefs.SEARCH_HINT))))),
         Group("Settings", listOf(
