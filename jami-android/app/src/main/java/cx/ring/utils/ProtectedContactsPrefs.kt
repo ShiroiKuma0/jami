@@ -18,6 +18,8 @@ import android.content.Context
 object ProtectedContactsPrefs {
     private const val PREFS = "shiroikuma_protected"
     private const val KEY = "protected_contacts"
+    private const val KEY_TITLE = "protected_title"
+    private const val KEY_BODY = "protected_body"
 
     private fun p(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -46,4 +48,23 @@ object ProtectedContactsPrefs {
 
     fun remove(c: Context, ids: Collection<String>) =
         store(c, HashSet(raw(c)).apply { removeAll(normalized(ids)) })
+
+    // --- Vague-notification title/body (companion-controlled, optional) --------------------------
+    /** Companion-supplied vague title; blank/unset → null so the caller uses the app-name default. */
+    fun getTitle(c: Context): String? = p(c).getString(KEY_TITLE, null)?.takeIf { it.isNotBlank() }
+
+    /** Companion-supplied vague body; blank/unset → null so the caller uses its default. */
+    fun getBody(c: Context): String? = p(c).getString(KEY_BODY, null)?.takeIf { it.isNotBlank() }
+
+    /**
+     * Set (or clear) the vague-notification title/body. Blank/null clears the value → the default is
+     * used. Each SET_PROTECTED_CONTACTS reflects the current desired state, so an absent extra clears
+     * the prior value (there is no separate clear path). Companion-private text — never logged.
+     */
+    fun setText(c: Context, title: String?, body: String?) {
+        p(c).edit().apply {
+            if (title.isNullOrBlank()) remove(KEY_TITLE) else putString(KEY_TITLE, title.trim())
+            if (body.isNullOrBlank()) remove(KEY_BODY) else putString(KEY_BODY, body.trim())
+        }.apply()
+    }
 }

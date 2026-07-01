@@ -20,7 +20,14 @@ import java.util.concurrent.TimeUnit
  */
 object ProtectedContacts {
 
-    fun apply(context: Context, accountService: AccountService, contactsRaw: String?, modeRaw: String?) {
+    fun apply(
+        context: Context,
+        accountService: AccountService,
+        contactsRaw: String?,
+        modeRaw: String?,
+        titleRaw: String? = null,
+        bodyRaw: String? = null,
+    ) {
         val mode = modeRaw?.trim()?.lowercase().orEmpty()
         val entries = (contactsRaw ?: "").split('|').map { it.trim() }.filter { it.isNotEmpty() }
         val app = context.applicationContext
@@ -29,6 +36,8 @@ object ProtectedContacts {
             "remove" -> ProtectedContactsPrefs.remove(app, entries)
             else -> ProtectedContactsPrefs.replace(app, entries)   // "replace" (default); empty clears
         }
+        // Optional companion-controlled vague title/body; absent/blank → cleared → default is used.
+        ProtectedContactsPrefs.setText(app, titleRaw, bodyRaw)
         resolveNamesToIds(app, accountService, entries, remove = mode == "remove")
     }
 
