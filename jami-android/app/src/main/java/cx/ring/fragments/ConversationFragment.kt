@@ -450,13 +450,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         mCompositeDisposable.clear()
         inlineAudioRecorder?.release()
         inlineAudioRecorder = null
-        locationServiceConnection?.let {
-            try {
-                requireContext().unbindService(it)
-            } catch (e: Exception) {
-                Log.w(TAG, "Error unbinding service: " + e.message)
-            }
-        }
+        unbindLocationService()
         mAdapter = null
         super.onDestroyView()
         binding = null
@@ -967,11 +961,10 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
                     if (locationService.isSharing(path)) {
                         showMap(path.accountId, path.conversationUri.uri, false)
                     }
-                    /*try {
-                        requireContext().unbindService(locationServiceConnection!!)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Error unbinding service", e)
-                    }*/
+                    // One-shot check done; release the bind so it isn't held for the life of the
+                    // open conversation (a lingering idle bind shows as a phantom "running"
+                    // LocationSharingService in battery/service inspectors — app=null, no notification).
+                    unbindLocationService()
                 }
 
                 override fun onServiceDisconnected(name: ComponentName) {
@@ -982,6 +975,21 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             locationServiceConnection = connection
             Log.w(TAG, "bindService")
             requireContext().bindService(Intent(requireContext(), LocationSharingService::class.java), connection, 0)
+            // When not actually sharing, the service isn't running, so onServiceConnected never fires
+            // and the flags=0 bind would linger as a phantom. Release it after a short grace window.
+            android.os.Handler(android.os.Looper.getMainLooper())
+                .postDelayed({ unbindLocationService() }, 4000L)
+        }
+    }
+
+    /** Release the one-shot [LocationSharingService] bind used only to check [LocationSharingService.isSharing]. */
+    private fun unbindLocationService() {
+        val conn = locationServiceConnection ?: return
+        locationServiceConnection = null
+        try {
+            context?.unbindService(conn)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error unbinding location service: " + e.message)
         }
     }
 
