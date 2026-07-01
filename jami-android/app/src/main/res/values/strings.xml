@@ -220,6 +220,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="notif_channel_missed_calls">Missed calls</string>
     <string name="notif_channel_incoming_calls">Incoming calls</string>
     <string name="notif_channel_messages">Messages</string>
+    <string name="notif_channel_protected">Protected contacts</string>
     <string name="notif_channel_requests">Requests</string>
     <string name="notif_channel_file_transfer">File transfer</string>
     <string name="notif_channel_sync">Data sync</string>
