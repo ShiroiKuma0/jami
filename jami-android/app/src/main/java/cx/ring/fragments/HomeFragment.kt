@@ -17,8 +17,13 @@
 package cx.ring.fragments
 
 import android.app.SearchManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
+import cx.ring.service.LocationSharingService
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
@@ -249,6 +254,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 R.id.menu_advanced_settings -> (activity as? HomeActivity)?.goToAdvancedSettings()
 
                 R.id.menu_ui_fonts_colors -> (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
+
+                R.id.menu_location_sharing -> showLocationSharingStatus()
 
                 R.id.menu_about -> (activity as? HomeActivity)?.goToAbout()
 
@@ -1273,6 +1280,90 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     /** Brief flash — the shared [Flash] style (black / yellow text + border, settable). */
     private fun showReconnectFlash(msg: String) {
         Flash.show(context, msg)
+    }
+
+    /**
+     * Diagnostic: report whether any conversation is genuinely sharing your live location, and let
+     * you stop it. Binds the service read-only (flags = 0, so it never creates/starts it): if no
+     * real share is running the bind simply never connects → we say "none". A real share is a
+     * running foreground service; a service that merely shows as "running" in a battery/service
+     * inspector with no notification is an idle binding, not a share.
+     */
+    private fun showLocationSharingStatus() {
+        val ctx = requireContext()
+        val disposables = CompositeDisposable()
+        var bound = false
+        var connected = false
+        val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
+            .setTitle(R.string.location_status_title)
+            .setMessage(R.string.location_status_checking)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNeutralButton(R.string.location_status_stop_all, null)
+            .create()
+
+        fun showStopButton(show: Boolean) {
+            dialog.getButton(DialogInterface.BUTTON_NEUTRAL)?.visibility = if (show) View.VISIBLE else View.GONE
+        }
+
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+                connected = true
+                val service = (binder as? LocationSharingService.LocalBinder)?.service ?: return
+                disposables.add(service.contactSharing
+                    .firstElement()
+                    .observeOn(DeviceUtils.uiScheduler)
+                    .subscribe { paths ->
+                        if (paths.isEmpty()) {
+                            dialog.setMessage(getString(R.string.location_status_none))
+                            showStopButton(false)
+                        } else {
+                            showStopButton(true)
+                            dialog.getButton(DialogInterface.BUTTON_NEUTRAL)?.setOnClickListener {
+                                try {
+                                    ctx.startService(Intent(LocationSharingService.ACTION_STOP)
+                                        .setClass(ctx, LocationSharingService::class.java))
+                                } catch (_: Exception) {}
+                                dialog.dismiss()
+                            }
+                            disposables.add(Observable.fromIterable(paths)
+                                .flatMapSingle { p ->
+                                    mConversationFacade.observeConversation(p.accountId, p.conversationUri, false)
+                                        .firstOrError().map { it.title } }
+                                .toList()
+                                .observeOn(DeviceUtils.uiScheduler)
+                                .subscribe({ titles ->
+                                    dialog.setMessage(getString(R.string.location_status_active,
+                                        titles.joinToString("\n• ", prefix = "• ")))
+                                }, {
+                                    dialog.setMessage(getString(R.string.location_status_active, "(${paths.size})"))
+                                }))
+                        }
+                    })
+            }
+            override fun onServiceDisconnected(name: ComponentName?) {}
+        }
+
+        dialog.setOnShowListener { showStopButton(false) }
+        dialog.setOnDismissListener {
+            if (bound) try { ctx.unbindService(connection) } catch (_: Exception) {}
+            disposables.dispose()
+        }
+        dialog.show()
+        // M3 overrides windowBackground with its own surface, so re-apply the canonical black fill +
+        // 2dp yellow border + yellow buttons after show() (the helper the fork's other dialogs use).
+        cx.ring.utils.DialogTheme.theme(dialog, ctx)
+
+        bound = try {
+            ctx.bindService(Intent(ctx, LocationSharingService::class.java), connection, 0)
+        } catch (_: Exception) { false }
+
+        // flags=0 to a not-running service never connects → after a short grace, report "none".
+        view?.postDelayed({
+            if (!connected && dialog.isShowing) {
+                dialog.setMessage(getString(R.string.location_status_none))
+                showStopButton(false)
+            }
+        }, 800)
     }
 
     override fun onStop() {
