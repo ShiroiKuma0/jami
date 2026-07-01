@@ -1901,12 +1901,11 @@ class ConversationAdapter(
 
             callInfoLayout.background = ContextCompat.getDrawable(context, msgBGLayouts[resIndex])
             callInfoLayout.setPadding(callPadding)
-            // Manage background to convColor if it is outgoing and not missed.
-            if (convColor != 0 && !callHistory.isIncoming) {
-                callInfoLayout.background.setTint(convColor)
-            } else {
-                callInfoLayout.background.setTintList(null)
-            }
+            // Settable call-event pill (ColorPrefs.CALL_*): black fill + green border by default,
+            // replacing the conversation-colour tint. Green is kept distinct from the yellow theme.
+            callInfoLayout.background.setTintList(null)
+            applyCardColors(callInfoLayout, cx.ring.utils.ColorPrefs.CALL_FILL, cx.ring.utils.ColorPrefs.CALL_BORDER)
+            val callText = cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.CALL_TEXT)
             // Add the call duration if not null.
             detailCall.text = if (callHistory.duration != 0L) {
                 String.format(
@@ -1918,11 +1917,9 @@ class ConversationAdapter(
             // After a call, a message is displayed with call information.
             // Manage the call message layout.
             if (callHistory.isIncoming) {
-                // Set the color of the time duration.
-                detailCall.setTextColor(context.getColor(R.color.colorOnSurface))
-
-                // Set the call message color.
-                typeCall.setTextColor(context.getColor(R.color.colorOnSurface))
+                // Settable call-event text (green by default), consistent for both directions.
+                detailCall.setTextColor(callText)
+                typeCall.setTextColor(callText)
 
                 if (callHistory.isMissed) { // Call incoming missed.
                     callIcon.setImageResource(R.drawable.baseline_missed_call_16)
@@ -1931,15 +1928,13 @@ class ConversationAdapter(
                     typeCallTxt = context.getString(R.string.notif_missed_incoming_call)
                 } else { // Call incoming not missed.
                     callIcon.setImageResource(R.drawable.baseline_incoming_call_16)
-                    callIcon.drawable.setTint(context.getColor(R.color.colorOnSurface))
+                    callIcon.drawable.setTint(callText)
                     typeCallTxt = context.getString(R.string.notif_incoming_call)
                 }
             } else {
-                // Set the call message color.
-                typeCall.setTextColor(context.getColor(R.color.call_text_outgoing_message))
-
-                // Set the color of the time duration.
-                detailCall.setTextColor(context.getColor(R.color.call_text_outgoing_message))
+                // Settable call-event text (green by default).
+                typeCall.setTextColor(callText)
+                detailCall.setTextColor(callText)
 
                 if (callHistory.isMissed) { // Outgoing call missed.
                     callIcon.setImageResource(R.drawable.baseline_missed_call_16)
@@ -1950,7 +1945,7 @@ class ConversationAdapter(
                     callIcon.scaleX = -1f
                 } else { // Outgoing call not missed.
                     callIcon.setImageResource(R.drawable.baseline_outgoing_call_16)
-                    callIcon.drawable.setTint(context.getColor(R.color.call_drawable_color))
+                    callIcon.drawable.setTint(callText)
                     typeCallTxt = context.getString(R.string.notif_outgoing_call)
                 }
             }
