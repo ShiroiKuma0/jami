@@ -28,6 +28,7 @@ import android.media.AudioManager
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.telecom.Connection
 import android.text.TextUtils
 import android.text.format.Formatter
@@ -56,6 +57,7 @@ import cx.ring.service.DRingService
 import cx.ring.settings.SettingsFragment
 import cx.ring.tv.call.TVCallActivity
 import cx.ring.utils.ContentUri
+import cx.ring.utils.ProtectedContactsPrefs
 import cx.ring.utils.ConversationPath
 import cx.ring.utils.DeviceUtils
 import cx.ring.views.AvatarDrawable
@@ -703,6 +705,37 @@ class NotificationServiceImpl(
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val intentDelete = Intent(DRingService.ACTION_CONV_DISMISS, path, mContext, DRingService::class.java)
             .putExtra(DRingService.KEY_MESSAGE_ID, last?.messageId ?: last?.daemonIdString)
+
+        // Protected contacts (set by the companion app): if any unread sender is protected, post a
+        // vague, contentless, marked notification instead of the normal one — nothing identifying on
+        // screen / lock-screen / Wear, but the companion's listener keys on the marker extra. The
+        // companion stores contacts by registered name, so match the sender's resolved registered
+        // name (from the loaded conversation) as well as its ring id.
+        val regNameByRingId = HashMap<String, String?>()
+        for (c in cvm.contacts) regNameByRingId[c.contact.uri.uri] = c.registeredName
+        val isProtectedSender = texts.values.any { msg ->
+            val ringId = msg.contact?.uri?.uri ?: return@any false
+            ProtectedContactsPrefs.isProtected(mContext, ringId) ||
+                regNameByRingId[ringId]?.let { ProtectedContactsPrefs.isProtected(mContext, it) } == true
+        }
+        if (isProtectedSender) {
+            val notificationId = getTextNotificationId(cpath.accountId, cvm.uri)
+            val vague = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_PROTECTED)
+                .setLocalOnly(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+                .setSmallIcon(R.drawable.ic_ring_logo_white)
+                .setContentTitle(mContext.getString(R.string.app_name))
+                .setShowWhen(false)
+                .setAutoCancel(true)
+                .setContentIntent(PendingIntent.getActivity(mContext, random.nextInt(), intentConversation, ContentUri.immutable()))
+                .setDeleteIntent(PendingIntent.getService(mContext, random.nextInt(), intentDelete, ContentUri.immutable()))
+                .addExtras(Bundle().apply { putBoolean(EXTRA_PROTECTED_MARKER, true) })
+            CarNotificationManager.from(mContext).notify(notificationId, vague)
+            mNotificationBuilders.put(notificationId, vague)
+            return
+        }
+
         val messageNotificationBuilder = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_MESSAGE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(Notification.PRIORITY_HIGH)
@@ -1203,8 +1236,13 @@ class NotificationServiceImpl(
         private const val NOTIF_CHANNEL_MISSED_CALL = "missed_calls"
         private const val NOTIF_CHANNEL_INCOMING_CALL = "incoming_call2"
         private const val NOTIF_CHANNEL_MESSAGE = "messages"
+        private const val NOTIF_CHANNEL_PROTECTED = "protected"
         private const val NOTIF_CHANNEL_REQUEST = "requests"
         private const val NOTIF_CHANNEL_FILE_TRANSFER = "file_transfer"
+
+        /** Private marker the companion app keys on; the ONLY signal on a protected notification.
+         *  Verbatim per the companion contract — do not rename. */
+        const val EXTRA_PROTECTED_MARKER = "shiroikuma.jami.protected"
         const val NOTIF_CHANNEL_PUSH_SYNC = "sync_channel"
         const val NOTIF_CHANNEL_SYNC = "sync"
         private const val NOTIF_CHANNEL_SERVICE = "service"
@@ -1267,6 +1305,20 @@ class NotificationServiceImpl(
                 lockscreenVisibility = Notification.VISIBILITY_SECRET
                 enableVibration(true)
                 setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), soundAttributes)
+            })
+
+            // Protected-contact messages: silent, secret, no badge. Content is deliberately vague;
+            // the companion app keys on the marker extra, not on anything visible.
+            notificationManager.createNotificationChannel(NotificationChannel(
+                NOTIF_CHANNEL_PROTECTED,
+                context.getString(R.string.notif_channel_protected),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                lockscreenVisibility = Notification.VISIBILITY_SECRET
+                enableLights(false)
+                enableVibration(false)
+                setShowBadge(false)
+                setSound(null, null)
             })
 
             // Contact requests
