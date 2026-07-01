@@ -14,6 +14,7 @@ import javax.inject.Inject
  * activity, which Android's background-activity-start limits can block or flash. The companion sends:
  *   Intent("shiroikuma.jami.action.SET_PROTECTED_CONTACTS").setPackage("shiroikuma.jami")
  *   .putExtra("contacts", "<'|'-separated>").putExtra("mode", "replace"|"add"|"remove")
+ *   // optional vague-notification text: .putExtra("protected_title", …).putExtra("protected_body", …)
  * → sendBroadcast(...). Unauthenticated (no token), no UI.
  */
 @AndroidEntryPoint
@@ -27,7 +28,9 @@ class ProtectedContactsReceiver : BroadcastReceiver() {
             context,
             accountService,
             intent.getStringExtra(AutomationActivity.KEY_CONTACTS),
-            intent.getStringExtra(AutomationActivity.KEY_MODE)
+            intent.getStringExtra(AutomationActivity.KEY_MODE),
+            intent.getStringExtra(AutomationActivity.KEY_TITLE),
+            intent.getStringExtra(AutomationActivity.KEY_BODY)
         )
     }
 }

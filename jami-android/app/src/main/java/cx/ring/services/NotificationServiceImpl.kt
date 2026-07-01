@@ -710,17 +710,22 @@ class NotificationServiceImpl(
         }
         if (isProtectedSender) {
             val notificationId = getTextNotificationId(cpath.accountId, cvm.uri)
+            // Vague text is companion-controllable (SET_PROTECTED_CONTACTS protected_title/body); when
+            // unset it falls back to the current defaults — app-name title, no body. Everything else
+            // (SECRET, LOCAL_ONLY, IMPORTANCE_LOW channel, the marker) is unchanged.
+            val vagueTitle = ProtectedContactsPrefs.getTitle(mContext) ?: mContext.getString(R.string.app_name)
             val vague = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_PROTECTED)
                 .setLocalOnly(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setVisibility(NotificationCompat.VISIBILITY_SECRET)
                 .setSmallIcon(R.drawable.ic_ring_logo_white)
-                .setContentTitle(mContext.getString(R.string.app_name))
+                .setContentTitle(vagueTitle)
                 .setShowWhen(false)
                 .setAutoCancel(true)
                 .setContentIntent(PendingIntent.getActivity(mContext, random.nextInt(), intentConversation, ContentUri.immutable()))
                 .setDeleteIntent(PendingIntent.getService(mContext, random.nextInt(), intentDelete, ContentUri.immutable()))
                 .addExtras(Bundle().apply { putBoolean(EXTRA_PROTECTED_MARKER, true) })
+            ProtectedContactsPrefs.getBody(mContext)?.let { vague.setContentText(it) }
             CarNotificationManager.from(mContext).notify(notificationId, vague)
             mNotificationBuilders.put(notificationId, vague)
             return
