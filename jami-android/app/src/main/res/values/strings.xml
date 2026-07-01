@@ -554,6 +554,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="media_suppressed_badge">Suppressed</string>
     <string name="media_suppressed_flash">Suppressed — hidden while swiping</string>
     <string name="media_unsuppressed_flash">Restored — shown while swiping again</string>
+    <string name="menu_location_sharing">Location sharing status</string>
+    <string name="location_status_title">Location sharing</string>
+    <string name="location_status_checking">Checking…</string>
+    <string name="location_status_none">No conversation is currently sharing your location.\n\nA real share always shows an ongoing notification. If a battery/service inspector lists the location service as “running” with no notification, that is a harmless idle binding — not an active share and not a drain.</string>
+    <string name="location_status_active">You are sharing your live location with:\n\n%1$s</string>
+    <string name="location_status_stop_all">Stop all sharing</string>
     <string name="media_view_suppressed">View suppressed media</string>
     <string name="media_no_suppressed">No suppressed media</string>
     <string name="media_viewing_suppressed">Viewing suppressed media</string>
