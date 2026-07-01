@@ -76,6 +76,11 @@
                 android:title="Split view"
                 app:showAsAction="never" />
 
+            <item
+                android:id="@+id/menu_location_sharing"
+                android:title="@string/menu_location_sharing"
+                app:showAsAction="never" />
+
         </menu>
 
     </item>
