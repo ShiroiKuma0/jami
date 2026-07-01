@@ -31,7 +31,7 @@
         android:icon="@drawable/ic_baseline_more_vert"
         android:orderInCategory="102"
         android:title=""
-        app:iconTint="@color/icon_color"
+        app:iconTint="#FFFF00"
         app:showAsAction="always">
 
         <menu>
