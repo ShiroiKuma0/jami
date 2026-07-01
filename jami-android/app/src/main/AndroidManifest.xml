@@ -369,6 +369,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <action android:name="shiroikuma.jami.action.PLACE_CALL" />
                 <action android:name="shiroikuma.jami.action.PLACE_VIDEO_CALL" />
                 <action android:name="shiroikuma.jami.action.OPEN_CONVERSATION" />
+                <action android:name="shiroikuma.jami.action.SET_PROTECTED_CONTACTS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
@@ -378,6 +379,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <data android:scheme="jami-cmd" />
             </intent-filter>
         </activity>
+
+        <!-- Protected contacts: primary entry point for the companion (白い熊 自由作業盤). Explicit
+             broadcast so it is delivered while Jami is backgrounded. Unauthenticated; see
+             ProtectedContactsReceiver. -->
+        <receiver
+            android:name=".automation.ProtectedContactsReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="shiroikuma.jami.action.SET_PROTECTED_CONTACTS" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".service.DRingService"
