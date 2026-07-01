@@ -55,10 +55,16 @@ object ColorPrefs {
     const val INFO_PILL_TEXT = "info_pill_text"
     const val INFO_PILL_BORDER = "info_pill_border"
     const val INFO_PILL_FILL = "info_pill_fill"
+    const val CALL_TEXT = "call_text"
+    const val CALL_FILL = "call_fill"
+    const val CALL_BORDER = "call_border"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
     private const val BLACK = 0xFF000000.toInt()
+    // A vivid green kept deliberately distinct from the theme yellow: its blue channel separates it
+    // from #FFFF00 for red-green colour-blindness (yellow vs green differ only in the red channel).
+    private const val GREEN = 0xFF00E676.toInt()
     private fun p(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private fun key(role: String) = "color_$role"
 
@@ -66,7 +72,8 @@ object ColorPrefs {
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
-        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL -> BLACK
+        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL -> BLACK
+        CALL_TEXT, CALL_BORDER -> GREEN   // call-event pill: black fill, green text + border (settable)
         INFO_HEADING -> 0xFF0000FF.toInt()   // help-page headings — the vivid "reachable" blue (matches the lightning / live-monitor state)
         STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
         STATUS_ONLINE -> 0xFF4CAF50.toInt()
