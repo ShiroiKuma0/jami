@@ -48,7 +48,7 @@ class AutomationActivity : ComponentActivity() {
     @Inject
     lateinit var accountService: AccountService
 
-    private enum class Op { SEND, CALL, VIDEO, OPEN }
+    private enum class Op { SEND, CALL, VIDEO, OPEN, PROTECT }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +69,15 @@ class AutomationActivity : ComponentActivity() {
             return
         }
 
-        // --- authorization gate ---
+        // SET_PROTECTED_CONTACTS is intentionally UNAUTHENTICATED (no token, no enable gate): the
+        // companion re-sends the list on every startup, and it only writes a local prefs list — it
+        // touches no account and starts no daemon. Handle it before the gate + peer requirement.
+        if (op == Op.PROTECT) {
+            setProtectedContacts(intent, deepLink)
+            return
+        }
+
+        // --- authorization gate (all other ops) ---
         val token = deepLink?.getQueryParameter(KEY_TOKEN) ?: intent.getStringExtra(KEY_TOKEN)
         if (!AutomationPrefs.isEnabled(this)) {
             reject("disabled (enable it in Settings → Automation)")
@@ -123,6 +131,7 @@ class AutomationActivity : ComponentActivity() {
                     ConversationPath.toUri(account, peerUri), this, ConversationActivity::class.java)
                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
+            Op.PROTECT -> {}   // handled above, before the account/peer requirement
         }
     }
 
@@ -131,6 +140,7 @@ class AutomationActivity : ComponentActivity() {
             "send" -> Op.SEND
             "call" -> Op.CALL
             "open" -> Op.OPEN
+            "protect" -> Op.PROTECT
             else -> null
         }
         return when (action) {
@@ -138,8 +148,20 @@ class AutomationActivity : ComponentActivity() {
             ACTION_PLACE_CALL -> Op.CALL
             ACTION_PLACE_VIDEO_CALL -> Op.VIDEO
             ACTION_OPEN_CONVERSATION -> Op.OPEN
+            ACTION_SET_PROTECTED_CONTACTS -> Op.PROTECT
             else -> null
         }
+    }
+
+    /**
+     * SET_PROTECTED_CONTACTS — secondary path (the [ProtectedContactsReceiver] broadcast is primary).
+     * Delegates to the shared [ProtectedContacts] handler: `contacts` is '|'-separated registered
+     * names (or ring ids), `mode` is replace (default) | add | remove. Unauthenticated, no UI.
+     */
+    private fun setProtectedContacts(intent: Intent, deepLink: AndroidUri?) {
+        val raw = deepLink?.getQueryParameter(KEY_CONTACTS) ?: intent.getStringExtra(KEY_CONTACTS)
+        val mode = deepLink?.getQueryParameter(KEY_MODE) ?: intent.getStringExtra(KEY_MODE)
+        ProtectedContacts.apply(this, accountService, raw, mode)
     }
 
     /** Android decodes path segments already; just index safely. */
@@ -167,11 +189,14 @@ class AutomationActivity : ComponentActivity() {
         const val ACTION_PLACE_CALL = BuildConfig.APPLICATION_ID + ".action.PLACE_CALL"
         const val ACTION_PLACE_VIDEO_CALL = BuildConfig.APPLICATION_ID + ".action.PLACE_VIDEO_CALL"
         const val ACTION_OPEN_CONVERSATION = BuildConfig.APPLICATION_ID + ".action.OPEN_CONVERSATION"
+        const val ACTION_SET_PROTECTED_CONTACTS = BuildConfig.APPLICATION_ID + ".action.SET_PROTECTED_CONTACTS"
 
         const val KEY_ACCOUNT = "account"
         const val KEY_PEER = "peer"
         const val KEY_TEXT = "text"
         const val KEY_VIDEO = "video"
         const val KEY_TOKEN = "token"
+        const val KEY_CONTACTS = "contacts"
+        const val KEY_MODE = "mode"
     }
 }
