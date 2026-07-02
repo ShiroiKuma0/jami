@@ -80,6 +80,11 @@ class FontsSettingsFragment : Fragment() {
                 ColorRole("Text", ColorPrefs.CALL_TEXT),
                 ColorRole("Pill fill", ColorPrefs.CALL_FILL),
                 ColorRole("Pill border", ColorPrefs.CALL_BORDER))))),
+        Group("Message menu", listOf(
+            Element("Long-press menu", null, listOf(
+                ColorRole("Text", ColorPrefs.MENU_TEXT),
+                ColorRole("Fill", ColorPrefs.MENU_FILL),
+                ColorRole("Border", ColorPrefs.MENU_BORDER))))),
         Group("Top bar", listOf(
             Element("Search hint", FontPrefs.SEARCH_HINT, listOf(ColorRole("Color", ColorPrefs.SEARCH_HINT))))),
         Group("Settings", listOf(
