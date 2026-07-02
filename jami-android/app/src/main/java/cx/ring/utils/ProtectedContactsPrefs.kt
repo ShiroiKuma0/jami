@@ -33,6 +33,9 @@ object ProtectedContactsPrefs {
         return n.isNotEmpty() && raw(c).contains(n)
     }
 
+    /** The whole stored set (normalized/lowercase) — the companion's GET read-back channel. */
+    fun getAll(c: Context): Set<String> = raw(c)
+
     private fun store(c: Context, ids: Set<String>) {
         p(c).edit().putStringSet(KEY, ids).apply()
     }
