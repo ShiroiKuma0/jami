@@ -52,8 +52,8 @@ import androidx.core.view.children
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.RecyclerView
-import androidx.vectordrawable.graphics.drawable.Animatable2Compat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -61,11 +61,11 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withC
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
-import cx.ring.adapters.MessageGrouping.isAlwaysSingleMsg
 import cx.ring.client.CollabEditorActivity
 import cx.ring.client.MediaViewerActivity
 import cx.ring.client.MediaViewerFragment
 import cx.ring.client.MessageEditActivity
+import cx.ring.client.ShareActivity
 import cx.ring.databinding.MenuConversationBinding
 import cx.ring.fragments.ConversationFragment
 import cx.ring.linkpreview.LinkPreview
@@ -112,80 +112,13 @@ import com.google.android.material.button.MaterialButton
 class ConversationAdapter(
     private val conversationFragment: ConversationFragment,
     private val presenter: ConversationPresenter,
-    private val isSearch: Boolean = false,
-    private val isThreadProjection: Boolean = false
+    private val isSearch: Boolean = false
 ) : RecyclerView.Adapter<ConversationViewHolder>() {
     private var mInteractions: MutableList<Interaction> = ArrayList<Interaction>()
     private val res = conversationFragment.resources
     private val mPictureMaxSize =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200f, res.displayMetrics).toInt()
     private var successView: ConversationViewHolder? = null
-    private data class ProjectionRow(
-        val message: Interaction,
-        val type: Int,
-        val revision: Int,
-        val replies: Int,
-        val previous: String?,
-        val next: String?
-    ) {
-        val key = message.messageId ?: "legacy:${message.id}"
-    }
-
-    private var projectionRows = emptyList<ProjectionRow>()
-    private var threadReplyCounts = emptyMap<String, Int>()
-    var threadRootId: String? = null
-    val history: List<Interaction>
-        get() = mInteractions.toList()
-
-    fun updateProjection(
-        messages: List<Interaction>,
-        replyCounts: Map<String, Int>,
-        changedIds: Set<String>,
-        forceRefresh: Boolean,
-        composingStatus: ComposingStatus
-    ) {
-        check(isThreadProjection)
-        val oldRows = projectionRows
-        val oldComposing = isComposing
-        val newComposing = composingStatus == ComposingStatus.Active
-        val oldById = oldRows.associateBy { it.key }
-        val newRows = messages.mapIndexed { index, message ->
-            val key = message.messageId ?: "legacy:${message.id}"
-            val old = oldById[key]
-            ProjectionRow(
-                message, getMessageViewType(message),
-                (old?.revision ?: 0) +
-                    if (forceRefresh || key in changedIds) 1 else 0,
-                replyCounts[message.messageId] ?: 0,
-                messages.getOrNull(index - 1)?.messageId,
-                messages.getOrNull(index + 1)?.messageId
-            )
-        }
-        val diff = androidx.recyclerview.widget.DiffUtil.calculateDiff(
-            object : androidx.recyclerview.widget.DiffUtil.Callback() {
-                override fun getOldListSize() = oldRows.size + if (oldComposing) 1 else 0
-                override fun getNewListSize() = newRows.size + if (newComposing) 1 else 0
-                override fun areItemsTheSame(old: Int, new: Int): Boolean {
-                    if (old == oldRows.size || new == newRows.size)
-                        return old == oldRows.size && new == newRows.size
-                    return oldRows[old].key == newRows[new].key &&
-                        oldRows[old].type == newRows[new].type
-                }
-
-                override fun areContentsTheSame(old: Int, new: Int): Boolean {
-                    if (old == oldRows.size || new == newRows.size) return true
-                    return oldRows[old] == newRows[new] &&
-                        oldRows[old].previous !in changedIds &&
-                        oldRows[old].next !in changedIds
-                }
-            }
-        )
-        mInteractions = messages.toMutableList()
-        threadReplyCounts = replyCounts
-        projectionRows = newRows
-        isComposing = newComposing
-        diff.dispatchUpdatesTo(this)
-    }
 
     @ColorInt
     var convColor = 0
@@ -214,10 +147,6 @@ class ConversationAdapter(
         Observable.interval(10, TimeUnit.SECONDS).startWithItem(0L)
     private var lastMsgPos = -1
     private var isComposing = false
-    // Typing-indicator rows currently attached to the window, and whether the conversation is
-    // visible. The indicator animates only while both hold -- see startTypingAnimation().
-    private val typingHolders = mutableSetOf<ConversationViewHolder>()
-    private var typingAnimationsActive = true
     var showLinkPreviews = true
     private val markwon: Markwon = Markwon.builder(conversationFragment.requireContext())
             .usePlugin(LinkifyPlugin.create())
@@ -382,11 +311,8 @@ class ConversationAdapter(
         if (isComposing && position == mInteractions.size)
             return MessageType.COMPOSING_INDICATION.ordinal
 
-        return getMessageViewType(mInteractions[position])
-    }
-
-    private fun getMessageViewType(interaction: Interaction): Int =
-        when (interaction.type) {
+        val interaction = mInteractions[position]
+        return when (interaction.type) {
             Interaction.InteractionType.CONTACT -> MessageType.CONTACT_EVENT.ordinal
 
             Interaction.InteractionType.COLLAB_DOC -> MessageType.COLLAB_DOCUMENT.ordinal
@@ -439,18 +365,13 @@ class ConversationAdapter(
 
             Interaction.InteractionType.INVALID -> MessageType.INVALID.ordinal
         }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ConversationViewHolder {
         val type = MessageType.entries[viewType]
         val v = if (type == MessageType.INVALID) FrameLayout(parent.context)
         else (LayoutInflater.from(parent.context).inflate(type.layout, parent, false) as ViewGroup)
-        if (!isThreadProjection || type == MessageType.INVALID ||
-            type == MessageType.COMPOSING_INDICATION
-        ) return ConversationViewHolder(v, type)
-        val wrapper = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_thread_message, parent, false) as LinearLayout
-        wrapper.addView(v, 0)
-        return ConversationViewHolder(wrapper, type)
+        return ConversationViewHolder(v, type)
     }
 
     private fun configureDisplayIndicator(
@@ -605,7 +526,6 @@ class ConversationAdapter(
                             chip.isFocusable = true
                             //chip.isChecked = false
                         }
-                        conversationViewHolder.updateThreadFooter(interaction.isIncoming)
                     }
                 }
         )
@@ -621,8 +541,6 @@ class ConversationAdapter(
         conversationViewHolder: ConversationViewHolder,
         interaction: Interaction
     ) {
-        conversationViewHolder.mReplyBubble?.isVisible = false
-        if (!showsReplyPreview(interaction.replyToId, threadRootId)) return
         val context = conversationViewHolder.itemView.context
         val conversation = interaction.conversation
         if (conversation == null || conversation !is Conversation) {
@@ -687,11 +605,7 @@ class ConversationAdapter(
                         listOf(conversationViewHolder.mReplyTxt,
                             replyBubble).forEach{
                             it?.setOnClickListener{
-                                i.first.messageId?.let { id ->
-                                    if (isThreadProjection)
-                                        conversationFragment.revealThreadMessage(id)
-                                    else presenter.scrollToMessage(id)
-                                }
+                                i.first.messageId?.let { presenter.scrollToMessage(it) }
                             }
                         }
                     }) {
@@ -713,8 +627,6 @@ class ConversationAdapter(
 
         val interaction = mInteractions[position]
         conversationViewHolder.compositeDisposable.clear()
-        if (conversationViewHolder.threadFooter != null)
-            conversationViewHolder.reactionChip?.isVisible = false
 
         when (interaction.type) {
             Interaction.InteractionType.INVALID -> {
@@ -760,41 +672,8 @@ class ConversationAdapter(
             configureReactions(conversationViewHolder, interaction)
         }
 
-        conversationViewHolder.threadReplies?.apply {
-            val count = threadReplyCounts[interaction.messageId] ?: 0
-            isVisible = count > 0
-            text = res.getQuantityString(R.plurals.conversation_thread_replies, count, count)
-            setOnClickListener {
-                interaction.messageId?.let { conversationFragment.openThread(it) }
-            }
-        }
-        conversationViewHolder.updateThreadFooter(interaction.isIncoming)
-
         if (isSearch)
             configureSearchResult(conversationViewHolder, interaction)
-    }
-
-    override fun onViewAttachedToWindow(holder: ConversationViewHolder) {
-        super.onViewAttachedToWindow(holder)
-        if (holder.type == MessageType.COMPOSING_INDICATION) {
-            typingHolders.add(holder)
-            startTypingAnimation(holder)
-        }
-    }
-
-    override fun onViewDetachedFromWindow(holder: ConversationViewHolder) {
-        super.onViewDetachedFromWindow(holder)
-        if (typingHolders.remove(holder))
-            (holder.mIcon?.drawable as? Animatable)?.stop()
-    }
-
-    /** Called by the fragment on start/stop, so the indicator never animates while not visible. */
-    fun setTypingAnimationsActive(active: Boolean) {
-        typingAnimationsActive = active
-        for (holder in typingHolders) {
-            if (active) startTypingAnimation(holder)
-            else (holder.mIcon?.drawable as? Animatable)?.stop()
-        }
     }
 
     override fun onViewRecycled(holder: ConversationViewHolder) {
@@ -1104,29 +983,34 @@ class ConversationAdapter(
             val history = interaction.historyObservable.blockingFirst()
             val isDeleted = interaction is TextMessage && interaction.body.isNullOrEmpty()
             val isFileMenu = interaction is DataTransfer && interaction.isComplete
-            val reactionButtons = listOf(convActionEmoji1, convActionEmoji2, convActionEmoji3, convActionEmoji4)
 
-            fun updateActions() {
-                val canReact = presenter.hasPermission(Conversation.Permission.Reaction)
-                val canRemoveReaction = presenter.hasPermission(Conversation.Permission.Delete)
-                convActionEdit.isVisible = !isDeleted && !interaction.isIncoming && interaction is TextMessage &&
-                    presenter.hasPermission(Conversation.Permission.Edit)
-                convActionDelete.isVisible = !isDeleted && !interaction.isIncoming && presenter.canDeleteMessage(interaction)
-                convActionReply.isVisible = presenter.canSendText(interaction.messageId) || presenter.canSendFile(interaction.messageId)
-                convActionMore.isVisible = canReact
-                reactionButtons.forEach { it.root.isVisible = canReact || (it.chip.isChecked && canRemoveReaction) }
-                if (!canReact) {
-                    emojiPicker.isVisible = false
-                    menuActions.isVisible = true
-                }
+            // Settable popup colours (default black fill / yellow border+text).
+            val menuContext = root.context
+            val menuText = ColorPrefs.getColor(menuContext, ColorPrefs.MENU_TEXT)
+            val menuBorder = ColorPrefs.getColor(menuContext, ColorPrefs.MENU_BORDER)
+            (root.background?.mutate() as? GradientDrawable)?.apply {
+                setColor(ColorPrefs.getColor(menuContext, ColorPrefs.MENU_FILL))
+                setStroke((2f * menuContext.resources.displayMetrics.density).toInt(), menuBorder)
             }
+            menuDivider.setBackgroundColor(menuBorder)
+            val menuTint = ColorStateList.valueOf(menuText)
+            listOf(convActionFileOpen, convActionFileSave, convActionCopyText, convActionShare,
+                convActionJamiShare, convActionEdit, convActionHistory, convActionFileDelete,
+                convActionDelete).forEach { item ->
+                item.setTextColor(menuText)
+                TextViewCompat.setCompoundDrawableTintList(item, menuTint)
+            }
+            convActionMore.imageTintList = menuTint
+            convActionReply.imageTintList = menuTint
 
             // Configure what should be displayed
             convActionFileOpen.isVisible = isFileMenu
             convActionFileSave.isVisible = isFileMenu
             convActionFileDelete.isVisible = isFileMenu
             convActionCopyText.isVisible = !isDeleted && interaction !is DataTransfer
-            updateActions()
+            convActionJamiShare.isVisible = isFileMenu || (!isDeleted && interaction is TextMessage)
+            convActionEdit.isVisible = !isDeleted && !interaction.isIncoming && interaction is TextMessage
+            convActionDelete.isVisible = !isDeleted && !interaction.isIncoming
             convActionHistory.isVisible = !isDeleted && history.size > 1
             root.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
 
@@ -1136,9 +1020,25 @@ class ConversationAdapter(
             )
             popupWindow.isOutsideTouchable = true
             popupWindow.elevation = view.context.resources.getDimension(R.dimen.call_preview_elevation)
-            popupWindow.showAsDropDown(view)
+            // Show at a FIXED window position captured at long-press. showAsDropDown keeps a live
+            // link to the anchor, so every background re-layout of the list (reconnect, presence,
+            // status re-binds) nudged the popup around ("dancing" menu).
+            val anchorPos = IntArray(2).also { view.getLocationInWindow(it) }
+            val anchorBottom = anchorPos[1] + view.height
+            val decor = view.rootView
+            fun showPopupFixed() {
+                val x = anchorPos[0].coerceIn(0, (decor.width - root.measuredWidth).coerceAtLeast(0))
+                val y = if (anchorBottom + popupWindow.height > decor.height)
+                    (anchorPos[1] - popupWindow.height).coerceAtLeast(0)
+                else anchorBottom
+                popupWindow.showAtLocation(view, Gravity.NO_GRAVITY, x, y)
+            }
+            showPopupFixed()
 
-            val textViews = reactionButtons.map { it.chip }
+            val textViews = listOf(
+                convActionEmoji1.chip, convActionEmoji2.chip,
+                convActionEmoji3.chip, convActionEmoji4.chip
+            )
 
             convActionEmoji1.chip.text = view.context.getString(R.string.default_emoji_1)
             convActionEmoji2.chip.text = view.context.getString(R.string.default_emoji_2)
@@ -1146,9 +1046,7 @@ class ConversationAdapter(
             convActionEmoji4.chip.text = view.context.getString(R.string.default_emoji_4)
 
             // Subscribe on reactions to allows user to see which reaction he already selected.
-            val disposable = Observable.combineLatest(
-                interaction.reactionObservable, presenter.messagingPermissions
-            ) { reactions, _ -> reactions }
+            val disposable = interaction.reactionObservable
                 .observeOn(DeviceUtils.uiScheduler)
                 .subscribe { reactions ->
                     textViews.forEach { textView ->
@@ -1157,9 +1055,6 @@ class ConversationAdapter(
                             (textView.text == it.body) && (it.contact?.isUser == true)
                         }
                     }
-                    updateActions()
-                    root.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-                    popupWindow.update(root.measuredWidth, root.measuredHeight)
                 }
             viewHolder.compositeDisposable.add(disposable)
 
@@ -1217,7 +1112,7 @@ class ConversationAdapter(
                     root.measure(root.width, View.MeasureSpec.UNSPECIFIED)
                     it.height = root.measuredHeight
                     it.dismiss()
-                    it.showAsDropDown(view)
+                    showPopupFixed()
                 }
             }
 
@@ -1296,6 +1191,30 @@ class ConversationAdapter(
                 popupWindow.dismiss()
             }
 
+            // Jami share: forward the message to another conversation through the in-app share
+            // picker (ShareActivity), bypassing the system chooser. The file variant must carry
+            // the uri in data/clipData — getShareItems does not read EXTRA_STREAM.
+            convActionJamiShare.setOnClickListener {
+                val context = it.context
+                try {
+                    val intent = Intent(Intent.ACTION_SEND)
+                        .setClass(context, ShareActivity::class.java)
+                    if (interaction is DataTransfer) {
+                        val path = presenter.deviceRuntimeService.getConversationPath(interaction)
+                        val uri = getUriForFile(context, path, interaction.displayName)
+                        intent.setDataAndType(uri, AndroidFileUtils.getMimeType(interaction.displayName))
+                        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    } else {
+                        intent.putExtra(Intent.EXTRA_TEXT, interaction.body)
+                        intent.type = "text/plain"
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to start Jami share", e)
+                }
+                popupWindow.dismiss()
+            }
+
             // Message history
             if (convActionHistory.isVisible)
                 convActionHistory.setOnClickListener {
@@ -1351,9 +1270,29 @@ class ConversationAdapter(
         })
 
         val isDateShown = hasPermanentDateString(file, position)
-        val msgSequenceType = getMsgSequencing(position, isDateShown)
         configureTimestamp(viewHolder, file, isDateShown)
-        configureSender(viewHolder, interaction, position, msgSequenceType)
+
+        val contact = interaction.contact ?: return
+        if (interaction.isIncoming && presenter.isGroup()) {
+            viewHolder.mAvatar?.let { avatar ->
+                avatar.setAvatar(conversationFragment.getConversationAvatar(contact.primaryNumber))
+                avatar.visibility = View.VISIBLE
+            }
+            val account = interaction.account?: return
+            // Show the name of the contact.
+            viewHolder.mPeerDisplayName?.apply {
+                    visibility = View.VISIBLE
+                    viewHolder.compositeDisposable.add(
+                        presenter.contactService
+                            .observeContact(account, contact, false)
+                            .observeOn(DeviceUtils.uiScheduler)
+                            .subscribe { text = it.displayName }
+                    )
+            }
+        } else {
+            viewHolder.mAvatar?.visibility = View.GONE
+            viewHolder.mPeerDisplayName?.visibility = View.GONE
+        }
         val type = viewHolder.type.transferType
         val longPressView = when (type) {
             MessageType.TransferType.IMAGE -> viewHolder.mImage
@@ -1363,12 +1302,7 @@ class ConversationAdapter(
         } ?: return
 
         if (type == MessageType.TransferType.AUDIO || type == MessageType.TransferType.FILE) {
-            val template = ContextCompat.getDrawable(
-                context, msgBGLayouts[msgSequenceType.ordinal + (if (file.isIncoming) 4 else 0)]
-            ) as GradientDrawable
-            val background = longPressView.background.mutate() as GradientDrawable
-            background.cornerRadii = template.cornerRadii ?: FloatArray(8) { template.cornerRadius }
-            background.setTintList(null)
+            longPressView.background?.setTintList(null)
         }
 
         longPressView.setOnLongClickListener { v: View ->
@@ -1516,44 +1450,20 @@ class ConversationAdapter(
             )
         }
         viewHolder.mTypingIndicatorLayout?.layoutParams = layoutParams
-        // Attach starts the animation; a rebind of a row that is already attached keeps it going.
-        startTypingAnimation(viewHolder)
-    }
-
-    /**
-     * Animates the typing indicator of [holder] for as long as the row is attached and the
-     * conversation is visible, and not a frame longer.
-     *
-     * The bounce animators are plain objectAnimators inside <set>s; an AnimatorSet ignores
-     * repeatCount, so the drawable plays ONE bounce (~0.8 s) and stops. It must be restarted from
-     * onAnimationEnd -- without that the dots freeze after the first bounce.
-     *
-     * The restart is what used to leak (one never-ending animator per indicator ever shown, still
-     * requesting Choreographer frames in the background), because an AnimatedVectorDrawable is only
-     * stopped by an explicit stop(). So: one drawable and one callback per view holder, created
-     * once; the callback restarts only while the holder is in [typingHolders] and
-     * [typingAnimationsActive]; detach and the fragment's onStop stop it, and nothing restarts it.
-     */
-    private fun startTypingAnimation(holder: ConversationViewHolder) {
-        val icon = holder.mIcon ?: return
-        val anim = icon.drawable as? AnimatedVectorDrawableCompat
-            ?: AnimatedVectorDrawableCompat.create(icon.context, R.drawable.typing_indicator_animation)
-                ?.also { avd ->
-                    icon.setImageDrawable(avd)
-                    avd.registerAnimationCallback(object : Animatable2Compat.AnimationCallback() {
-                        override fun onAnimationEnd(drawable: Drawable?) {
-                            // Posted: restarting from inside the end callback of the same set is
-                            // re-entrant. Re-checked when it runs, as stop() also ends the set.
-                            icon.post {
-                                if (typingAnimationsActive && holder in typingHolders
-                                    && icon.drawable === avd && !avd.isRunning)
-                                    avd.start()
-                            }
-                        }
-                    })
-                }
-            ?: return
-        if (typingAnimationsActive && holder in typingHolders && !anim.isRunning)
+        // Reuse the drawable already set on the icon rather than creating one per bind, so at most
+        // one animator exists per view holder instead of one per typing indicator ever shown.
+        //
+        // No restart-on-end callback: two of the three targets in typing_indicator_animation.xml
+        // (bounce2, bounce3) already declare repeatCount="infinite", so the set does not end on its
+        // own, and a callback that calls start() again keeps the drawable animating for the life of
+        // the process. An AnimatedVectorDrawable is only stopped by an explicit stop() -- recycling
+        // the row, detaching the view or backgrounding the app do not stop it -- so such animators
+        // accumulate and keep requesting Choreographer frames while the app is not visible.
+        val anim = viewHolder.mIcon?.drawable as? AnimatedVectorDrawableCompat
+            ?: AnimatedVectorDrawableCompat.create(
+                viewHolder.itemView.context, R.drawable.typing_indicator_animation
+            )?.also { viewHolder.mIcon?.setImageDrawable(it) }
+        if (anim != null && !anim.isRunning)
             anim.start()
     }
 
@@ -1661,11 +1571,12 @@ class ConversationAdapter(
         val contact = interaction.contact ?: return
         val isDeleted = interaction.body.isNullOrEmpty() || interaction.transferStatus == TransferStatus.FILE_REMOVED
         val isEdited = interaction.history.size > 1
-        val isReplying = showsReplyPreview(interaction.replyToId, threadRootId)
+        val isReplying = interaction.replyToId != null
 
         val messageBubble = viewHolder.mMessageBubble ?: return
         val replyBubble = viewHolder.mReplyBubble
         val answerLayout = viewHolder.mAnswerLayout
+        val peerDisplayName = viewHolder.mPeerDisplayName
 
         val isDateShown = hasPermanentDateString(interaction, position)
         val msgSequenceType = getMsgSequencing(position, isDateShown)
@@ -1687,7 +1598,7 @@ class ConversationAdapter(
 
         // If in a replying bubble, we need to overlap the message bubble
         // with the answered message bubble.
-        if (isReplying && !isDeleted)
+        if (interaction.replyToId != null && !isDeleted)
             messageBubble.updateLayoutParams<MarginLayoutParams> {
                 topMargin = context.resources.getDimensionPixelSize(R.dimen.conversation_reply_overlap)
             }
@@ -1777,7 +1688,45 @@ class ConversationAdapter(
             } else answerLayout?.visibility = View.GONE
         }
 
-        configureSender(viewHolder, interaction, position, msgSequenceType)
+        val endOfSeq = msgSequenceType == SequenceType.LAST || msgSequenceType == SequenceType.SINGLE
+        // Manage animation for avatar and name.
+        val avatar = viewHolder.mAvatar
+        if (presenter.isGroup() && interaction.isIncoming) {
+            avatar?.let {
+                if (endOfSeq) { // To only display the avatar of the last message.
+                    avatar.setAvatar(conversationFragment.getConversationAvatar(contact.primaryNumber))
+                    avatar.visibility = View.VISIBLE
+                } else {
+                    if (position == lastMsgPos - 1) {
+                        ActionHelper.startFadeOutAnimation(avatar)
+                    } else {
+                        avatar.setAvatar(null)
+                        avatar.visibility = View.INVISIBLE
+                    }
+                }
+            }
+
+            // Show the name of the contact.
+            val startOfSeq = msgSequenceType == SequenceType.FIRST
+                    || msgSequenceType == SequenceType.SINGLE
+            peerDisplayName?.apply {
+                if (startOfSeq) {
+                    visibility = View.VISIBLE
+                    viewHolder.compositeDisposable.add(
+                        presenter.contactService
+                            .observeContact(account, contact, false)
+                            .observeOn(DeviceUtils.uiScheduler)
+                            .subscribe { text = it.displayName }
+                    )
+                } else {
+                    visibility = View.GONE
+                    text = null
+                }
+            }
+        } else {
+            avatar?.visibility = View.GONE
+            peerDisplayName?.visibility = View.GONE
+        }
 
         // Manage deleted message.
         if (isDeleted) {
@@ -1914,9 +1863,7 @@ class ConversationAdapter(
         }
         val timestamp = TextUtils.timestampToTime(context, formatter, event.timestamp)
 
-        if (event.event == ContactEvent.Event.FEED_CREATED) {
-            viewHolder.mMsgTxt?.text = context.getString(R.string.feed_created_at, timestamp)
-        } else if (interaction.isSwarm) {
+        if (interaction.isSwarm) {
             viewHolder.compositeDisposable.add(
                 presenter.contactService.observeContact(event.account!!, event.contact!!, false)
                     .observeOn(DeviceUtils.uiScheduler)
@@ -1945,53 +1892,8 @@ class ConversationAdapter(
         }
     }
 
-    private fun configureSender(
-        viewHolder: ConversationViewHolder,
-        interaction: Interaction,
-        position: Int,
-        sequenceType: SequenceType,
-    ) {
-        val avatar = viewHolder.mAvatar
-        val peerDisplayName = viewHolder.mPeerDisplayName
-        if (presenter.isGroup() && interaction.isIncoming) {
-            val contact = interaction.contact ?: return
-            val account = interaction.account ?: return
-            val endOfSeq = sequenceType == SequenceType.LAST || sequenceType == SequenceType.SINGLE
-            avatar?.let {
-                if (endOfSeq) {
-                    avatar.setAvatar(conversationFragment.getConversationAvatar(contact.primaryNumber))
-                    avatar.visibility = View.VISIBLE
-                } else if (position == lastMsgPos - 1) {
-                    ActionHelper.startFadeOutAnimation(avatar)
-                } else {
-                    avatar.setAvatar(null)
-                    avatar.visibility = View.INVISIBLE
-                }
-            }
-            val startOfSeq = sequenceType == SequenceType.FIRST || sequenceType == SequenceType.SINGLE
-            peerDisplayName?.apply {
-                if (startOfSeq) {
-                    visibility = View.VISIBLE
-                    viewHolder.compositeDisposable.add(
-                        presenter.contactService
-                            .observeContact(account, contact, false)
-                            .observeOn(DeviceUtils.uiScheduler)
-                            .subscribe { text = it.displayName }
-                    )
-                } else {
-                    visibility = View.GONE
-                    text = null
-                }
-            }
-        } else {
-            avatar?.visibility = View.GONE
-            peerDisplayName?.visibility = View.GONE
-        }
-    }
-
     /**
-     * Message Separation is used to highlight two groups of messages.
-     * Text, calls and transfers share groups with gaps of at most one hour.
+     * Message Separation is used to highlight two group of messages.
      * We don't need message separation if:
      * - The message is the first of the conversation
      * - The message is the first of the day (date already shown)
@@ -2098,15 +2000,6 @@ class ConversationAdapter(
                 convViewHolder.mAcceptCallAudioButton ?: return
             val acceptCallVideoButton =
                 convViewHolder.mAcceptCallVideoButton ?: return
-
-            acceptCallAudioButton.isVisible = presenter.canCall()
-            acceptCallVideoButton.isVisible = presenter.canCall()
-            convViewHolder.compositeDisposable.add(presenter.messagingPermissions
-                .observeOn(DeviceUtils.uiScheduler)
-                .subscribe {
-                    acceptCallAudioButton.isVisible = presenter.canCall()
-                    acceptCallVideoButton.isVisible = presenter.canCall()
-                })
 
             callAcceptLayout.apply {
                 // Accept with audio only
@@ -2353,13 +2246,7 @@ class ConversationAdapter(
 
     private enum class SequenceType { FIRST, MIDDLE, LAST, SINGLE }
 
-    private fun isSeqBreak(first: Interaction, second: Interaction): Boolean =
-        MessageGrouping.isSeqBreak(first, second, threadRootId)
-
     companion object {
-        internal fun showsReplyPreview(replyToId: String?, threadRootId: String?): Boolean =
-            replyToId != null && replyToId != threadRootId
-
         private val TAG = ConversationAdapter::class.simpleName!!
 
         /** How far the name of a retired document is faded. */
@@ -2379,6 +2266,26 @@ class ConversationAdapter(
             R.drawable.textmsg_bg_in_reply_first
         )
 
+        /**
+         * Tells if a break should be added in the sequence.
+         * The first interaction must be before the second interaction.
+         *
+         * @param first     first interaction
+         * @param second    second interaction
+         * @return          True if a sequence break is needed. Else false.
+         */
+        private fun isSeqBreak(first: Interaction, second: Interaction): Boolean =
+            StringUtils.isOnlyEmoji(first.body) != StringUtils.isOnlyEmoji(second.body)
+                    || first.isIncoming != second.isIncoming
+                    || ((first.type !== Interaction.InteractionType.TEXT) && (first.type !== Interaction.InteractionType.CALL))
+                    || ((second.type !== Interaction.InteractionType.TEXT) && (second.type !== Interaction.InteractionType.CALL))
+                    || second.replyTo != null
+                    || first.contact != second.contact
+                    || (second.timestamp - first.timestamp) > (10 * DateUtils.MINUTE_IN_MILLIS)
+
+        private fun isAlwaysSingleMsg(msg: Interaction): Boolean =
+            ((msg.type !== Interaction.InteractionType.TEXT && msg.type !== Interaction.InteractionType.CALL)
+                    || StringUtils.isOnlyEmoji(msg.body))
     }
 
 }
