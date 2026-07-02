@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- About -->
     <string name="app_name" translatable="false">白い熊 GNU Jami</string>
     <string name="app_author" translatable="false">Savoir-faire Linux Inc.</string>
@@ -497,6 +497,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="share_your_account_information">Share my contact information</string>
     <string name="share_contact_information">Share contact information</string>
     <string name="share_label">Share</string>
+    <string name="menu_message_jami_share" tools:ignore="MissingTranslation">白い熊 Jami share</string>
+    <string name="share_from_account" translatable="false">送信元アカウント</string>
     <string name="generic_error_migration">Error</string>
     <string name="generic_error_migration_message">An error occurred while migrating the account.</string>
     <string name="title_share_with">Share with…</string>
