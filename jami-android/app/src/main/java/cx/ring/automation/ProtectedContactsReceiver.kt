@@ -1,8 +1,10 @@
 package cx.ring.automation
 
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import cx.ring.utils.ProtectedContactsPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import net.jami.services.AccountService
 import javax.inject.Inject
@@ -16,6 +18,10 @@ import javax.inject.Inject
  *   .putExtra("contacts", "<'|'-separated>").putExtra("mode", "replace"|"add"|"remove")
  *   // optional vague-notification text: .putExtra("protected_title", …).putExtra("protected_body", …)
  * → sendBroadcast(...). Unauthenticated (no token), no UI.
+ *
+ * GET_PROTECTED_CONTACTS is the read-back channel: an ORDERED broadcast whose result carries the
+ * stored set — '|'-separated lowercase entries, or the literal "EMPTY" when the list has no entries
+ * (distinguishing "answered, empty" from "nobody answered"). Same local trust model as SET.
  */
 @AndroidEntryPoint
 class ProtectedContactsReceiver : BroadcastReceiver() {
@@ -23,14 +29,21 @@ class ProtectedContactsReceiver : BroadcastReceiver() {
     lateinit var accountService: AccountService
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != AutomationActivity.ACTION_SET_PROTECTED_CONTACTS) return
-        ProtectedContacts.apply(
-            context,
-            accountService,
-            intent.getStringExtra(AutomationActivity.KEY_CONTACTS),
-            intent.getStringExtra(AutomationActivity.KEY_MODE),
-            intent.getStringExtra(AutomationActivity.KEY_TITLE),
-            intent.getStringExtra(AutomationActivity.KEY_BODY)
-        )
+        when (intent.action) {
+            AutomationActivity.ACTION_SET_PROTECTED_CONTACTS -> ProtectedContacts.apply(
+                context,
+                accountService,
+                intent.getStringExtra(AutomationActivity.KEY_CONTACTS),
+                intent.getStringExtra(AutomationActivity.KEY_MODE),
+                intent.getStringExtra(AutomationActivity.KEY_TITLE),
+                intent.getStringExtra(AutomationActivity.KEY_BODY)
+            )
+            AutomationActivity.ACTION_GET_PROTECTED_CONTACTS -> {
+                if (!isOrderedBroadcast) return   // a result needs an ordered broadcast
+                val set = ProtectedContactsPrefs.getAll(context)
+                resultCode = Activity.RESULT_OK
+                resultData = if (set.isEmpty()) "EMPTY" else set.sorted().joinToString("|")
+            }
+        }
     }
 }
