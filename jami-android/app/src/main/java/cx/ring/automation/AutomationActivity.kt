@@ -192,6 +192,7 @@ class AutomationActivity : ComponentActivity() {
         const val ACTION_PLACE_VIDEO_CALL = BuildConfig.APPLICATION_ID + ".action.PLACE_VIDEO_CALL"
         const val ACTION_OPEN_CONVERSATION = BuildConfig.APPLICATION_ID + ".action.OPEN_CONVERSATION"
         const val ACTION_SET_PROTECTED_CONTACTS = BuildConfig.APPLICATION_ID + ".action.SET_PROTECTED_CONTACTS"
+        const val ACTION_GET_PROTECTED_CONTACTS = BuildConfig.APPLICATION_ID + ".action.GET_PROTECTED_CONTACTS"
 
         const val KEY_ACCOUNT = "account"
         const val KEY_PEER = "peer"
