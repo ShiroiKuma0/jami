@@ -386,6 +386,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:exported="true">
             <intent-filter>
                 <action android:name="shiroikuma.jami.action.SET_PROTECTED_CONTACTS" />
+                <action android:name="shiroikuma.jami.action.GET_PROTECTED_CONTACTS" />
             </intent-filter>
         </receiver>
 
