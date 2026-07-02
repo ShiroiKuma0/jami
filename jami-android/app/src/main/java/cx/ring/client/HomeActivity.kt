@@ -439,6 +439,9 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
                 val safeIntent = shareIntentSanitizer.sanitizeByFiltering(intent)
                 val path = ConversationPath.fromBundle(safeIntent.extras)
                 if (path != null) {
+                    // Select the current account if it's not active (a share can target any account)
+                    if (mAccountService.currentAccount?.accountId != path.accountId)
+                        mAccountService.currentAccount = mAccountService.getAccount(path.accountId)
                     startConversation(path, safeIntent)
                 } else {
                     safeIntent.setClass(applicationContext, ShareActivity::class.java)
