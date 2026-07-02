@@ -49,8 +49,10 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.adapters.SmartListAdapter
+import cx.ring.client.AccountAdapter
 import cx.ring.client.HomeActivity
 import cx.ring.databinding.FragSharewithBinding
 import cx.ring.utils.BitmapUtils
@@ -59,6 +61,7 @@ import cx.ring.utils.ContentUri
 import cx.ring.utils.ContentUri.getShareItems
 import cx.ring.utils.ConversationPath
 import cx.ring.viewholders.SmartListViewHolder.SmartListListeners
+import cx.ring.views.AvatarDrawable
 import cx.ring.views.PreviewVideoView
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -67,7 +70,10 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.Subject
+import net.jami.model.Account
 import net.jami.model.Conversation
+import net.jami.model.Profile
+import net.jami.services.AccountService
 import net.jami.services.ContactService
 import net.jami.services.ConversationFacade
 import javax.inject.Inject
@@ -84,6 +90,14 @@ class ShareWithFragment : Fragment() {
     @Inject
     @Singleton
     lateinit var mContactService: ContactService
+
+    @Inject
+    @Singleton
+    lateinit var mAccountService: AccountService
+
+    // The "from" account driving the conversation list; seeded with the globally current account,
+    // switchable from the shareAccountRow without touching the global selection.
+    private val selectedAccount: BehaviorSubject<Account> = BehaviorSubject.create()
 
     private var mPendingIntent: Intent? = null
     private var adapter: SmartListAdapter? = null
@@ -146,6 +160,7 @@ class ShareWithFragment : Fragment() {
         val binding = FragSharewithBinding.inflate(inflater).apply {
             shareList.layoutManager = LinearLayoutManager(inflater.context)
             shareList.adapter = adapter
+            shareAccountRow.setOnClickListener { pickShareAccount() }
             this@ShareWithFragment.binding = this
         }
         val activity: Activity? = activity
@@ -175,10 +190,45 @@ class ShareWithFragment : Fragment() {
             requireActivity().finish()
             return
         }
+        if (selectedAccount.value == null)
+            mDisposable.add(mConversationFacade.currentAccountSubject.firstElement()
+                .subscribe { account -> selectedAccount.onNext(account) })
+        mDisposable.add(selectedAccount
+            .switchMap { account -> mAccountService.getObservableAccountProfile(account.accountId) }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { profile ->
+                binding?.shareAccountAvatar?.setImageDrawable(AvatarDrawable.build(
+                    requireContext(), profile.first, profile.second, true,
+                    profile.first.presenceStatus))
+                binding?.shareAccountName?.text = "${accountTitle(profile.first, profile.second)}  ▾"
+            })
         mDisposable.add(mConversationFacade
-            .getFullConversationList(mConversationFacade.currentAccountSubject, query)
+            .getFullConversationList(selectedAccount, query)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe { list -> adapter?.update(list) })
+    }
+
+    private fun accountTitle(account: Account, profile: Profile): String =
+        profile.displayName.orEmpty().ifEmpty {
+            account.registeredName.ifEmpty {
+                account.alias.orEmpty().ifEmpty { account.displayUri ?: "" }
+            }
+        }
+
+    private fun pickShareAccount() {
+        mDisposable.add(mAccountService.observableAccountList.firstElement().subscribe { accounts ->
+            MaterialAlertDialogBuilder(requireContext(), R.style.ShiroikumaDialog)
+                .setTitle(getString(R.string.account_selection))
+                .setAdapter(
+                    AccountAdapter(requireContext(), accounts, mDisposable, mAccountService, mConversationFacade)
+                ) { _, index ->
+                    // The adapter appends an "add account" row; ignore it here.
+                    if (index < accounts.size) selectedAccount.onNext(accounts[index])
+                }
+                .show().apply {
+                    window?.setBackgroundDrawable(requireContext().getDrawable(R.drawable.dialog_black_yellow))
+                }
+        })
     }
 
     override fun onStop() {

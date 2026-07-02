@@ -50,6 +50,7 @@ import androidx.core.view.children
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.vectordrawable.graphics.drawable.Animatable2Compat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
@@ -62,6 +63,7 @@ import cx.ring.R
 import cx.ring.client.MediaViewerActivity
 import cx.ring.client.MediaViewerFragment
 import cx.ring.client.MessageEditActivity
+import cx.ring.client.ShareActivity
 import cx.ring.databinding.MenuConversationBinding
 import cx.ring.fragments.ConversationFragment
 import cx.ring.linkpreview.LinkPreview
@@ -970,11 +972,31 @@ class ConversationAdapter(
             val isDeleted = interaction is TextMessage && interaction.body.isNullOrEmpty()
             val isFileMenu = interaction is DataTransfer && interaction.isComplete
 
+            // Settable popup colours (default black fill / yellow border+text).
+            val menuContext = root.context
+            val menuText = ColorPrefs.getColor(menuContext, ColorPrefs.MENU_TEXT)
+            val menuBorder = ColorPrefs.getColor(menuContext, ColorPrefs.MENU_BORDER)
+            (root.background?.mutate() as? GradientDrawable)?.apply {
+                setColor(ColorPrefs.getColor(menuContext, ColorPrefs.MENU_FILL))
+                setStroke((2f * menuContext.resources.displayMetrics.density).toInt(), menuBorder)
+            }
+            menuDivider.setBackgroundColor(menuBorder)
+            val menuTint = ColorStateList.valueOf(menuText)
+            listOf(convActionFileOpen, convActionFileSave, convActionCopyText, convActionShare,
+                convActionJamiShare, convActionEdit, convActionHistory, convActionFileDelete,
+                convActionDelete).forEach { item ->
+                item.setTextColor(menuText)
+                TextViewCompat.setCompoundDrawableTintList(item, menuTint)
+            }
+            convActionMore.imageTintList = menuTint
+            convActionReply.imageTintList = menuTint
+
             // Configure what should be displayed
             convActionFileOpen.isVisible = isFileMenu
             convActionFileSave.isVisible = isFileMenu
             convActionFileDelete.isVisible = isFileMenu
             convActionCopyText.isVisible = !isDeleted && interaction !is DataTransfer
+            convActionJamiShare.isVisible = isFileMenu || (!isDeleted && interaction is TextMessage)
             convActionEdit.isVisible = !isDeleted && !interaction.isIncoming && interaction is TextMessage
             convActionDelete.isVisible = !isDeleted && !interaction.isIncoming
             convActionHistory.isVisible = !isDeleted && history.size > 1
@@ -986,7 +1008,20 @@ class ConversationAdapter(
             )
             popupWindow.isOutsideTouchable = true
             popupWindow.elevation = view.context.resources.getDimension(R.dimen.call_preview_elevation)
-            popupWindow.showAsDropDown(view)
+            // Show at a FIXED window position captured at long-press. showAsDropDown keeps a live
+            // link to the anchor, so every background re-layout of the list (reconnect, presence,
+            // status re-binds) nudged the popup around ("dancing" menu).
+            val anchorPos = IntArray(2).also { view.getLocationInWindow(it) }
+            val anchorBottom = anchorPos[1] + view.height
+            val decor = view.rootView
+            fun showPopupFixed() {
+                val x = anchorPos[0].coerceIn(0, (decor.width - root.measuredWidth).coerceAtLeast(0))
+                val y = if (anchorBottom + popupWindow.height > decor.height)
+                    (anchorPos[1] - popupWindow.height).coerceAtLeast(0)
+                else anchorBottom
+                popupWindow.showAtLocation(view, Gravity.NO_GRAVITY, x, y)
+            }
+            showPopupFixed()
 
             val textViews = listOf(
                 convActionEmoji1.chip, convActionEmoji2.chip,
@@ -1008,7 +1043,6 @@ class ConversationAdapter(
                             (textView.text == it.body) && (it.contact?.isUser == true)
                         }
                     }
-                    popupWindow.update()
                 }
             viewHolder.compositeDisposable.add(disposable)
 
@@ -1066,7 +1100,7 @@ class ConversationAdapter(
                     root.measure(root.width, View.MeasureSpec.UNSPECIFIED)
                     it.height = root.measuredHeight
                     it.dismiss()
-                    it.showAsDropDown(view)
+                    showPopupFixed()
                 }
             }
 
@@ -1142,6 +1176,30 @@ class ConversationAdapter(
                     presenter.shareFile(interaction)
                 else if (interaction is TextMessage)
                     presenter.shareText(interaction)
+                popupWindow.dismiss()
+            }
+
+            // Jami share: forward the message to another conversation through the in-app share
+            // picker (ShareActivity), bypassing the system chooser. The file variant must carry
+            // the uri in data/clipData — getShareItems does not read EXTRA_STREAM.
+            convActionJamiShare.setOnClickListener {
+                val context = it.context
+                try {
+                    val intent = Intent(Intent.ACTION_SEND)
+                        .setClass(context, ShareActivity::class.java)
+                    if (interaction is DataTransfer) {
+                        val path = presenter.deviceRuntimeService.getConversationPath(interaction)
+                        val uri = getUriForFile(context, path, interaction.displayName)
+                        intent.setDataAndType(uri, AndroidFileUtils.getMimeType(interaction.displayName))
+                        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    } else {
+                        intent.putExtra(Intent.EXTRA_TEXT, interaction.body)
+                        intent.type = "text/plain"
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to start Jami share", e)
+                }
                 popupWindow.dismiss()
             }
 

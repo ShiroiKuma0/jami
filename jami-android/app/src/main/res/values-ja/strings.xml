@@ -278,6 +278,7 @@
   <string name="menu_file_delete">ファイルを削除</string>
   <string name="menu_file_share">ファイルを共有</string>
   <string name="menu_message_copy">コピー</string>
+  <string name="menu_message_jami_share">「白い熊 Jami」で共有</string>
   <string name="menu_message_edit">メッセージ編集</string>
   <string name="menu_message_delete">メッセージを削除</string>
   <string name="menu_message_cancel">メッセージをキャンセル</string>
