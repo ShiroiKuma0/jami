@@ -4,6 +4,74 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260702-01+1 — 2026-07-03
+
+Rebased onto upstream **20260702-01** (versionCode 499, new daemon), and rolled up everything built
+since `+83`: the swipeable media viewer with hide/restore, the protected-contacts companion
+integration (now with a read-back query), the black/yellow long-press menu with in-app message
+forwarding, the location-sharing status tool, and settable call-event pill colours.
+
+### Upstream merge (20260619-01 → 20260702-01, savoirfairelinux/jami-client-android)
+- **Android 14+ call-notification crash fix** — the call foreground service now starts only once the
+  Telecom connection reaches a presentable state, instead of crashing when the notification fired
+  too early.
+- **Daemon update** (`ae7bf02a` → `0448032a`): two **dhtnet** updates, the account manager now sets
+  up its DHT **before** opening UPnP (startup ordering), account config is saved directly to file,
+  and the video mixer uses area-averaging cell scaling.
+- **Gradle wrapper 9.5 → 9.6**; translation and CI churn absorbed.
+
+### Media viewer: suppress/restore, reliable swipe, yellow action bar
+- **Swipe sideways** through the pictures and videos of the same direction; **swipe down** hides the
+  current item from the swipe set (persisted per message), **swipe up** restores it — both flash a
+  confirmation. An item opened directly from the chat is always shown, with a **"Suppressed"
+  badge**, so it can be restored from where it lives.
+- **A view-suppressed button** browses only hidden media of the current type (landing on the most
+  recently hidden item), so nothing is ever lost; tapping it again returns to the normal set.
+- **Gesture arbitration fixed** — a near-vertical swipe was being stolen by the pager as a page
+  change; drags more vertical than horizontal are now locked to hide/restore, and detection is
+  distance-based so a slow deliberate swipe works like a flick. Zoomed images still pan.
+- The white "Share" pill is replaced by **plain yellow icons**: share and download bottom-right,
+  open and view-suppressed bottom-left.
+
+### Protected contacts (companion integration)
+- A companion app can mark contacts **protected** over a local broadcast
+  (`SET_PROTECTED_CONTACTS`: '|'-separated registered names or ring ids, replace/add/remove, with a
+  `jami-cmd://protect` deep link as a secondary path). Names are also resolved to ring ids via the
+  name service so a protected sender matches even on their first message; entries are never logged.
+- A message from a protected sender posts a **vague, contentless notification** on a silent secret
+  channel — local-only, no name, text, avatar or count on the lock-screen / Wear / Android Auto —
+  carrying a private marker extra the companion keys on. All other senders are unchanged.
+- The vague notification's **title/body are companion-settable** (`protected_title` /
+  `protected_body`; absent extras restore the defaults).
+- **New in this release: `GET_PROTECTED_CONTACTS`** — an ordered-broadcast read-back that answers
+  `RESULT_OK` with the stored list ('|'-separated, lowercase, sorted) or the literal `EMPTY`,
+  so the companion can verify what is actually stored.
+
+### Conversation long-press menu: black/yellow, in-app forward, pinned
+- The message long-press menu is now **black with a yellow border and yellow text/icons**, settable
+  as Text / Fill / Border under *UI fonts & colours → "Message menu"*.
+- **「白い熊 Jami」で共有** (other locales: *白い熊 Jami share*) forwards the message through Jami's
+  **in-app** share picker instead of the system chooser: a **"from account" selector row** (avatar +
+  name, opening the avatar account list) repopulates the conversation list per account; picking a
+  chat opens it with the text staged in the composer (files send on open). A forwarded share also
+  switches the active account to the target's account.
+- **The menu no longer "dances"** — it is shown at fixed coordinates captured at long-press
+  (`showAtLocation`), so background re-layouts (reconnection, presence, status re-binds) can no
+  longer drag it around, and the reactions subscription no longer forces reposition passes.
+
+### Location sharing
+- **"Location sharing status"** (overflow menu): a read-only black/yellow dialog listing which
+  conversations are genuinely sharing (with **"Stop all sharing"**), or explaining that a service
+  shown "running" with no notification is just a harmless idle binding — it never starts the
+  service to answer.
+- **The phantom "running" service is gone** — an open conversation no longer holds the
+  location-service bind for its lifetime; the one-shot check unbinds immediately.
+
+### Theming
+- **Call-event pills** (started/missed call rows) are settable — black fill with green text +
+  border by default — under *UI fonts & colours → "Call events"*.
+- **Popup menus** (overflow etc.) carry a yellow border, and the overflow icon itself is yellow.
+
 ## 20260619-01+83 — 2026-06-30
 
 Synced onto the latest upstream tip (`576f22274`, same `20260619-01` base), and added a per-contact
