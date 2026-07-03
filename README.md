@@ -9,10 +9,11 @@
 A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
 per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience** —
 a self-healing recovery watchdog, a live **connection monitor** (per-contact too), smart one-tap
-recovery and **Google-free push** — token-gated **automation intents**, smarter **registered-name**
-lookups, and a **split-view** toggle.
+recovery and **Google-free push** — a swipeable **media viewer** with hide/restore, **protected
+contacts** with vague notifications, **in-app message forwarding**, token-gated **automation
+intents**, smarter **registered-name** lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260619-01+83`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260702-01+1`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -102,6 +103,31 @@ colours (plus fonts) are settable too. Every colour, and the fold-triangle size,
 (e.g. [ntfy](https://ntfy.sh)) and the proxy, lets backgrounded accounts deactivate and wake on a push
 — no Google/Firebase — when you'd rather trade the proxy's wedge-risk for near-zero idle CPU.
 
+## 🖼 Media viewer with hide/restore
+
+Full-screen media opens into a **swipeable viewer**: swipe sideways through the pictures and videos
+of the same direction (sent or received) without going back to the chat. **Swipe down** to hide the
+current item from the swipe set (it stays in the conversation, marked "Suppressed" when opened
+directly); **swipe up** to restore it. A dedicated button browses only your hidden media so nothing
+is ever lost, and the action bar is plain yellow icons — share, download, open — instead of stock's
+white pill.
+
+## 🛡 Protected contacts
+
+A companion app can mark contacts as **protected** over a local broadcast: a message from one of
+them posts a deliberately **vague, contentless notification** — nothing identifying on the
+lock-screen, Wear or Android Auto — with a companion-settable title/body and a private marker the
+companion keys on. The stored list can be queried back (ordered-broadcast read-back), and every
+other sender's notifications are untouched.
+
+## ↪️ In-app message forwarding
+
+Long-press any message or file → **「白い熊 Jami」で共有** forwards it to another chat through
+Jami's **own** picker — no system share sheet. Pick the **sending account** from an avatar list,
+pick the target conversation (with search and a content preview), and the message lands staged in
+that chat's composer. The long-press menu itself is black/yellow, colour-settable, and pinned in
+place so background sync can no longer make it dance.
+
 ## 🤖 Automation intents
 
 Token-gated, exported **send / call / open** intents let external scripts and automation apps drive
@@ -123,6 +149,8 @@ rather focus on one screen at a time.
 
 - Settable styled **“flash” messages** (toasts) for in-app feedback.
 - A resizable, real-time account-status **dot** in the top bar (tap for full status, long-press for help).
+- A **“Location sharing status”** tool (overflow menu) that shows which conversations are really
+  sharing your location — and can stop them all — without ever waking the sharing service.
 - A black/yellow knot **launcher icon** so the fork is easy to spot.
 
 ---
