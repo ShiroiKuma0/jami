@@ -4,6 +4,19 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260702-01+2 — 2026-07-06
+
+A maintenance sync: rebased onto the upstream tip to pick up one targeted fix. No fork-side changes —
+every feature below (see `+1`) is carried forward unchanged; the daemon did not move.
+
+### Upstream merge (savoirfairelinux/jami-client-android → `25c01ae74`)
+- **Device-link race fix** — linking a new device to an account could stall permanently on the
+  *second* attempt: two JNI callbacks (`deviceAuthStateChanged` / `addDeviceStateChanged`) bypassed
+  the daemon-event executor queue, so the `TOKEN_AVAILABLE` event could fire before the import
+  ViewModel subscribed and be silently dropped, leaving the import flow stuck. Both callbacks are
+  now dispatched through the executor, and an unexpected state transition logs instead of killing
+  the RxJava subscription chain.
+
 ## 20260702-01+1 — 2026-07-03
 
 Rebased onto upstream **20260702-01** (versionCode 499, new daemon), and rolled up everything built
