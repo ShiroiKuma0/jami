@@ -4,6 +4,25 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260706-01+1 — 2026-07-16
+
+A pure upstream sync: rebased onto upstream **20260706-01** (versionCode 500, new daemon). No
+fork-side changes — every feature is carried forward unchanged.
+
+### Upstream merge (20260702-01 → 20260706-01, savoirfairelinux/jami-client-android)
+- **Android 16 local-network permission** — the app now declares and requests the new
+  `ACCESS_LOCAL_NETWORK` permission with an explanatory dialog, and points to the device settings
+  when access has been blocked. Without the grant, calls to devices on the local network may be
+  routed through a relay with lower quality instead of connecting directly.
+- **Daemon update** (`0448032a` → `20a033c9`): **opendht** contrib update; the **declined-request
+  sync ping-pong** is stopped (a declined conversation request no longer bounces endlessly between
+  a user's devices); two message-edit fixes (the first message in an edit history no longer gets
+  the wrong body overwrite, and body overwrites are cleared correctly); conference video bitrate is
+  now sized from the mixer; jamid's CMake gains VIDEO / SHM / PLUGINS build options.
+- **Dependency bumps** — Hilt 2.60, core-ktx 1.19.0, lifecycle 2.11.0, protobuf 4.35.1,
+  okhttp 5.4.0.
+- Translation churn absorbed (Lithuanian trimmed, Romanian updated).
+
 ## 20260702-01+2 — 2026-07-06
 
 A maintenance sync: rebased onto the upstream tip to pick up one targeted fix. No fork-side changes —
