@@ -151,6 +151,16 @@ grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls/rules.mak 
 If a gnutls rebuild after applying the fix still fails on the brotli header, the previous run left a brotli-configured tree behind; clean just that package and rebuild:
 `rm -rf daemon/contrib/build-aarch64-linux-android/gnutls daemon/contrib/build-aarch64-linux-android/.gnutls`
 
+**dhtnet LAN-interface preference (2026-07-17).** dhtnet's `ip_utils::getHostName()` (Linux `SIOCGIFCONF` branch, `MIN_INTERFACE=1`) takes the FIRST up non-loopback IPv4 interface. On the Mate XT with mobile data up that is cellular `rmnet0` (`<NOARP,UP>`, no multicast, CGNAT /32) — not `wlan0` — so libupnp always failed with `UPNP_E_INVALID_INTERFACE` (the repeating `E pupnp.cpp` logcat line) and NAT-PMP queried a phantom carrier gateway (`100.80.246.1`). Upstream dhtnet master still has the bug (checked 2026-07-17). The fix — prefer `BROADCAST+MULTICAST`, non-`POINTOPOINT` interfaces, falling back to the old first-match — lives as a **canonical patch in the fork repo: `patches/dhtnet-prefer-lan-interface.patch`** (committable; stage it at Push time when it changes). It is applied per build, gnutls-style, never committed to `daemon/`:
+
+```bash
+# dhtnet LAN-interface fix (idempotent; submodule, not committed — canonical patch tracked at patches/)
+r bash -c 'cp patches/dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(MOVE)|" daemon/contrib/src/dhtnet/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q lanCapable "$d/dhtnet/src/ip_utils.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-prefer-lan-interface.patch && rm -f "$d/.dhtnet"; fi'
+```
+
+The first line covers fresh extractions (`$(APPLY)` in `rules.mak`); the second patches an already-extracted tree and **rebuilds dhtnet via contrib make immediately** (`make -C … .dhtnet`, incremental, seconds). The direct `make` is mandatory: the gradle/CMake daemon build does NOT re-enter contrib make on an already-built tree, so a removed stamp alone is silently ignored and the old `libdhtnet.a` gets relinked (this cost one wasted build on 2026-07-17). On-device verification: logcat should show `PUPnP: Initialized on 192.168.1.<x>` instead of the invalid-interface error.
+
 ## Other build traps
 
 - **NDK 29 / CMake 4.1.2 are on the SDK beta channel.** Install with `sdkmanager --channel=1`; a stable-channel sdkmanager won't list them.
@@ -233,6 +243,10 @@ r git checkout custom
 
 # daemon-contrib fix (idempotent; submodule, not committed)
 r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls/rules.mak || sed -i 's/--without-idn/--without-idn --without-brotli --without-zstd/' daemon/contrib/src/gnutls/rules.mak"
+
+# dhtnet LAN-interface fix (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
+r bash -c 'cp patches/dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(MOVE)|" daemon/contrib/src/dhtnet/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q lanCapable "$d/dhtnet/src/ip_utils.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-prefer-lan-interface.patch && rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
 
 # SWIG JNI bindings (compile.sh's prerequisite step)
 ( cd daemon/bin/jni && PACKAGEDIR="$HOME/git/shiroikuma-jami/jami-android/libjamiclient/src/main/java" ./make-swig.sh )
