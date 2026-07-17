@@ -63,6 +63,7 @@ class SwitchButton(context: Context, attrs: AttributeSet? = null, defStyle: Int 
     private val mTextOffRectF = RectF()
     private val mThumbMargin = RectF()
     private val mPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var mImageAnimator: ObjectAnimator? = null
     private val mProgressAnimator = ValueAnimator.ofFloat(0f, 0f).apply {
         interpolator = AccelerateDecelerateInterpolator()
         addUpdateListener { valueAnimator -> progress = valueAnimator.animatedValue as Float }
@@ -358,14 +359,43 @@ class SwitchButton(context: Context, attrs: AttributeSet? = null, defStyle: Int 
 
     fun showImage(show: Boolean) {
         mShowImage = show
+        if (!show) stopImageAnimation()
         invalidate()
     }
 
     fun startImageAnimation() {
-        val anim = ObjectAnimator.ofInt(mImageDrawable, "level", 0, 10000)
-        anim.duration = 500
-        anim.repeatCount = ValueAnimator.INFINITE
-        anim.start()
+        if (!isAttachedToWindow || mImageAnimator?.isRunning == true) return
+        mImageAnimator = ObjectAnimator.ofInt(mImageDrawable, "level", 0, 10000).apply {
+            duration = 500
+            repeatCount = ValueAnimator.INFINITE
+            start()
+        }
+    }
+
+    private fun stopImageAnimation() {
+        mImageAnimator?.cancel()
+        mImageAnimator = null
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (mShowImage) startImageAnimation()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == VISIBLE) {
+            if (mShowImage) startImageAnimation()
+        } else {
+            stopImageAnimation()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        // The spinner animator must not outlive the view: an infinite ObjectAnimator keeps
+        // requesting 60 Hz frame callbacks (and burning CPU) even when nothing is visible.
+        stopImageAnimation()
+        super.onDetachedFromWindow()
     }
 
     companion object {
