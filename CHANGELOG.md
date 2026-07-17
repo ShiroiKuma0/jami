@@ -4,6 +4,46 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260706-01+4 — 2026-07-17
+
+Two root-cause fixes, both found by on-device tracing on the Mate XT after the app sat at a
+sustained ~25% CPU while fully backgrounded. Builds `+2`/`+3` were interim artifacts of the fix
+cycle (`+3` was accidentally linked against the unpatched dhtnet library) and were never released;
+`+4` supersedes them.
+
+### Fixes
+- **Idle-CPU burn: leaked infinite spinner animators** (upstream bug, fixed in the fork's app
+  source). `SwitchButton.startImageAnimation()` created a brand-new infinite `ObjectAnimator` on
+  every call and nothing ever cancelled one — `showImage(false)` only hid the drawable, and the
+  animators even survive the account-summary screen's destruction. Since the fragment calls it on
+  *every* account update while an account is in the "trying" registration state, each reconnect
+  flap added another immortal animator demanding 60 Hz Choreographer callbacks forever. Traced as
+  surfaceflinger waking the main thread exactly every 16.7 ms with the app invisible (~18-21% CPU
+  on the main thread alone). Now a single reusable member animator: idempotent start, cancelled on
+  hide, window detach and window-invisible, restarted when the spinner becomes visible again.
+  Measured result: idle CPU ~24-27% → **0-1%**, process threads 300 → ~120, main-thread wake-ups
+  60/s → ~7/s.
+- **UPnP and NAT-PMP silently dead whenever mobile data was up** (dhtnet bug, still present in
+  upstream dhtnet master as of 2026-07-17). dhtnet's `ip_utils::getHostName()` (Linux
+  `SIOCGIFCONF` branch, `MIN_INTERFACE = 1`) stops at the *first* up non-loopback IPv4 interface —
+  in kernel ifindex order that is the cellular `rmnet0` (`<NOARP,UP>`, no multicast, carrier-grade
+  NAT `/32`), never `wlan0`. libupnp then failed every init with `UPNP_E_INVALID_INTERFACE` (the
+  repeating `E/pupnp.cpp` logcat line, one per ~2 min retry), and NAT-PMP derived and queried a
+  phantom carrier "gateway" (`100.80.246.1`). Net effect: **no router port mapping at all while
+  mobile data was on** — ICE ran without server-reflexive candidates from either protocol, leaning
+  entirely on STUN/TURN. The fix teaches the interface scan to prefer `BROADCAST+MULTICAST`,
+  non-`POINTOPOINT` interfaces (Wi-Fi/Ethernet), falling back to the old first-match when no such
+  interface exists. Verified on-device: PUPnP initializes cleanly, and NAT-PMP now holds a live
+  session with the real router (`192.168.1.73 → 192.168.1.1:5351`).
+
+### Packaging / build
+- The dhtnet fix ships as **`patches/dhtnet-prefer-lan-interface.patch`** (tracked in this repo)
+  and is applied to the daemon's contrib at build time, gnutls-style — an `$(APPLY)` line seeded
+  into `daemon/contrib/src/dhtnet/rules.mak` for fresh extractions plus a direct patch of the
+  already-extracted tree — with the `daemon/` submodule left pristine and pinned to upstream. The
+  build docs now also record that contrib must be rebuilt via `make .dhtnet` directly after
+  patching (the Gradle daemon build silently ignores a removed contrib stamp).
+
 ## 20260706-01+1 — 2026-07-16
 
 A pure upstream sync: rebased onto upstream **20260706-01** (versionCode 500, new daemon). No
