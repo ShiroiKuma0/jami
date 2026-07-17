@@ -13,7 +13,7 @@ recovery and **Google-free push** — a swipeable **media viewer** with hide/res
 contacts** with vague notifications, **in-app message forwarding**, token-gated **automation
 intents**, smarter **registered-name** lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260706-01+1`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260706-01+4`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -71,6 +71,13 @@ Jami can quietly drift offline; this fork helps it heal itself **and** shows you
 links. A measured on-device A/B test settled the base config: **DHT proxy off, UPnP + TURN on** is the
 reliable one — proxy-on routes every connection through a single link that, when it wedges, strands
 delivery while the UI still says "connected" — so new accounts default to that.
+
+**Port mapping that actually works on phones.** Upstream dhtnet binds UPnP/NAT-PMP to the *first*
+network interface it finds — on a real phone with mobile data up that's the cellular link, so both
+protocols silently fail forever (`UPNP_E_INVALID_INTERFACE`) and no router port is ever opened. This
+fork patches the daemon's interface selection to prefer the actual LAN interface (Wi-Fi/Ethernet),
+so UPnP and NAT-PMP reach your real router and ICE gets direct-connect candidates — a bug still
+present upstream.
 
 **Self-healing watchdog.** A background watchdog watches for the wedge — nothing connected, or an
 outgoing message that never confirms (which also catches **group swarms** a raw connection table can't
