@@ -21,9 +21,9 @@ These are the things that cost real time when forgotten. Do not violate them wit
 - **Push staging is explicit and narrow:**
   - App-source change → `git add jami-android/app/src/main`.
   - Build-config change → `git add jami-android/gradle.properties jami-android/build.gradle.kts jami-android/app/build.gradle.kts jami-android/libjamiclient/build.gradle.kts` (whichever apply).
-  - **Never stage:** `daemon/`, the generated SWIG bindings under `jami-android/libjamiclient/src/main/java/net/jami/daemon/`, or the `--without-brotli/--without-zstd` sed on `daemon/contrib/src/gnutls/rules.mak` (that's a per-build re-apply, never committed).
+  - **Never stage:** `daemon/`, the generated SWIG bindings under `jami-android/libjamiclient/src/main/java/net/jami/daemon/`, the `--without-brotli/--without-zstd` sed on `daemon/contrib/src/gnutls/rules.mak`, or the dhtnet patch's in-submodule footprint (`daemon/contrib/src/dhtnet/*.patch` + its `rules.mak` `$(APPLY)` line) — all per-build re-applies, never committed. The **canonical** dhtnet patch `patches/dhtnet-prefer-lan-interface.patch` at the repo root IS committable — stage it when it changes.
 - **ConstraintLayout edits to `res/layout/*.xml` can't be previewed in this environment — change ONE constraint at a time and verify on-device.** Stacking blind constraint changes regressed the outgoing file card twice in a row before the one-line fix landed.
-- **`gradlew` needs prerequisites every build.** Re-apply the gnutls sed (idempotent guard on the combined `--without-idn --without-brotli` string), then `( cd daemon/bin/jni && PACKAGEDIR=... ./make-swig.sh )` to regenerate the SWIG Java bindings. Both are in the canonical block — do not skip them.
+- **`gradlew` needs prerequisites every build.** Re-apply the gnutls sed (idempotent guard on the combined `--without-idn --without-brotli` string), re-apply the dhtnet LAN-interface patch (`patches/dhtnet-prefer-lan-interface.patch`, guards: patch name in `rules.mak` / `lanCapable` in the extracted source), then `( cd daemon/bin/jni && PACKAGEDIR=... ./make-swig.sh )` to regenerate the SWIG Java bindings. All are in the canonical block — do not skip them.
 
 ## State at handoff to Claude Code
 
