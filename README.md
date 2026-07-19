@@ -13,7 +13,7 @@ recovery and **Google-free push** — a swipeable **media viewer** with hide/res
 contacts** with vague notifications, **in-app message forwarding**, token-gated **automation
 intents**, smarter **registered-name** lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260706-01+6`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260706-01+8`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
