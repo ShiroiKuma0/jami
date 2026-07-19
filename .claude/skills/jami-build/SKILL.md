@@ -161,6 +161,23 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 
 The first line covers fresh extractions (`$(APPLY)` in `rules.mak`); the second patches an already-extracted tree and **rebuilds dhtnet via contrib make immediately** (`make -C … .dhtnet`, incremental, seconds). The direct `make` is mandatory: the gradle/CMake daemon build does NOT re-enter contrib make on an already-built tree, so a removed stamp alone is silently ignored and the old `libdhtnet.a` gets relinked (this cost one wasted build on 2026-07-17). On-device verification: logcat should show `PUPnP: Initialized on 192.168.1.<x>` instead of the invalid-interface error.
 
+**pjproject stuck-epoll-socket eviction (2026-07-19).** Root cause of the 12%-background-CPU regression seen after UPnP came alive: each `dhtnet::IceTransport` runs a dedicated `handleEvents` poll thread; a dead socket (failed TCP connect, candidate on a vanished interface) makes level-triggered epoll re-report `EPOLLERR`/`EPOLLHUP` forever with no pending pjnath op to consume it, and pjlib's anti-busy-loop backoff in `pjlib/src/pj/ioqueue_epoll.c` was capped at **10 ms** — so every such transport span at ~80-100 Hz (~1.2% CPU each), accumulating with connectivity events (diagnosed on-device with simpleperf on a `<profileable android:shell="true"/>` build). Two-layer fix in the canonical patch **`patches/pjproject-evict-stuck-epoll-sockets.patch`** (committable; stage at Push when it changes): (1) the backoff now sleeps the caller's full remaining poll budget instead of 10 ms; (2) after 5 consecutive unconsumed reports a key's fd is disarmed with `EPOLLONESHOT` (`ioqueue_note_unhandled()`), self-re-arming via any later `update_epoll_event_set`. Applied per build gnutls/dhtnet-style, never committed to `daemon/`:
+
+```bash
+# pjproject stuck-epoll eviction (idempotent; submodule, not committed — canonical patch at patches/)
+r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
+# rebuild needs the cross env that daemon/CMakeLists.txt exports for autoconf contribs — a bare
+# `make .pjproject` dies at configure with "C compiler cannot create executables" (cost one attempt):
+#   export ANDROID_NDK=~/android-sdk/ndk/29.0.14206865 TARGET=aarch64-linux-android API=26
+#   export TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64
+#   export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang CXX=$TOOLCHAIN/bin/${TARGET}${API}-clang++
+#   export AS="$CC -c" AR=$TOOLCHAIN/bin/llvm-ar RANLIB=$TOOLCHAIN/bin/llvm-ranlib STRIP=$TOOLCHAIN/bin/llvm-strip LD=$TOOLCHAIN/bin/ld
+# then: rm -f "$d/.pjproject" && make -C "$d" .pjproject   (guard: skip if stamp newer than the patched .c)
+```
+
+The refreshed pjproject headers make CMake rebuild jami-core (~90 objects) — expected, and it guarantees the relink.
+
 ## Other build traps
 
 - **NDK 29 / CMake 4.1.2 are on the SDK beta channel.** Install with `sdkmanager --channel=1`; a stable-channel sdkmanager won't list them.
@@ -247,6 +264,17 @@ r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls
 # dhtnet LAN-interface fix (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(MOVE)|" daemon/contrib/src/dhtnet/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q lanCapable "$d/dhtnet/src/ip_utils.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-prefer-lan-interface.patch && rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
+
+# pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
+r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" && ! [ "$d/.pjproject" -nt "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" ]; then
+  export ANDROID_NDK="$HOME/android-sdk/ndk/29.0.14206865" TARGET=aarch64-linux-android API=26
+  export TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64"
+  export CC="$TOOLCHAIN/bin/${TARGET}${API}-clang" CXX="$TOOLCHAIN/bin/${TARGET}${API}-clang++"
+  export AS="$CC -c" AR="$TOOLCHAIN/bin/llvm-ar" RANLIB="$TOOLCHAIN/bin/llvm-ranlib" STRIP="$TOOLCHAIN/bin/llvm-strip" LD="$TOOLCHAIN/bin/ld"
+  rm -f "$d/.pjproject" && make -C "$d" .pjproject
+fi'
 
 # SWIG JNI bindings (compile.sh's prerequisite step)
 ( cd daemon/bin/jni && PACKAGEDIR="$HOME/git/shiroikuma-jami/jami-android/libjamiclient/src/main/java" ./make-swig.sh )
