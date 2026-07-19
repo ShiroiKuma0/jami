@@ -20,7 +20,7 @@
      if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_EXCLUSIVE)
          key->ev.events |= EPOLLEXCLUSIVE;
      else if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_ONESHOT)
-@@ -791,6 +797,61 @@
+@@ -791,6 +797,63 @@
  }
  
  
@@ -31,13 +31,15 @@
 +#   define PJ_IOQUEUE_UNHANDLED_EVICT_CNT   5
 +#endif
 +
-+/* Called (with the ioqueue lock held) when epoll reported an event for
-+ * this key but no pending operation consumed it. Level-triggered epoll
-+ * re-reports such events on every poll — and EPOLLERR/EPOLLHUP cannot be
-+ * masked out at all — so a single dead socket (e.g. a failed TCP
-+ * connection, or a candidate socket whose interface disappeared) turns
-+ * every poll into a busy loop until the key is unregistered, which for a
-+ * long-lived ICE transport may be never.
++/* Called (with the ioqueue lock held) when epoll reported an
++ * EPOLLERR/EPOLLHUP-carrying event for this key that no pending operation
++ * consumed. Level-triggered epoll re-reports such events on every poll —
++ * and EPOLLERR/EPOLLHUP cannot be masked out at all — so a single dead
++ * socket (e.g. a failed TCP connection, or a candidate socket whose
++ * interface disappeared) turns every poll into a busy loop until the key
++ * is unregistered, which for a long-lived ICE transport may be never.
++ * Callers must gate on the error bits: benign unconsumed EPOLLIN/EPOLLOUT
++ * reports occur sporadically on healthy sockets and must never count.
 + *
 + * After PJ_IOQUEUE_UNHANDLED_EVICT_CNT consecutive unconsumed reports the
 + * fd is disarmed with EPOLLONESHOT: the kernel delivers one final report
@@ -82,7 +84,7 @@
  #if PJ_IOQUEUE_HAS_SAFE_UNREG
  /* Scan closing keys to be put to free list again */
  static void scan_closing_keys(pj_ioqueue_t *ioqueue)
-@@ -942,6 +1003,12 @@
+@@ -942,6 +1005,12 @@
                  queue[event_cnt].key = h;
                  queue[event_cnt].event_type = READABLE_EVENT;
                  ++event_cnt;
@@ -95,11 +97,17 @@
              }
              continue;
          }
-@@ -977,8 +1044,13 @@
+@@ -977,8 +1046,19 @@
           */
          TRACE_WARN((THIS_FILE, "     UNHANDLED event %d: events=0x%x, h=%p",
                      i, events[i].events, h));
-+        ioqueue_note_unhandled(ioqueue, h);
++        /* Only error-signature events count toward eviction: benign
++         * unconsumed EPOLLIN/EPOLLOUT reports (the "innocent cases" above)
++         * happen sporadically on perfectly healthy sockets and must never
++         * disarm one.
++         */
++        if (events[i].events & (EPOLLERR | EPOLLHUP))
++            ioqueue_note_unhandled(ioqueue, h);
      }
      for (i=0; i<event_cnt; ++i) {
 +        /* A consumed event proves the key is alive: restart its
@@ -109,23 +117,15 @@
          if (queue[i].key->grp_lock)
              pj_grp_lock_add_ref_dbg(queue[i].key->grp_lock, "ioqueue", 0);
      }
-@@ -1058,12 +1130,15 @@
-         /* We need to sleep in order to avoid busy polling, such
-          * as in the case of the thread that doesn't process
-          * the event as explained above.
--         * Limit the duration of the sleep, as doing pj_thread_sleep() for
--         * a long time is very inefficient. The main objective here is just
--         * to avoid busy loop.
-+         * Sleep out the caller's remaining timeout budget. The original
-+         * 10 ms cap turned every poll on a queue with an unconsumed
-+         * level-triggered event (dead socket) into a ~100 Hz busy loop;
-+         * with single-poller queues (one thread per ICE transport here)
-+         * nothing else drains the queue during the sleep, and a genuinely
-+         * consumable event always takes the event_cnt > 0 path above and
-+         * never sleeps at all.
+@@ -1061,6 +1141,11 @@
+          * Limit the duration of the sleep, as doing pj_thread_sleep() for
+          * a long time is very inefficient. The main objective here is just
+          * to avoid busy loop.
++         * (Keep the 10 ms cap: a longer sleep delays delivery of real
++         * packets that arrive mid-sleep, which degrades TLS/ICE timing on
++         * live links. The permanent-busy-loop case — a dead socket whose
++         * EPOLLERR/EPOLLHUP re-reports forever — is instead cured by
++         * ioqueue_note_unhandled() disarming the offender.)
           */
          int delay = msec - pj_elapsed_usec(&t1, &t2)/1000;
--        if (delay > 10) delay = 10;
-         if (delay > 0)
-             pj_thread_sleep(delay);
-     }
+         if (delay > 10) delay = 10;
