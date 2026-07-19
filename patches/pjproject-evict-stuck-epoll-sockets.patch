@@ -1,0 +1,131 @@
+--- a/pjlib/src/pj/ioqueue_epoll.c
++++ b/pjlib/src/pj/ioqueue_epoll.c
+@@ -86,6 +86,11 @@
+ {
+     DECLARE_COMMON_KEY
+     struct epoll_event ev;
++    /* Number of consecutive polls in which this key reported an epoll
++     * event that no pending operation consumed (e.g. level-triggered
++     * EPOLLERR/EPOLLHUP on a dead socket). See ioqueue_note_unhandled().
++     */
++    unsigned unhandled_cnt;
+ };
+ 
+ struct queue
+@@ -503,6 +508,7 @@
+     pj_bzero(&key->ev, sizeof(key->ev));
+     key->ev.epoll_data = (epoll_data_type)key;
+     key->ev.events = 0;
++    key->unhandled_cnt = 0;
+     if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_EXCLUSIVE)
+         key->ev.events |= EPOLLEXCLUSIVE;
+     else if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_ONESHOT)
+@@ -791,6 +797,61 @@
+ }
+ 
+ 
++/* Number of consecutive unconsumed event reports after which a key's fd
++ * is disarmed with EPOLLONESHOT (see ioqueue_note_unhandled()).
++ */
++#ifndef PJ_IOQUEUE_UNHANDLED_EVICT_CNT
++#   define PJ_IOQUEUE_UNHANDLED_EVICT_CNT   5
++#endif
++
++/* Called (with the ioqueue lock held) when epoll reported an event for
++ * this key but no pending operation consumed it. Level-triggered epoll
++ * re-reports such events on every poll — and EPOLLERR/EPOLLHUP cannot be
++ * masked out at all — so a single dead socket (e.g. a failed TCP
++ * connection, or a candidate socket whose interface disappeared) turns
++ * every poll into a busy loop until the key is unregistered, which for a
++ * long-lived ICE transport may be never.
++ *
++ * After PJ_IOQUEUE_UNHANDLED_EVICT_CNT consecutive unconsumed reports the
++ * fd is disarmed with EPOLLONESHOT: the kernel delivers one final report
++ * and then goes quiet. Any later update_epoll_event_set() (epoll_ctl MOD
++ * without EPOLLONESHOT, e.g. from ioqueue_add_to_set() when an operation
++ * is posted) re-arms level-triggered reporting, so a key that becomes
++ * active again recovers automatically. key->ev.events is deliberately
++ * left untouched so pjlib's own bookkeeping stays canonical.
++ */
++static void ioqueue_note_unhandled(pj_ioqueue_t *ioqueue,
++                                   pj_ioqueue_key_t *h)
++{
++    struct epoll_event ev;
++
++    if (IS_CLOSING(h))
++        return; /* about to be unregistered anyway */
++
++    if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_ONESHOT)
++        return; /* kernel already disarms after every delivery */
++
++    if (h->ev.events & EPOLLEXCLUSIVE)
++        return; /* EPOLL_CTL_MOD is invalid on EXCLUSIVE registrations */
++
++    if (++h->unhandled_cnt < PJ_IOQUEUE_UNHANDLED_EVICT_CNT)
++        return;
++
++    pj_bzero(&ev, sizeof(ev));
++    ev.epoll_data = (epoll_data_type)h;
++    ev.events = h->ev.events | EPOLLONESHOT;
++    if (os_epoll_ctl(ioqueue->epfd, EPOLL_CTL_MOD, h->fd, &ev) != 0) {
++        PJ_PERROR(4,(THIS_FILE, pj_get_os_error(),
++                     "evict: epoll_ctl(MOD, ONESHOT) error fd=%d",
++                     (int)h->fd));
++    } else {
++        TRACE_WARN((THIS_FILE, "     disarmed idle-erroring fd=%d after %u "
++                    "unconsumed events", (int)h->fd, h->unhandled_cnt));
++    }
++    h->unhandled_cnt = 0;
++}
++
++
+ #if PJ_IOQUEUE_HAS_SAFE_UNREG
+ /* Scan closing keys to be put to free list again */
+ static void scan_closing_keys(pj_ioqueue_t *ioqueue)
+@@ -942,6 +1003,12 @@
+                 queue[event_cnt].key = h;
+                 queue[event_cnt].event_type = READABLE_EVENT;
+                 ++event_cnt;
++            } else {
++                /* Dead socket (level-triggered EPOLLERR/EPOLLHUP) with no
++                 * pending operation to consume the event: nobody ever will,
++                 * and epoll will report it again on every poll.
++                 */
++                ioqueue_note_unhandled(ioqueue, h);
+             }
+             continue;
+         }
+@@ -977,8 +1044,13 @@
+          */
+         TRACE_WARN((THIS_FILE, "     UNHANDLED event %d: events=0x%x, h=%p",
+                     i, events[i].events, h));
++        ioqueue_note_unhandled(ioqueue, h);
+     }
+     for (i=0; i<event_cnt; ++i) {
++        /* A consumed event proves the key is alive: restart its
++         * unhandled-report counter.
++         */
++        queue[i].key->unhandled_cnt = 0;
+         if (queue[i].key->grp_lock)
+             pj_grp_lock_add_ref_dbg(queue[i].key->grp_lock, "ioqueue", 0);
+     }
+@@ -1058,12 +1130,15 @@
+         /* We need to sleep in order to avoid busy polling, such
+          * as in the case of the thread that doesn't process
+          * the event as explained above.
+-         * Limit the duration of the sleep, as doing pj_thread_sleep() for
+-         * a long time is very inefficient. The main objective here is just
+-         * to avoid busy loop.
++         * Sleep out the caller's remaining timeout budget. The original
++         * 10 ms cap turned every poll on a queue with an unconsumed
++         * level-triggered event (dead socket) into a ~100 Hz busy loop;
++         * with single-poller queues (one thread per ICE transport here)
++         * nothing else drains the queue during the sleep, and a genuinely
++         * consumable event always takes the event_cnt > 0 path above and
++         * never sleeps at all.
+          */
+         int delay = msec - pj_elapsed_usec(&t1, &t2)/1000;
+-        if (delay > 10) delay = 10;
+         if (delay > 0)
+             pj_thread_sleep(delay);
+     }
