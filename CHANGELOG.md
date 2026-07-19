@@ -4,6 +4,42 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260706-01+6 — 2026-07-19
+
+One root-cause fix for the regression the `+4` release itself uncovered: with UPnP/NAT-PMP alive
+again, background CPU crept back up to a constant ~12%. Build `+5` was an interim diagnostic
+artifact (it only added the `profileable` manifest flag used to hunt the bug) and was never
+released; `+6` supersedes it.
+
+### Fixes
+- **Background-CPU creep: ICE poll threads spinning on dead sockets** (pjlib bug, fixed via the
+  fork's per-build contrib patch `patches/pjproject-evict-stuck-epoll-sockets.patch`). Every
+  dhtnet `IceTransport` runs its own event-loop thread around `pj_ioqueue_poll()`. When one of a
+  transport's sockets dies — a failed TCP connect, or a candidate socket whose network interface
+  vanished in a WiFi↔mobile flip — level-triggered epoll re-reports `EPOLLERR`/`EPOLLHUP` on every
+  poll, forever, and pjnath has no pending operation left that could consume the event. pjlib's
+  anti-busy-loop backoff for exactly this "returned events, none consumed" case is capped at
+  **10 ms**, so each affected transport woke ~80–100 times per second (~1.2% CPU each) for as long
+  as it lived — and long-lived links accumulate one such spinner per connectivity event, which is
+  why CPU grew stepwise from ~1% to 12%+ over hours. Diagnosed on-device with `simpleperf` DWARF
+  call graphs (the smoking gun: `pj_ioqueue_poll → pj_thread_sleep`, the only sleep site in
+  `ioqueue_epoll.c`, plus per-thread birth times showing batches born at connectivity events).
+  Fixed in two layers:
+  1. the unconsumed-event backoff now sleeps the caller's full remaining poll budget instead of
+     10 ms (real traffic never takes this branch, so latency is unaffected);
+  2. after 5 consecutive unconsumed reports, a new `ioqueue_note_unhandled()` disarms the
+     offending fd with `EPOLLONESHOT` — the kernel delivers one final report and goes quiet.
+     Any consumed event resets the strike counter, and any later posted operation re-arms
+     level-triggered reporting via `epoll_ctl(MOD)`, so sockets that come back to life recover
+     automatically. Closing keys, ONESHOT-configured queues and `EPOLLEXCLUSIVE` registrations
+     (where `MOD` is invalid) are left alone.
+  Measured result: background CPU **~12% → ~3%** (the pre-`+4` baseline), no 80 Hz poller threads.
+
+### Packaging
+- **The app is now `<profileable android:shell="true"/>`** — the standard zero-cost production
+  flag that lets `simpleperf` attach from an adb shell. It is what made this diagnosis possible
+  and stays in for future ones; it does not weaken release optimizations, signing, or security.
+
 ## 20260706-01+4 — 2026-07-17
 
 Two root-cause fixes, both found by on-device tracing on the Mate XT after the app sat at a
