@@ -4,6 +4,38 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260706-01+8 — 2026-07-19
+
+An upstream sync plus a critical correction to the `+6` epoll fix. Build `+7` (the bare upstream
+sync, still carrying the v1 epoll patch) was delivered for testing but never released; `+8`
+supersedes it.
+
+### Upstream sync
+Rebased onto `savoirfairelinux/jami-client-android` master `b4db1f447` (same `20260706-01` base,
+three new commits):
+- **Conference call notifications un-stalled** — `placeCallObservable()` never resolved
+  `Call.systemConnection` when bypassing Telecom, permanently blocking the call-notification
+  pipeline after adding a participant to a conference; stale merged-conference notifications are
+  also cleared when a conference collapses back to a single call.
+- **Mute audio output during calls** — mute state is tracked in-app and silence is emitted while
+  playback frames keep draining, so no stale audio builds up while muted.
+- Play-store deploy tooling (fastlane) no longer re-uploads the store listing — not applicable to
+  this fork's builds.
+
+### Fixes
+- **v2 of the stuck-epoll-socket eviction — live links are now untouchable** (correction to the
+  `+6` patch, which turned out to destabilize established TLS/ICE links: benign unconsumed
+  readable/writable epoll reports — pjsip's own "innocent cases", sporadic on perfectly healthy
+  sockets — could both delay real packets by up to 500 ms (v1 had removed pjlib's 10 ms sleep cap)
+  and, worse, accumulate 5 strikes and `EPOLLONESHOT`-disarm a **live** socket, silencing its
+  inbound traffic entirely. The starved link then died with a TLS "non-properly terminated" error
+  and reconnected, several times a minute — each cycle burning a DH/RSA handshake plus a wave of
+  RSA re-decryptions of DHT values, which showed up as CPU alternating between ~15% and ~60%.)
+  v2 restores pjlib's 10 ms sleep cap verbatim and counts eviction strikes **only** for unhandled
+  events carrying `EPOLLERR`/`EPOLLHUP` — the level-triggered signature only dead sockets produce.
+  A healthy socket can never be disarmed; a true zombie still goes quiet after ~50 ms, fully
+  preserving the `+6` fix for the 12% background-CPU creep.
+
 ## 20260706-01+6 — 2026-07-19
 
 One root-cause fix for the regression the `+4` release itself uncovered: with UPnP/NAT-PMP alive
