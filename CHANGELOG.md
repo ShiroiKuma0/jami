@@ -4,6 +4,23 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260717-01+1 — 2026-07-20
+
+Upstream sync: rebased the full fork stack (136 commits) onto upstream `20260717-01`
+(versionCode 501, client tip `b61dce7e1`). One rebase conflict (the version block), no fork-side
+behavior changes — everything from `+12` rides along unchanged. All three per-build contrib
+patches (dhtnet LAN-interface preference, dhtnet UPnP circuit breaker, pjproject stuck-epoll
+eviction) were verified to apply cleanly against the updated contrib sources before building.
+
+### From upstream
+- **Daemon advanced ~20 commits**, including: **OpenDHT 4.1.1 → 4.2.0** and an updated **dhtnet**
+  (with a `ConnectionManager` pending-callback fix); a fix for undefined behavior in the swarm
+  routing table (`Bucket::removeNode`) and a null-issuer guard in the `onNeedSocket` path — both
+  crash-class fixes; "swarm: set mobile status"; and the daemon half of mute-audio-output
+  (silence emitted while playback is muted), pairing with the client-side mute control from the
+  previous sync.
+- One new translated string across all locales (i18n bump).
+
 ## 20260706-01+12 — 2026-07-20
 
 The self-healing connectivity release, built in one day against a live outage: links died at 10:42
