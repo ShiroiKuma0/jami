@@ -13,6 +13,7 @@
 package cx.ring.utils
 
 import net.jami.model.Account
+import net.jami.model.Contact
 import net.jami.model.interaction.Interaction
 
 object ConnectionHealth {
@@ -20,6 +21,41 @@ object ConnectionHealth {
 
     /** An outgoing message undelivered (no ✓ from any recipient) longer than this is "stuck". */
     const val STUCK_MSG_MS = 90_000L
+
+    /** One undelivered-too-long outgoing message, with the triage data the watchdog needs:
+     *  the best (highest) presence among the recipients decides whose fault it likely is —
+     *  a CONNECTED recipient who still hasn't ACKed is damning for our side; an OFFLINE one
+     *  (airplane, powered-off device) makes the same observation completely benign. */
+    data class StuckMsg(
+        val convId: String,
+        val memberUri: String,
+        val presence: Contact.PresenceStatus,
+        val fingerprint: String,
+    )
+
+    /** All conversations (1:1 and swarm) whose LAST outgoing text is undelivered for
+     *  > STUCK_MSG_MS, each annotated with the best recipient presence. Unlike the old
+     *  same-device-only heuristic, this scans everything and leaves the its-their-fault /
+     *  our-fault judgment to the caller, which has the presence to decide. */
+    fun accountStuckMessages(account: Account, nowMs: Long): List<StuckMsg> {
+        val out = ArrayList<StuckMsg>()
+        for (conv in account.getConversations()) {
+            val e = conv.lastEvent ?: continue
+            if (e.isIncoming || e.type != Interaction.InteractionType.TEXT) continue
+            val delivered = e.status == Interaction.InteractionStatus.SUCCESS ||
+                e.status == Interaction.InteractionStatus.DISPLAYED ||
+                e.statusMap.values.any { it == Interaction.MessageStates.SUCCESS || it == Interaction.MessageStates.DISPLAYED }
+            if (delivered || nowMs - e.timestamp <= STUCK_MSG_MS) continue
+            val best = conv.contacts.filter { !it.isUser }
+                .maxByOrNull { it.lastPresence.ordinal } ?: continue
+            out.add(StuckMsg(
+                conv.uri.uri,
+                best.uri.uri,
+                best.lastPresence,
+                "${conv.uri.uri}:${e.timestamp}"))
+        }
+        return out
+    }
 
     /** For each SAME-DEVICE conversation (a member is another of MY accounts — includes group swarms,
      *  which the connection table cannot see) whose last outgoing text is undelivered for > STUCK_MSG_MS,
