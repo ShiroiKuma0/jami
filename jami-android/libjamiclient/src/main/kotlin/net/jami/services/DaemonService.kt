@@ -127,18 +127,22 @@ class DaemonService(
         }
 
         override fun incomingAccountMessage(accountId: String, from: String, messageId: String, messages: StringMap) {
+            net.jami.utils.InboundEvidence.note("msg")
             if (messages.isEmpty()) return
             val jmessages: Map<String, String> = messages.toNativeFromUtf8()
             mExecutor.submit { mAccountService.incomingAccountMessage(accountId, messageId, null, from, jmessages) }
         }
 
         override fun accountMessageStatusChanged(accountId: String, conversationId: String, peer: String, messageId: String, status: Int) {
+            // SUCCESS(2)/DISPLAYED(3) are peer ACKs — proof the inbound path is alive.
+            if (status == 2 || status == 3) net.jami.utils.InboundEvidence.note("receipt")
             mExecutor.submit {
                 mAccountService.accountMessageStatusChanged(accountId, conversationId, messageId, peer, status)
             }
         }
 
         override fun composingStatusChanged(accountId: String, conversationId: String, contactUri: String, status: Int) {
+            net.jami.utils.InboundEvidence.note("typing")
             mExecutor.submit { mAccountService.composingStatusChanged(accountId, conversationId, contactUri, status) }
         }
 
@@ -184,6 +188,7 @@ class DaemonService(
         }
 
         override fun incomingTrustRequest(accountId: String, conversationId: String, from: String, message: Blob, received: Long) {
+            net.jami.utils.InboundEvidence.note("request")
         }
 
         override fun contactAdded(accountId: String, uri: String, confirmed: Boolean) {
@@ -245,6 +250,7 @@ class DaemonService(
         }
 
         override fun incomingCall(accountId: String, callId: String, from: String, mediaList: VectMap) {
+            net.jami.utils.InboundEvidence.note("call")
             mCallService.incomingCall(accountId, callId, from, mediaList)
         }
 
@@ -305,6 +311,9 @@ class DaemonService(
         }
 
         override fun newBuddyNotification(accountId: String, buddyUri: String, status: Int, lineStatus: String) {
+            // status > 0 = a positive presence announce received from the DHT (an
+            // expiry-driven offline is local bookkeeping, not inbound evidence).
+            if (status > 0) net.jami.utils.InboundEvidence.note("presence")
             mExecutor.submit { mAccountService.getAccount(accountId)?.presenceUpdate(buddyUri, status) }
         }
 
@@ -392,6 +401,7 @@ class DaemonService(
         }
 
         override fun swarmMessageReceived(accountId: String, conversationId: String, message: SwarmMessage) {
+            net.jami.utils.InboundEvidence.note("swarm")
             mAccountService.swarmMessageReceived(accountId, conversationId, message)
         }
 
