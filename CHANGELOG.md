@@ -4,6 +4,57 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260706-01+12 — 2026-07-20
+
+The self-healing connectivity release, built in one day against a live outage: links died at 10:42
+with a TLS/ICE error storm, then **52 minutes of silence** — the daemon believed it was connected,
+nothing outgoing looked stuck, and no recovery ran until a manual hard reset at 11:47. Root causes
+found on the way: the router's UPnP/NAT-PMP service had been switched off in its configuration, and
+NAT bindings expired while the CPU slept, leaving the DHT deaf with a clean log. Builds `+9`–`+11`
+were interim steps of this arc (each superseded within hours) and were never released.
+
+### The watchdog: four reactive layers (all traffic-free in steady state)
+- **Error-storm monitor** — tails the app's own error log (no permissions needed) and reacts within
+  seconds to a burst of ≥8 TLS-fatal/ICE-failure lines in 60 s: smart recover, hard reset on
+  recurrence within 10 min. Fresh inbound evidence vetoes the trigger, so benign mass-teardowns
+  can never fire it.
+- **Verified-deafness clock** — a passive inbound-evidence clock (messages, receipts, presence
+  announces, typing, trust requests, calls — timestamped at the daemon-callback chokepoints).
+  5 minutes of silence only raises suspicion; a silent presence probe (a DHT subscription re-arm on
+  the three best-presence peers per account — invisible to contacts, no message sent) must then go
+  unanswered for 60 s before the smart→hard ladder runs. Presence announces are themselves
+  ~10–15 min periodic, so a bare silence clock false-fired on quiet evenings; the probe gate ended
+  that while allowing the limit to *drop* from 10 to 5 minutes.
+- **Presence-triaged stuck messages** — an undelivered message alone is never treated as local
+  fault (a recipient on an airplane had the old heuristic full-recovering every 3 minutes,
+  a self-sustaining loop whose constant re-registration also prevented delivery from settling).
+  Each stuck message is triaged by the recipient's live presence: connected-yet-not-ACKing is
+  damning; offline is benign; ambiguous merely halves the deafness limit. Two or more distinct
+  non-offline stuck recipients with inbound also quiet count as breadth evidence. A fingerprint
+  ledger makes every wedge recovery once-only: unchanged evidence gets a single hard escalation,
+  then a 60-minute stand-down with one notification.
+- **Restricted-network mode** — after a recovery visibly fails, a 2-second egress diagnosis (raw
+  STUN Binding over UDP plus a bare TCP connect to the TURN server — zero Jami traffic) classifies
+  the hostile-WiFi trap: UDP blocked while TCP works. There the normal recovery (dropping to the
+  full DHT — which is UDP) would be exactly wrong, so the mode pins the DHT proxy ON, degrades
+  full recovery to re-register-only, lets TURN-TCP relays carry traffic, and says so honestly
+  (「制限ネットワーク検出（UDP遮断）→ プロキシ固定ON・中継モード」). Exit requires two
+  consecutive UDP passes at 2-minute re-tests; the mode survives app restarts.
+
+### Forensics & visibility
+Every trigger appends a full incident record (what fired, why, and the recent daemon error lines)
+to `Android/data/shiroikuma.jami/files/watchdog-incidents.log` and posts a Japanese notification
+(「白い熊 Jami 自動回復」) — outages become visible and diagnosable after the fact without ever
+watching the phone.
+
+### Fixes
+- **UPnP circuit breaker** (per-build contrib patch `patches/dhtnet-upnp-circuit-breaker.patch`) —
+  with UPnP enabled but the router's UPnP service dead, every single ICE transport setup blocked
+  for up to 4 s waiting for a port mapping that could never be granted. Mapping requests are now
+  skipped outright when no valid IGD is present, and six consecutive mapping failures open a
+  5-minute breaker (half-open probe after cooldown; any success closes it). UPnP can stay enabled
+  everywhere, forever: a healthy router grants mappings, a broken one costs nothing.
+
 ## 20260706-01+8 — 2026-07-19
 
 An upstream sync plus a critical correction to the `+6` epoll fix. Build `+7` (the bare upstream
