@@ -84,6 +84,13 @@ object UiPrefs {
     fun isCanaryConfigured(c: Context): Boolean =
         getRecoveryTestSwarm(c).isNotEmpty() && getRecoveryTestAccount(c).isNotEmpty()
 
+    /** Restricted-network (hostile WiFi) mode: UDP egress verified blocked while TCP works —
+     *  the watchdog pins the DHT proxy ON and traffic rides TURN relays until UDP returns. */
+    fun isRestrictedNet(c: Context): Boolean = p(c).getBoolean("restricted_net", false)
+    fun setRestrictedNet(c: Context, on: Boolean) {
+        p(c).edit().putBoolean("restricted_net", on).apply()
+    }
+
     /** Watchdog tick, in minutes. Default 3. */
     fun getRecoveryTickMinutes(c: Context): Int = p(c).getInt("recovery_tick_min", 3)
     fun setRecoveryTickMinutes(c: Context, v: Int) {
