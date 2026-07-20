@@ -1,0 +1,93 @@
+--- a/src/ice_transport.cpp
++++ b/src/ice_transport.cpp
+@@ -72,6 +72,36 @@
+ static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
+ static constexpr int HANDLE_EVENT_DURATION {500};
+ static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
++
++/* Circuit breaker for the UPnP port-mapping path.
++ *
++ * requestUpnpMappings() blocks every ICE transport setup for up to
++ * PORT_MAPPING_TIMEOUT waiting for a mapping. When the router's UPnP
++ * service is down (dead IGD, disabled service, exhausted table), every
++ * request fails — and every connection attempt keeps paying the wait,
++ * in exactly the time-critical window where ICE must complete.
++ *
++ * The breaker counts consecutive mapping failures across all transports;
++ * after UPNP_BREAKER_THRESHOLD of them it opens for
++ * UPNP_BREAKER_COOLDOWN, during which requestUpnpMappings() returns
++ * immediately (ICE proceeds with host/STUN/TURN candidates, i.e. the
++ * exact behavior of UPnP-disabled). After the cooldown one attempt is
++ * let through (half-open probe): success closes the breaker, failure
++ * re-opens it. Any successful mapping resets the failure counter, so a
++ * healthy router is never affected.
++ */
++static constexpr unsigned UPNP_BREAKER_THRESHOLD {6};
++static constexpr std::chrono::minutes UPNP_BREAKER_COOLDOWN {5};
++static std::atomic<unsigned> upnpBreakerFails {0};
++static std::atomic<int64_t> upnpBreakerOpenUntilMs {0};
++
++static int64_t
++upnpBreakerNowMs()
++{
++    return std::chrono::duration_cast<std::chrono::milliseconds>(
++               std::chrono::steady_clock::now().time_since_epoch())
++        .count();
++}
+ //==============================================================================
+ 
+ using namespace upnp;
+@@ -959,6 +989,23 @@
+ {
+     if (not upnp_)
+         return;
++
++    // Circuit breaker: with no valid IGD, or after a run of consecutive
++    // failures, skip the request — and its PORT_MAPPING_TIMEOUT wait —
++    // entirely. ICE then proceeds exactly as with UPnP disabled.
++    if (not upnp_->isReady()) {
++        if (logger_)
++            logger_->warn("[ice:{}] UPnP: no valid IGD — skipping mapping request",
++                          fmt::ptr(this));
++        return;
++    }
++    if (upnpBreakerNowMs() < upnpBreakerOpenUntilMs.load(std::memory_order_relaxed)) {
++        if (logger_)
++            logger_->warn("[ice:{}] UPnP circuit breaker open — skipping mapping request",
++                          fmt::ptr(this));
++        return;
++    }
++
+     auto transport = isTcpEnabled() ? PJ_CAND_TCP_PASSIVE : PJ_CAND_UDP;
+     auto portType = transport == PJ_CAND_UDP ? PortType::UDP : PortType::TCP;
+ 
+@@ -1019,7 +1066,29 @@
+         for (auto& map : state->mappings) {
+             upnp_->releaseMapping(*map.second);
+         }
++        // Feed the circuit breaker: after UPNP_BREAKER_THRESHOLD consecutive
++        // failures, stop asking (and waiting) for UPNP_BREAKER_COOLDOWN.
++        if (upnpBreakerFails.fetch_add(1, std::memory_order_relaxed) + 1
++            >= UPNP_BREAKER_THRESHOLD) {
++            upnpBreakerFails.store(0, std::memory_order_relaxed);
++            upnpBreakerOpenUntilMs.store(
++                upnpBreakerNowMs()
++                    + std::chrono::duration_cast<std::chrono::milliseconds>(
++                          UPNP_BREAKER_COOLDOWN)
++                          .count(),
++                std::memory_order_relaxed);
++            if (logger_)
++                logger_->warn("[ice:{}] UPnP circuit breaker OPEN for {:d} min after {:d} "
++                              "consecutive mapping failures",
++                              fmt::ptr(this),
++                              (int) std::chrono::duration_cast<std::chrono::minutes>(
++                                  UPNP_BREAKER_COOLDOWN)
++                                  .count(),
++                              (int) UPNP_BREAKER_THRESHOLD);
++        }
+     } else {
++        upnpBreakerFails.store(0, std::memory_order_relaxed);
++        upnpBreakerOpenUntilMs.store(0, std::memory_order_relaxed);
+         for (auto& map : state->mappings) {
+             if (logger_)
+                 logger_->debug("[ice:{}] UPnP mapping {:s} successfully allocated\n",
