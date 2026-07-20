@@ -92,7 +92,15 @@ class Contact(val uri: Uri, val isUser: Boolean = false) {
         CONNECTED
     }
 
+    /** Last presence delivered for this contact — readable synchronously (the observable
+     *  only streams). OFFLINE until the first announce arrives, which errs on the benign
+     *  side for consumers like the watchdog's stuck-message triage. */
+    @Volatile
+    var lastPresence: PresenceStatus = PresenceStatus.OFFLINE
+        private set
+
     fun setPresence(present: PresenceStatus) {
+        lastPresence = present
         mContactPresenceEmitter?.onNext(present)
     }
 
