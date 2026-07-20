@@ -211,6 +211,12 @@ class DRingService : Service() {
         mHandler.postDelayed(mWatchdogRunnable, WATCHDOG_INTERVAL_MS)
         mHandler.postDelayed(mOnlineRecoveryRunnable,
             cx.ring.utils.UiPrefs.getRecoveryTickMinutes(this) * 60_000L)
+        // Error-storm monitor: reacts to daemon link-death bursts within seconds,
+        // instead of waiting for the next recovery tick.
+        cx.ring.utils.LogStormMonitor.onStorm = { lines ->
+            cx.ring.utils.ConnectionWatchdog.onErrorStorm(this, mAccountService, lines)
+        }
+        cx.ring.utils.LogStormMonitor.start()
         JamiApplication.instance!!.apply {
             bindDaemon()
             bootstrapDaemon()
