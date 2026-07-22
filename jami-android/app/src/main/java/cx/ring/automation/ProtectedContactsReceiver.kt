@@ -36,7 +36,8 @@ class ProtectedContactsReceiver : BroadcastReceiver() {
                 intent.getStringExtra(AutomationActivity.KEY_CONTACTS),
                 intent.getStringExtra(AutomationActivity.KEY_MODE),
                 intent.getStringExtra(AutomationActivity.KEY_TITLE),
-                intent.getStringExtra(AutomationActivity.KEY_BODY)
+                intent.getStringExtra(AutomationActivity.KEY_BODY),
+                intent.getStringExtra(AutomationActivity.KEY_BODY_PICTURE)
             )
             AutomationActivity.ACTION_GET_PROTECTED_CONTACTS -> {
                 if (!isOrderedBroadcast) return   // a result needs an ordered broadcast

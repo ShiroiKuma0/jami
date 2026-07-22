@@ -99,8 +99,9 @@ class FontsSettingsFragment : Fragment() {
         Group("Status & indicators", listOf(
             Element("Sending icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SENDING))),
             Element("Sent / delivered icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SUCCESS))),
-            Element("Account online icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_ONLINE))),
-            Element("Account offline icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_OFFLINE))),
+            Element("Connection dot — connected", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_ONLINE))),
+            Element("Connection dot — connecting", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_CONNECTING))),
+            Element("Connection dot — disconnected", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_OFFLINE))),
             Element("Account dot size", null, emptyList(), ScaleRole("Size (% of default)",
                 { c -> (UiPrefs.getStatusDotScale(c) * 100f).toInt() },
                 { c, v -> UiPrefs.setStatusDotScale(c, v / 100f) }, 50, 300)),
@@ -237,6 +238,7 @@ class FontsSettingsFragment : Fragment() {
             .setTitle("App language")
             .setSingleChoiceItems(names, checked) { d, which ->
                 val tag = ordered[which].first
+                cx.ring.utils.UiPrefs.setAppLanguage(ctx, tag)   // survives updates; re-asserted on start
                 androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
                     if (tag.isEmpty()) androidx.core.os.LocaleListCompat.getEmptyLocaleList()
                     else androidx.core.os.LocaleListCompat.forLanguageTags(tag))
@@ -255,6 +257,10 @@ class FontsSettingsFragment : Fragment() {
             layoutParams = matchWrap()
             setPadding(dp(84f), dp(6f), dp(12f), dp(4f))
         }
+        box.addView(orSwitchRow("Full DHT — proxy off, robustness-first (default)", UiPrefs.isFullDhtMode(ctx)) {
+            UiPrefs.setFullDhtMode(ctx, it)
+            mAccountService.setProxyEnabled(!it)   // authoritative + immediate: full DHT → all accounts proxy off; off → proxy on
+        })
         box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
             UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping
         })
