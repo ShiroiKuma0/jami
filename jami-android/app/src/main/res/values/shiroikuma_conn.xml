@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — connection dashboard / watchdog strings. English is the default (base) locale;
+     values-ja and values-cs carry Japanese and Czech. Any other app language falls back to this file. -->
+<resources>
+    <!-- Dashboard chrome -->
+    <string name="conn_dash_title">Connection dashboard</string>
+    <string name="conn_dash_info">ⓘ Info</string>
+    <string name="conn_dash_monitor">Monitor</string>
+    <string name="conn_dash_recover_now">⚡ Recover now</string>
+    <string name="conn_dash_close">Close</string>
+    <string name="conn_dash_checking">Checking…</string>
+    <string name="conn_dash_all_healthy">✓ All accounts healthy</string>
+    <string name="conn_dash_need_attention">⚠ %d account(s) need attention</string>
+    <string name="conn_dash_network">Network: %s</string>
+    <string name="conn_dash_network_none">none</string>
+    <string name="conn_dash_history">History</string>
+    <string name="conn_dash_history_none">(no events yet)</string>
+    <string name="conn_dash_no_account">No account</string>
+    <string name="conn_dash_recovering">recovering</string>
+    <string name="conn_dash_restricted">restricted network</string>
+    <string name="conn_dash_proxy_on">DHT proxy: ON</string>
+    <string name="conn_dash_proxy_off">DHT proxy: OFF (full DHT)</string>
+
+    <!-- Per-account / per-contact states -->
+    <string name="conn_state_healthy">online · healthy</string>
+    <string name="conn_state_connecting">connecting…</string>
+    <string name="conn_state_not_syncing">NOT SYNCING</string>
+    <string name="conn_state_offline">OFFLINE</string>
+    <string name="conn_state_connected">connected</string>
+    <string name="conn_state_reachable">reachable</string>
+    <string name="conn_state_peer_offline">offline</string>
+    <string name="conn_state_waiting">waiting…</string>
+    <string name="conn_state_ice">negotiating (ICE)…</string>
+    <string name="conn_state_tls">securing (TLS)…</string>
+    <string name="conn_connected_count">%d connected</string>
+    <string name="conn_msg_stuck_count">%d msg stuck</string>
+    <string name="conn_msg_not_delivered">⚠ message not delivered → %s</string>
+    <string name="conn_no_active">no active connection</string>
+    <string name="conn_channels">%d ch</string>
+    <string name="conn_acct_history">Account history</string>
+
+    <!-- Long-press tooltips -->
+    <string name="tip_recover_now">Recover now: full DHT + re-register + presence refresh — the strong fix for a stuck connection.</string>
+    <string name="tip_recover_account">Recover just this account (re-register + presence refresh), leaving the healthy ones untouched.</string>
+    <string name="tip_account_row">Tap to expand this account\'s contacts and their live connections.</string>
+    <string name="tip_info">How the dashboard and automatic recovery work.</string>
+    <string name="tip_monitor">Open the full connection monitor.</string>
+    <string name="tip_close">Close the dashboard.</string>
+    <string name="tip_dot">Connection dashboard: per-account status, history and recovery.</string>
+    <string name="tip_flash">Recover now: full DHT + re-register + presence refresh.</string>
+    <string name="tip_dht_mode">Connection mode: yellow = full DHT (robust, no single proxy to wedge); blue = DHT proxy (lighter). Tap to switch — it sets every account at once.</string>
+    <string name="dht_switched_full">Switched to full DHT (all accounts)</string>
+    <string name="dht_switched_proxy">Switched to DHT proxy (all accounts)</string>
+
+    <!-- Auto-recovery notifications -->
+    <string name="notif_recover_title">白い熊 Jami · auto-recovery</string>
+    <string name="notif_storm_smart">Error storm detected → smart recover (%s)</string>
+    <string name="notif_storm_hard">Error storm again → hard reset (%s)</string>
+    <string name="notif_deaf_smart">Account silent %1$d min → recover (%2$s)</string>
+    <string name="notif_deaf_hard">Account silent %1$d min → full-DHT recover (%2$s)</string>
+    <string name="notif_stuck_hard">Delivery still stuck → hard reset (%s)</string>
+    <string name="notif_stuck_giveup">Delivery failing (%1$s) — pausing recovery %2$d min</string>
+    <string name="notif_restricted">Restricted network (UDP blocked) → proxy pinned ON, relay mode (%s)</string>
+    <string name="notif_network_down">Network appears down — check your connection (%s)</string>
+    <string name="notif_restricted_exit">Normal network restored — UDP open (%s)</string>
+
+    <!-- Info page (dashboard help) -->
+    <string name="info_dot_header">Account dot</string>
+    <string name="info_dot_connected">Connected — healthy</string>
+    <string name="info_dot_connecting">Connecting — connecting or recovering</string>
+    <string name="info_dot_disconnected">Disconnected — an account is silent, or the network is down</string>
+    <string name="info_dot_off">Off — the account is switched off, not trying to connect</string>
+    <string name="info_dot_noring">No ring: the colour alone shows the state.</string>
+    <string name="info_title">Connectivity &amp; recovery</string>
+    <string name="info_intro">You rarely need to touch anything here — a watcher runs continuously and repairs the connection on its own (see \"How auto-recovery works\" below). These controls are for when you want to force a repair yourself.</string>
+
+    <string name="info_h_main">On the main screen (top bar)</string>
+    <string name="info_b_main_dot">● Account dot — tap to open this dashboard. Its colour is the connection state: yellow = connected and healthy; blue = connecting or recovering; red = disconnected, an account gone silent, or the network down (it should be up but isn\'t). A hollow dot is different — it means the account is switched off / logged out and is not trying to connect. There is no ring; the dot\'s colour alone shows the state.</string>
+    <string name="info_b_main_flash">⚡ Flash — tap for Recover now: drop to the full DHT, re-register every account and refresh presence. The one strong manual fix; it turns blue while recovering.</string>
+    <string name="info_dht_header">Connection mode</string>
+    <string name="info_flash_header">Recover flash</string>
+    <string name="info_flash_ready">Ready</string>
+    <string name="info_flash_recovering">Recovering — while it repairs</string>
+    <string name="info_dht_full">Full DHT — robust; no single proxy link that can wedge</string>
+    <string name="info_dht_proxy">Proxy — lighter; inbound rides a proxy server</string>
+    <string name="info_b_main_dht">⬡ Connection-mode icon — its colour is the current mode (yellow = full DHT, blue = proxy). Tap to switch modes; it sets every account at once, so the per-account “Use DHT proxy” never drifts out of sync.</string>
+
+    <string name="info_h_dash">In this dashboard</string>
+    <string name="info_b_dash_rows">Account rows — tap a row to expand its contacts and their live connections (connecting → ICE → TLS → connected). Each row has its own ⚡ that recovers just that account, leaving the healthy ones untouched.</string>
+    <string name="info_b_dash_recover">⚡ Recover now — the same strong fix as the main-screen flash, for all accounts.</string>
+    <string name="info_b_dash_monitor">Monitor — opens the full connection monitor for the deepest per-device detail.</string>
+    <string name="info_b_dash_info">ⓘ Info — this page.</string>
+    <string name="info_b_dash_longpress">Long-press any button, row or icon (here or on the main screen) to see a description of what it does.</string>
+
+    <string name="info_h_auto">How auto-recovery works</string>
+    <string name="info_b_auto_intro">A watcher checks the connection about once a minute — and within seconds of trouble. It judges each account by whether real traffic is still arriving, not just by whether it reports \"connected\".</string>
+    <string name="info_b_auto_storm">Error storms: a burst of connection failures is only a hint. The watcher recovers on it only when the trouble is confirmed — the network genuinely unreachable, or a message stuck to a contact who is reachable. A burst while the network is fine, or right after a recovery (its own reconnection noise), is ignored. A confirmed problem a first recovery doesn\'t fix escalates to a full reset.</string>
+    <string name="info_b_auto_silence">Silent account: if an account receives nothing real for 5 minutes, the watcher checks whether the network itself is reachable — a genuine round-trip, not a self-answering trick. If the network is down that is a real outage: it re-registers (which can prompt Android to switch to a working network) and alerts you. If the network is fine, the account is merely quiet and is left alone.</string>
+    <string name="info_b_auto_coldstart">Cold start: if accounts don\'t come online within about a minute of launch, it drops straight to the full DHT to connect fast.</string>
+    <string name="info_b_auto_restricted">Hostile network: if a recovery fails and the network blocks UDP (some hotel / office Wi-Fi), it pins the proxy ON and relays over TCP, re-testing every 2 minutes and switching back when UDP returns.</string>
+    <string name="info_b_auto_stuck">Stuck messages: an undelivered message to an offline contact is ignored (that\'s their side); only a message stuck to a contact who is reachable counts as a problem.</string>
+    <string name="info_b_auto_proxy">Connection mode: by default every account runs on the full distributed DHT — the most robust mode, with no single proxy link that can wedge. On a network that blocks UDP the watcher pins the DHT proxy ON instead, so TURN relays carry traffic until UDP returns. Every check and recovery is recorded in the history, and a full copy is written to files/recovery-log.txt.</string>
+</resources>

@@ -1,0 +1,156 @@
+--- a/include/opendht/http.h
++++ b/include/opendht/http.h
+@@ -106,6 +106,11 @@
+ 
+     void timeout(const std::chrono::seconds& timeout, HandlerCb cb = {});
+ 
++    /** True if the last async_connect was aborted by the connect deadline
++     * (as opposed to a user cancellation). Lets callers surface the failure
++     * as timed_out instead of operation_aborted. */
++    bool connectDeadlineFired() const;
++
+     void close();
+ 
+ private:
+@@ -127,6 +132,13 @@
+     std::shared_ptr<asio::ssl::context> ssl_ctx_;
+     std::unique_ptr<ssl_socket_t> ssl_socket_;
+ 
++    /* Connect deadline: a black-holed endpoint otherwise leaves the kernel
++     * retrying SYNs for ~2 minutes per endpoint while the request silently
++     * stalls. All three guarded by mutex_. */
++    std::unique_ptr<asio::steady_timer> connect_deadline_;
++    bool connect_done_ {false};
++    bool connect_deadline_fired_ {false};
++
+     asio::ip::tcp::endpoint endpoint_;
+ 
+     asio::streambuf write_buf_;
+--- a/src/http.cpp
++++ b/src/http.cpp
+@@ -604,10 +604,47 @@
+     }
+     auto& base = ssl_socket_ ? ssl_socket_->lowest_layer() : *socket_;
+ 
++    // Bound the connect attempt. asio::async_connect otherwise waits out the
++    // kernel's SYN retransmissions (~2 minutes) for EACH black-holed endpoint,
++    // during which the request — and with it proxy listens/announces — stalls
++    // silently. On expiry the socket is closed, which completes the pending
++    // async_connect; connectDeadlineFired() lets the caller distinguish this
++    // from a user cancellation and surface it as timed_out.
++    static constexpr std::chrono::seconds CONNECT_DEADLINE {15};
++    connect_done_ = false;
++    connect_deadline_fired_ = false;
++    connect_deadline_ = std::make_unique<asio::steady_timer>(ctx_);
++    connect_deadline_->expires_after(CONNECT_DEADLINE);
++    std::weak_ptr<Connection> wthis = shared_from_this();
++    connect_deadline_->async_wait([wthis](const asio::error_code& tec) {
++        if (tec == asio::error::operation_aborted)
++            return;
++        if (auto sthis = wthis.lock()) {
++            std::lock_guard lock(sthis->mutex_);
++            if (sthis->connect_done_)
++                return;
++            sthis->connect_deadline_fired_ = true;
++            if (sthis->logger_)
++                sthis->logger_->error("[connection:{:d}] connect deadline reached — aborting attempt",
++                                      sthis->id_);
++            asio::error_code cec;
++            if (sthis->ssl_socket_)
++                sthis->ssl_socket_->lowest_layer().close(cec);
++            else if (sthis->socket_)
++                sthis->socket_->close(cec);
++        }
++    });
++
+ #pragma GCC diagnostic push
+ #pragma GCC diagnostic ignored "-Wunused-variable"
+     ConnectHandlerCb wcb = [this, &base, cb = std::move(cb)](const asio::error_code& ec,
+                                                              const asio::ip::tcp::endpoint& endpoint) {
++        {
++            std::lock_guard lock(mutex_);
++            connect_done_ = true;
++            if (connect_deadline_)
++                connect_deadline_->cancel();
++        }
+         if (!ec) {
+             local_address_ = base.local_endpoint().address();
+             // Once connected, set a keep alive on the TCP socket with 30 seconds delay
+@@ -626,6 +663,13 @@
+         asio::async_connect(*socket_, std::move(endpoints), wrapCallback(std::move(wcb)));
+ }
+ 
++bool
++Connection::connectDeadlineFired() const
++{
++    std::lock_guard lock(mutex_);
++    return connect_deadline_fired_;
++}
++
+ void
+ Connection::async_handshake(HandlerCb cb)
+ {
+@@ -1394,12 +1438,19 @@
+     // try to connect to any until one works
+     std::weak_ptr<Request> wthis = shared_from_this();
+     conn_->async_connect(std::move(endpoints),
+-                         [wthis, cb, isHttps](const asio::error_code& ec, const asio::ip::tcp::endpoint& endpoint) {
++                         [wthis, cb, isHttps](const asio::error_code& rawEc, const asio::ip::tcp::endpoint& endpoint) {
+                              auto sthis = wthis.lock();
+                              if (not sthis)
+                                  return;
+                              auto& this_ = *sthis;
+                              std::lock_guard lock(this_.mutex_);
++                             // A connect aborted by the deadline is a TIMEOUT, not a user
++                             // cancellation: surface it as such so upper layers (proxy
++                             // status, listener refresh) treat it as a real failure.
++                             auto ec = (rawEc == asio::error::operation_aborted
++                                        && this_.conn_ && this_.conn_->connectDeadlineFired())
++                                           ? asio::error::make_error_code(asio::error::timed_out)
++                                           : rawEc;
+                              if (ec == asio::error::operation_aborted) {
+                                  this_.terminate(ec);
+                                  return;
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -135,18 +135,29 @@
+     }
+     // run http client
+     httpClientThread_ = std::thread([this]() {
+-        try {
+-            if (logger_)
+-                logger_->debug("[proxy:client] starting io_context");
+-            // Ensures the httpContext_ won't run out of work
+-            auto work = asio::make_work_guard(httpContext_);
+-            httpContext_.run();
+-            if (logger_)
+-                logger_->debug("[proxy:client] http client io_context stopped");
+-        } catch (const std::exception& ex) {
+-            if (logger_)
+-                logger_->error("[proxy:client] run error: {}", ex.what());
++        if (logger_)
++            logger_->debug("[proxy:client] starting io_context");
++        // Ensures the httpContext_ won't run out of work
++        auto work = asio::make_work_guard(httpContext_);
++        // A handler exception must not permanently kill this thread: every
++        // proxy request (announce, listen, push registration) is executed by
++        // this io_context — with it dead, the client keeps reporting its last
++        // registration state while silently doing nothing. Log and resume.
++        while (true) {
++            try {
++                httpContext_.run();
++                break; // clean stop (shutdown)
++            } catch (const std::exception& ex) {
++                if (logger_)
++                    logger_->error("[proxy:client] run error (resuming): {}", ex.what());
++                if (isDestroying_)
++                    break;
++                if (httpContext_.stopped())
++                    httpContext_.restart();
++            }
+         }
++        if (logger_)
++            logger_->debug("[proxy:client] http client io_context stopped");
+     });
+     if (!proxyUrl_.empty())
+         startProxy();

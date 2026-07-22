@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dashboard chrome -->
+    <string name="conn_dash_title">Přehled připojení</string>
+    <string name="conn_dash_info">ⓘ Info</string>
+    <string name="conn_dash_monitor">Monitor</string>
+    <string name="conn_dash_recover_now">⚡ Obnovit</string>
+    <string name="conn_dash_close">Zavřít</string>
+    <string name="conn_dash_checking">Zjišťuji…</string>
+    <string name="conn_dash_all_healthy">✓ Všechny účty v pořádku</string>
+    <string name="conn_dash_need_attention">⚠ %d účtů vyžaduje pozornost</string>
+    <string name="conn_dash_network">Síť: %s</string>
+    <string name="conn_dash_network_none">žádná</string>
+    <string name="conn_dash_history">Historie</string>
+    <string name="conn_dash_history_none">(zatím žádné události)</string>
+    <string name="conn_dash_no_account">Žádný účet</string>
+    <string name="conn_dash_recovering">obnovování</string>
+    <string name="conn_dash_restricted">omezená síť</string>
+    <string name="conn_dash_proxy_on">DHT proxy: ZAP</string>
+    <string name="conn_dash_proxy_off">DHT proxy: VYP (plné DHT)</string>
+
+    <!-- Per-account / per-contact states -->
+    <string name="conn_state_healthy">online · v pořádku</string>
+    <string name="conn_state_connecting">připojování…</string>
+    <string name="conn_state_not_syncing">NESYNCHRONIZUJE</string>
+    <string name="conn_state_offline">OFFLINE</string>
+    <string name="conn_state_connected">připojeno</string>
+    <string name="conn_state_reachable">dostupné</string>
+    <string name="conn_state_peer_offline">offline</string>
+    <string name="conn_state_waiting">čeká…</string>
+    <string name="conn_state_ice">vyjednávání (ICE)…</string>
+    <string name="conn_state_tls">zabezpečení (TLS)…</string>
+    <string name="conn_connected_count">%d připojeno</string>
+    <string name="conn_msg_stuck_count">%d nedoručeno</string>
+    <string name="conn_msg_not_delivered">⚠ zpráva nedoručena → %s</string>
+    <string name="conn_no_active">žádné aktivní připojení</string>
+    <string name="conn_channels">%d k.</string>
+    <string name="conn_acct_history">Historie účtu</string>
+
+    <!-- Long-press tooltips -->
+    <string name="tip_recover_now">Obnovit: plné DHT + opětovná registrace + obnova přítomnosti — silná náprava zaseknutého spojení.</string>
+    <string name="tip_recover_account">Obnovit jen tento účet (registrace + přítomnost); zdravé účty zůstanou nedotčené.</string>
+    <string name="tip_account_row">Klepnutím rozbalíte kontakty účtu a jejich živá spojení.</string>
+    <string name="tip_info">Jak funguje přehled a automatická obnova.</string>
+    <string name="tip_monitor">Otevřít úplný monitor připojení.</string>
+    <string name="tip_close">Zavřít přehled.</string>
+    <string name="tip_dot">Přehled připojení: stav účtů, historie a obnova.</string>
+    <string name="tip_flash">Obnovit: plné DHT + opětovná registrace + obnova přítomnosti.</string>
+    <string name="tip_dht_mode">Režim připojení: žlutá = plné DHT (robustní, žádná jediná proxy k uváznutí); modrá = DHT proxy (lehčí). Klepnutím přepnete — nastaví všechny účty najednou.</string>
+    <string name="dht_switched_full">Přepnuto na plné DHT (všechny účty)</string>
+    <string name="dht_switched_proxy">Přepnuto na DHT proxy (všechny účty)</string>
+
+    <!-- Auto-recovery notifications -->
+    <string name="notif_recover_title">白い熊 Jami · automatická obnova</string>
+    <string name="notif_storm_smart">Bouře chyb → chytrá obnova (%s)</string>
+    <string name="notif_storm_hard">Bouře chyb znovu → tvrdý reset (%s)</string>
+    <string name="notif_deaf_smart">Účet mlčí %1$d min → obnova (%2$s)</string>
+    <string name="notif_deaf_hard">Účet mlčí %1$d min → obnova plným DHT (%2$s)</string>
+    <string name="notif_stuck_hard">Doručení stále vázne → tvrdý reset (%s)</string>
+    <string name="notif_stuck_giveup">Doručení selhává (%1$s) — obnova pozastavena na %2$d min</string>
+    <string name="notif_restricted">Omezená síť (UDP blokováno) → proxy pevně ZAP, přenos přes relé (%s)</string>
+    <string name="notif_network_down">Síť je zřejmě nedostupná — zkontrolujte připojení (%s)</string>
+    <string name="notif_restricted_exit">Běžná síť obnovena — UDP průchozí (%s)</string>
+
+    <!-- Info page -->
+    <string name="info_dot_header">Tečka účtu</string>
+    <string name="info_dot_connected">Připojeno — v pořádku</string>
+    <string name="info_dot_connecting">Připojování — připojování nebo obnova</string>
+    <string name="info_dot_disconnected">Odpojeno — účet mlčí nebo je síť nedostupná</string>
+    <string name="info_dot_off">Vypnuto — účet je vypnutý a nepokouší se připojit</string>
+    <string name="info_dot_noring">Žádný prstenec: stav ukazuje samotná barva.</string>
+    <string name="info_title">Připojení a obnova</string>
+    <string name="info_intro">Zde je málokdy potřeba cokoli mačkat — hlídač běží nepřetržitě a spojení opravuje sám (viz „Jak funguje automatická obnova“ níže). Tyto ovládací prvky jsou pro případ, kdy chcete opravu vynutit ručně.</string>
+
+    <string name="info_h_main">Na hlavní obrazovce (horní lišta)</string>
+    <string name="info_b_main_dot">● Tečka účtu — klepnutím otevřete tento přehled. Barva je stav připojení: žlutá = připojeno a v pořádku; modrá = připojování nebo obnova; červená = odpojeno, účet zmlkl, nebo síť nedostupná (mělo by být připojeno, ale není). Prázdná tečka je něco jiného — znamená, že účet je vypnutý / odhlášený a nepokouší se připojit. Žádný prstenec není; stav ukazuje samotná barva tečky.</string>
+    <string name="info_b_main_flash">⚡ Blesk — klepnutím Obnovit: přechod na plné DHT, opětovná registrace všech účtů a obnova přítomnosti. Jediná silná ruční náprava; během obnovy zmodrá.</string>
+    <string name="info_dht_header">Režim připojení</string>
+    <string name="info_flash_header">Blesk obnovy</string>
+    <string name="info_flash_ready">Připraveno</string>
+    <string name="info_flash_recovering">Obnova — během opravy</string>
+    <string name="info_dht_full">Plné DHT — robustní; žádné jediné proxy spojení, které by mohlo uváznout</string>
+    <string name="info_dht_proxy">Proxy — lehčí; příchozí provoz jde přes proxy server</string>
+    <string name="info_b_main_dht">⬡ Ikona režimu připojení — barva ukazuje aktuální režim (žlutá = plné DHT, modrá = proxy). Klepnutím režim přepnete; nastaví všechny účty najednou, takže se přepínač „Použít DHT proxy“ u jednotlivých účtů nerozejde.</string>
+
+    <string name="info_h_dash">V tomto přehledu</string>
+    <string name="info_b_dash_rows">Řádky účtů — klepnutím na řádek rozbalíte jeho kontakty a jejich živá spojení (připojování → ICE → TLS → připojeno). Každý řádek má vlastní ⚡, které obnoví jen daný účet a zdravé nechá být.</string>
+    <string name="info_b_dash_recover">⚡ Obnovit — stejná silná náprava jako blesk na hlavní obrazovce, pro všechny účty.</string>
+    <string name="info_b_dash_monitor">Monitor — otevře úplný monitor připojení s nejpodrobnějšími údaji o jednotlivých zařízeních.</string>
+    <string name="info_b_dash_info">ⓘ Info — tato stránka.</string>
+    <string name="info_b_dash_longpress">Podržením libovolného tlačítka, řádku nebo ikony (zde i na hlavní obrazovce) zobrazíte popis jeho funkce.</string>
+
+    <string name="info_h_auto">Jak funguje automatická obnova</string>
+    <string name="info_b_auto_intro">Hlídač kontroluje spojení přibližně jednou za minutu — a při potížích během sekund. Každý účet posuzuje podle toho, zda stále přichází skutečný provoz, ne jen podle hlášení „připojeno“.</string>
+    <string name="info_b_auto_storm">Bouře chyb: nával selhání spojení je jen náznak. Obnova se spustí jen tehdy, když je problém potvrzen — síť je skutečně nedostupná, nebo zpráva uvízla u kontaktu, který je dosažitelný. Nával při funkční síti, nebo hned po obnově (vlastní šum z opětovného připojení), se ignoruje. Potvrzený problém, který první obnova nevyřeší, se stupňuje na úplný reset.</string>
+    <string name="info_b_auto_silence">Mlčící účet: pokud účet 5 minut nepřijme nic skutečného, hlídač skutečným kruhovým testem ověří, zda je síť vůbec dostupná (žádné sebeodpovídající triky). Je-li síť nedostupná, jde o skutečný výpadek — znovu se zaregistruje (což může přimět Android přepnout na funkční síť) a upozorní vás. Je-li síť v pořádku, účet jen mlčí a nechá se být.</string>
+    <string name="info_b_auto_coldstart">Studený start: pokud účty nebudou online do zhruba minuty po spuštění, přejde rovnou na plné DHT pro rychlé připojení.</string>
+    <string name="info_b_auto_restricted">Nepřátelská síť: selže-li obnova a síť blokuje UDP (některé hotelové / firemní Wi-Fi), proxy pevně zapne a přenáší přes TCP, každé 2 minuty znovu testuje a po návratu UDP se přepne zpět.</string>
+    <string name="info_b_auto_stuck">Zaseknuté zprávy: nedoručená zpráva offline kontaktu se ignoruje (to je na jeho straně); jako problém se počítá jen zpráva zaseknutá u dostupného kontaktu.</string>
+    <string name="info_b_auto_proxy">Režim připojení: ve výchozím stavu každý účet běží na plném distribuovaném DHT — nejrobustnější režim bez jediného proxy spojení, které by mohlo uváznout. Na síti blokující UDP watcher místo toho připne DHT proxy ON, takže provoz nesou relaye TURN, dokud se UDP nevrátí. Každá kontrola i obnova se zaznamenává do historie a úplná kopie se zapisuje do files/recovery-log.txt.</string>
+</resources>
