@@ -4,6 +4,68 @@ All notable fork-specific changes to **白い熊 GNU Jami** (`shiroikuma.jami`),
 [GNU Jami](https://github.com/savoirfairelinux/jami-client-android). Versions are the upstream
 release date-code plus a per-build `+N` tail.
 
+## 20260717-01+30 — 2026-07-22
+
+OpenDHT 4.2.0 connectivity hardening. The `20260717-01` base pulled in **OpenDHT 4.2.0**, whose
+reworked DHT-proxy client introduced new silent-wedge failure modes — "registered and connected, but
+inbound is dead, contacts go red, and only a hard reset fixes it." Builds `+2`→`+30` root-caused each
+mode in the daemon and rebuilt the recovery logic to act on *confirmed* problems instead of noise.
+**Full DHT is now the default connection mode**, with the proxy usable again behind two independent
+self-healing layers.
+
+### DHT proxy — root-caused and self-healing (new daemon patches)
+- **Cached-endpoint black-hole failover** (`patches/opendht-proxy-connect-resilience.patch`) — each
+  account persistently caches its chosen `dhtproxy.jami.net` port; when that endpoint black-holes,
+  OpenDHT 4.2.0 never fails over (its rewritten http path dropped connect-failure propagation, and the
+  proxy client's io-thread dies permanently on any handler exception — connects sit in ~2-minute
+  kernel SYN limbo). The patch bounds every connect to a 15-second deadline (surfaced as `timed_out`,
+  so the daemon's proxy-failover machinery actually fires) and makes the io-thread log-and-resume
+  instead of dying.
+- **Silent subscription-lapse refresh** (`patches/opendht-proxy-subscription-refresh.patch`) — in push
+  (UnifiedPush) mode each account subscribes to its *own* proxy (`dhtproxy1/3/4/5`) for inbound; a
+  subscription can lapse silently while the server stays reachable, and OpenDHT only re-checks server
+  reachability (never the subscription) every 15 min, refreshing the subscription itself only every
+  22 hours. The patch drops the confirmation to 3 min and re-arms *every* push subscription on each
+  check (RESUBSCRIBE, no inbound gap), so a lapsed sub self-heals within 3 min — no re-register needed.
+- **Differential-deafness watcher** — because each account has its own proxy, wedges are per-account
+  and oscillate (2/4 healthy). When the network is verified alive and some accounts are receiving
+  while another has been silent past the limit, that one is genuinely wedged (idle would silence them
+  all), so the watchdog re-registers + re-subscribes just that account — at a 1-minute tick (down from
+  3), catching a per-account wedge in ~1–2 min instead of never.
+
+### Full DHT as the default
+- Full DHT (no single proxy link that can wedge — matches the fork's proven-reliable config) is now
+  the standing connection mode, settable. A **connection-mode icon in the search bar** — yellow =
+  full DHT, blue = proxy — shows the mode at a glance; tapping it switches modes and sets *every*
+  account's "Use DHT proxy" at once, so the per-account setting can't drift out of sync. On a
+  restricted (UDP-blocked) network the proxy is still pinned on automatically.
+
+### Recovery logic — act on confirmed problems, not noise
+- **Error storms are corroborated before recovering** — a burst of TLS/ICE fatals now recovers only
+  when the network egress is actually down *or* a message is stuck to a reachable contact; a burst
+  with the network alive and nothing stuck is logged as transient churn and left alone.
+- **Post-recovery blackout** — storms within 2 minutes of any recovery are ignored: a recovery
+  re-registers every account, whose teardown emits the very fatals the monitor counts. This fixed a
+  self-inflicted recover→re-register→re-storm loop that ran for three hours on cellular.
+- **Escalate only on persistence** — a HARD reset now requires that the prior recovery demonstrably
+  didn't help (no inbound since it ran), not merely "two storms in ten minutes."
+
+### Protected pictures
+- Protected authors' picture and file bodies are masked in notifications, and in-progress transfer
+  notifications for them are suppressed — extending the existing vague-notification protection to media.
+
+### UI, theming & fixes
+- **Connectivity help page** rewritten: the three top-bar icons (⬡ mode · ● dot · ⚡ recover) are shown
+  in left-to-right appearance order, each as its real glyph in colour variants before its explanation;
+  trilingual (English / Japanese / Czech).
+- **Connection-dot colours** settle on the fork convention — yellow = connected/healthy, blue =
+  connecting/recovering, red = disconnected/silent/network-down — with a one-time migration off the old
+  stored values; the main dot turns red the moment an account goes deaf.
+- **App language persists across install updates** — some ROMs drop the per-app locale on a sideload
+  update, so it's re-asserted from the fork's own prefs on every start.
+- The full recovery history is mirrored to `files/recovery-log.txt` (readable over adb or any file
+  manager) alongside the in-app dashboard.
+
 ## 20260717-01+1 — 2026-07-20
 
 Upstream sync: rebased the full fork stack (136 commits) onto upstream `20260717-01`
