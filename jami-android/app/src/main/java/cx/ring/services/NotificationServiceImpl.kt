@@ -933,6 +933,36 @@ class NotificationServiceImpl(
         // Ignore new notification if conversation is muted.
         if (!conversation.isNotificationEnabled) return
 
+        // Protected contacts: pictures/files must be masked exactly like texts — no name, no
+        // avatar, no BigPicture preview, on any surface. Same match rule as textNotification():
+        // ring id OR resolved registered name.
+        val authorProtected = ProtectedContactsPrefs.isProtected(mContext, author.contact.uri.uri) ||
+            author.registeredName?.let { ProtectedContactsPrefs.isProtected(mContext, it) } == true
+        if (authorProtected) {
+            if (event.isOver) {
+                // Same vague shape as the protected text path; body prefers the picture-specific
+                // companion text (「新着写真。」), falling back to the text body, then no body.
+                val vagueTitle = ProtectedContactsPrefs.getTitle(mContext) ?: mContext.getString(R.string.app_name)
+                val vague = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_PROTECTED)
+                    .setLocalOnly(true)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+                    .setSmallIcon(R.drawable.ic_ring_logo_white)
+                    .setContentTitle(vagueTitle)
+                    .setShowWhen(false)
+                    .setAutoCancel(true)
+                    .setContentIntent(PendingIntent.getActivity(mContext, random.nextInt(), intentViewConversation, ContentUri.immutable()))
+                    .addExtras(Bundle().apply { putBoolean(EXTRA_PROTECTED_MARKER, true) })
+                (ProtectedContactsPrefs.getPictureBody(mContext) ?: ProtectedContactsPrefs.getBody(mContext))
+                    ?.let { vague.setContentText(it) }
+                notificationManager.notify(random.nextInt(), vague.build())
+            }
+            // In-progress/progress notifications are suppressed entirely for protected senders —
+            // a progress card would leak (name/avatar), and even a vague one would advertise that
+            // SOMETHING is arriving from someone hidden. The transfer itself proceeds regardless.
+            return
+        }
+
         if(event.isOver){
             val notif = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_FILE_TRANSFER)
                 .setSmallIcon(R.drawable.ic_ring_logo_white)

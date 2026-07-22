@@ -428,6 +428,7 @@ class AccountService(
             }
 
     fun subscribeBuddy(accountID: String, uri: String, flag: Boolean) {
+        if (flag) net.jami.utils.InboundEvidence.noteSubscribe()   // its cached-presence echo isn't real inbound
         mExecutor.execute { JamiService.subscribeBuddy(accountID, uri, flag) }
     }
 
@@ -864,6 +865,38 @@ class AccountService(
         mExecutor.execute {
             val a = mAccountList.firstOrNull { it.accountId == accountId } ?: return@execute
             if (a.isJami) reconnectOne(a)
+        }
+    }
+
+    /** Re-arm DHT presence listens for one account's contacts. A re-register brings the account
+     *  back but does NOT re-subscribe buddy presence, so the presence dots (and the watchdog's
+     *  presence-based triage) stay dead after a recovery until this runs. */
+    fun resubscribeAccountPresence(accountId: String) {
+        mExecutor.execute {
+            val a = mAccountList.firstOrNull { it.accountId == accountId } ?: return@execute
+            if (!a.isJami) return@execute
+            net.jami.utils.InboundEvidence.noteSubscribe()   // suppress the cached-presence echoes this batch triggers
+            val seen = HashSet<String>()
+            for (conv in a.getConversations()) {
+                for (c in conv.contacts) {
+                    if (c.isUser) continue
+                    val uri = c.uri.uri
+                    if (seen.add(uri)) JamiService.subscribeBuddy(accountId, uri, true)
+                }
+            }
+        }
+    }
+
+    /** Per-account wedge recovery: drop THIS account to the full DHT (proxy off), let it settle,
+     *  then restore proxy — the single-account form of recoverFromWedge. One account at a time is
+     *  the safe unit (toggling ALL proxies at once SIGSEGV'd the daemon). onDone runs after restore. */
+    fun recoverAccountFromWedge(accountId: String, settleMs: Long = SYNC_SETTLE_MS, onDone: (() -> Unit)? = null) {
+        mExecutor.execute {
+            val acc = mAccountList.firstOrNull { it.accountId == accountId && it.isJami } ?: run { onDone?.invoke(); return@execute }
+            if (!acc.isDhtProxyEnabled) { reconnectOne(acc); onDone?.invoke(); return@execute }
+            setAccountProxy(accountId, false)
+            scheduler.scheduleDirect({ setAccountProxy(accountId, true); onDone?.let { cb -> scheduler.scheduleDirect(cb, 500, TimeUnit.MILLISECONDS) } },
+                settleMs, TimeUnit.MILLISECONDS)
         }
     }
 
