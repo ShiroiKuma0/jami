@@ -38,8 +38,11 @@ object ColorPrefs {
     const val BADGE_BORDER = "badge_border"
     const val STATUS_SENDING = "status_sending"
     const val STATUS_SUCCESS = "status_success"
-    const val STATUS_ONLINE = "status_online"
-    const val STATUS_OFFLINE = "status_offline"
+    const val STATUS_ONLINE = "status_online"       // connection dot: connected
+    const val STATUS_CONNECTING = "status_connecting" // connection dot: connecting / recovering
+    const val STATUS_OFFLINE = "status_offline"     // connection dot: disconnected / problem
+    const val DHT_FULL = "dht_full"                 // search-bar DHT-mode icon: full DHT (robust) — yellow
+    const val DHT_PROXY = "dht_proxy"               // search-bar DHT-mode icon: proxy — blue
     const val UNREAD_BORDER = "unread_border"
     const val FLASH_TEXT = "flash_text"
     const val FLASH_FILL = "flash_fill"
@@ -77,10 +80,13 @@ object ColorPrefs {
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
         MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL -> BLACK
         CALL_TEXT, CALL_BORDER -> GREEN   // call-event pill: black fill, green text + border (settable)
-        INFO_HEADING -> 0xFF0000FF.toInt()   // help-page headings — the vivid "reachable" blue (matches the lightning / live-monitor state)
-        STATUS_SENDING, STATUS_SUCCESS, STATUS_OFFLINE -> ContextCompat.getColor(c, R.color.grey_500)
-        STATUS_ONLINE -> 0xFF4CAF50.toInt()
-        MONITOR_IDLE, MONITOR_CONNECTING -> 0xFF2196F3.toInt()   // blue — in-progress / connecting
+        INFO_HEADING -> 0xFFFFFFFF.toInt()   // help-page section headings — white (readable on black; #0000FF was not)
+        STATUS_SENDING, STATUS_SUCCESS -> ContextCompat.getColor(c, R.color.grey_500)
+        // Connection-dot defaults (settable): connected = yellow (falls through), connecting = blue,
+        // disconnected / problem = red. Matches the presence convention and the monitor screen.
+        STATUS_CONNECTING, DHT_PROXY -> 0xFF0000FF.toInt()      // blue (#0000FF) — connecting / recovering / proxy mode
+        STATUS_OFFLINE -> 0xFFFF5252.toInt()                    // red — disconnected / problem
+        MONITOR_IDLE, MONITOR_CONNECTING -> 0xFF0000FF.toInt()   // blue (#0000FF) — in-progress / connecting
         MONITOR_OFFLINE, MONITOR_PROBLEM -> 0xFFFF5252.toInt()   // red — offline / not reachable / not syncing
         // MONITOR_HEALTHY and MONITOR_CONNECTED fall through to the YELLOW (#FFFF00) default
         else -> YELLOW

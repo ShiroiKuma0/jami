@@ -42,7 +42,8 @@ object ConnectionWatchdog {
     private const val TAG = "ConnWatchdog"
     private const val CANARY_TIMEOUT_MS = 20_000L          // first delivery check after this
     private const val CANARY_RECHECK_MS = 20_000L          // confirm recheck before declaring stale
-    private const val HEURISTIC_STALE_MS = 2 * 60_000L     // nothing connected on ANY account this long = wedge
+    private const val SILENT_WEDGE_MS = 20 * 60_000L      // 0-healthy on a NOT-down network this long = last-resort strong recover (idle ≠ wedge)
+    private const val IDLE_REARM_MS = 5 * 60_000L         // cheap presence re-arm cadence while all-quiet (no re-register / no proxy toggle)
     private const val WEDGE_WINDOW_BASE_MS = 5 * 60_000L   // proxy lingers off this long after a wedge…
     private const val WEDGE_WINDOW_MAX_MS = 30 * 60_000L   // …growing on repeat wedges, capped here
     private const val REREGISTER_DELAY_MS = 2_000L         // re-register after proxy-off takes effect
@@ -54,19 +55,30 @@ object ConnectionWatchdog {
     private const val STORM_COOLDOWN_MS = 5 * 60_000L      // min spacing between storm reactions
     private const val STORM_HARD_WINDOW_MS = 10 * 60_000L  // second storm inside this → hard reset
     private const val STORM_EVIDENCE_VETO_MS = 90_000L     // fresh inbound evidence → benign teardown, ignore
+    private const val STORM_SETTLE_BLACKOUT_MS = 2 * 60_000L  // ignore storms this long after ANY recovery — its own re-register teardown/rebuild emits the very fatals the monitor counts (the 2026-07-22 self-inflicted loop)
+    private const val STORM_AMBIGUOUS_MS = 5 * 60_000L        // an uncorroborated storm runs the deafness clock at half limit this long (accelerate the evidence path instead of recovering on noise)
     private const val DEAF_LIMIT_MS = 5 * 60_000L          // no inbound evidence this long = deafness SUSPECTED
     private const val DEAF_BACKOFF_MAX_MS = 60 * 60_000L   // escalating recheck backoff cap
+    private const val WEDGE_RECOVER_BACKOFF_MS = 2 * 60_000L // after a per-account wedge recover, wait this long before re-recovering the SAME account
     private const val PROBE_VERDICT_MS = 60_000L           // silent presence probe must be answered within this
-    private const val PROBE_PEERS_PER_ACCOUNT = 3          // re-subscribe this many best-presence peers per account
     private const val NOTIF_CHANNEL = "shiroikuma_watchdog"
     private const val NOTIF_ID_BASE = 58_000
 
     @Volatile private var lastStormMs = 0L                 // when a storm last triggered a reaction
-    @Volatile private var deafStrikes = 0                  // consecutive deafness triggers without evidence
-    @Volatile private var nextDeafCheckMs = 0L             // backoff gate for the next deafness reaction
-    @Volatile private var probeInFlight = false            // a silent presence probe is awaiting its verdict
-    @Volatile private var probeStartEvidenceMs = 0L        // evidence clock value when the probe was sent
     @Volatile private var incidentSeq = 0
+
+    // Per-account deafness state. An account can read REGISTERED ("connected") while its own presence
+    // listens and channels deliver nothing — a couple of healthy accounts otherwise mask the deaf
+    // ones (2026-07-20 "4/4 connected yet contacts red"). Each account gets its own evidence clock,
+    // probe, strike count and backoff, and is recovered INDIVIDUALLY (re-register + presence re-arm,
+    // escalating to that account's proxy-off) so healthy accounts are never disturbed.
+    private class AcctState {
+        var strikes = 0
+        var nextCheckMs = 0L
+        var probeInFlight = false
+        var probeStartQuiet = 0L
+    }
+    private val acctStates = java.util.concurrent.ConcurrentHashMap<String, AcctState>()
 
     // Restricted-network (hostile WiFi) mode: UDP egress blocked, TCP alive.
     private const val RESTRICTED_RETEST_MS = 2 * 60_000L   // re-test UDP egress this often while restricted
@@ -83,10 +95,16 @@ object ConnectionWatchdog {
     @Volatile private var wedgeEscalated = false           // the one hard-reset escalation already spent
     @Volatile private var wedgeStandDownUntil = 0L
     @Volatile private var stuckAmbiguous = false           // AVAILABLE-presence stuck exists → deafness clock runs at half limit
+    @Volatile private var stormAmbiguousUntil = 0L         // an uncorroborated error storm tightens the deafness limit until this time
 
     private val handler = Handler(Looper.getMainLooper())
     private val hms = SimpleDateFormat("HH:mm:ss", Locale.US)
+    private val processStartMs = System.currentTimeMillis()   // cold-start reference for the tightened windows
+    @Volatile private var firstHealthyMs = 0L                 // when this process first saw ≥1 account connected
+    private const val STARTUP_FAST_WINDOW_MS = 10 * 60_000L   // early-life period with the halved stale window
+    private const val STARTUP_STALL_GRACE_MS = 60_000L        // enabled-but-unregistered this long after start = cold-start stall
     @Volatile private var lastAnyConnectedMs = 0L          // when any account last held a live connection
+    @Volatile private var lastIdleRearmMs = 0L             // last cheap presence re-arm while all-quiet (throttle)
     @Volatile private var lastWedgeMs = 0L                 // when a wedge was last seen (linger-off clock)
     @Volatile private var proxyOffSinceMs = 0L             // when the proxy was last switched off (for log durations)
     @Volatile private var wedgeStrikes = 0                 // consecutive wedges → grows the linger window
@@ -109,21 +127,26 @@ object ConnectionWatchdog {
     /** Lightning shows "recovering" (blue) for a settle window after any recover starts. */
     fun isRecovering(): Boolean = lastRecoverMs != 0L && now() - lastRecoverMs < RECOVER_SETTLE_MS
 
-    /** Broadly connected = ≥1 registered account holds a live connection → the proxy is fine, so a recover
-     *  can be "light" (re-register only). 0-connected → proxy suspect → "full" (drop to full DHT). */
-    private fun broadlyConnected(accounts: AccountService): Boolean =
-        accounts.getAccounts().any { it.isJami && it.isRegistered && accounts.accountConnectionSnapshot(it.accountId).first }
+    /** Fully healthy = EVERY registered account holds a live connection AND is not deaf. Only then is
+     *  a "light" recover (re-register, proxy stays on) safe — any partial failure means the proxy is
+     *  suspect for someone, so the account(s) at fault need the full treatment. (The old "≥1 connected"
+     *  rule bet all four accounts on a proxy half of them couldn't register through — 2026-07-20.) */
+    private fun allHealthy(accounts: AccountService): Boolean {
+        val regd = accounts.getAccounts().filter { it.isJami && it.isRegistered }
+        if (regd.isEmpty()) return false
+        return regd.all { accounts.accountConnectionSnapshot(it.accountId).first &&
+            InboundEvidence.quietMs(it.accountId) < DEAF_LIMIT_MS }
+    }
 
     /** One watchdog tick — periodic driver (DRingService bg, HomeFragment fg). The caller skips this
      *  during an active call (toggling proxy mid-call would drop it). */
     fun tick(c: Context, accounts: AccountService) {
-        val forced = UiPrefs.isProxyForcedOff(c)
         val active = UiPrefs.isRecoveryBaseEnabled(c) || UiPrefs.isRecoveryPingEnabled(c)
-        if (!forced && !active) return   // recovery fully off and not forced → leave the proxy alone
+        if (!active) return   // recovery fully off → leave the proxy alone
         if (active) {
             if (UiPrefs.isRecoveryPingEnabled(c) && UiPrefs.isCanaryConfigured(c)) canaryTick(c, accounts)
             else heuristicTick(c, accounts)
-            deafnessTick(c, accounts)
+            perAccountTick(c, accounts)
         }
         if (UiPrefs.isRestrictedNet(c)) scheduleRestrictedRetest(c, accounts)  // resume after process restart
         applyProxyState(c, accounts)
@@ -137,112 +160,172 @@ object ConnectionWatchdog {
         handler.post {
             val t = now()
             if (t - lastStormMs < STORM_COOLDOWN_MS) return@post
+            // (1) Post-recovery settle blackout — a recovery re-registers every account, tearing down and
+            // rebuilding every connection, which emits the very TLS/ICE fatals the monitor counts. Ignoring
+            // storms for a settle window after ANY recovery breaks the self-inflicted recover→teardown→
+            // re-storm loop that spun for 3h on 2026-07-22.
+            if (lastRecoverMs != 0L && t - lastRecoverMs < STORM_SETTLE_BLACKOUT_MS) {
+                log(c, "error storm ${(t - lastRecoverMs) / 1000}s after a recovery — teardown settle, ignored")
+                return@post
+            }
             val sinceEvidence = t - InboundEvidence.lastMs
             if (sinceEvidence < STORM_EVIDENCE_VETO_MS) {
                 log(c, "error storm ignored — inbound evidence ${sinceEvidence / 1000}s ago (benign churn)")
                 return@post
             }
-            val secondStorm = lastStormMs != 0L && t - lastStormMs < STORM_HARD_WINDOW_MS
-            lastStormMs = t
-            writeIncident(c, "error-storm", "no inbound evidence for ${sinceEvidence / 1000}s", recentLines)
-            if (secondStorm) {
-                log(c, "error storm ×2 within ${STORM_HARD_WINDOW_MS / 60_000}m → HARD reset")
-                notifyUser(c, "エラーストーム再発 → ハードリセット (${stamp()})")
-                hardReset(c, accounts)
-                maybeDiagnoseTransport(c, accounts, "repeat error storm")
-            } else {
-                log(c, "error storm detected → smart recover")
-                notifyUser(c, "エラーストーム検出 → スマート回復 (${stamp()})")
-                manualRecover(c, accounts)
+            // (2) A storm is only a SUSPICION. Verify the REAL network and look for a stuck delivery to a
+            // reachable peer; recover ONLY when corroborated. A burst with the network alive and nothing
+            // stuck is transient link churn (a VPN/DNS flap tearing sockets that then rebuild), not a fault —
+            // recovering on it just re-tears everything and re-storms.
+            ensureNetVerdict(c) {
+                val t2 = now()
+                if (t2 - lastStormMs < STORM_COOLDOWN_MS) return@ensureNetVerdict
+                lastStormMs = t2
+                val down = networkDown()
+                val stuckReachable = anyStuckToReachable(accounts, t2)
+                if (!down && !stuckReachable) {
+                    // (4) De-weight the raw error count: don't recover on noise. Accelerate the evidence
+                    // path instead — a genuinely emerging problem confirms via verified deafness at half
+                    // the usual limit; transient churn simply lapses.
+                    stormAmbiguousUntil = t2 + STORM_AMBIGUOUS_MS
+                    writeIncident(c, "error-storm-uncorroborated", "network alive, no stuck-to-reachable — transient churn", recentLines)
+                    log(c, "error storm — network alive + no stuck delivery → transient churn, not recovering (deafness watch tightened)")
+                    return@ensureNetVerdict
+                }
+                // (3) Escalate to HARD only when the prior recovery demonstrably didn't help: a corroborated
+                // storm recurs within the hard window AND no inbound has arrived since that recovery.
+                val priorDidntHelp = lastRecoverMs != 0L && t2 - lastRecoverMs < STORM_HARD_WINDOW_MS &&
+                    InboundEvidence.lastMs < lastRecoverMs
+                val cause = if (down) "network egress DOWN" else "stuck delivery to a reachable peer"
+                writeIncident(c, "error-storm", "$cause; inbound ${(t2 - InboundEvidence.lastMs) / 1000}s ago", recentLines)
+                if (priorDidntHelp) {
+                    log(c, "error storm ($cause) — prior recover didn't restore inbound → HARD reset")
+                    notifyUser(c, c.getString(cx.ring.R.string.notif_storm_hard, stamp()))
+                    hardReset(c, accounts)
+                    maybeDiagnoseTransport(c, accounts, "persistent error storm")
+                } else {
+                    log(c, "error storm ($cause) → smart recover")
+                    notifyUser(c, c.getString(cx.ring.R.string.notif_storm_smart, stamp()))
+                    manualRecover(c, accounts)
+                }
             }
         }
     }
 
-    // ---- Reactive detector 2: passive inbound-aliveness clock --------------------------------
-    /** No peer-originated event (message, receipt, presence, typing, request, call) for
-     *  DEAF_LIMIT_MS while the network is up = the daemon has gone deaf even if its own state
-     *  says "connected" (stale NAT bindings — the 52-minute silent window). Escalates
-     *  smart → hard, with a doubling backoff so a genuinely quiet network is not churned. */
-    private fun deafnessTick(c: Context, accounts: AccountService) {
-        val t = now()
-        val quiet = t - InboundEvidence.lastMs
-        // An ambiguous-presence stuck message corroborates: run the clock at half the limit.
-        val limit = if (stuckAmbiguous) DEAF_LIMIT_MS / 2 else DEAF_LIMIT_MS
-        if (quiet < limit) {
-            if (deafStrikes > 0) log(c, "inbound evidence back (${InboundEvidence.lastKind}) — deafness cleared")
-            deafStrikes = 0
-            nextDeafCheckMs = 0L
-            return
+    /** Corroboration for an error storm: a message stuck to a peer the daemon still sees as reachable
+     *  (CONNECTED) is a real delivery failure, not transient link churn. */
+    private fun anyStuckToReachable(accounts: AccountService, t: Long): Boolean =
+        accounts.getAccounts().any { acc ->
+            acc.isJami && acc.isRegistered &&
+                ConnectionHealth.accountStuckMessages(acc, t).any {
+                    it.presence == net.jami.model.Contact.PresenceStatus.CONNECTED
+                }
         }
-        if (probeInFlight) return
-        if (t < nextDeafCheckMs) return
+
+    // Shared NETWORK-liveness verdict (real STUN-UDP + TCP egress via NetProbe). Replaces the old
+    // per-account "presence probe": re-subscribing to probe only echoed cached presence and answered
+    // itself, so a dead network read as healthy (2026-07-21). NetProbe is a real round-trip.
+    @Volatile private var netVerdictMs = 0L
+    @Volatile private var netAlive = true
+    @Volatile private var netCheckInFlight = false
+    private const val NET_VERDICT_TTL_MS = 90_000L
+
+    private fun ensureNetVerdict(c: Context, onReady: () -> Unit) {
+        if (now() - netVerdictMs < NET_VERDICT_TTL_MS) { onReady(); return }
+        if (netCheckInFlight) return
+        netCheckInFlight = true
+        Thread({
+            val udp = NetProbe.udpWorks(); val tcp = NetProbe.tcpWorks()
+            handler.post {
+                netAlive = udp || tcp
+                netVerdictMs = now()
+                netCheckInFlight = false
+                log(c, "network check: UDP=${if (udp) "ok" else "×"} TCP=${if (tcp) "ok" else "×"} → ${if (netAlive) "alive" else "DOWN"}")
+                onReady()
+            }
+        }, "net-verify").start()
+    }
+
+    // ---- Reactive detector 2: PER-ACCOUNT deafness, verified against the REAL network -----------
+    /** Each account is judged on its OWN inbound evidence (presence echoes now excluded). Silence
+     *  past the limit only SUSPECTS. Instead of a self-answering re-subscribe, verify the real
+     *  network with NetProbe: if egress is DOWN the silence is a genuine outage (the account is
+     *  deaf — this is what dead WiFi looks like); if egress is ALIVE the account is merely quiet
+     *  (a soft proxy wedge is caught by the error-storm / stuck-message detectors), so its clock is
+     *  reset rather than churned. Healthy accounts are never disturbed. */
+    private fun perAccountTick(c: Context, accounts: AccountService) {
+        val t = now()
         val cm = c.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-        if (cm?.activeNetwork == null) {
-            log(c, "deaf ${quiet / 60_000}m but no network — waiting")
-            return
+        val netUp = cm?.activeNetwork != null
+        val regd = accounts.getAccounts().filter { it.isJami && it.isRegistered }
+        acctStates.keys.retainAll(regd.map { it.accountId }.toSet())
+        val limit = if (stuckAmbiguous || now() < stormAmbiguousUntil) DEAF_LIMIT_MS / 2 else DEAF_LIMIT_MS
+        var anyQuiet = false
+        var healthy = 0
+        for (acc in regd) {
+            val st = acctStates.getOrPut(acc.accountId) { AcctState() }
+            if (InboundEvidence.quietMs(acc.accountId) < limit) {
+                healthy++
+                if (st.strikes > 0) log(c, "acct ${acc.accountId.take(6)}: inbound back (${InboundEvidence.lastKind(acc.accountId)}) — deaf cleared")
+                st.strikes = 0; st.nextCheckMs = 0L
+            } else if (netUp && t >= st.nextCheckMs) anyQuiet = true
         }
-        if (accounts.getAccounts().none { it.isJami && it.isRegistered }) return
-
-        // Silence alone proves nothing (presence announces are themselves ~10-15 min periodic;
-        // a quiet evening looks identical to deafness). VERIFY first: a silent DHT presence
-        // re-subscription — invisible to the peers, no message sent — must produce an announce
-        // within PROBE_VERDICT_MS if we can hear the network. Only an unanswered probe recovers.
-        probeInFlight = true
-        probeStartEvidenceMs = InboundEvidence.lastMs
-        val n = probePresence(accounts)
-        if (n == 0) { probeInFlight = false; return }
-        log(c, "quiet ${quiet / 60_000}m → probing presence of $n peer(s); verdict in ${PROBE_VERDICT_MS / 1000}s")
-        handler.postDelayed({
-            probeInFlight = false
-            if (InboundEvidence.lastMs != probeStartEvidenceMs) {
-                log(c, "probe answered (${InboundEvidence.lastKind}) — network audible, no recovery needed")
-                deafStrikes = 0
-                nextDeafCheckMs = 0L
-            } else {
-                deafnessConfirmed(c, accounts)
+        if (!anyQuiet || !netUp) return
+        // At least one account is quiet past the limit → verify the real network, then resolve each.
+        ensureNetVerdict(c) {
+            val t2 = now()
+            for (acc in regd) {
+                val id = acc.accountId
+                val st = acctStates[id] ?: continue
+                val quiet = InboundEvidence.quietMs(id)
+                if (quiet < limit || t2 < st.nextCheckMs) continue
+                if (!netAlive) {
+                    accountDeafConfirmed(c, accounts, id, st, networkDown = true)
+                } else if (healthy > 0) {
+                    // DIFFERENTIAL DEAFNESS = a real per-account proxy wedge. Each account rides its OWN proxy
+                    // server (dhtproxyN.jami.net), so if siblings are still receiving on the SAME live network
+                    // while this one has heard nothing past the limit, this one's push subscription is wedged —
+                    // genuine idle would silence them all. Recover just this account (re-register + resubscribe),
+                    // fast, leaving the healthy ones untouched. Modest backoff so a still-wedged proxy isn't hammered.
+                    st.strikes++
+                    st.nextCheckMs = t2 + WEDGE_RECOVER_BACKOFF_MS
+                    recovering = true; lastRecoverMs = t2
+                    writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet / 60_000}m while $healthy/${regd.size} siblings healthy — proxy subscription wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
+                    log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m but $healthy/${regd.size} healthy on a live network → WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
+                    accounts.forceReconnectAccount(id)
+                    accounts.resubscribeAccountPresence(id)
+                } else {
+                    // Uniform deafness (no sibling receiving) on a live network — could be genuine idle. Don't
+                    // churn; reset the clock. heuristicTick's silent-wedge fuse handles a real all-accounts wedge.
+                    InboundEvidence.touch(id)
+                    if (st.strikes > 0) log(c, "acct ${id.take(6)}: quiet ${quiet / 60_000}m but network alive, all quiet — ok")
+                    st.strikes = 0; st.nextCheckMs = 0L
+                }
             }
-        }, PROBE_VERDICT_MS)
+        }
     }
 
-    /** Re-subscribe the best-presence peers on each account: the daemon re-arms its DHT presence
-     *  listen and the current announce is redelivered — our "can we hear the network" ping that
-     *  sends nothing to anyone. Returns the number of peers probed. */
-    private fun probePresence(accounts: AccountService): Int {
-        var n = 0
-        for (acc in accounts.getAccounts()) {
-            if (!acc.isJami || !acc.isRegistered) continue
-            val peers = acc.getConversations().asSequence()
-                .flatMap { it.contacts.asSequence() }
-                .filter { !it.isUser }
-                .distinctBy { it.uri.uri }
-                .sortedByDescending { it.lastPresence.ordinal }
-                .take(PROBE_PEERS_PER_ACCOUNT)
-                .toList()
-            for (p in peers) {
-                accounts.subscribeBuddy(acc.accountId, p.uri.uri, true)
-                n++
-            }
-        }
-        return n
-    }
-
-    /** The probe went unanswered — verified deafness. The original escalation ladder applies. */
-    private fun deafnessConfirmed(c: Context, accounts: AccountService) {
+    /** A quiet account with a verified-DOWN network (real outage) — or, when networkDown is false, a
+     *  soft per-account wedge. Recovery cannot conjure a dead network, so on a down network we just
+     *  re-register (which prods the daemon to re-evaluate connectivity and may switch networks) and
+     *  tell the user; on a live network we re-register + re-arm presence. Doubling backoff. */
+    private fun accountDeafConfirmed(c: Context, accounts: AccountService, id: String, st: AcctState, networkDown: Boolean) {
         val t = now()
-        val quiet = t - InboundEvidence.lastMs
-        deafStrikes++
-        val backoff = (DEAF_LIMIT_MS shl (deafStrikes - 1).coerceAtMost(3)).coerceAtMost(DEAF_BACKOFF_MAX_MS)
-        nextDeafCheckMs = t + backoff
-        writeIncident(c, "deafness", "probe unanswered; no inbound evidence for ${quiet / 60_000}m (strike $deafStrikes)", LogStormMonitor.recentLines())
-        if (deafStrikes >= 2) {
-            log(c, "deaf ${quiet / 60_000}m, probe unanswered (strike $deafStrikes) → HARD reset; next check +${backoff / 60_000}m")
-            notifyUser(c, "受信沈黙 ${quiet / 60_000}分・応答なし → ハードリセット (${stamp()})")
-            hardReset(c, accounts)
-            maybeDiagnoseTransport(c, accounts, "confirmed deafness")
+        val quiet = InboundEvidence.quietMs(id)
+        st.strikes++
+        val backoff = (DEAF_LIMIT_MS shl (st.strikes - 1).coerceAtMost(3)).coerceAtMost(DEAF_BACKOFF_MAX_MS)
+        st.nextCheckMs = t + backoff
+        recovering = true; lastRecoverMs = t
+        if (networkDown) {
+            writeIncident(c, "network-down", "account ${id.take(8)} deaf ${quiet / 60_000}m + network egress DOWN (strike ${st.strikes})", LogStormMonitor.recentLines())
+            log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m + NETWORK DOWN → re-register (may re-evaluate/switch network); next +${backoff / 60_000}m")
+            notifyUser(c, c.getString(cx.ring.R.string.notif_network_down, stamp()))
+            accounts.forceReconnectAccount(id)
         } else {
-            log(c, "deaf ${quiet / 60_000}m, probe unanswered → smart recover; next check +${backoff / 60_000}m")
-            notifyUser(c, "受信沈黙 ${quiet / 60_000}分・応答なし → スマート回復 (${stamp()})")
-            manualRecover(c, accounts)
+            writeIncident(c, "acct-deaf", "account ${id.take(8)} deaf ${quiet / 60_000}m (strike ${st.strikes})", LogStormMonitor.recentLines())
+            log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m → recover; next +${backoff / 60_000}m")
+            notifyUser(c, c.getString(cx.ring.R.string.notif_deaf_hard, (quiet / 60_000).toInt(), stamp()))
+            accounts.recoverAccountFromWedge(id) { accounts.resubscribeAccountPresence(id) }
         }
     }
 
@@ -274,7 +357,7 @@ object ConnectionWatchdog {
         restrictedPasses = 0
         writeIncident(c, "restricted-net", "UDP egress blocked, TCP alive — DHT proxy pinned ON, relay mode", LogStormMonitor.recentLines())
         log(c, "RESTRICTED NETWORK: UDP blocked, TCP ok — proxy pinned ON; TURN relays carry traffic; re-testing every ${RESTRICTED_RETEST_MS / 60_000}m")
-        notifyUser(c, "制限ネットワーク検出（UDP遮断）→ プロキシ固定ON・中継モード (${stamp()})")
+        notifyUser(c, c.getString(cx.ring.R.string.notif_restricted, stamp()))
         applyProxyState(c, accounts)
         scheduleRestrictedRetest(c, accounts)
     }
@@ -306,7 +389,7 @@ object ConnectionWatchdog {
     private fun exitRestricted(c: Context, accounts: AccountService) {
         UiPrefs.setRestrictedNet(c, false)
         log(c, "restricted net cleared — UDP egress back ($RESTRICTED_EXIT_PASSES consecutive passes); normal state machine resumes")
-        notifyUser(c, "通常ネットワーク復帰 — UDP開通 (${stamp()})")
+        notifyUser(c, c.getString(cx.ring.R.string.notif_restricted_exit, stamp()))
         applyProxyState(c, accounts)
     }
 
@@ -336,31 +419,53 @@ object ConnectionWatchdog {
             nm.notify(NOTIF_ID_BASE + (incidentSeq % 20),
                 NotificationCompat.Builder(c, NOTIF_CHANNEL)
                     .setSmallIcon(cx.ring.R.drawable.ic_ring_logo_white)
-                    .setContentTitle("白い熊 Jami 自動回復")
+                    .setContentTitle(c.getString(cx.ring.R.string.notif_recover_title))
                     .setContentText(text)
                     .setAutoCancel(true)
                     .build())
         }
     }
 
-    /** DHT-proxy state machine. OFF (full DHT) when forced, charging, or riding out a recent wedge;
-     *  ON (push / battery) only on battery and stable. Applies only on a change, so no churn. */
+    /** DHT-proxy state machine. OFF (full DHT) when charging (battery is free) or riding out a
+     *  recent wedge; ON (push / battery) only on battery and stable. Applies only on a change. */
     private fun applyProxyState(c: Context, accounts: AccountService) {
         val t = now()
         // Restricted network (UDP blocked): the full DHT is UDP — turning the proxy off there
-        // would kill the only working signaling path. The pin overrides EVERYTHING, including
-        // the manual forced-off, until UDP egress is verified back.
+        // would kill the only working signaling path, so pin proxy ON until UDP egress is back.
         val restricted = UiPrefs.isRestrictedNet(c)
-        val offForced = UiPrefs.isProxyForcedOff(c)
+        // Full-DHT mode (the robust default, 2026-07-22): the proxy stays OFF as the standing state — no
+        // single proxy link to wedge. Restricted-network is the SOLE exception (UDP blocked → the full DHT
+        // is deaf → pin proxy ON so TURN/relay carries traffic). No charging/wedge juggling here.
+        if (UiPrefs.isFullDhtMode(c)) {
+            val onNow = accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
+            if (restricted && !onNow) {
+                log(c, "DHT proxy ON — pinned (restricted network, UDP blocked)")
+                accounts.setProxyEnabled(true)
+            } else if (!restricted && onNow) {
+                if (proxyOffSinceMs == 0L) proxyOffSinceMs = t
+                log(c, "DHT proxy OFF — full-DHT mode (standing state)")
+                accounts.setProxyEnabled(false)
+            }
+            return
+        }
         val offCharging = isCharging(c)
-        val desiredOff = !restricted && (offForced || offCharging || recentWedge(t))
+        val desiredOff = !restricted && (offCharging || recentWedge(t))
         val currentlyOn = accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
         if (desiredOff && currentlyOn) {
-            val why = if (offForced) "forced" else if (offCharging) "charging" else "recent wedge"
+            val why = if (offCharging) "charging" else "recent wedge"
             if (proxyOffSinceMs == 0L) proxyOffSinceMs = t
             log(c, "DHT proxy OFF — full DHT ($why)")
             accounts.setProxyEnabled(false)
         } else if (!desiredOff && !currentlyOn) {
+            // Startup hold: never switch the proxy ON before this process has seen at
+            // least one healthy check. A fresh process forgets the wedge-linger, and
+            // flipping the proxy on at boot put a poisoned cached proxy endpoint back
+            // into the connect path (2026-07-20: cost ~4 min of 0/4 after an update).
+            // The accounts keep whatever state the daemon persisted until we are healthy.
+            if (firstHealthyMs == 0L && !restricted) {
+                log(c, "proxy ON deferred — startup hold until first healthy check")
+                return
+            }
             val offFor = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L
             proxyOffSinceMs = 0L
             log(c, if (restricted) "DHT proxy ON — pinned (restricted network, UDP blocked)"
@@ -388,7 +493,11 @@ object ConnectionWatchdog {
         if (proxyOffSinceMs == 0L) proxyOffSinceMs = t
         log(c, "→ DHT proxy OFF (full DHT); re-registering in ${REREGISTER_DELAY_MS / 1000}s to flush the backlog; lingering off ~${wedgeWindow() / 60_000}m")
         accounts.setProxyEnabled(false)
-        handler.postDelayed({ accounts.forceReconnectAllAccounts(); log(c, "↻ re-registered all accounts on full DHT") }, REREGISTER_DELAY_MS)
+        handler.postDelayed({
+            accounts.forceReconnectAllAccounts()
+            resubscribeAllPresence(accounts)   // re-arm presence listens (else dots stay red)
+            log(c, "↻ re-registered all accounts on full DHT")
+        }, REREGISTER_DELAY_MS)
     }
 
     /** Light recover: re-register only, proxy stays on. For when the proxy is healthy (a single stuck
@@ -398,36 +507,77 @@ object ConnectionWatchdog {
         lastRecoverMs = now()
         log(c, "light recover — re-register on the current proxy (stays on)")
         accounts.forceReconnectAllAccounts()
+        resubscribeAllPresence(accounts)
     }
 
-    /** Smart recover (lightning tap / dialog Recover / Sync now): light when the proxy looks good (broadly
-     *  connected → just re-register), full when 0-connected (proxy suspect → drop to full DHT). */
+    /** Re-arm every registered account's presence listens after a global recover. */
+    private fun resubscribeAllPresence(accounts: AccountService) {
+        for (acc in accounts.getAccounts()) if (acc.isJami && acc.isRegistered)
+            accounts.resubscribeAccountPresence(acc.accountId)
+    }
+
+    /** Automatic smart recover (error-storm path): light when all healthy, else full. Used by the
+     *  watchdog itself, not the manual button — a human who presses Recover wants the strong fix. */
     fun manualRecover(c: Context, accounts: AccountService) {
-        if (broadlyConnected(accounts)) { log(c, "smart recover — proxy looks good → light"); lightRecover(c, accounts) }
-        else { log(c, "smart recover — 0 connected → full"); fullRecover(c, accounts) }
+        if (allHealthy(accounts)) { log(c, "smart recover — all accounts healthy → light"); lightRecover(c, accounts) }
+        else { log(c, "smart recover — partial/zero healthy → full"); fullRecover(c, accounts) }
     }
 
-    /** Hard reset (lightning long-press): always proxy off + re-register, no matter the state. */
+    /** Hard reset (automatic ×2-storm escalation): always full DHT + re-register. */
     fun hardReset(c: Context, accounts: AccountService) {
-        log(c, "HARD reset — forced full DHT + re-register")
+        log(c, "HARD reset — full DHT + re-register")
         fullRecover(c, accounts)
     }
 
-    /** Toggle "force proxy off" — the Sync long-press pin. Returns the new forced state. */
-    fun toggleForcedOff(c: Context, accounts: AccountService): Boolean {
-        val next = !UiPrefs.isProxyForcedOff(c)
-        UiPrefs.setProxyForcedOff(c, next)
-        log(c, if (next) "proxy FORCED off (full DHT until you toggle back)" else "forced-off cleared (auto)")
-        applyProxyState(c, accounts)
-        return next
+    /** The one manual Recover (flash tap / dashboard button): always the strong fix — full DHT +
+     *  re-register + presence re-arm. No smart/light distinction (that's for the automatic path). */
+    fun recoverNow(c: Context, accounts: AccountService) {
+        log(c, "manual Recover — full DHT + re-register + presence re-arm")
+        fullRecover(c, accounts)
     }
 
-    /** Lightning-icon state. */
-    fun proxyState(c: Context, accounts: AccountService): ProxyUi = when {
-        UiPrefs.isProxyForcedOff(c) -> ProxyUi.OFF_FORCED
-        accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled } -> ProxyUi.ON
-        else -> ProxyUi.OFF_AUTO
+    /** Recover ONE account (dashboard per-row flash): re-register + presence re-arm for that account,
+     *  leaving the healthy ones untouched. */
+    fun recoverAccount(c: Context, accounts: AccountService, accountId: String) {
+        recovering = true; lastRecoverMs = now()
+        log(c, "manual recover — acct ${accountId.take(6)}: re-register + presence re-arm")
+        accounts.forceReconnectAccount(accountId)
+        accounts.resubscribeAccountPresence(accountId)
     }
+
+    /** Lightning-icon state (proxy on / auto-off — the pin is gone). */
+    fun proxyState(c: Context, accounts: AccountService): ProxyUi =
+        if (accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }) ProxyUi.ON else ProxyUi.OFF_AUTO
+
+    /** Per-account health snapshot for the dashboard. `connected` = has a live peer link now;
+     *  `deaf` = no inbound evidence past DEAF_LIMIT_MS; `healthy` = registered and not deaf. */
+    data class AcctHealth(val id: String, val name: String, val registered: Boolean,
+                          val connected: Boolean, val quietMs: Long, val deaf: Boolean) {
+        val healthy: Boolean get() = registered && !deaf
+    }
+    fun accountHealthList(accounts: AccountService): List<AcctHealth> =
+        accounts.getAccounts().filter { it.isJami }.map { a ->
+            val reg = a.isRegistered
+            val conn = reg && accounts.accountConnectionSnapshot(a.accountId).first
+            val quiet = InboundEvidence.quietMs(a.accountId)
+            val name = a.alias?.takeIf { it.isNotBlank() }
+                ?: a.registeredName.takeIf { it.isNotBlank() }
+                ?: a.displayname.takeIf { it.isNotBlank() }
+                ?: a.accountId.take(8)
+            AcctHealth(a.accountId, name, reg, conn, quiet, reg && quiet >= DEAF_LIMIT_MS)
+        }
+
+    /** True while a recover is settling — dashboard/flash "recovering" indicator. */
+    fun proxyOn(accounts: AccountService): Boolean =
+        accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
+
+    /** For the main-bar dot: any registered account currently deaf (no REAL inbound past the limit).
+     *  The honest "something is wrong" signal — network down or an account wedged. */
+    fun anyDeaf(accounts: AccountService): Boolean =
+        accountHealthList(accounts).any { it.registered && it.deaf }
+
+    /** True when the last network egress check came back DOWN and is still fresh. */
+    fun networkDown(): Boolean = !netAlive && netVerdictMs != 0L && now() - netVerdictMs < NET_VERDICT_TTL_MS
 
     // ---- Tier 2: test-swarm canary ----------------------------------------------------------
     private fun canaryTick(c: Context, accounts: AccountService) {
@@ -485,16 +635,43 @@ object ConnectionWatchdog {
      *  recovery goes through a fingerprint ledger so unchanged evidence can never re-trigger. */
     private fun heuristicTick(c: Context, accounts: AccountService) {
         val t = now()
-        var reg = 0; var conn = 0
+        // "Connected" (a live PEER link) under-counts idle-but-healthy accounts (an account with no
+        // active conversation legitimately has none) — that read as 3/4 while all four dots were
+        // yellow (2026-07-20). Health = REGISTERED and not deaf (recent inbound evidence), matching
+        // the dots and the deaf-detector. conn is kept only for the granular per-account log token.
+        var reg = 0; var conn = 0; var healthy = 0
         val stuck = ArrayList<ConnectionHealth.StuckMsg>()
+        val tokens = StringBuilder()
         for (acc in accounts.getAccounts()) {
             if (!acc.isJami || !acc.isRegistered) continue
             reg++
             val (connected, _) = accounts.accountConnectionSnapshot(acc.accountId)
             if (connected) conn++
+            val quiet = InboundEvidence.quietMs(acc.accountId)
+            val deaf = quiet >= DEAF_LIMIT_MS
+            if (!deaf) healthy++
+            tokens.append(acc.accountId.take(6))
+                .append(if (deaf) ":⚠${quiet / 60_000}m" else if (connected) ":✓" else ":✓idle")
+                .append(' ')
             stuck += ConnectionHealth.accountStuckMessages(acc, t)
         }
-        if (reg == 0) { log(c, "base check — no registered accounts"); return }
+        if (reg == 0) {
+            // Cold-start stall: enabled accounts that never reach REGISTERED are invisible to the
+            // rest of this heuristic (it counts only registered accounts), so a flaky proxy at boot
+            // left the app 0-connected and UNWATCHED for minutes (2026-07-20). After a short grace,
+            // drop to the full DHT and re-register — the reliable fast path (a full-DHT recover
+            // brought 4/4 up in seconds tonight while the proxy churned). recentWedge gates re-fire.
+            val enabled = accounts.getAccounts().count { it.isJami && it.isEnabled }
+            val sinceStart = t - processStartMs
+            val cm = c.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            if (enabled > 0 && cm?.activeNetwork != null && sinceStart > STARTUP_STALL_GRACE_MS && !recentWedge(t)) {
+                log(c, "startup stall — $enabled account(s) enabled, none registered ${sinceStart / 1000}s → full-DHT re-register")
+                fullRecover(c, accounts)
+            } else {
+                log(c, "base check — no registered accounts ($enabled enabled, ${sinceStart / 1000}s)")
+            }
+            return
+        }
 
         val positive = stuck.filter { it.presence == net.jami.model.Contact.PresenceStatus.CONNECTED }
         val nonOffline = stuck.filter { it.presence != net.jami.model.Contact.PresenceStatus.OFFLINE }
@@ -508,18 +685,49 @@ object ConnectionWatchdog {
             log(c, "stuck messages cleared — wedge ledger reset")
         }
 
-        if (conn > 0) {
+        // Healthy (registered + not deaf) is the real "is this account up" signal; an idle account
+        // with no live peer link is still healthy. The wedge fires only when NO account is healthy.
+        if (healthy > 0) {
+            if (firstHealthyMs == 0L) firstHealthyMs = t
             lastAnyConnectedMs = t
-            if (recovering && wedgeEvidence.isEmpty()) { recovering = false; val off = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L; log(c, "recovered — $conn/$reg connected (${off}s on full DHT)") }
+            if (recovering && wedgeEvidence.isEmpty()) { recovering = false; val off = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L; log(c, "recovered — $healthy/$reg healthy (${off}s on full DHT)") }
         } else if (lastAnyConnectedMs == 0L) lastAnyConnectedMs = t
-        val zeroStale = conn == 0 && t - lastAnyConnectedMs > HEURISTIC_STALE_MS
+        val summary = tokens.toString().trim()
+        val stuckSuffix = if (stuck.isNotEmpty()) "; ${stuck.size} undelivered (${offlineCount} to offline — benign)" else ""
 
+        // A stuck message to a REACHABLE contact is genuine wedge evidence regardless of the health count.
+        if (wedgeEvidence.isNotEmpty()) { wedgeWithLedger(c, accounts, wedgeEvidence, t); return }
+        if (healthy > 0) { log(c, "base check ok — $healthy/$reg healthy [$summary]$stuckSuffix"); return }
+
+        // healthy == 0. Reachability-max (2026-07-21): on an idle network real inbound is naturally
+        // sparse now that presence echoes no longer self-answer, so 0-healthy is NOT proof of a wedge.
+        // The old zeroStale path full-recovered here — unregistering every account and blacking out
+        // new-message notifications for 15 s on a WORKING connection, every ~6 min (the soak churn).
+        // A recovery of a healthy account is pure harm: the daemon re-announces presence on its own,
+        // so re-registering adds nothing but a reachability gap. Consult the REAL network instead:
+        //   · egress DOWN → genuine outage; perAccountTick re-registers (may prompt a network switch).
+        //     Nothing to do from here — and never toggle the proxy on a dead network.
+        //   · not down, 0-healthy past a long fuse → a true SILENT wedge is possible → one strong
+        //     recover, gated by recentWedge() so it can never loop.
+        //   · not down, within the fuse → just quiet: re-arm presence listens cheaply (no re-register,
+        //     no proxy toggle, no notification blackout) to keep the dots fresh. Never the hammer.
+        ensureNetVerdict(c) {}   // refresh async so networkDown() can flip promptly on a real outage
+        val staleFor = t - lastAnyConnectedMs
+        val silentFuse = if (t - processStartMs < STARTUP_FAST_WINDOW_MS) SILENT_WEDGE_MS / 4 else SILENT_WEDGE_MS
         when {
-            zeroStale -> { log(c, "wedge: 0/$reg connected — recovering"); fullRecover(c, accounts) }
-            wedgeEvidence.isNotEmpty() -> wedgeWithLedger(c, accounts, wedgeEvidence, t)
-            conn > 0 -> log(c, "base check ok — $conn/$reg connected" +
-                if (stuck.isNotEmpty()) "; ${stuck.size} undelivered (${offlineCount} to offline peers — benign)" else "")
-            else -> log(c, "base check — 0/$reg connected, watching (${(t - lastAnyConnectedMs) / 1000}s)")
+            networkDown() ->
+                log(c, "0/$reg healthy + network egress DOWN — per-account handler recovering [$summary]")
+            staleFor > silentFuse && !recentWedge(t) -> {
+                log(c, "silent wedge: 0/$reg healthy ${staleFor / 60_000}m on a working network — strong recover [$summary]")
+                fullRecover(c, accounts)
+            }
+            t - lastIdleRearmMs > IDLE_REARM_MS -> {
+                lastIdleRearmMs = t
+                log(c, "0/$reg healthy, network not down (${staleFor / 60_000}m) — presence re-arm (cheap, no re-register) [$summary]")
+                resubscribeAllPresence(accounts)
+            }
+            else ->
+                log(c, "base check — 0/$reg healthy, quiet on a working network (${staleFor / 1000}s) [$summary]")
         }
     }
 
@@ -539,13 +747,13 @@ object ConnectionWatchdog {
         if (!wedgeEscalated) {
             wedgeEscalated = true
             log(c, "wedge persists after recover ($who) → HARD reset (single escalation)")
-            notifyUser(c, "配信詰まり継続 → ハードリセット (${stamp()})")
+            notifyUser(c, c.getString(cx.ring.R.string.notif_stuck_hard, stamp()))
             fullRecover(c, accounts)
             maybeDiagnoseTransport(c, accounts, "wedge persisted past recover")
         } else {
             wedgeStandDownUntil = t + WEDGE_STAND_DOWN_MS
             log(c, "wedge STILL unchanged ($who) — giving up for ${WEDGE_STAND_DOWN_MS / 60_000}m (recipient likely unreachable)")
-            notifyUser(c, "配信不能 ($who) — 回復を${WEDGE_STAND_DOWN_MS / 60_000}分停止")
+            notifyUser(c, c.getString(cx.ring.R.string.notif_stuck_giveup, who, (WEDGE_STAND_DOWN_MS / 60_000).toInt()))
             maybeDiagnoseTransport(c, accounts, "wedge stand-down")
         }
     }

@@ -191,8 +191,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         // Inflate Menu and connect it
         searchBar.inflateMenu(R.menu.smartlist_menu)
-        cx.ring.utils.FontUtil.apply(searchBar.textView, cx.ring.utils.FontPrefs.SEARCH_HINT)
-        searchBar.textView.setHintTextColor(cx.ring.utils.ColorPrefs.getColor(requireContext(), cx.ring.utils.ColorPrefs.SEARCH_HINT))
+        searchBar.textView.apply {
+            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.SEARCH_HINT)   // font family/weight + settable size (original)
+            includeFontPadding = false
+            gravity = android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.START
+            layoutParams = layoutParams.apply { height = android.view.ViewGroup.LayoutParams.MATCH_PARENT }
+            setHintTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.SEARCH_HINT))
+            // Vertical centring is computed in doOnLayout below (exact — the SearchBar places the hint high).
+        }
         searchBar.menu.findItem(R.id.menu_split_view)?.isChecked =
             (activity as? HomeActivity)?.isSplitViewEnabled() ?: true
         // Account online/offline dot: a resizable action view (size set in the UI page) tapped to
@@ -203,52 +209,74 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = ViewGroup.LayoutParams(statusDotSizePx(), statusDotSizePx())
             setImageResource(R.drawable.ic_status_offline)
-            // Tap: live connection-status diagnostic (with a Reconnect action inside).
+            // Tap: the connectivity Dashboard (per-account status + expand + merged log + controls).
             setOnClickListener { showConnectionStatusDialog() }
-            // Long-press: the connectivity help / info page (UI settings is on the hamburger long-press).
-            setOnLongClickListener { showConnectionInfoDialog(); true }
+            descTip(this, context.getString(R.string.tip_dot))
         }
-        // DHT-proxy lightning: an action view (so it sits tight to the overflow, like the dot — a plain
-        // menu icon leaves a wide slot). Tap = recover now (full DHT + re-register); long-press = toggle
-        // forced full-DHT. Colour by state via updateLightningIcon().
+        // Recover lightning: tap = the one manual Recover (full DHT + re-register + presence re-arm).
+        // No long-press. Colour by state via updateLightningIcon().
         val lightningPx = (28 * resources.displayMetrics.density).toInt()
         searchBar.menu.findItem(R.id.menu_lightning)?.actionView = ImageView(requireContext()).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = ViewGroup.LayoutParams(lightningPx, lightningPx)
             setImageResource(R.drawable.ic_proxy_flash)
-            setOnClickListener {   // tap: smart recover (light if proxy good, full if 0-connected)
-                cx.ring.utils.ConnectionWatchdog.manualRecover(requireContext(), mAccountService)
+            setOnClickListener {
+                cx.ring.utils.ConnectionWatchdog.recoverNow(requireContext(), mAccountService)
                 updateLightningIcon(); refreshLightningAtSettle()
-                Flash.show(context, "Recovering…")
+                Flash.show(context, context.getString(R.string.tip_flash))
             }
-            setOnLongClickListener {   // long-press: hard reset (always proxy off + re-register)
-                cx.ring.utils.ConnectionWatchdog.hardReset(requireContext(), mAccountService)
-                updateLightningIcon(); refreshLightningAtSettle()
-                Flash.show(context, "Hard reset — full DHT + re-register")
-                true
-            }
+            descTip(this, context.getString(R.string.tip_flash))
         }
+        // DHT-mode icon: shows + toggles the connection mode. Tap flips full DHT ↔ proxy and reconciles
+        // EVERY account at once (authoritative — the per-account "Use DHT proxy" no longer drifts out of sync).
+        val dhtPx = (26 * resources.displayMetrics.density).toInt()
+        searchBar.menu.findItem(R.id.menu_dht_mode)?.actionView = ImageView(requireContext()).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = ViewGroup.LayoutParams(dhtPx, dhtPx)
+            setOnClickListener { toggleDhtMode() }
+            descTip(this, context.getString(R.string.tip_dht_mode))
+        }
+        updateDhtModeIcon()
         // Long-press the overflow ("hamburger") menu to jump straight to the UI page.
         // doOnLayout: the action-item views only exist once the bar has been laid out.
         searchBar.doOnLayout {
+            // Centre the hint on the icon row (icons are bar-centred) → equal whitespace above and below.
+            searchBar.textView.let { tvw ->
+                val t = IntArray(2); tvw.getLocationInWindow(t)
+                val b = IntArray(2); searchBar.getLocationInWindow(b)
+                tvw.translationY += searchBar.height / 2f - ((t[1] - b[1]) + tvw.height / 2f)
+            }
             searchBar.findViewById<View>(R.id.menu_overflow)?.setOnLongClickListener {
                 (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
                 true
             }
-            // Long-press Sync → pin DHT proxy OFF (full DHT, max reliability). Sync turns blue while
-            // pinned; long-press again to release. (Also consumes the long-press, so no white tooltip.)
-            searchBar.findViewById<View>(R.id.menu_sync)?.setOnLongClickListener {
-                val forced = cx.ring.utils.ConnectionWatchdog.toggleForcedOff(requireContext(), mAccountService)
-                updateSyncIcon()
-                Flash.show(context, if (forced) "DHT proxy pinned OFF (full DHT) — long-press Sync again to release"
-                    else "DHT proxy unpinned (auto)")
-                true
-            }
         }
+        // Pack the three connection icons right, snug against the (rightmost) overflow, freeing the left
+        // width so the full "Search or add" hint shows. Deferred to a global-layout pass — at doOnLayout the
+        // action views aren't positioned yet, so the shift computed as 0. Applied once, then the listener detaches.
+        searchBar.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                val overflow = searchBar.findViewById<View>(R.id.menu_overflow) ?: return
+                val icons = listOfNotNull(
+                    searchBar.menu.findItem(R.id.menu_dht_mode)?.actionView,
+                    searchBar.menu.findItem(R.id.menu_account_status)?.actionView,
+                    searchBar.menu.findItem(R.id.menu_lightning)?.actionView)
+                val last = icons.lastOrNull() ?: return
+                if (last.width == 0 || overflow.width == 0) return
+                val lLoc = IntArray(2); last.getLocationInWindow(lLoc)
+                val oLoc = IntArray(2); overflow.getLocationInWindow(oLoc)
+                if (oLoc[0] <= lLoc[0]) return
+                val shift = oLoc[0] - (lLoc[0] + last.width) - (2 * resources.displayMetrics.density)
+                if (shift <= 1f) return
+                // Let the shifted icons draw across their slot bounds.
+                searchBar.clipChildren = false; searchBar.clipToPadding = false
+                icons.forEach { (it.parent as? ViewGroup)?.apply { clipChildren = false; clipToPadding = false } }
+                icons.forEach { it.translationX += shift }
+                if (searchBar.viewTreeObserver.isAlive) searchBar.viewTreeObserver.removeOnGlobalLayoutListener(this)
+            }
+        })
         searchBar.setOnMenuItemClickListener {
             when (it.itemId) {
-                R.id.menu_sync -> showRecoveryLogDialog()   // tap: show the recovery log
-
                 R.id.menu_account_settings -> (activity as? HomeActivity)?.goToAccountSettings()
 
                 R.id.menu_advanced_settings -> (activity as? HomeActivity)?.goToAdvancedSettings()
@@ -575,7 +603,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     private val mFgWatchdogRunnable = object : Runnable {
         override fun run() {
             context?.let { cx.ring.utils.ConnectionWatchdog.tick(it, mAccountService) }
-            updateLightningIcon(); updateSyncIcon()
+            updateLightningIcon(); updateDhtModeIcon()
             mFgWatchdogHandler.postDelayed(this, 60_000L)
         }
     }
@@ -588,17 +616,32 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         iv.setColorFilter(if (cx.ring.utils.ConnectionWatchdog.isRecovering()) 0xFF0000FF.toInt() else 0xFFFFFF00.toInt())
     }
 
-    /** Sync: blue while DHT proxy is pinned off (Sync long-press), else yellow. */
-    private fun updateSyncIcon() {
-        val item = mBinding?.searchBar?.menu?.findItem(R.id.menu_sync) ?: return
-        val ctx = context ?: return
-        val color = if (cx.ring.utils.UiPrefs.isProxyForcedOff(ctx)) 0xFF0000FF.toInt() else 0xFFFFFF00.toInt()
-        androidx.core.view.MenuItemCompat.setIconTintList(item, android.content.res.ColorStateList.valueOf(color))
-    }
 
     /** Flip the lightning back to yellow once the recover settle window passes. */
     private fun refreshLightningAtSettle() {
         mFgWatchdogHandler.postDelayed({ updateLightningIcon() }, 31_000L)
+    }
+
+    /** DHT-mode icon: the same distributed-hub glyph in both modes; colour alone marks it —
+     *  yellow = full DHT (robust), blue = proxy. */
+    private fun updateDhtModeIcon() {
+        val iv = mBinding?.searchBar?.menu?.findItem(R.id.menu_dht_mode)?.actionView as? ImageView ?: return
+        val ctx = context ?: return
+        val full = cx.ring.utils.UiPrefs.isFullDhtMode(ctx)
+        iv.setImageResource(R.drawable.connectivity_mode_dht_24)
+        iv.setColorFilter(cx.ring.utils.ColorPrefs.getColor(ctx,
+            if (full) cx.ring.utils.ColorPrefs.DHT_FULL else cx.ring.utils.ColorPrefs.DHT_PROXY))
+    }
+
+    /** Flip full DHT ↔ proxy: authoritative + immediate — persist the mode AND set every account's proxy
+     *  config to match, so the search-bar control and the per-account Advanced switch never drift apart. */
+    private fun toggleDhtMode() {
+        val ctx = context ?: return
+        val newFull = !cx.ring.utils.UiPrefs.isFullDhtMode(ctx)
+        cx.ring.utils.UiPrefs.setFullDhtMode(ctx, newFull)
+        mAccountService.setProxyEnabled(!newFull)
+        updateDhtModeIcon()
+        Flash.show(ctx, ctx.getString(if (newFull) R.string.dht_switched_full else R.string.dht_switched_proxy))
     }
 
     /** Connectivity help / info page (Account-dot long-press). */
@@ -606,106 +649,151 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val ctx = context ?: return
         val dens = resources.displayMetrics.density
         fun dp(v: Int) = (v * dens).toInt()
-        // All settable in “UI fonts & colours” → “Connectivity help page”.
-        val bodyC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_BODY)        // body — yellow by default
-        val headC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_HEADING)     // headings — white by default
-        val pillText = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_PILL_TEXT)
-        val pillBorder = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_PILL_BORDER)
-        val pillFill = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.INFO_PILL_FILL)
+        val C = cx.ring.utils.ColorPrefs
+        val bodyC = C.getColor(ctx, C.INFO_BODY)        // body — yellow
+        val headC = C.getColor(ctx, C.INFO_HEADING)     // section titles — white (readable on black)
         val root = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(dp(20), dp(14), dp(20), dp(8))
+            setPadding(dp(16), dp(10), dp(16), dp(8))
         }
-        // Turn {Button name} markers into real pills that look like the Contact-live-monitor buttons.
-        fun pillify(s: String): CharSequence {
-            if (!s.contains('{')) return s
-            val sb = android.text.SpannableStringBuilder()
-            var i = 0
-            while (i < s.length) {
-                val open = s.indexOf('{', i)
-                if (open < 0) { sb.append(s.substring(i)); break }
-                sb.append(s.substring(i, open))
-                val close = s.indexOf('}', open)
-                if (close < 0) { sb.append(s.substring(open)); break }
-                val st = sb.length
-                sb.append(s.substring(open + 1, close))
-                sb.setSpan(cx.ring.views.PillSpan(pillText, pillBorder, pillFill, dens), st, sb.length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                i = close + 1
+        fun tv(text: CharSequence, color: Int, sizeSp: Float, bold: Boolean = false, padL: Int = 0, padT: Int = 0) =
+            android.widget.TextView(ctx).apply {
+                this.text = text; setTextColor(color); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sizeSp)
+                if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setLineSpacing(dp(2).toFloat(), 1f)
+                setPadding(dp(padL), dp(padT), 0, 0)
             }
-            return sb
-        }
-        fun heading(iconRes: Int, title: String) {
-            root.addView(android.widget.LinearLayout(ctx).apply {
+        // A bordered section card. Returns its inner column for content.
+        fun card(iconRes: Int, title: String): android.widget.LinearLayout {
+            val col = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(dp(14), dp(11), dp(14), dp(12))
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = dp(14).toFloat()
+                    setColor(0xFF0B0B0B.toInt()); setStroke(dp(1), 0x66FFFF00)
+                }
+            }
+            col.addView(android.widget.LinearLayout(ctx).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(0, dp(17), 0, dp(5))
+                setPadding(0, 0, 0, dp(4))
                 addView(ImageView(ctx).apply {
-                    setImageResource(iconRes); setColorFilter(bodyC)
-                    layoutParams = android.widget.LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(10) }
+                    setImageResource(iconRes); setColorFilter(headC)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(9) }
                 })
-                addView(android.widget.TextView(ctx).apply {
-                    text = title; setTextColor(headC); setTypeface(typeface, android.graphics.Typeface.BOLD)
-                    paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
-                    cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_HEADING)
-                })
+                addView(tv(title, headC, 16f, bold = true))
             })
+            root.addView(col, android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
+            return col
         }
-        fun line(s: String) = root.addView(android.widget.TextView(ctx).apply {
-            text = pillify(s); setTextColor(bodyC); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(34), dp(2), 0, dp(4))
-            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_BODY)
-        })
-        // "lead — description", lead in bold, rest body-coloured; {pills} in either part become buttons.
-        fun action(lead: String, desc: String) = root.addView(android.widget.TextView(ctx).apply {
-            setTextColor(bodyC); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(34), dp(2), 0, dp(4))
-            text = android.text.SpannableStringBuilder().apply {
-                val st = length; append(lead)
-                setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), st, length, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                append("   —   ").append(pillify(desc))
+        // A labelled item — the lead (before " — " or ": ") in bold, the rest body-coloured.
+        fun item(box: android.widget.LinearLayout, text: String) {
+            val cut = text.indexOf(" — ").let { if (it < 0) text.indexOf(": ").let { c -> if (c < 0) -1 else c + 1 } else it }
+            val sb = android.text.SpannableStringBuilder(text)
+            if (cut > 0) sb.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, cut, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            box.addView(tv(sb, bodyC, 13.5f, padT = 7))
+        }
+        // A dot-colour legend row: a filled/hollow coloured disc + "Label — desc" (label bold).
+        fun stateRow(box: android.widget.LinearLayout, color: Int, filled: Boolean, text: String) {
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(6), 0, 0)
             }
-            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_BODY)
-        })
-        fun banner(s: String) = root.addView(android.widget.TextView(ctx).apply {
-            text = s; setTextColor(headC); setTypeface(typeface, android.graphics.Typeface.BOLD)
-            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f); setPadding(0, dp(20), 0, dp(5))
-            cx.ring.utils.FontUtil.apply(this, cx.ring.utils.FontPrefs.INFO_HEADING)
-        })
+            row.addView(android.view.View(ctx).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    if (filled) setColor(color) else { setColor(0); setStroke(dp(2), color) }
+                }
+                layoutParams = android.widget.LinearLayout.LayoutParams(dp(15), dp(15)).apply { marginEnd = dp(11); marginStart = dp(2) }
+            })
+            val cut = text.indexOf(" — ")
+            val sb = android.text.SpannableStringBuilder(text)
+            if (cut > 0) sb.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, cut, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            row.addView(tv(sb, bodyC, 13.5f))
+            box.addView(row)
+        }
 
-        heading(R.drawable.baseline_autorenew_white_24dp, "Sync   ↻")
-        action("Tap", "show the connection / recovery log.")
-        action("Long-press", "pin DHT proxy OFF (full DHT, maximum reliability, ignores battery). {Sync ↻} turns blue while pinned; long-press again to release.")
+        root.addView(tv(ctx.getString(R.string.info_intro), bodyC, 13.5f))
 
-        heading(R.drawable.ic_status_online, "Account dot   ●")
-        action("Tap", "connection status — your accounts and contacts, and who's connected.")
-        action("Long-press", "this help page.")
-        line("The dot shows your selected account: online (filled) / offline (hollow).")
+        // A section sub-header: the ACTUAL top-bar icon + its name (bold).
+        fun sub(box: android.widget.LinearLayout, iconRes: Int, iconColor: Int, title: String) {
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(11), 0, dp(1))
+            }
+            row.addView(ImageView(ctx).apply {
+                setImageResource(iconRes); setColorFilter(iconColor)
+                layoutParams = android.widget.LinearLayout.LayoutParams(dp(19), dp(19)).apply { marginEnd = dp(8) }
+            })
+            row.addView(tv(title, bodyC, 14f, bold = true).apply {
+                paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            })
+            box.addView(row)
+        }
+        // A colour-variant row: the ACTUAL icon tinted + "Label — desc" (label bold).
+        fun iconRow(box: android.widget.LinearLayout, iconRes: Int, color: Int, text: String) {
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(6), 0, 0)
+            }
+            row.addView(ImageView(ctx).apply {
+                setImageResource(iconRes); setColorFilter(color)
+                layoutParams = android.widget.LinearLayout.LayoutParams(dp(17), dp(17)).apply { marginEnd = dp(11); marginStart = dp(1) }
+            })
+            val cut = text.indexOf(" — ")
+            val sb = android.text.SpannableStringBuilder(text)
+            if (cut > 0) sb.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, cut, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            row.addView(tv(sb, bodyC, 13.5f))
+            box.addView(row)
+        }
+        // Main screen (top bar). Sections follow the bar left→right — connection-mode ⬡, account dot ●,
+        // recover ⚡ — each shown as its ACTUAL icon in colour variants, then the explanation line.
+        card(R.drawable.ic_status_online, ctx.getString(R.string.info_h_main)).also { box ->
+            sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
+            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
+            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_PROXY), ctx.getString(R.string.info_dht_proxy))
+            item(box, ctx.getString(R.string.info_b_main_dht))
+            sub(box, R.drawable.ic_status_online, C.getColor(ctx, C.STATUS_ONLINE), ctx.getString(R.string.info_dot_header))
+            stateRow(box, C.getColor(ctx, C.STATUS_ONLINE), true, ctx.getString(R.string.info_dot_connected))
+            stateRow(box, C.getColor(ctx, C.STATUS_CONNECTING), true, ctx.getString(R.string.info_dot_connecting))
+            stateRow(box, C.getColor(ctx, C.STATUS_OFFLINE), true, ctx.getString(R.string.info_dot_disconnected))
+            stateRow(box, 0xFF888888.toInt(), false, ctx.getString(R.string.info_dot_off))
+            sub(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_header))
+            iconRow(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_ready))
+            iconRow(box, R.drawable.ic_proxy_flash, 0xFF0000FF.toInt(), ctx.getString(R.string.info_flash_recovering))
+            item(box, ctx.getString(R.string.info_b_main_flash))
+        }
 
-        heading(R.drawable.ic_proxy_flash, "Lightning   ⚡")
-        action("Tap", "smart recover — re-registers to fix a stuck link; drops to full DHT only if nothing is connected. Blue while recovering.")
-        action("Long-press", "hard reset — force full DHT + re-register no matter what. The big hammer.")
-        line("Account-WIDE: it re-registers every account and affects all your chats, not one contact.")
+        // This dashboard.
+        card(R.drawable.ic_proxy_flash, ctx.getString(R.string.info_h_dash)).also { box ->
+            item(box, ctx.getString(R.string.info_b_dash_rows))
+            item(box, ctx.getString(R.string.info_b_dash_recover))
+            item(box, ctx.getString(R.string.info_b_dash_monitor))
+            item(box, ctx.getString(R.string.info_b_dash_info))
+            item(box, ctx.getString(R.string.info_b_dash_longpress))
+        }
 
-        heading(R.drawable.ic_status_online, "A contact's avatar   ◎")
-        line("Tap a contact or group avatar to open a LIVE monitor for just them — it re-checks itself every 2 s while open, so there's nothing to refresh by hand.")
-        line("Channels are colour-coded: connecting → negotiating (ICE) → securing (TLS) → connected, with device IDs and uptime.")
-        line("{Message ping ⌁}   —   Jami has no per-contact connect button, so this sends a tiny ⌁ probe; only real content makes the daemon open a direct channel. The per-CONTACT nudge.")
-        line("If your last message is still undelivered, {Message ping ⌁} won't just fire again (the daemon is already retrying) — it says so and points you to {Lightning ⚡}, since one stuck contact usually means YOUR link.")
-        line("Per-contact ({Message ping ⌁}) re-attempts ONE contact. Account-wide ({Lightning ⚡}) re-registers your WHOLE account. Try the ping first; escalate to the lightning if it doesn't land.")
-
-        banner("When something's wrong")
-        line("•   A message won't go / a contact is stuck → tap their avatar → {Message ping ⌁}. Reaches ICE but stalls = online but NAT-blocked. Never connects = likely offline.")
-        line("•   Already pinged, still undelivered → don't keep pinging; escalate to {Lightning ⚡} (tap = smart recover). It recovers your WHOLE account — all chats — not just this contact.")
-        line("•   Everything stuck (0 connected) → {Lightning ⚡} long-press (hard reset).")
-        line("•   Guaranteed delivery, battery aside → {Sync ↻} long-press (pin proxy off).")
-        line("•   Dot colours:  yellow = a live connection now  ·  blue = online, no open pipe  ·  red = offline.")
+        // How auto-recovery works.
+        card(R.drawable.ic_status_online, ctx.getString(R.string.info_h_auto)).also { box ->
+            box.addView(tv(ctx.getString(R.string.info_b_auto_intro), bodyC, 13.5f, padT = 6))
+            item(box, ctx.getString(R.string.info_b_auto_storm))
+            item(box, ctx.getString(R.string.info_b_auto_silence))
+            item(box, ctx.getString(R.string.info_b_auto_coldstart))
+            item(box, ctx.getString(R.string.info_b_auto_restricted))
+            item(box, ctx.getString(R.string.info_b_auto_stuck))
+            item(box, ctx.getString(R.string.info_b_auto_proxy))
+        }
 
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Connectivity — how the icons work")
+            .setTitle(ctx.getString(R.string.info_title))
             .setView(android.widget.ScrollView(ctx).apply { addView(root) })
-            .setPositiveButton("Got it", null)
+            .setPositiveButton(android.R.string.ok, null)
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
@@ -714,7 +802,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         activity?.intent?.let { handleIntent(it) }
         // Online-recovery: an immediate check on open, then a 1-minute foreground cadence.
         context?.let { cx.ring.utils.ConnectionWatchdog.tick(it, mAccountService) }
-        updateLightningIcon(); updateSyncIcon()
+        updateLightningIcon(); updateDhtModeIcon()
         mFgWatchdogHandler.removeCallbacks(mFgWatchdogRunnable)
         mFgWatchdogHandler.postDelayed(mFgWatchdogRunnable, 60_000L)
 
@@ -815,9 +903,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                         else -> {}
                     }
                 }
-                if (problems != dotAlarmCount || connecting != dotConnectingCount) {
+                // The watchdog's honest verdict: any account DEAF (no real inbound past the limit) or
+                // the network verified DOWN → the dot must go red, even when registration still says OK.
+                val deaf = cx.ring.utils.ConnectionWatchdog.anyDeaf(mAccountService) ||
+                    cx.ring.utils.ConnectionWatchdog.networkDown()
+                if (problems != dotAlarmCount || connecting != dotConnectingCount || deaf != dotDeaf) {
                     dotAlarmCount = problems
                     dotConnectingCount = connecting
+                    dotDeaf = deaf
                     applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
                 }
             }, {}))
@@ -837,37 +930,31 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     private var dotAlarmCount = 0
     /** >0 when an account is still connecting (in progress) — rings the dot BLUE (only if no red). */
     private var dotConnectingCount = 0
+    /** True when the watchdog considers an account deaf or the network down — turns the dot RED. */
+    private var dotDeaf = false
 
-    /** Set the dot's shape (online = filled, offline = hollow) and colour (yellow until overridden),
-     *  plus a thick red alarm ring around it when there are dead peer links. */
+    /** The account dot as a single 3-colour indicator (no ring): a FILLED dot coloured CONNECTED
+     *  (yellow), CONNECTING/recovering (blue) or DISCONNECTED / problem (red) — a deaf account or a
+     *  down network shows red even while registration still claims OK. A HOLLOW dot means the account
+     *  is switched off (not attempting to connect), which is distinct from the red "should be up but
+     *  isn't". All three colours are settable in "UI fonts & colours" → "Status & indicators". */
     private fun applyStatusDot(online: Boolean) {
         val dot = mBinding?.searchBar?.menu?.findItem(R.id.menu_account_status)?.actionView as? ImageView ?: return
-        dot.setImageResource(if (online) R.drawable.ic_status_online else R.drawable.ic_status_offline)
-        val role = if (online) cx.ring.utils.ColorPrefs.STATUS_ONLINE else cx.ring.utils.ColorPrefs.STATUS_OFFLINE
-        dot.imageTintList = android.content.res.ColorStateList.valueOf(
-            if (cx.ring.utils.ColorPrefs.isSet(dot.context, role))
-                cx.ring.utils.ColorPrefs.getColor(dot.context, role)
-            else 0xFFFFFF00.toInt())
-        // Ring: RED for a stuck-message problem, else BLUE while connecting, else none. Both use the
-        // settable monitor colours so they match the monitor screen.
-        val ringColor = when {
-            dotAlarmCount > 0 -> cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.MONITOR_PROBLEM)
-            dotConnectingCount > 0 -> cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.MONITOR_CONNECTING)
-            else -> 0
+        val acc = mAccountService.currentAccount
+        val enabled = acc?.isEnabled ?: false
+        val trying = acc?.isTrying ?: false
+        val recovering = cx.ring.utils.ConnectionWatchdog.isRecovering()
+        val problem = dotAlarmCount > 0 || dotDeaf   // stuck message, or any account deaf / network down
+        val (filled, color) = when {
+            !enabled            -> false to 0xFF888888.toInt()   // off / disabled → hollow grey
+            problem             -> true  to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)   // red
+            online              -> true  to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_ONLINE)    // yellow
+            trying || recovering -> true to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_CONNECTING) // blue
+            else                -> true  to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)   // red — enabled but not up
         }
-        if (ringColor != 0) {
-            val dens = dot.resources.displayMetrics.density
-            dot.background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(android.graphics.Color.TRANSPARENT)
-                setStroke((2 * dens).toInt(), ringColor)
-            }
-            val p = (3 * dens).toInt()
-            dot.setPadding(p, p, p, p)
-        } else {
-            dot.background = null
-            dot.setPadding(0, 0, 0, 0)
-        }
+        dot.setImageResource(if (filled) R.drawable.ic_status_online else R.drawable.ic_status_offline)
+        dot.imageTintList = android.content.res.ColorStateList.valueOf(color)
+        dot.background = null; dot.setPadding(0, 0, 0, 0)   // ring removed — the colour carries the state
     }
 
     /** Re-apply the dot size + colour after they are changed in the UI page (live refresh). */
@@ -889,58 +976,55 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
      *  "registered but swarms dead" state: the daemon's live peer-connection count. */
     private fun showConnectionStatusDialog() {
         val ctx = context ?: return
-        val account = mAccountService.currentAccount ?: run {
-            Flash.show(ctx, "No account", Toast.LENGTH_SHORT); return
+        mAccountService.currentAccount ?: run {
+            Flash.show(ctx, ctx.getString(R.string.conn_dash_no_account), Toast.LENGTH_SHORT); return
         }
         val pad = (20 * ctx.resources.displayMetrics.density).toInt()
         val container = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
-            addView(TextView(ctx).apply { setTextColor(0xFFFFFF00.toInt()); text = "Checking…" })
+            addView(TextView(ctx).apply { setTextColor(0xFFFFFF00.toInt()); text = ctx.getString(R.string.conn_dash_checking) })
         }
         val scroll = android.widget.ScrollView(ctx).apply { addView(container) }
-        // Custom title: "Connection status" on the left, a "Recovery" pill top-right → Online-recovery settings.
         val d = ctx.resources.displayMetrics.density
-        val recoveryPill = TextView(ctx).apply {
-            text = "ⓘ Recovery"   // ⓘ marks it as the informative Online-recovery settings button
+        fun pill(label: String, tip: String) = TextView(ctx).apply {
+            text = label
             setTextColor(0xFFFFFF00.toInt())
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
             background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
+            descTip(this, tip)
         }
-        val syncNowPill = TextView(ctx).apply {
-            text = "Sync now"
-            setTextColor(0xFFFFFF00.toInt())
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
-            background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
-        }
+        // Title: "Connection dashboard" + Monitor pill + ⓘ Info pill (→ the help page).
+        val monitorPill = pill(ctx.getString(R.string.conn_dash_monitor), ctx.getString(R.string.tip_monitor))
+        val infoPill = pill(ctx.getString(R.string.conn_dash_info), ctx.getString(R.string.tip_info))
         val titleRow = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
             setPadding(pad, pad, pad, 0)
             addView(TextView(ctx).apply {
-                text = "Connection status"
+                text = ctx.getString(R.string.conn_dash_title)
                 setTextColor(0xFFFFFF00.toInt())
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
-            addView(syncNowPill, android.widget.LinearLayout.LayoutParams(
+            addView(monitorPill, android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = (8 * d).toInt() })
-            addView(recoveryPill)
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = (8 * d).toInt() })
+            addView(infoPill)
         }
         val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
             .setCustomTitle(titleRow)
             .setView(scroll)
-            .setNeutralButton("Monitor", null)  // click wired below so it does NOT dismiss the dialog
-            .setNegativeButton("Close", null)
+            .setNeutralButton(ctx.getString(R.string.conn_dash_recover_now), null) // wired below: does NOT dismiss
+            .setNegativeButton(ctx.getString(R.string.conn_dash_close), null)
             .create()
         mConnStatusDialog = dialog
-        syncNowPill.setOnClickListener { syncAllWithFeedback() }   // top pill = hard sync (dialog stays open)
-        recoveryPill.setOnClickListener { (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true) }
+        monitorPill.setOnClickListener {
+            startActivity(android.content.Intent(requireContext(), cx.ring.client.ConnectionMonitorActivity::class.java))
+        }
+        infoPill.setOnClickListener { showConnectionInfoDialog() }
         val dis = CompositeDisposable()
         dialog.setOnDismissListener { dis.clear(); mConnStatusDialog = null }
         // Account avatars (by accountId) for the dialog rows, loaded async; rebuild on either source.
@@ -1002,13 +1086,27 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         dialog.show()
         dialog.window?.setBackgroundDrawable(
             AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow))
-        styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE))
         styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL))
         styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE))
-        // Open the monitor WITHOUT dismissing this dialog, so Back from the monitor returns here.
-        dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.setOnClickListener {
-            startActivity(android.content.Intent(requireContext(), cx.ring.client.ConnectionMonitorActivity::class.java))
+        // Neutral = Recover now (the one strong manual fix — same as the ⚡ flash). Does NOT dismiss.
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.apply {
+            descTip(this, ctx.getString(R.string.tip_recover_now))
+            setOnClickListener {
+                cx.ring.utils.ConnectionWatchdog.recoverNow(ctx, mAccountService)
+                updateLightningIcon(); refreshLightningAtSettle()
+                Flash.show(ctx, ctx.getString(R.string.tip_flash))
+            }
         }
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)?.let {
+            descTip(it, ctx.getString(R.string.tip_close))
+        }
+    }
+
+    /** Long-press → a styled black/yellow-bordered Flash describing the item, held LENGTH_LONG.
+     *  (Replaces the plain system tooltip so the descriptions match the app's chrome and stay
+     *  on screen long enough to read.) */
+    private fun descTip(v: View, text: CharSequence) {
+        v.setOnLongClickListener { Flash.show(v.context, text, Toast.LENGTH_LONG); true }
     }
 
     /** Black fill, yellow text + 2dp yellow border — matches the app's black/yellow chrome. */
@@ -1075,17 +1173,17 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val ranked = loaded.sortedBy { if (H.isProblem(healthOf(it))) 0 else 1 }   // problems on top
         val problems = loaded.count { H.isProblem(healthOf(it)) }
         container.addView(text(
-            if (problems > 0) "⚠ $problems account(s) need attention" else "✓ All accounts healthy",
+            if (problems > 0) ctx.getString(R.string.conn_dash_need_attention, problems) else ctx.getString(R.string.conn_dash_all_healthy),
             if (problems > 0) red else healthyCol, bold = true, sizeSp = 15f))
-        container.addView(text("Network: ${networkLabel() ?: "none"}", grey, sizeSp = 12f))
+        container.addView(text(ctx.getString(R.string.conn_dash_network, networkLabel() ?: ctx.getString(R.string.conn_dash_network_none)), grey, sizeSp = 12f))
         for (da in ranked) {
             val ac = da.ac
             val health = healthOf(da)
             val word = when (health) {
-                cx.ring.utils.ConnectionHealth.Health.HEALTHY -> "online · healthy"
-                cx.ring.utils.ConnectionHealth.Health.CONNECTING -> "connecting…"
-                cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> "NOT SYNCING"
-                cx.ring.utils.ConnectionHealth.Health.OFFLINE -> "OFFLINE"
+                cx.ring.utils.ConnectionHealth.Health.HEALTHY -> ctx.getString(R.string.conn_state_healthy)
+                cx.ring.utils.ConnectionHealth.Health.CONNECTING -> ctx.getString(R.string.conn_state_connecting)
+                cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> ctx.getString(R.string.conn_state_not_syncing)
+                cx.ring.utils.ConnectionHealth.Health.OFFLINE -> ctx.getString(R.string.conn_state_offline)
             }
             val col = when (health) {
                 cx.ring.utils.ConnectionHealth.Health.HEALTHY -> healthyCol
@@ -1095,12 +1193,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             val acctExpanded = ac.accountId in expanded
             val stuckUris = mAccountService.getAccount(ac.accountId)
                 ?.let { H.accountStuckConvUris(it, now, myUris) } ?: emptyList()
-            // Account header: triangle + avatar + name/health, tap to fold/unfold.
+            // Account header: triangle + avatar + name/health, tap to fold/unfold; a per-account
+            // ⚡ recover-flash on the right recovers just this account.
             val header = android.widget.LinearLayout(ctx).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 setPadding(0, (12 * d).toInt(), 0, 0)
                 setOnClickListener { onToggle(ac.accountId) }
+                descTip(this, ctx.getString(R.string.tip_account_row))
             }
             header.addView(text(if (acctExpanded) "▼" else "▶", col, bold = true, sizeSp = 13f).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -1113,12 +1213,26 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 avatars[ac.accountId]?.let { setImageDrawable(it) }
             })
             val cnt = da.ac.peers.count { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
-            val stuckWord = if (stuckUris.isNotEmpty()) " (${stuckUris.size} msg stuck)" else ""
-            header.addView(text("${ac.name} — $word$stuckWord · $cnt connected", col))
+            val stuckWord = if (stuckUris.isNotEmpty()) " (${ctx.getString(R.string.conn_msg_stuck_count, stuckUris.size)})" else ""
+            header.addView(text("${ac.name} — $word$stuckWord · ${ctx.getString(R.string.conn_connected_count, cnt)}", col).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            header.addView(ImageView(ctx).apply {
+                setImageResource(R.drawable.ic_proxy_flash)
+                setColorFilter(0xFFFFFF00.toInt())
+                layoutParams = android.widget.LinearLayout.LayoutParams((30 * d).toInt(), (30 * d).toInt())
+                setPadding((3 * d).toInt(), (3 * d).toInt(), (3 * d).toInt(), (3 * d).toInt())
+                descTip(this, ctx.getString(R.string.tip_recover_account))
+                setOnClickListener {
+                    cx.ring.utils.ConnectionWatchdog.recoverAccount(ctx, mAccountService, ac.accountId)
+                    Flash.show(ctx, "${ac.name}: ${ctx.getString(R.string.conn_dash_recovering)}")
+                    setColorFilter(0xFF66AAFF.toInt())
+                }
+            })
             container.addView(header)
             // Stuck-message sub-rows — always shown (the problem the user must see).
             for (n in stuckUris.map { nameOf[it] ?: it.take(8) }.distinct())
-                container.addView(text("⚠ message not delivered → $n", red, sizeSp = 13f, padL = 48, padT = 4))
+                container.addView(text(ctx.getString(R.string.conn_msg_not_delivered, n), red, sizeSp = 13f, padL = 48, padT = 4))
             if (acctExpanded) {
                 val sorted = da.peers.sortedWith(compareBy({ (_, conns) ->
                     when { conns.any { it.status == AccountService.ConnectionStatus.Connected } -> 0
@@ -1129,11 +1243,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     val attempting = conns.isNotEmpty() && !connected
                     val peerKey = cvm.contact.uri.rawRingId ?: cvm.contact.uri.uri
                     val (st, sc) = when {
-                        connected -> "connected" to connectedCol
-                        attempting -> "connecting…" to idleCol
+                        connected -> ctx.getString(R.string.conn_state_connected) to connectedCol
+                        attempting -> ctx.getString(R.string.conn_state_connecting) to idleCol
                         peerKey in myOnlineUris || cvm.presence != net.jami.model.Contact.PresenceStatus.OFFLINE ->
-                            "reachable" to connectedCol
-                        else -> "offline" to offlineCol
+                            ctx.getString(R.string.conn_state_reachable) to connectedCol
+                        else -> ctx.getString(R.string.conn_state_peer_offline) to offlineCol
                     }
                     val ckey = "${ac.accountId}|$peerKey"
                     val cExpanded = ckey in expanded
@@ -1162,24 +1276,40 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     // 3rd level: this contact's device connections (the monitor's deepest detail).
                     if (cExpanded) {
                         if (conns.isEmpty())
-                            container.addView(text("no active connection", grey, sizeSp = 12f, padL = 84, padT = 2))
+                            container.addView(text(ctx.getString(R.string.conn_no_active), grey, sizeSp = 12f, padL = 84, padT = 2))
                         for (conn in conns.sortedByDescending { it.status == AccountService.ConnectionStatus.Connected }) {
                             val stage = when (conn.status) {
-                                AccountService.ConnectionStatus.Waiting -> "waiting…"
-                                AccountService.ConnectionStatus.Connecting -> "connecting…"
-                                AccountService.ConnectionStatus.ICE -> "negotiating (ICE)…"
-                                AccountService.ConnectionStatus.TLS -> "securing (TLS)…"
-                                AccountService.ConnectionStatus.Connected -> conn.remoteAddress ?: "connected"
+                                AccountService.ConnectionStatus.Waiting -> ctx.getString(R.string.conn_state_waiting)
+                                AccountService.ConnectionStatus.Connecting -> ctx.getString(R.string.conn_state_connecting)
+                                AccountService.ConnectionStatus.ICE -> ctx.getString(R.string.conn_state_ice)
+                                AccountService.ConnectionStatus.TLS -> ctx.getString(R.string.conn_state_tls)
+                                AccountService.ConnectionStatus.Connected -> conn.remoteAddress ?: ctx.getString(R.string.conn_state_connected)
                             }
                             val isC = conn.status == AccountService.ConnectionStatus.Connected
-                            val ch = if (isC && conn.channels.isNotEmpty()) "  · ${conn.channels.size} ch" else ""
+                            val ch = if (isC && conn.channels.isNotEmpty()) "  · ${ctx.getString(R.string.conn_channels, conn.channels.size)}" else ""
                             container.addView(text("↳ ${conn.device.take(8)}…  $stage$ch",
                                 if (isC) connectedCol else idleCol, sizeSp = 12f, padL = 84, padT = 2))
                         }
                     }
                 }
+                // Per-account filtered history: recovery-log lines that name this account (6-char id).
+                val idTag = ac.accountId.take(6)
+                val acctLog = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).filter { it.contains(idTag) }
+                if (acctLog.isNotEmpty()) {
+                    container.addView(text(ctx.getString(R.string.conn_acct_history), amber, bold = true, sizeSp = 12f, padL = 40, padT = 6))
+                    container.addView(text(acctLog.reversed().joinToString("\n"), grey, sizeSp = 11f, padL = 40, padT = 2))
+                }
             }
         }
+        // Merged recovery log at the bottom of the dashboard.
+        container.addView(android.view.View(ctx).apply {
+            setBackgroundColor(0x33FFFF00)
+            layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * d).toInt()).apply { topMargin = (12 * d).toInt(); bottomMargin = (8 * d).toInt() }
+        })
+        container.addView(text(ctx.getString(R.string.conn_dash_history), healthyCol, bold = true, sizeSp = 15f))
+        val log = cx.ring.utils.UiPrefs.getRecoveryLog(ctx)
+        container.addView(text(if (log.isEmpty()) ctx.getString(R.string.conn_dash_history_none) else log.reversed().joinToString("\n"),
+            grey, sizeSp = 11f, padT = 2).apply { setTextIsSelectable(true) })
     }
 
     private fun networkLabel(): String? {

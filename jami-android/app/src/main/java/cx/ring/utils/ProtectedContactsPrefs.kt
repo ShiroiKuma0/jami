@@ -20,6 +20,7 @@ object ProtectedContactsPrefs {
     private const val KEY = "protected_contacts"
     private const val KEY_TITLE = "protected_title"
     private const val KEY_BODY = "protected_body"
+    private const val KEY_BODY_PICTURE = "protected_body_picture"
 
     private fun p(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -59,15 +60,22 @@ object ProtectedContactsPrefs {
     /** Companion-supplied vague body; blank/unset → null so the caller uses its default. */
     fun getBody(c: Context): String? = p(c).getString(KEY_BODY, null)?.takeIf { it.isNotBlank() }
 
+    /** Companion-supplied vague body for PICTURE/FILE transfers (protected_body_picture);
+     *  blank/unset → null so the caller falls back to [getBody], then its default. */
+    fun getPictureBody(c: Context): String? = p(c).getString(KEY_BODY_PICTURE, null)?.takeIf { it.isNotBlank() }
+
     /**
-     * Set (or clear) the vague-notification title/body. Blank/null clears the value → the default is
-     * used. Each SET_PROTECTED_CONTACTS reflects the current desired state, so an absent extra clears
-     * the prior value (there is no separate clear path). Companion-private text — never logged.
+     * Set (or clear) the vague-notification title/body/picture-body. Blank/null clears the value →
+     * the default is used. Each SET_PROTECTED_CONTACTS reflects the current desired state, so an
+     * absent extra clears the prior value (there is no separate clear path; an old companion that
+     * never sends protected_body_picture simply leaves the picture body cleared → fallback to body).
+     * Companion-private text — never logged.
      */
-    fun setText(c: Context, title: String?, body: String?) {
+    fun setText(c: Context, title: String?, body: String?, pictureBody: String? = null) {
         p(c).edit().apply {
             if (title.isNullOrBlank()) remove(KEY_TITLE) else putString(KEY_TITLE, title.trim())
             if (body.isNullOrBlank()) remove(KEY_BODY) else putString(KEY_BODY, body.trim())
+            if (pictureBody.isNullOrBlank()) remove(KEY_BODY_PICTURE) else putString(KEY_BODY_PICTURE, pictureBody.trim())
         }.apply()
     }
 }

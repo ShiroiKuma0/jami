@@ -223,6 +223,24 @@ abstract class JamiApplication : Application() {
         instance = this
         LinkPreview.init(this)
 
+        // Re-assert the user's chosen app language. Some ROMs (EMUI) don't keep the system
+        // per-app locale across a sideload update, so we store the choice ourselves (UiPrefs) and
+        // re-apply it here on every start — done in Application.onCreate so no activity flashes.
+        cx.ring.utils.UiPrefs.getAppLanguage(this)?.let { tag ->
+            val current = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            if (current != tag) androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                if (tag.isEmpty()) androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                else androidx.core.os.LocaleListCompat.forLanguageTags(tag))
+        }
+        // One-time: clear a stale connection-dot colour left over from when STATUS_ONLINE/OFFLINE
+        // meant the account online/offline icon (green/grey) rather than the dot's connected/
+        // disconnected states (yellow/red). After this the new defaults show; re-customising sticks.
+        if (cx.ring.utils.UiPrefs.needsDotColorMigration(this)) {
+            cx.ring.utils.ColorPrefs.reset(this, cx.ring.utils.ColorPrefs.STATUS_ONLINE)
+            cx.ring.utils.ColorPrefs.reset(this, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)
+            cx.ring.utils.UiPrefs.setDotColorMigrated(this)
+        }
+
         // Launch logging if previously set up by user (info is stored in shared preferences).
         // Subscribe on it (first element) to initialize pipe construction.
         if (hardwareService.mPreferenceService.isLogActive)

@@ -27,6 +27,7 @@ object ProtectedContacts {
         modeRaw: String?,
         titleRaw: String? = null,
         bodyRaw: String? = null,
+        pictureBodyRaw: String? = null,
     ) {
         val mode = modeRaw?.trim()?.lowercase().orEmpty()
         val entries = (contactsRaw ?: "").split('|').map { it.trim() }.filter { it.isNotEmpty() }
@@ -37,7 +38,7 @@ object ProtectedContacts {
             else -> ProtectedContactsPrefs.replace(app, entries)   // "replace" (default); empty clears
         }
         // Optional companion-controlled vague title/body; absent/blank → cleared → default is used.
-        ProtectedContactsPrefs.setText(app, titleRaw, bodyRaw)
+        ProtectedContactsPrefs.setText(app, titleRaw, bodyRaw, pictureBodyRaw)
         resolveNamesToIds(app, accountService, entries, remove = mode == "remove")
     }
 
