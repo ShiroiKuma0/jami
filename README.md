@@ -8,12 +8,14 @@
 
 A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
 per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience** —
-a self-healing recovery watchdog, a live **connection monitor** (per-contact too), smart one-tap
-recovery and **Google-free push** — a swipeable **media viewer** with hide/restore, **protected
-contacts** with vague notifications, **in-app message forwarding**, token-gated **automation
-intents**, smarter **registered-name** lookups, and a **split-view** toggle.
+**full DHT by default** with a self-healing recovery watchdog (per-account proxy-wedge recovery and
+OpenDHT 4.2.0 proxy fixes), a live **connection monitor** (per-contact too), a one-tap
+**connection-mode toggle** and **Google-free push** — a swipeable **media viewer** with hide/restore,
+**protected contacts** with vague notifications (now masking media too), **in-app message
+forwarding**, token-gated **automation intents**, smarter **registered-name** lookups, and a
+**split-view** toggle.
 
-**📥 Latest release: [`20260717-01+1`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+30`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
