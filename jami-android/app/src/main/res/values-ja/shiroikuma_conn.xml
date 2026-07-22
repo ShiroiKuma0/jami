@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dashboard chrome -->
+    <string name="conn_dash_title">接続ダッシュボード</string>
+    <string name="conn_dash_info">ⓘ 情報</string>
+    <string name="conn_dash_monitor">モニタ</string>
+    <string name="conn_dash_recover_now">⚡ 今すぐ回復</string>
+    <string name="conn_dash_close">閉じる</string>
+    <string name="conn_dash_checking">確認中…</string>
+    <string name="conn_dash_all_healthy">✓ 全アカウント正常</string>
+    <string name="conn_dash_need_attention">⚠ %d 個のアカウントに注意</string>
+    <string name="conn_dash_network">ネットワーク: %s</string>
+    <string name="conn_dash_network_none">なし</string>
+    <string name="conn_dash_history">履歴</string>
+    <string name="conn_dash_history_none">（まだ記録なし）</string>
+    <string name="conn_dash_no_account">アカウントなし</string>
+    <string name="conn_dash_recovering">回復中</string>
+    <string name="conn_dash_restricted">制限ネットワーク</string>
+    <string name="conn_dash_proxy_on">DHT代理: ON</string>
+    <string name="conn_dash_proxy_off">DHT代理: OFF（フルDHT）</string>
+
+    <!-- Per-account / per-contact states -->
+    <string name="conn_state_healthy">オンライン・正常</string>
+    <string name="conn_state_connecting">接続中…</string>
+    <string name="conn_state_not_syncing">同期していません</string>
+    <string name="conn_state_offline">オフライン</string>
+    <string name="conn_state_connected">接続済み</string>
+    <string name="conn_state_reachable">到達可能</string>
+    <string name="conn_state_peer_offline">オフライン</string>
+    <string name="conn_state_waiting">待機中…</string>
+    <string name="conn_state_ice">交渉中 (ICE)…</string>
+    <string name="conn_state_tls">暗号化中 (TLS)…</string>
+    <string name="conn_connected_count">%d 件接続</string>
+    <string name="conn_msg_stuck_count">%d 件未配信</string>
+    <string name="conn_msg_not_delivered">⚠ 未配信 → %s</string>
+    <string name="conn_no_active">接続なし</string>
+    <string name="conn_channels">%d ch</string>
+    <string name="conn_acct_history">アカウント履歴</string>
+
+    <!-- Long-press tooltips -->
+    <string name="tip_recover_now">今すぐ回復：フルDHT + 再登録 + 在席情報の再取得 — 接続が詰まったときの強力な修復。</string>
+    <string name="tip_recover_account">このアカウントだけを回復（再登録 + 在席再取得）。正常なアカウントには触れません。</string>
+    <string name="tip_account_row">タップでこのアカウントの連絡先とライブ接続を展開。</string>
+    <string name="tip_info">ダッシュボードと自動回復の仕組みについて。</string>
+    <string name="tip_monitor">詳細な接続モニタを開く。</string>
+    <string name="tip_close">ダッシュボードを閉じる。</string>
+    <string name="tip_dot">接続ダッシュボード：アカウントごとの状態・履歴・回復。</string>
+    <string name="tip_flash">今すぐ回復：フルDHT + 再登録 + 在席再取得。</string>
+    <string name="tip_dht_mode">接続モード：黄＝フルDHT（堅牢・詰まる単一代理なし）、青＝DHT代理（軽量）。タップで切替——全アカウントに一括適用します。</string>
+    <string name="dht_switched_full">フルDHTに切替（全アカウント）</string>
+    <string name="dht_switched_proxy">DHT代理に切替（全アカウント）</string>
+
+    <!-- Auto-recovery notifications -->
+    <string name="notif_recover_title">白い熊 Jami 自動回復</string>
+    <string name="notif_storm_smart">エラーストーム検出 → スマート回復 (%s)</string>
+    <string name="notif_storm_hard">エラーストーム再発 → ハードリセット (%s)</string>
+    <string name="notif_deaf_smart">アカウント受信沈黙 %1$d 分 → 回復 (%2$s)</string>
+    <string name="notif_deaf_hard">アカウント受信沈黙 %1$d 分 → フルDHT回復 (%2$s)</string>
+    <string name="notif_stuck_hard">配信詰まり継続 → ハードリセット (%s)</string>
+    <string name="notif_stuck_giveup">配信不能 (%1$s) — 回復を %2$d 分停止</string>
+    <string name="notif_restricted">制限ネットワーク検出（UDP遮断）→ プロキシ固定ON・中継モード (%s)</string>
+    <string name="notif_network_down">ネットワーク切断の可能性 — 接続を確認してください (%s)</string>
+    <string name="notif_restricted_exit">通常ネットワーク復帰 — UDP開通 (%s)</string>
+
+    <!-- Info page -->
+    <string name="info_dot_header">アカウントドット</string>
+    <string name="info_dot_connected">接続 — 正常</string>
+    <string name="info_dot_connecting">接続中 — 接続または回復中</string>
+    <string name="info_dot_disconnected">切断 — アカウントが沈黙、またはネットワーク切断</string>
+    <string name="info_dot_off">オフ — アカウントがオフで接続を試みていない</string>
+    <string name="info_dot_noring">リングなし：色だけで状態を表します。</string>
+    <string name="info_title">接続と回復</string>
+    <string name="info_intro">ふだんここで操作する必要はほとんどありません。ウォッチャーが常時動作し、接続を自動で修復します（下の「自動回復の仕組み」を参照）。これらの操作は、自分で修復を強制したいときのためのものです。</string>
+
+    <string name="info_h_main">メイン画面（上部バー）</string>
+    <string name="info_b_main_dot">● アカウントドット — タップでこのダッシュボードを開きます。色が接続状態を表します：黄=接続・正常、青=接続中または回復中、赤=切断・アカウント沈黙・ネットワーク切断（本来つながっているはずなのに、つながっていない状態）。中抜きのドットはこれとは別で、アカウントがオフ／ログアウトで接続を試みていないことを示します。リングはありません。色だけで状態を表します。</string>
+    <string name="info_b_main_flash">⚡ フラッシュ — タップで「今すぐ回復」：フルDHTへ切替、全アカウント再登録、在席情報の再取得。唯一の強力な手動修復で、回復中は青くなります。</string>
+    <string name="info_dht_header">接続モード</string>
+    <string name="info_flash_header">回復フラッシュ</string>
+    <string name="info_flash_ready">待機</string>
+    <string name="info_flash_recovering">回復中 — 修復の実行中</string>
+    <string name="info_dht_full">フルDHT — 堅牢。詰まる単一の代理リンクがない</string>
+    <string name="info_dht_proxy">代理 — 軽量。受信は代理サーバー経由</string>
+    <string name="info_b_main_dht">⬡ 接続モードアイコン — 色が現在のモードを表します（黄＝フルDHT、青＝代理）。タップでモード切替。全アカウントに一括適用するので、アカウント個別の「DHT代理を使う」設定がずれることはありません。</string>
+
+    <string name="info_h_dash">このダッシュボード</string>
+    <string name="info_b_dash_rows">アカウント行 — 行をタップすると連絡先とそのライブ接続（接続中 → ICE → TLS → 接続済み）が展開します。各行には専用の ⚡ があり、そのアカウントだけを回復します（正常なアカウントはそのまま）。</string>
+    <string name="info_b_dash_recover">⚡ 今すぐ回復 — メイン画面のフラッシュと同じ強力な修復を全アカウントに実行します。</string>
+    <string name="info_b_dash_monitor">モニタ — デバイス単位の最も詳細な情報を見る接続モニタを開きます。</string>
+    <string name="info_b_dash_info">ⓘ 情報 — このページ。</string>
+    <string name="info_b_dash_longpress">ボタン・行・アイコン（ここでもメイン画面でも）を長押しすると、その説明が表示されます。</string>
+
+    <string name="info_h_auto">自動回復の仕組み</string>
+    <string name="info_b_auto_intro">ウォッチャーは約1分ごと（異常時は数秒以内）に接続を点検します。各アカウントは「実際に受信があるか」で判定し、「接続済み」の表示だけには頼りません。</string>
+    <string name="info_b_auto_storm">エラーストーム：接続失敗の多発はあくまで手がかりです。回復を実行するのは問題が確認できたときだけ——ネットワークが実際に到達不能、または到達可能な相手へのメッセージが滞留している場合です。ネットワークが正常なときの多発や、回復直後（再接続に伴う自らのノイズ）は無視します。確認された問題が最初の回復で解消しないときは完全リセットへ強化します。</string>
+    <string name="info_b_auto_silence">沈黙アカウント：あるアカウントが5分間、実際の受信がない場合、ウォッチャーはネットワーク自体が到達可能かを実際の往復通信で確認します（自己応答のごまかしではありません）。ネットワークが切断していれば本当の障害として再登録し（Androidが正常なネットワークへ切り替える契機にもなります）、通知します。ネットワークが正常なら、単に静かなだけとみなしそのままにします。</string>
+    <string name="info_b_auto_coldstart">起動直後：起動から約1分でアカウントがオンラインにならない場合、すぐにフルDHTへ切り替えて素早く接続します。</string>
+    <string name="info_b_auto_restricted">敵対的なネットワーク：回復が失敗し、ネットワークがUDPを遮断している（一部のホテル/オフィスWi-Fi）場合、代理を固定ONにしてTCPで中継し、2分ごとに再試験してUDPが戻れば切り替えます。</string>
+    <string name="info_b_auto_stuck">配信詰まり：オフラインの相手への未配信は無視します（相手側の問題）。到達可能な相手への詰まりのみを問題として扱います。</string>
+    <string name="info_b_auto_proxy">接続モード：既定では各アカウントはフルDHT（分散型）で動作します——単一の代理リンクが詰まることのない、最も堅牢なモードです。UDPを遮断するネットワークでは、代わりにDHT代理をONに固定し、UDPが復帰するまでTURN中継が通信を運びます。すべての点検と回復は履歴に記録され、完全なコピーが files/recovery-log.txt に書き出されます。</string>
+</resources>
