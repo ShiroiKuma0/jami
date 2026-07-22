@@ -1,0 +1,31 @@
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -193,6 +193,19 @@
+     if (proxyUrl_.empty())
+         return;
+     getConnectivityStatus();
++    // SK-SUBREFRESH: proactively re-arm EVERY push subscription on each confirmation (now every 3 min). A
++    // push subscription can lapse on the proxy while the server stays reachable — getProxyInfos() still
++    // reports Connected then, so nothing resubscribes and inbound is silently stranded for up to OP_TIMEOUT
++    // (24h). Re-arming here bounds that gap to the confirmation interval; RESUBSCRIBE extends the existing
++    // subscription rather than tearing it down, so there is no inbound gap for healthy accounts.
++#ifdef OPENDHT_PUSH_NOTIFICATIONS
++    if (not deviceKey_.empty()) {
++        std::lock_guard lock(searchLock_);
++        for (auto& search : searches_)
++            for (auto& listener : search.second.listeners)
++                resubscribe(search.first, listener.first, listener.second);
++    }
++#endif
+ }
+ 
+ DhtProxyClient::~DhtProxyClient()
+@@ -805,7 +818,7 @@
+                 });
+             }
+         }
+-        nextProxyConfirmationTimer_->expires_at(std::chrono::steady_clock::now() + std::chrono::minutes(15));
++        nextProxyConfirmationTimer_->expires_at(std::chrono::steady_clock::now() + std::chrono::minutes(3));  // SK-SUBREFRESH: 15->3 (see handleProxyConfirm)
+         nextProxyConfirmationTimer_->async_wait(
+             std::bind(&DhtProxyClient::handleProxyConfirm, this, std::placeholders::_1));
+     } else if (newStatus == NodeStatus::Disconnected) {
