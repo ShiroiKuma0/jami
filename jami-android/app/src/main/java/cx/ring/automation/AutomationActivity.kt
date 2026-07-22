@@ -163,7 +163,8 @@ class AutomationActivity : ComponentActivity() {
         val mode = deepLink?.getQueryParameter(KEY_MODE) ?: intent.getStringExtra(KEY_MODE)
         val title = deepLink?.getQueryParameter(KEY_TITLE) ?: intent.getStringExtra(KEY_TITLE)
         val body = deepLink?.getQueryParameter(KEY_BODY) ?: intent.getStringExtra(KEY_BODY)
-        ProtectedContacts.apply(this, accountService, raw, mode, title, body)
+        val pictureBody = deepLink?.getQueryParameter(KEY_BODY_PICTURE) ?: intent.getStringExtra(KEY_BODY_PICTURE)
+        ProtectedContacts.apply(this, accountService, raw, mode, title, body, pictureBody)
     }
 
     /** Android decodes path segments already; just index safely. */
@@ -203,5 +204,6 @@ class AutomationActivity : ComponentActivity() {
         const val KEY_MODE = "mode"
         const val KEY_TITLE = "protected_title"
         const val KEY_BODY = "protected_body"
+        const val KEY_BODY_PICTURE = "protected_body_picture"
     }
 }
