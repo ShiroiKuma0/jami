@@ -60,6 +60,7 @@ import android.widget.Toast
 import cx.ring.utils.Flash
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -137,6 +138,13 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     lateinit var mDeviceRuntimeService: DeviceRuntimeService
     private val mCompositeDisposable = CompositeDisposable()
     private var bottomSheetParams: BottomSheetBehavior<View>? = null
+    /** shiroikuma: true while an OUTGOING call is still ringing. The options sheet (which carries the
+     *  audio-output/"Earpiece" toggle) is normally gated on the call being ANSWERED, so the ringback
+     *  could only ever play in the earpiece. Keeping it available during outgoing ringing lets the
+     *  speaker be selected before the other side picks up. */
+    private var outgoingRinging = false
+    /** shiroikuma: output to restore when un-muting (see [audioMuteClicked]). */
+    private var lastNonMuteOutputType: HardwareService.AudioOutputType = HardwareService.AudioOutputType.INTERNAL
     private var extensionsAdapter: ExtensionsAdapter? = null
     private var isVideoMode: Boolean = false
     private var currentAudioState: AudioState? = null
@@ -190,6 +198,8 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 b.callEndBtn.setOnClickListener { refuseClicked() }
                 b.callHngUpBtn.setOnClickListener { hangupClicked() }
                 b.callSpeakerBtn.setOnClickListener { speakerClicked() }
+                b.callAudioMuteBtn.setOnClickListener { audioMuteClicked() }   // shiroikuma
+                b.callAudioBtBtn.setOnClickListener { audioBluetoothClicked() }   // shiroikuma
                 b.callMicBtn.setOnClickListener { micClicked() }
                 b.callVideocamBtn.setOnClickListener { switchCamera() }
                 b.callSharescreenBtn.setOnClickListener { shareScreenClicked() }
@@ -1114,10 +1124,12 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
             halfExpandedRatio = if (halfRatio <= 0 || halfRatio >= 1) 0.4f else halfRatio
             peekHeight = desiredPeekHeight.toInt()
             saveFlags = BottomSheetBehavior.SAVE_PEEK_HEIGHT
-            if (isTalkBackActive) {
-                isHideable = false
-                state = BottomSheetBehavior.STATE_EXPANDED
-            }
+            // shiroikuma: always open FULL and stay there. Upstream only expanded for TalkBack and
+            // otherwise left it at a peek of half the grid — which hid the second row, and (while an
+            // outgoing call was still ringing) computed a peek of ~0 because the grid had never been
+            // laid out, so the sheet was effectively invisible. Not hideable, so a drag can't lose it.
+            isHideable = false
+            state = BottomSheetBehavior.STATE_EXPANDED
         }
     }
 
@@ -1127,20 +1139,21 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
             return am?.isTouchExplorationEnabled == true
         }
 
+    /** shiroikuma: the control toolbar is FIXED — it never auto-hides. The `display` flag (driven by
+     *  the screen-tap UI-visibility toggle) is deliberately ignored; the sheet is shown whenever there
+     *  is a call to control, and only the on-hold overlay takes it away. */
     private fun displayBottomSheet(display: Boolean) {
         val binding = binding ?: return
         binding.callOptionsBottomSheet.isVisible =
-            display && presenter.mOnGoingCall == true && !binding.holdActionRow.isVisible
+            (presenter.mOnGoingCall == true || outgoingRinging) && !binding.holdActionRow.isVisible
     }
 
     override fun resetBottomSheetState() {
         bottomSheetParams?.let { bs ->
             bs.isHideable = false
-            if (isTalkBackActive) {
-                bs.state = BottomSheetBehavior.STATE_EXPANDED
-            } else {
-                bs.state = BottomSheetBehavior.STATE_COLLAPSED
-            }
+            // shiroikuma: always reset to FULLY EXPANDED — upstream reset to COLLAPSED (a one-row
+            // peek), which is what snapped the sheet back down after it was pulled up.
+            bs.state = BottomSheetBehavior.STATE_EXPANDED
         }
     }
 
@@ -1164,27 +1177,18 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 setBottomSheet()
             }
             BottomSheetAnimation.DOWN -> {
-                if (isTalkBackActive) {
-                    bottomSheetParams?.state = BottomSheetBehavior.STATE_EXPANDED
-                    return
-                }
+                // shiroikuma: the control toolbar is FIXED — never animate it away. This animation
+                // (translationY 250 + alpha 0) is what actually hid it, both on a screen tap and from
+                // the no-interaction timer; ignoring the visibility flag alone was not enough.
+                // Cancel any in-flight slide and re-assert the fully expanded sheet instead.
                 binding.callCoordinatorOptionContainer.apply {
-                    this@apply.updatePadding(bottom = 0)
-                    binding.callOptionsBottomSheet.updatePadding(bottom = 0)
-                    animate()
-                        .translationY(250f)
-                        .alpha(0.0f)
-                        .setListener(object : AnimatorListenerAdapter() {
-                            override fun onAnimationEnd(animation: Animator) {
-                                displayBottomSheet(false)
-                            }
-                        })
-                    WindowInsetsControllerCompat(requireActivity().window, binding.root).apply {
-                        requireActivity().window.navigationBarColor = resources.getColor(R.color.transparent)
-                        hide(WindowInsetsCompat.Type.systemBars())
-                        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                    }
+                    animate().cancel()
+                    translationY = 0f
+                    alpha = 1.0f
+                    isVisible = true
                 }
+                displayBottomSheet(true)
+                bottomSheetParams?.state = BottomSheetBehavior.STATE_EXPANDED
             }
         }
     }
@@ -1194,6 +1198,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
      * */
     override fun initNormalStateDisplay() {
         Log.w(CallPresenter.TAG, "initNormalStateDisplay")
+        outgoingRinging = false   // shiroikuma: answered — normal ongoing-call gating takes over
         binding?.apply {
             callModeToggleBtn.visibility = View.GONE
             callBtnRow.isVisible = false
@@ -1231,6 +1236,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
 
     override fun initOutGoingCallDisplay(hasVideo: Boolean) {
         Log.w(TAG, "initOutGoingCallDisplay")
+        outgoingRinging = true   // shiroikuma: expose the audio-output toggle while it rings out
         binding?.apply {
             callBtnRow.isGone = true
             callEndBtn.isVisible = true
@@ -1243,6 +1249,13 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 fullscreenCameraPreview.visibility = View.GONE
                 isVideoMode = false
             }
+        }
+        // shiroikuma: make the sheet visible FIRST, then size it once the grid has actually been laid
+        // out. setBottomSheet() derives its geometry from callParametersGrid.height, which is still 0
+        // while the sheet is GONE — sizing it too early is what made this invisible last time.
+        binding?.let { b ->
+            displayBottomSheet(true)
+            b.callParametersGrid.doOnLayout { setBottomSheet() }
         }
     }
 
@@ -1390,18 +1403,54 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         presenter.startAddParticipant()
     }
 
+    /** shiroikuma: strict TWO-STATE toggle — earpiece <-> speaker. No chooser dialog (the old
+     *  tri-state button cycled earpiece/speaker/mute and popped a sheet you had to tap again), and
+     *  mute is its own button now. */
     fun speakerClicked() {
         val state = currentAudioState ?: return
-        renderAudioOutputState(state, currentAudioHasVideo)
-        val availableOutputs = availableAudioOutputs(state)
-        if (availableOutputs.size <= 1) return
+        val outputs = availableAudioOutputs(state)
+        val want = if (state.output.type == HardwareService.AudioOutputType.SPEAKERS)
+            HardwareService.AudioOutputType.INTERNAL else HardwareService.AudioOutputType.SPEAKERS
+        val target = outputs.firstOrNull { it.type == want }
+            ?: nextSimpleAudioOutput(state.output, outputs)
+            ?: return
+        selectAudioOutput(target)
+    }
 
-        if (!hasExternalAudioDevice(availableOutputs)) {
-            selectAudioOutput(nextSimpleAudioOutput(state.output, availableOutputs) ?: return)
-            return
+    /** shiroikuma: Bluetooth audio-output toggle. Only meaningful when a BT device is available —
+     *  the button disables itself otherwise. Tapping again returns to the previous (non-BT) output. */
+    fun audioBluetoothClicked() {
+        val state = currentAudioState ?: return
+        val outputs = availableAudioOutputs(state)
+        if (state.output.type == HardwareService.AudioOutputType.BLUETOOTH) {
+            val restore = outputs.firstOrNull { it.type == lastNonMuteOutputType && it.type != HardwareService.AudioOutputType.BLUETOOTH }
+                ?: outputs.firstOrNull { it.type == HardwareService.AudioOutputType.INTERNAL }
+                ?: outputs.firstOrNull { it.type == HardwareService.AudioOutputType.SPEAKERS }
+                ?: return
+            selectAudioOutput(restore)
+        } else {
+            val bt = outputs.firstOrNull { it.type == HardwareService.AudioOutputType.BLUETOOTH } ?: return
+            if (state.output.type != HardwareService.AudioOutputType.MUTE)
+                lastNonMuteOutputType = state.output.type
+            selectAudioOutput(bt)
         }
+    }
 
-        showAudioOutputBottomSheet(availableOutputs, state.output)
+    /** shiroikuma: dedicated audio-output MUTE toggle. Muting remembers the previous output so a
+     *  second tap restores it. */
+    fun audioMuteClicked() {
+        val state = currentAudioState ?: return
+        if (state.output.type == HardwareService.AudioOutputType.MUTE) {
+            val outputs = availableAudioOutputs(state)
+            val restore = outputs.firstOrNull { it.type == lastNonMuteOutputType }
+                ?: outputs.firstOrNull { it.type != HardwareService.AudioOutputType.MUTE }
+                ?: return
+            selectAudioOutput(restore)
+        } else {
+            lastNonMuteOutputType = state.output.type
+            val mute = state.availableOutputs.firstOrNull { it.type == HardwareService.AudioOutputType.MUTE } ?: return
+            selectAudioOutput(mute)
+        }
     }
 
     private fun audioOutputLabel(output: AudioOutput): String =
@@ -1423,11 +1472,26 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         val availableOutput = state.availableOutputs.filter {
             if (hasVideo) it.type != HardwareService.AudioOutputType.INTERNAL else true
         }
-        binding.callSpeakerBtn.isEnabled = availableOutput.size > 1
+        // shiroikuma: two-state toggle (earpiece <-> speaker); it stays usable even when the only
+        // other output is the speaker, and mute now lives on its own button.
+        binding.callSpeakerBtn.isEnabled = true
         binding.callSpeakerBtn.isChecked = state.output.type == HardwareService.AudioOutputType.SPEAKERS
         binding.callSpeakerBtn.setImageResource(audioOutputIconRes(state.output))
-        binding.callSpeakerBtn.imageTintList = if (state.output.type == HardwareService.AudioOutputType.MUTE)
-            null else ColorStateList.valueOf(Color.WHITE)
+        // Themed tint: yellow normally, black when the circle is filled yellow (checked). The old
+        // code forced Color.WHITE here, which overrode the XML tint and kept the icon white.
+        binding.callSpeakerBtn.imageTintList =
+            AppCompatResources.getColorStateList(requireContext(), R.color.shiroikuma_call_icon)
+        // Audio-output MUTE toggle (separate button).
+        binding.callAudioMuteBtn.isChecked = state.output.type == HardwareService.AudioOutputType.MUTE
+        binding.callAudioMuteBtn.imageTintList =
+            AppCompatResources.getColorStateList(requireContext(), R.color.shiroikuma_call_icon)
+        // Bluetooth toggle: only usable when a BT output is actually offered.
+        val btAvailable = state.availableOutputs.any { it.type == HardwareService.AudioOutputType.BLUETOOTH }
+        binding.callAudioBtBtn.isEnabled = btAvailable
+        binding.callAudioBtBtn.alpha = if (btAvailable) 1f else 0.4f
+        binding.callAudioBtBtn.isChecked = state.output.type == HardwareService.AudioOutputType.BLUETOOTH
+        binding.callAudioBtBtn.imageTintList =
+            AppCompatResources.getColorStateList(requireContext(), R.color.shiroikuma_call_icon)
         binding.textViewCallSpeaker.text = audioOutputLabel(state.output)
         binding.callSpeakerBtn.contentDescription = getString(
             R.string.audio_output_content_description,
