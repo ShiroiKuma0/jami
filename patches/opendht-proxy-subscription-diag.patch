@@ -1,0 +1,137 @@
+--- a/include/opendht/dht_proxy_client.h
++++ b/include/opendht/dht_proxy_client.h
+@@ -361,6 +361,14 @@
+ 
+     std::atomic_bool isDestroying_ {false};
+ 
++    // SK-PROXYDIAG: subscription-lifecycle diagnostics (one DhtProxyClient per account, so these
++    // counters are per-account). Written from http io threads, read from the confirm timer — atomics.
++    std::atomic<uint64_t> diagRxLines_ {0};    // values received on listen response bodies
++    std::atomic<int64_t> diagLastRxMs_ {0};    // steady-clock ms of the last inbound (listen body or push)
++    std::atomic<uint64_t> diagListenSent_ {0}; // LISTEN/SUBSCRIBE/RESUBSCRIBE requests sent
++    std::atomic<uint64_t> diagListenEnded_ {0};// listen requests that completed/closed
++    std::atomic<uint64_t> diagPushRx_ {0};     // push notifications received
++
+     std::string proxyUrl_;
+     dht::crypto::Identity clientIdentity_;
+     std::shared_ptr<dht::crypto::Certificate> serverCertificate_;
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -9,6 +9,16 @@
+ #include <llhttp.h>
+ #include <deque>
+ 
++// SK-PROXYDIAG: the daemon only hands OpenDHT a logger when dhtLogLevel > 0 (a debug-only firehose),
++// so logger_-routed diagnostics are invisible in a normal build. Log the subscription-lifecycle
++// diagnostics straight to the Android log instead — unconditional, low-volume, grep 'SK-PROXYDIAG'.
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_DIAG(...) __android_log_print(ANDROID_LOG_ERROR, "SK-PROXYDIAG", __VA_ARGS__)
++#else
++#define SK_DIAG(...) do {} while (0)
++#endif
++
+ namespace dht {
+ 
+ struct DhtProxyClient::InfoState
+@@ -193,6 +203,34 @@
+     if (proxyUrl_.empty())
+         return;
+     getConnectivityStatus();
++    // SK-PROXYDIAG: liveness tick on the 3-min confirm timer — one line per account per 3 min.
++    // Shows whether the subscription set exists, whether ANY inbound (listen body / push) has been
++    // seen recently, and the request churn — enough to tell half-open-silent (listeners>0, lastRx
++    // grows unboundedly, no ENDED events) from dropped (ENDED events, no re-send) from server-side
++    // lapse (rx resumes only after a resubscribe).
++    {
++        size_t nListeners = 0;
++        {
++            std::lock_guard lock(searchLock_);
++            for (auto& s : searches_)
++                nListeners += s.second.listeners.size();
++        }
++        int s4, s6;
++        {
++            std::lock_guard l(lockCurrentProxyInfos_);
++            s4 = (int) statusIpv4_;
++            s6 = (int) statusIpv6_;
++        }
++        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
++                         std::chrono::steady_clock::now().time_since_epoch()).count();
++        auto last = diagLastRxMs_.load();
++        SK_DIAG("[%s] tick: listeners=%zu rxLines=%llu pushRx=%llu lastRx=%llds ago sent=%llu ended=%llu status4=%d status6=%d",
++                proxyUrl_.c_str(), nListeners,
++                (unsigned long long) diagRxLines_.load(), (unsigned long long) diagPushRx_.load(),
++                last ? (long long) ((nowMs - last) / 1000) : -1LL,
++                (unsigned long long) diagListenSent_.load(), (unsigned long long) diagListenEnded_.load(),
++                s4, s6);
++    }
+     // SK-SUBREFRESH: proactively re-arm EVERY push subscription on each confirmation (now every 3 min). A
+     // push subscription can lapse on the proxy while the server stays reachable — getProxyInfos() still
+     // reports Connected then, so nothing resubscribes and inbound is silently stranded for up to OP_TIMEOUT
+@@ -1082,8 +1120,10 @@
+                            Listener& listener,
+                            ListenMethod method)
+ {
+-    if (logger_)
+-        logger_->error("[proxy:client] [listen] sendListen: {}", (int) method);
++    diagListenSent_++;   // SK-PROXYDIAG
++    SK_DIAG("[%s] listen send method=%d (sent=%llu ended=%llu)",
++            proxyUrl_.c_str(), (int) method,
++            (unsigned long long) diagListenSent_.load(), (unsigned long long) diagListenEnded_.load());
+     try {
+         auto request = buildRequest();
+         listener.request = request;
+@@ -1103,6 +1143,18 @@
+             try {
+                 auto& b = *rxBuf;
+                 b.append(at, length);
++                // SK-PROXYDIAG: inbound liveness — mark the rx clock, and make a resume after a
++                // long silent gap visible (the suspected half-open window ends exactly here).
++                {
++                    auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
++                                     std::chrono::steady_clock::now().time_since_epoch()).count();
++                    auto prev = diagLastRxMs_.exchange(nowMs);
++                    diagRxLines_++;
++                    if (prev != 0 && nowMs - prev > 60'000)
++                        SK_DIAG("[%s] listen rx RESUMED after %llds silence (req #%llu)",
++                                proxyUrl_.c_str(), (long long) ((nowMs - prev) / 1000),
++                                (unsigned long long) reqid);
++                }
+ 
+                 // one value per body line
+                 while (b.getLine('\n') and !opstate->stop) {
+@@ -1137,7 +1189,15 @@
+                 opstate->ok.store(false);
+             }
+         });
+-        request->add_on_done_callback([this, opstate, reqid](const http::Response& response) {
++        request->add_on_done_callback([this, opstate, reqid, method](const http::Response& response) {
++            // SK-PROXYDIAG: a LISTEN connection ending is the subscription pipe closing — always log
++            // it (for SUBSCRIBE/RESUBSCRIBE, only failures are interesting; 200s fire every refresh).
++            diagListenEnded_++;
++            if (method == ListenMethod::LISTEN || response.status_code != 200)
++                SK_DIAG("[%s] listen req #%llu ENDED code=%u aborted=%d (sent=%llu ended=%llu)",
++                        proxyUrl_.c_str(), (unsigned long long) reqid,
++                        (unsigned) response.status_code, (int) response.aborted,
++                        (unsigned long long) diagListenSent_.load(), (unsigned long long) diagListenEnded_.load());
+             if (response.status_code != 200) {
+                 if (logger_)
+                     logger_->error("[proxy:client] [listen] send request #{} failed with code={}",
+@@ -1280,6 +1340,16 @@
+         statusIpv4_ = NodeStatus::Connected;
+         statusIpv6_ = NodeStatus::Connected;
+     }
++    // SK-PROXYDIAG: in push mode the pushes ARE the inbound path — count them and mark the rx clock.
++    {
++        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
++                         std::chrono::steady_clock::now().time_since_epoch()).count();
++        auto prev = diagLastRxMs_.exchange(nowMs);
++        diagPushRx_++;
++        SK_DIAG("[%s] push received (pushRx=%llu lastRx %llds ago)",
++                proxyUrl_.c_str(), (unsigned long long) diagPushRx_.load(),
++                prev ? (long long) ((nowMs - prev) / 1000) : -1LL);
++    }
+     auto launchLoop = false;
+     try {
+         auto sessionId = notification.find("s");
