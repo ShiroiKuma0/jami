@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — black/yellow theming for the call screen. -->
+<resources>
+    <color name="shiroikuma_call_yellow">#FFFF00</color>
+    <color name="shiroikuma_call_on_yellow">#FF000000</color>
+</resources>
