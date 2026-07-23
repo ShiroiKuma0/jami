@@ -50,6 +50,14 @@
     <string name="dht_switched_full">Přepnuto na plné DHT (všechny účty)</string>
     <string name="dht_switched_proxy">Přepnuto na DHT proxy (všechny účty)</string>
 
+    <!-- Manual inbound test (dashboard) -->
+    <string name="conn_dash_probe">Test příjmu</string>
+    <string name="tip_probe">Test příjmu: tiše si znovu vyžádá presence u všech účtů a čeká 60 s na skutečnou odpověď ze sítě — kontaktům se nic nezobrazí. Bez odpovědi = příjem je nejspíš zaseknutý.</string>
+    <string name="probe_running">Test příjmu běží — čekám na živou odpověď až %d s…</string>
+    <string name="probe_ok">✓ Příjem OK — živá odpověď přijata (%s)</string>
+    <string name="probe_fail">Žádná živá odpověď po %1$d s. Pokud by kontakty měly být online, příjem je nejspíš zaseknutý — spusťte Obnovit. (Pokud jsou všichni offline, ticho je normální.)</string>
+    <string name="probe_already_running">Test příjmu už běží.</string>
+
     <!-- Auto-recovery notifications -->
     <string name="notif_recover_title">白い熊 Jami · automatická obnova</string>
     <string name="notif_storm_smart">Bouře chyb → chytrá obnova (%s)</string>
@@ -61,6 +69,8 @@
     <string name="notif_restricted">Omezená síť (UDP blokováno) → proxy pevně ZAP, přenos přes relé (%s)</string>
     <string name="notif_network_down">Síť je zřejmě nedostupná — zkontrolujte připojení (%s)</string>
     <string name="notif_restricted_exit">Běžná síť obnovena — UDP průchozí (%s)</string>
+    <string name="notif_uniform_wedge">Všechny účty tiché a sonda bez odpovědi → obnovuji (%s)</string>
+    <string name="notif_mode_deaf">Po přepnutí režimu žádný příjem → přeregistrovávám (%s)</string>
 
     <!-- Info page -->
     <string name="info_dot_header">Tečka účtu</string>
@@ -86,6 +96,7 @@
     <string name="info_h_dash">V tomto přehledu</string>
     <string name="info_b_dash_rows">Řádky účtů — klepnutím na řádek rozbalíte jeho kontakty a jejich živá spojení (připojování → ICE → TLS → připojeno). Každý řádek má vlastní ⚡, které obnoví jen daný účet a zdravé nechá být.</string>
     <string name="info_b_dash_recover">⚡ Obnovit — stejná silná náprava jako blesk na hlavní obrazovce, pro všechny účty.</string>
+    <string name="info_b_dash_probe">Test příjmu (nahoře v panelu) — tiše ověří, že síť stále odpovídá: presence se vyžádá znovu a počítá se jakákoli skutečná odpověď do 60 s. Otevře okno, které od začátku testu až po výsledek živě streamuje log hlídače, takže průběh vidíte. Použijte při podezření, že „nic nedochází“; bez odpovědi nabídne Obnovit.</string>
     <string name="info_b_dash_monitor">Monitor — otevře úplný monitor připojení s nejpodrobnějšími údaji o jednotlivých zařízeních.</string>
     <string name="info_b_dash_info">ⓘ Info — tato stránka.</string>
     <string name="info_b_dash_longpress">Podržením libovolného tlačítka, řádku nebo ikony (zde i na hlavní obrazovce) zobrazíte popis jeho funkce.</string>
