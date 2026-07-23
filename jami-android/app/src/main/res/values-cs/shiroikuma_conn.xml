@@ -23,6 +23,7 @@
     <string name="conn_state_healthy">online · v pořádku</string>
     <string name="conn_state_connecting">připojování…</string>
     <string name="conn_state_not_syncing">NESYNCHRONIZUJE</string>
+    <string name="conn_state_deaf">NEPŘIJÍMÁ</string>
     <string name="conn_state_offline">OFFLINE</string>
     <string name="conn_state_connected">připojeno</string>
     <string name="conn_state_reachable">dostupné</string>
@@ -71,6 +72,10 @@
     <string name="notif_restricted_exit">Běžná síť obnovena — UDP průchozí (%s)</string>
     <string name="notif_uniform_wedge">Všechny účty tiché a sonda bez odpovědi → obnovuji (%s)</string>
     <string name="notif_mode_deaf">Po přepnutí režimu žádný příjem → přeregistrovávám (%s)</string>
+    <string name="notif_push_down">Push cesta NEFUNGUJE — ntfy autotest bez odezvy; příjem přes proxy nemůže dorazit (%s)</string>
+    <string name="notif_push_up">Push cesta OBNOVENA — ntfy autotest odpověděl (%s)</string>
+    <string name="notif_nopush_on">Push cesta mrtvá → přepnuto na streamovaný příjem (LISTEN); vyšší spotřeba do obnovení (%s)</string>
+    <string name="notif_nopush_off">Push cesta obnovena → návrat k push příjmu (%s)</string>
 
     <!-- Info page -->
     <string name="info_dot_header">Tečka účtu</string>

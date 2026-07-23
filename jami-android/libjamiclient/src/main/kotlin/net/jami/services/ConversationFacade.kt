@@ -292,6 +292,11 @@ class ConversationFacade(
              // its DHT presence, then the best across members (self excluded). Own / same-daemon accounts
              // hold a live link but broadcast no presence, so the connection half keeps them yellow.
              val status: net.jami.model.Contact.PresenceStatus? = if (!hasPresence) null else run {
+                 // An active call IS a live session with the counterparty — the strongest possible
+                 // evidence. It overrides everything: stale DHT presence must never paint a contact
+                 // red while we are literally talking to them (2026-07-23 metric redesign).
+                 if (conversation.currentCall != null)
+                     return@run net.jami.model.Contact.PresenceStatus.CONNECTED
                  var best = net.jami.model.Contact.PresenceStatus.OFFLINE
                  for (cvm in contacts) {
                      if (cvm.contact.isUser) continue
