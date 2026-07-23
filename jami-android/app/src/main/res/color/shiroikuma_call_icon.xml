@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- shiroikuma: yellow normally; red stays the "muted / camera off" signal. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="@color/red_500" android:state_checked="true" />
+    <item android:color="@color/shiroikuma_call_on_yellow" android:state_checked="true" />
     <item android:color="@color/shiroikuma_call_yellow" />
 </selector>
