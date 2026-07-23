@@ -52,6 +52,14 @@
     <string name="dht_switched_full">Switched to full DHT (all accounts)</string>
     <string name="dht_switched_proxy">Switched to DHT proxy (all accounts)</string>
 
+    <!-- Manual inbound test (dashboard) -->
+    <string name="conn_dash_probe">Inbound test</string>
+    <string name="tip_probe">Inbound test: silently re-requests presence on every account and waits 60 s for any real answer from the network — your contacts see nothing. No answer = reception is likely wedged.</string>
+    <string name="probe_running">Inbound test running — waiting up to %d s for a live answer…</string>
+    <string name="probe_ok">✓ Inbound OK — live answer received (%s)</string>
+    <string name="probe_fail">No live answer in %1$d s. If your contacts should be online, reception is likely wedged — run Recover. (If everyone is offline, silence is normal.)</string>
+    <string name="probe_already_running">Inbound test already running.</string>
+
     <!-- Auto-recovery notifications -->
     <string name="notif_recover_title">白い熊 Jami · auto-recovery</string>
     <string name="notif_storm_smart">Error storm detected → smart recover (%s)</string>
@@ -63,6 +71,8 @@
     <string name="notif_restricted">Restricted network (UDP blocked) → proxy pinned ON, relay mode (%s)</string>
     <string name="notif_network_down">Network appears down — check your connection (%s)</string>
     <string name="notif_restricted_exit">Normal network restored — UDP open (%s)</string>
+    <string name="notif_uniform_wedge">All accounts silent and probe unanswered → recovering (%s)</string>
+    <string name="notif_mode_deaf">No inbound after the mode switch → re-registering (%s)</string>
 
     <!-- Info page (dashboard help) -->
     <string name="info_dot_header">Account dot</string>
@@ -88,6 +98,7 @@
     <string name="info_h_dash">In this dashboard</string>
     <string name="info_b_dash_rows">Account rows — tap a row to expand its contacts and their live connections (connecting → ICE → TLS → connected). Each row has its own ⚡ that recovers just that account, leaving the healthy ones untouched.</string>
     <string name="info_b_dash_recover">⚡ Recover now — the same strong fix as the main-screen flash, for all accounts.</string>
+    <string name="info_b_dash_probe">Inbound test (top of the dashboard) — silently checks that the network still answers you: presence is re-requested and any real answer within 60 s counts. It opens a window that streams the watchdog log live from the moment the test starts until the verdict, so you can watch it happen. Use it when you suspect “maybe nothing is reaching me”; no answer offers Recover.</string>
     <string name="info_b_dash_monitor">Monitor — opens the full connection monitor for the deepest per-device detail.</string>
     <string name="info_b_dash_info">ⓘ Info — this page.</string>
     <string name="info_b_dash_longpress">Long-press any button, row or icon (here or on the main screen) to see a description of what it does.</string>
