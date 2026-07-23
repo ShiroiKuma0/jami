@@ -246,6 +246,10 @@ r git submodule update --init --recursive   # daemon from review.jami.net, large
 
 Then apply the four customizations (edits 1–4 above), commit on `custom`, and push. After that, every build uses the block below.
 
+## UI-surface discipline (HARD RULE, 2026-07-23 — from 白い熊)
+
+**Never replace, remove, or re-map an EXISTING user-facing control or gesture without 白い熊's explicit prior authorization.** That covers tap and long-press assignments, icon actions, menu items, dialog buttons/pills, and any established navigation path (e.g. dot-tap → Dashboard, Dashboard → Monitor pill). New functionality goes into NEW, previously-empty slots (a new button, a free dialog-button slot, a new row) and every existing behaviour stays exactly as it is. If a design genuinely seems to require changing an existing action, STOP and ask first — and when announcing a build, describe added controls precisely so an addition is never mistaken for a replacement. (Icon *reordering* or other changes explicitly requested by 白い熊 are of course fine — the rule is about unauthorized repurposing.)
+
 ## Per-change delivery workflow (STRICT — the user tests between every step)
 
 The user builds, sideloads and tests **every** change on-device before it is ever committed. Follow this ordering exactly, with no exceptions:
