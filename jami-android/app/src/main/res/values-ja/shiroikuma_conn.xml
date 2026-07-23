@@ -50,6 +50,14 @@
     <string name="dht_switched_full">フルDHTに切替（全アカウント）</string>
     <string name="dht_switched_proxy">DHT代理に切替（全アカウント）</string>
 
+    <!-- Manual inbound test (dashboard) -->
+    <string name="conn_dash_probe">受信テスト</string>
+    <string name="tip_probe">受信テスト：全アカウントの在席情報を静かに再要求し、ネットワークからの実応答を60秒待ちます。相手には何も表示されません。応答なし＝受信詰まりの疑い。</string>
+    <string name="probe_running">受信テスト中 — 実応答を最大 %d 秒待っています…</string>
+    <string name="probe_ok">✓ 受信OK — 実応答あり（%s）</string>
+    <string name="probe_fail">%1$d 秒間応答がありません。相手がオンラインのはずなら受信が詰まっている疑いがあります——「今すぐ回復」を実行してください。（全員オフラインなら無応答は正常です。）</string>
+    <string name="probe_already_running">受信テストは実行中です。</string>
+
     <!-- Auto-recovery notifications -->
     <string name="notif_recover_title">白い熊 Jami 自動回復</string>
     <string name="notif_storm_smart">エラーストーム検出 → スマート回復 (%s)</string>
@@ -61,6 +69,8 @@
     <string name="notif_restricted">制限ネットワーク検出（UDP遮断）→ プロキシ固定ON・中継モード (%s)</string>
     <string name="notif_network_down">ネットワーク切断の可能性 — 接続を確認してください (%s)</string>
     <string name="notif_restricted_exit">通常ネットワーク復帰 — UDP開通 (%s)</string>
+    <string name="notif_uniform_wedge">全アカウント沈黙・プローブ無応答 → 回復します (%s)</string>
+    <string name="notif_mode_deaf">モード切替後に受信なし → 再登録します (%s)</string>
 
     <!-- Info page -->
     <string name="info_dot_header">アカウントドット</string>
@@ -86,6 +96,7 @@
     <string name="info_h_dash">このダッシュボード</string>
     <string name="info_b_dash_rows">アカウント行 — 行をタップすると連絡先とそのライブ接続（接続中 → ICE → TLS → 接続済み）が展開します。各行には専用の ⚡ があり、そのアカウントだけを回復します（正常なアカウントはそのまま）。</string>
     <string name="info_b_dash_recover">⚡ 今すぐ回復 — メイン画面のフラッシュと同じ強力な修復を全アカウントに実行します。</string>
+    <string name="info_b_dash_probe">受信テスト（ダッシュボード上部）— ネットワークが自分に応答するかを静かに確認します。在席情報を再要求し、60秒以内の実応答で判定。テスト開始から判定までウォッチャーのログをその場に流す画面が開くので、経過を見られます。「何も届いていないのでは」と疑ったときに。応答がなければ回復を提案します。</string>
     <string name="info_b_dash_monitor">モニタ — デバイス単位の最も詳細な情報を見る接続モニタを開きます。</string>
     <string name="info_b_dash_info">ⓘ 情報 — このページ。</string>
     <string name="info_b_dash_longpress">ボタン・行・アイコン（ここでもメイン画面でも）を長押しすると、その説明が表示されます。</string>

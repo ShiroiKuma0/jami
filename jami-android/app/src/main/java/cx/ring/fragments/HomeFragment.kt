@@ -257,9 +257,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         searchBar.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 val overflow = searchBar.findViewById<View>(R.id.menu_overflow) ?: return
-                val icons = listOfNotNull(
-                    searchBar.menu.findItem(R.id.menu_dht_mode)?.actionView,
+                val icons = listOfNotNull(   // bar order: dot ● → mode ⬡ → flash ⚡ (2026-07-23)
                     searchBar.menu.findItem(R.id.menu_account_status)?.actionView,
+                    searchBar.menu.findItem(R.id.menu_dht_mode)?.actionView,
                     searchBar.menu.findItem(R.id.menu_lightning)?.actionView)
                 val last = icons.lastOrNull() ?: return
                 if (last.width == 0 || overflow.width == 0) return
@@ -642,6 +642,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         mAccountService.setProxyEnabled(!newFull)
         updateDhtModeIcon()
         Flash.show(ctx, ctx.getString(if (newFull) R.string.dht_switched_full else R.string.dht_switched_proxy))
+        // Verify the freshly chosen mode actually receives — a deaf proxy is caught in ~90 s, not 5 min.
+        cx.ring.utils.ConnectionWatchdog.onDhtModeSwitched(ctx.applicationContext, mAccountService)
     }
 
     /** Connectivity help / info page (Account-dot long-press). */
@@ -752,18 +754,19 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             row.addView(tv(sb, bodyC, 13.5f))
             box.addView(row)
         }
-        // Main screen (top bar). Sections follow the bar left→right — connection-mode ⬡, account dot ●,
+        // Main screen (top bar). Sections follow the bar left→right — account dot ●, connection-mode ⬡,
         // recover ⚡ — each shown as its ACTUAL icon in colour variants, then the explanation line.
         card(R.drawable.ic_status_online, ctx.getString(R.string.info_h_main)).also { box ->
-            sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
-            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
-            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_PROXY), ctx.getString(R.string.info_dht_proxy))
-            item(box, ctx.getString(R.string.info_b_main_dht))
             sub(box, R.drawable.ic_status_online, C.getColor(ctx, C.STATUS_ONLINE), ctx.getString(R.string.info_dot_header))
             stateRow(box, C.getColor(ctx, C.STATUS_ONLINE), true, ctx.getString(R.string.info_dot_connected))
             stateRow(box, C.getColor(ctx, C.STATUS_CONNECTING), true, ctx.getString(R.string.info_dot_connecting))
             stateRow(box, C.getColor(ctx, C.STATUS_OFFLINE), true, ctx.getString(R.string.info_dot_disconnected))
             stateRow(box, 0xFF888888.toInt(), false, ctx.getString(R.string.info_dot_off))
+            item(box, ctx.getString(R.string.info_b_main_dot))
+            sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
+            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
+            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_PROXY), ctx.getString(R.string.info_dht_proxy))
+            item(box, ctx.getString(R.string.info_b_main_dht))
             sub(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_header))
             iconRow(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_ready))
             iconRow(box, R.drawable.ic_proxy_flash, 0xFF0000FF.toInt(), ctx.getString(R.string.info_flash_recovering))
@@ -774,7 +777,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         card(R.drawable.ic_proxy_flash, ctx.getString(R.string.info_h_dash)).also { box ->
             item(box, ctx.getString(R.string.info_b_dash_rows))
             item(box, ctx.getString(R.string.info_b_dash_recover))
-            item(box, ctx.getString(R.string.info_b_dash_monitor))
+            item(box, ctx.getString(R.string.info_b_dash_probe))
             item(box, ctx.getString(R.string.info_b_dash_info))
             item(box, ctx.getString(R.string.info_b_dash_longpress))
         }
@@ -995,8 +998,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
             descTip(this, tip)
         }
-        // Title: "Connection dashboard" + Monitor pill + ⓘ Info pill (→ the help page).
-        val monitorPill = pill(ctx.getString(R.string.conn_dash_monitor), ctx.getString(R.string.tip_monitor))
+        // Title: "Connection dashboard" + Inbound-test pill + ⓘ Info pill (→ the help page). The old
+        // Monitor pill was dropped — it showed the same monitorAllConnections data the account rows
+        // already expand to; the inbound test took its place (2026-07-23, 白い熊).
+        val probePill = pill(ctx.getString(R.string.conn_dash_probe), ctx.getString(R.string.tip_probe))
         val infoPill = pill(ctx.getString(R.string.conn_dash_info), ctx.getString(R.string.tip_info))
         val titleRow = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -1009,7 +1014,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
-            addView(monitorPill, android.widget.LinearLayout.LayoutParams(
+            addView(probePill, android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = (8 * d).toInt() })
             addView(infoPill)
@@ -1020,10 +1025,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             .setNeutralButton(ctx.getString(R.string.conn_dash_recover_now), null) // wired below: does NOT dismiss
             .setNegativeButton(ctx.getString(R.string.conn_dash_close), null)
             .create()
+        dialog.setCanceledOnTouchOutside(false)   // only the Close button dismisses (2026-07-23, 白い熊)
         mConnStatusDialog = dialog
-        monitorPill.setOnClickListener {
-            startActivity(android.content.Intent(requireContext(), cx.ring.client.ConnectionMonitorActivity::class.java))
-        }
+        probePill.setOnClickListener { showInboundTestDialog() }
         infoPill.setOnClickListener { showConnectionInfoDialog() }
         val dis = CompositeDisposable()
         dialog.setOnDismissListener { dis.clear(); mConnStatusDialog = null }
@@ -1109,7 +1113,98 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         v.setOnLongClickListener { Flash.show(v.context, text, Toast.LENGTH_LONG); true }
     }
 
-    /** Black fill, yellow text + 2dp yellow border — matches the app's black/yellow chrome. */
+    /** Manual inbound test with a LIVE log echo (2026-07-23, 白い熊): open a dialog the moment the test
+     *  starts and stream every watchdog-log line written from test-start to finish into it — so the
+     *  60 s wait is watchable, not a blank pause ending in a flash. The verdict lands as a bold final
+     *  line; on failure the dialog offers the strong Recover. Only Close (or the verdict's Recover)
+     *  dismisses it — a tap outside does nothing. */
+    private fun showInboundTestDialog() {
+        val ctx = context ?: return
+        val d = ctx.resources.displayMetrics.density
+        fun dp(v: Int) = (v * d).toInt()
+        val yellow = 0xFFFFFF00.toInt()
+
+        // Header + a scrolling monospace echo pane.
+        val header = TextView(ctx).apply {
+            text = ctx.getString(R.string.probe_running, 60)
+            setTextColor(yellow); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        val logView = TextView(ctx).apply {
+            setTextColor(yellow); setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = android.graphics.Typeface.MONOSPACE
+            setLineSpacing(dp(2).toFloat(), 1f)
+        }
+        val logScroll = android.widget.ScrollView(ctx).apply {
+            addView(logView)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(300))
+        }
+        val body = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(20), dp(16), dp(20), dp(8))
+            addView(header)
+            addView(android.view.View(ctx).apply { layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(10)) })
+            addView(logScroll)
+        }
+
+        // Snapshot the log so only lines from test-start onward are echoed.
+        val baseline = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).size
+        val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
+            .setView(body)
+            .setNeutralButton(ctx.getString(R.string.conn_dash_recover_now), null)  // shown only after a failed verdict
+            .setNegativeButton(ctx.getString(R.string.conn_dash_close), null)
+            .create()
+        dialog.setCanceledOnTouchOutside(false)
+
+        val poller = object : Runnable {
+            override fun run() {
+                val lines = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).drop(baseline)
+                logView.text = if (lines.isEmpty()) "…" else lines.joinToString("\n")
+                logScroll.post { logScroll.fullScroll(android.view.View.FOCUS_DOWN) }
+                mFgWatchdogHandler.postDelayed(this, 1_000L)
+            }
+        }
+
+        val started = cx.ring.utils.ConnectionWatchdog.startManualProbe(ctx.applicationContext, mAccountService) { answered, kind ->
+            // Verdict (main looper). Stop polling, one last render, show the bold result.
+            mFgWatchdogHandler.removeCallbacks(poller)
+            if (!isAdded) return@startManualProbe
+            val lines = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).drop(baseline)
+            logView.text = if (lines.isEmpty()) "…" else lines.joinToString("\n")
+            logScroll.post { logScroll.fullScroll(android.view.View.FOCUS_DOWN) }
+            if (answered) {
+                header.text = ctx.getString(R.string.probe_ok, kind)
+                header.setTextColor(yellow)
+            } else {
+                header.text = ctx.getString(R.string.probe_fail, 60)
+                header.setTextColor(0xFFFF5252.toInt())
+                dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.apply {
+                    visibility = View.VISIBLE
+                    styleDialogButton(this)
+                }
+            }
+        }
+        if (!started) { Flash.show(ctx, ctx.getString(R.string.probe_already_running)); return }
+
+        dialog.setOnDismissListener { mFgWatchdogHandler.removeCallbacks(poller) }
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow))
+        // Recover is hidden until a failed verdict reveals it.
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.apply {
+            visibility = View.GONE
+            setOnClickListener {
+                cx.ring.utils.ConnectionWatchdog.recoverNow(ctx.applicationContext, mAccountService)
+                updateLightningIcon(); refreshLightningAtSettle()
+                dialog.dismiss()
+                Flash.show(ctx, ctx.getString(R.string.tip_flash))
+            }
+        }
+        styleDialogButton(dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE))
+        poller.run()
+    }
+
     private fun styleDialogButton(button: android.widget.Button?) {
         val b = button ?: return
         val yellow = 0xFFFFFF00.toInt()
@@ -1230,6 +1325,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 }
             })
             container.addView(header)
+            // Disambiguate same-named accounts (e.g. two 白い熊): the id tail — which matches the tokens
+            // in the history below (e.g. "41c041…") — plus the Jami address. (2026-07-23, 白い熊.)
+            container.addView(text("id ${ac.accountId.take(8)} · ${ac.uri.removePrefix("jami:").take(18)}", grey, sizeSp = 11f, padL = 48))
             // Stuck-message sub-rows — always shown (the problem the user must see).
             for (n in stuckUris.map { nameOf[it] ?: it.take(8) }.distinct())
                 container.addView(text(ctx.getString(R.string.conn_msg_not_delivered, n), red, sizeSp = 13f, padL = 48, padT = 4))

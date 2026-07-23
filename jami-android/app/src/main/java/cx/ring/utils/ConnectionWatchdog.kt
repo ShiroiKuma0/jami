@@ -61,8 +61,18 @@ object ConnectionWatchdog {
     private const val DEAF_BACKOFF_MAX_MS = 60 * 60_000L   // escalating recheck backoff cap
     private const val WEDGE_RECOVER_BACKOFF_MS = 2 * 60_000L // after a per-account wedge recover, wait this long before re-recovering the SAME account
     private const val PROBE_VERDICT_MS = 60_000L           // silent presence probe must be answered within this
+    private const val UNIFORM_PROBE_VERDICT_MS = 75_000L   // uniform (0-healthy) probe window: the 60 s gate + echo-suppression slack
+    private const val UNIFORM_PROBE_FAIL_CAP = 2           // consecutive unanswered-probe recovers before standing down (dead-quiet night ≠ churn)
+    private const val MODE_SWITCH_PROBE_DELAY_MS = 10_000L // let a just-switched DHT mode register before its verification probe
     private const val NOTIF_CHANNEL = "shiroikuma_watchdog"
     private const val NOTIF_ID_BASE = 58_000
+
+    // Uniform-deafness probe state (2026-07-23: all four proxy subscriptions wedged at once read as
+    // "idle" for 20+ min — the differential detector needs a healthy sibling, and the old touch()
+    // self-certification kept resetting the last-resort fuse).
+    @Volatile private var uniformProbePending = false
+    @Volatile private var uniformProbeFails = 0
+    @Volatile private var manualProbeInFlight = false
 
     @Volatile private var lastStormMs = 0L                 // when a storm last triggered a reaction
     @Volatile private var incidentSeq = 0
@@ -259,7 +269,10 @@ object ConnectionWatchdog {
         val netUp = cm?.activeNetwork != null
         val regd = accounts.getAccounts().filter { it.isJami && it.isRegistered }
         acctStates.keys.retainAll(regd.map { it.accountId }.toSet())
-        val limit = if (stuckAmbiguous || now() < stormAmbiguousUntil) DEAF_LIMIT_MS / 2 else DEAF_LIMIT_MS
+        // Proxy mode is the fragile mode (the only place the subscription wedge lives) — suspect at
+        // half the limit there, so a wedged proxy is probed in ~2.5 min instead of 5 (2026-07-23).
+        val limit = if (stuckAmbiguous || now() < stormAmbiguousUntil || !UiPrefs.isFullDhtMode(c))
+            DEAF_LIMIT_MS / 2 else DEAF_LIMIT_MS
         var anyQuiet = false
         var healthy = 0
         for (acc in regd) {
@@ -290,16 +303,20 @@ object ConnectionWatchdog {
                     st.strikes++
                     st.nextCheckMs = t2 + WEDGE_RECOVER_BACKOFF_MS
                     recovering = true; lastRecoverMs = t2
-                    writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet / 60_000}m while $healthy/${regd.size} siblings healthy — proxy subscription wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
+                    // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
+                    val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
+                    writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet / 60_000}m while $healthy/${regd.size} siblings healthy — $path wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
                     log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m but $healthy/${regd.size} healthy on a live network → WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
                     accounts.forceReconnectAccount(id)
                     accounts.resubscribeAccountPresence(id)
                 } else {
-                    // Uniform deafness (no sibling receiving) on a live network — could be genuine idle. Don't
-                    // churn; reset the clock. heuristicTick's silent-wedge fuse handles a real all-accounts wedge.
-                    InboundEvidence.touch(id)
-                    if (st.strikes > 0) log(c, "acct ${id.take(6)}: quiet ${quiet / 60_000}m but network alive, all quiet — ok")
-                    st.strikes = 0; st.nextCheckMs = 0L
+                    // Uniform deafness (no sibling receiving) on a live network — genuine idle OR an
+                    // ALL-accounts wedge (2026-07-23: four wedged proxy subscriptions read as "idle" for
+                    // 20+ min). No more touch() self-certification here — heuristicTick's probe-verdict
+                    // decides: an answered presence probe marks the accounts verified; an unanswered one
+                    // recovers. Just quiet the strike state so this branch doesn't churn every tick.
+                    if (st.strikes > 0) log(c, "acct ${id.take(6)}: quiet ${quiet / 60_000}m, all quiet — deferring to the uniform probe")
+                    st.strikes = 0; st.nextCheckMs = t2 + IDLE_REARM_MS
                 }
             }
         }
@@ -536,6 +553,52 @@ object ConnectionWatchdog {
         fullRecover(c, accounts)
     }
 
+    /** Called right after the ⬡ mode toggle. Verify the NEW mode actually receives: probe once the
+     *  switch has had a moment to settle; no real inbound inside the window → nudge every account
+     *  (re-register + presence re-arm — NOT a mode flip: the user just chose this mode deliberately)
+     *  and notify. Catches a deaf proxy within ~90 s of the tap instead of drifting into the
+     *  suspicion path (2026-07-23: a 05:00 proxy switch sat deaf until 05:05+). */
+    fun onDhtModeSwitched(c: Context, accounts: AccountService) {
+        val full = UiPrefs.isFullDhtMode(c)
+        val mode = if (full) "full DHT" else "proxy"
+        log(c, "mode switched → $mode — verification probe in ${MODE_SWITCH_PROBE_DELAY_MS / 1000}s")
+        handler.postDelayed({
+            val baseline = InboundEvidence.lastMs
+            resubscribeAllPresence(accounts)
+            handler.postDelayed({
+                if (InboundEvidence.lastMs > baseline) {
+                    log(c, "mode-switch probe answered (${InboundEvidence.lastKind}) — $mode receiving fine")
+                } else {
+                    writeIncident(c, "mode-switch-deaf", "no real inbound ${UNIFORM_PROBE_VERDICT_MS / 1000}s after switching to $mode — re-registering all accounts", LogStormMonitor.recentLines())
+                    notifyUser(c, c.getString(cx.ring.R.string.notif_mode_deaf, stamp()))
+                    log(c, "mode-switch probe UNANSWERED — re-register + presence re-arm on the chosen mode")
+                    recovering = true; lastRecoverMs = now()
+                    accounts.forceReconnectAllAccounts()
+                    resubscribeAllPresence(accounts)
+                }
+            }, UNIFORM_PROBE_VERDICT_MS)
+        }, MODE_SWITCH_PROBE_DELAY_MS)
+    }
+
+    /** Manual inbound test (dashboard button — "did anything real answer within 60 s?"). Re-subscribes
+     *  presence on every account and reports the verdict; purely observational, recovery stays the
+     *  user's decision. Returns false when a test is already running. */
+    fun startManualProbe(c: Context, accounts: AccountService, onVerdict: (answered: Boolean, kind: String) -> Unit): Boolean {
+        if (manualProbeInFlight) return false
+        manualProbeInFlight = true
+        val baseline = InboundEvidence.lastMs
+        log(c, "manual inbound test — presence re-arm, verdict in ${PROBE_VERDICT_MS / 1000}s")
+        resubscribeAllPresence(accounts)
+        handler.postDelayed({
+            manualProbeInFlight = false
+            val answered = InboundEvidence.lastMs > baseline
+            log(c, if (answered) "manual inbound test: answered (${InboundEvidence.lastKind})"
+                else "manual inbound test: NO answer in ${PROBE_VERDICT_MS / 1000}s — receive path suspect")
+            onVerdict(answered, InboundEvidence.lastKind)
+        }, PROBE_VERDICT_MS)
+        return true
+    }
+
     /** Recover ONE account (dashboard per-row flash): re-register + presence re-arm for that account,
      *  leaving the healthy ones untouched. */
     fun recoverAccount(c: Context, accounts: AccountService, accountId: String) {
@@ -690,6 +753,7 @@ object ConnectionWatchdog {
         if (healthy > 0) {
             if (firstHealthyMs == 0L) firstHealthyMs = t
             lastAnyConnectedMs = t
+            uniformProbeFails = 0
             if (recovering && wedgeEvidence.isEmpty()) { recovering = false; val off = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L; log(c, "recovered — $healthy/$reg healthy (${off}s on full DHT)") }
         } else if (lastAnyConnectedMs == 0L) lastAnyConnectedMs = t
         val summary = tokens.toString().trim()
@@ -712,23 +776,70 @@ object ConnectionWatchdog {
         //   · not down, within the fuse → just quiet: re-arm presence listens cheaply (no re-register,
         //     no proxy toggle, no notification blackout) to keep the dots fresh. Never the hammer.
         ensureNetVerdict(c) {}   // refresh async so networkDown() can flip promptly on a real outage
-        val staleFor = t - lastAnyConnectedMs
+        // Honest staleness: only REAL inbound counts — touch()/probe marks never advance the global
+        // InboundEvidence clock, so fabricated idle-health can no longer hold the last-resort fuse
+        // open forever (2026-07-23: four wedged accounts cycled "✓idle" while the fuse clock reset).
+        val realQuiet = t - InboundEvidence.lastMs
         val silentFuse = if (t - processStartMs < STARTUP_FAST_WINDOW_MS) SILENT_WEDGE_MS / 4 else SILENT_WEDGE_MS
         when {
             networkDown() ->
                 log(c, "0/$reg healthy + network egress DOWN — per-account handler recovering [$summary]")
-            staleFor > silentFuse && !recentWedge(t) -> {
-                log(c, "silent wedge: 0/$reg healthy ${staleFor / 60_000}m on a working network — strong recover [$summary]")
+            realQuiet > silentFuse && !recentWedge(t) && uniformProbeFails < UNIFORM_PROBE_FAIL_CAP -> {
+                log(c, "silent wedge: no real inbound ${realQuiet / 60_000}m, 0/$reg healthy on a working network — strong recover [$summary]")
                 fullRecover(c, accounts)
             }
             t - lastIdleRearmMs > IDLE_REARM_MS -> {
                 lastIdleRearmMs = t
-                log(c, "0/$reg healthy, network not down (${staleFor / 60_000}m) — presence re-arm (cheap, no re-register) [$summary]")
-                resubscribeAllPresence(accounts)
+                startUniformProbe(c, accounts, reg, summary)
             }
             else ->
-                log(c, "base check — 0/$reg healthy, quiet on a working network (${staleFor / 1000}s) [$summary]")
+                log(c, "base check — 0/$reg healthy, no real inbound ${realQuiet / 1000}s [$summary]")
         }
+    }
+
+    /** 0-healthy probe with a STRICTLY PER-ACCOUNT verdict (2026-07-23, rev 2). The cheap presence
+     *  re-arm IS the probe; the verdict then judges each account by ITS OWN inbound. The previous
+     *  version tested the GLOBAL clock and, on any single event, `touch()`ed every account — so one
+     *  sibling's delivery receipt certified a 67-minute-dead account as "healthy" (the yellow-dot-while-
+     *  dead bug 白い熎 caught). Now: an account counts as answered only if its own last-inbound advanced
+     *  during the window; accounts still individually silent are the wedged ones and drive the recover,
+     *  capped at [UNIFORM_PROBE_FAIL_CAP] consecutive misses so a genuinely dead-quiet night can't churn.
+     *  No cross-account fabrication: nothing is marked healthy that didn't itself receive. */
+    private fun startUniformProbe(c: Context, accounts: AccountService, reg: Int, summary: String) {
+        if (uniformProbePending) return
+        uniformProbePending = true
+        val regd = accounts.getAccounts().filter { it.isJami && it.isRegistered }
+        // Per-account last-inbound timestamp at probe start (lastMs = now − quietMs).
+        val snap = regd.associate { it.accountId to (now() - InboundEvidence.quietMs(it.accountId)) }
+        log(c, "0/$reg healthy, network not down — probe: presence re-arm, per-account verdict in ${UNIFORM_PROBE_VERDICT_MS / 1000}s [$summary]")
+        resubscribeAllPresence(accounts)
+        handler.postDelayed({
+            uniformProbePending = false
+            val t = now()
+            if (networkDown()) {
+                log(c, "probe: network egress DOWN — genuine outage, not recovering")
+                return@postDelayed
+            }
+            // An account is answered iff ITS OWN inbound advanced past its snapshot — no global clock,
+            // no cross-account marking. Presence echoes from the re-arm are already suppressed upstream.
+            val silent = regd.filter { (t - InboundEvidence.quietMs(it.accountId)) <= (snap[it.accountId] ?: 0L) }
+            val answered = regd.size - silent.size
+            if (silent.isEmpty()) {
+                uniformProbeFails = 0
+                log(c, "probe: all ${regd.size} answered on their own inbound — receiving fine")
+            } else if (recentWedge(t)) {
+                log(c, "probe: ${silent.size}/${regd.size} still silent (${silent.joinToString { it.accountId.take(6) }}) but inside the wedge linger — standing by")
+            } else if (uniformProbeFails >= UNIFORM_PROBE_FAIL_CAP) {
+                log(c, "probe: ${silent.size}/${regd.size} still silent — recovered ${uniformProbeFails}× without effect, standing down until real inbound returns")
+            } else {
+                uniformProbeFails++
+                val who = silent.joinToString { it.accountId.take(8) }
+                writeIncident(c, "uniform-wedge", "${silent.size}/${regd.size} account(s) silent through a ${UNIFORM_PROBE_VERDICT_MS / 1000}s probe on a live network — receive path wedged ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)", LogStormMonitor.recentLines())
+                notifyUser(c, c.getString(cx.ring.R.string.notif_uniform_wedge, stamp()))
+                log(c, "probe UNANSWERED by ${silent.size}/${regd.size} ($answered answered) — wedge → strong recover ($uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)")
+                fullRecover(c, accounts)
+            }
+        }, UNIFORM_PROBE_VERDICT_MS)
     }
 
     /** Recover on wedge evidence — but only once per distinct evidence set: same fingerprint
