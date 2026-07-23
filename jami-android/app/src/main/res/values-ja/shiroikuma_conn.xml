@@ -23,6 +23,7 @@
     <string name="conn_state_healthy">オンライン・正常</string>
     <string name="conn_state_connecting">接続中…</string>
     <string name="conn_state_not_syncing">同期していません</string>
+    <string name="conn_state_deaf">受信不能</string>
     <string name="conn_state_offline">オフライン</string>
     <string name="conn_state_connected">接続済み</string>
     <string name="conn_state_reachable">到達可能</string>
@@ -71,6 +72,10 @@
     <string name="notif_restricted_exit">通常ネットワーク復帰 — UDP開通 (%s)</string>
     <string name="notif_uniform_wedge">全アカウント沈黙・プローブ無応答 → 回復します (%s)</string>
     <string name="notif_mode_deaf">モード切替後に受信なし → 再登録します (%s)</string>
+    <string name="notif_push_down">プッシュ経路遮断 — ntfy自己テスト無応答。プロキシ受信は届きません (%s)</string>
+    <string name="notif_push_up">プッシュ経路復旧 — ntfy自己テスト応答あり (%s)</string>
+    <string name="notif_nopush_on">プッシュ経路遮断 → ストリーミング受信に切替（復旧まで電池消費増）(%s)</string>
+    <string name="notif_nopush_off">プッシュ経路復旧 → プッシュ受信に復帰 (%s)</string>
 
     <!-- Info page -->
     <string name="info_dot_header">アカウントドット</string>

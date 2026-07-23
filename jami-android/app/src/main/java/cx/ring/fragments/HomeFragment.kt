@@ -900,16 +900,18 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     val at = a.peers.any { (_, c) -> c.any { it.status != AccountService.ConnectionStatus.Connected } }
                     val stuckMsg = mAccountService.getAccount(a.accountId)
                         ?.let { cx.ring.utils.ConnectionHealth.accountStuckConvUris(it, now, myUris).isNotEmpty() } ?: false
-                    when (cx.ring.utils.ConnectionHealth.classify(a.registered, cn, stuckMsg, at)) {
+                    when (cx.ring.utils.ConnectionHealth.classify(a.registered, cn, stuckMsg, at,
+                        cx.ring.utils.ConnectionWatchdog.accountVerifiedDeaf(a.accountId),
+                        cx.ring.utils.ConnectionWatchdog.accountProbing(a.accountId))) {
                         cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> problems++
+                        cx.ring.utils.ConnectionHealth.Health.DEAF -> problems++
                         cx.ring.utils.ConnectionHealth.Health.CONNECTING -> connecting++
                         else -> {}
                     }
                 }
-                // The watchdog's honest verdict: any account DEAF (no real inbound past the limit) or
-                // the network verified DOWN → the dot must go red, even when registration still says OK.
-                val deaf = cx.ring.utils.ConnectionWatchdog.anyDeaf(mAccountService) ||
-                    cx.ring.utils.ConnectionWatchdog.networkDown()
+                // DEAF (probe-verified) accounts are already counted into problems above; the network
+                // verified DOWN keeps its own red — real even when registration still says OK.
+                val deaf = cx.ring.utils.ConnectionWatchdog.networkDown()
                 if (problems != dotAlarmCount || connecting != dotConnectingCount || deaf != dotDeaf) {
                     dotAlarmCount = problems
                     dotConnectingCount = connecting
@@ -1263,7 +1265,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             val at = da.ac.peers.any { (_, c) -> c.any { it.status != AccountService.ConnectionStatus.Connected } }
             val stuck = mAccountService.getAccount(da.ac.accountId)
                 ?.let { H.accountStuckConvUris(it, now, myUris).isNotEmpty() } ?: false
-            return H.classify(da.ac.registered, cn, stuck, at)
+            return H.classify(da.ac.registered, cn, stuck, at,
+                cx.ring.utils.ConnectionWatchdog.accountVerifiedDeaf(da.ac.accountId),
+                cx.ring.utils.ConnectionWatchdog.accountProbing(da.ac.accountId))
         }
         val ranked = loaded.sortedBy { if (H.isProblem(healthOf(it))) 0 else 1 }   // problems on top
         val problems = loaded.count { H.isProblem(healthOf(it)) }
@@ -1278,6 +1282,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 cx.ring.utils.ConnectionHealth.Health.HEALTHY -> ctx.getString(R.string.conn_state_healthy)
                 cx.ring.utils.ConnectionHealth.Health.CONNECTING -> ctx.getString(R.string.conn_state_connecting)
                 cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> ctx.getString(R.string.conn_state_not_syncing)
+                cx.ring.utils.ConnectionHealth.Health.DEAF -> ctx.getString(R.string.conn_state_deaf)
                 cx.ring.utils.ConnectionHealth.Health.OFFLINE -> ctx.getString(R.string.conn_state_offline)
             }
             val col = when (health) {
