@@ -704,6 +704,14 @@ class ConversationFacade(
                             account.updated(conversation)
                         })
             }
+            // shiroikuma: the history block above is gated on !isSwarm, so for a SWARM conversation —
+            // the normal case — the missed-call notification was never raised (the swarm's own call
+            // entry is committed by the daemon, but nothing told the user). Raise it here for those.
+            // Purely additive: builds a notification, never touches the call or its state.
+            if (call.isIncoming && call.isMissed && conversation != null && conversation.isSwarm) {
+                Log.w(TAG, "Missed incoming call on swarm conversation ${conversation.uri} — notifying")
+                mNotificationService.showMissedCallNotification(call)
+            }
             if (conversation != null && conference != null && conference.participants.isEmpty() && conference.hostCall == null) {
                 conversation.removeConference(conference)
             }
