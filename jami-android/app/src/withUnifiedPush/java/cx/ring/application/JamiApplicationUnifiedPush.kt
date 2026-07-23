@@ -67,6 +67,8 @@ class JamiApplicationUnifiedPush : JamiApplication() {
 
     fun onMessage(remoteMessage: Map<String, String>) {
         //Log.d(TAG, "onMessage: from:${remoteMessage.from} priority:${remoteMessage.priority} (was ${remoteMessage.originalPriority})")
+        cx.ring.utils.PushEvidence.noteAnyPush()
+        if (cx.ring.utils.PushEvidence.noteIfProbe(remoteMessage)) return   // self-test echo — not for the daemon
         mAccountService.pushNotificationReceived("", remoteMessage)
         mNotificationService.processPush()
     }
