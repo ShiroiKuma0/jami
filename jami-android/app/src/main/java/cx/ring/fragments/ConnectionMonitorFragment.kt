@@ -99,13 +99,14 @@ class ConnectionMonitorFragment: Fragment() {
         return when (h) {
             Health.HEALTHY -> ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_HEALTHY)
             Health.CONNECTING -> ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTING)
-            Health.OFFLINE, Health.NOT_SYNCING -> ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
+            Health.OFFLINE, Health.NOT_SYNCING, Health.DEAF -> ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
         }
     }
     private fun healthWord(h: Health): String = when (h) {
         Health.HEALTHY -> "online · healthy"
         Health.CONNECTING -> "connecting…"
         Health.NOT_SYNCING -> "NOT SYNCING"
+        Health.DEAF -> "NOT RECEIVING"
         Health.OFFLINE -> "OFFLINE"
     }
 
@@ -378,7 +379,9 @@ class ConnectionMonitorFragment: Fragment() {
         fun healthOf(la: LoadedAccount): Health {
             val cn = la.peers.any { (_, c) -> c.any { it.status == ConnectionStatus.Connected } }
             val at = la.peers.any { (_, c) -> c.any { it.status != ConnectionStatus.Connected } }
-            return ConnectionHealth.classify(la.account.registered, cn, (stuckChats[la.account.accountId]?.isNotEmpty() == true), at)
+            return ConnectionHealth.classify(la.account.registered, cn, (stuckChats[la.account.accountId]?.isNotEmpty() == true), at,
+                cx.ring.utils.ConnectionWatchdog.accountVerifiedDeaf(la.account.accountId),
+                cx.ring.utils.ConnectionWatchdog.accountProbing(la.account.accountId))
         }
         // Sort problem (red) accounts to the TOP; keep account order otherwise (stable sort).
         val ranked = lastLoaded.sortedBy { if (ConnectionHealth.isProblem(healthOf(it))) 0 else 1 }
