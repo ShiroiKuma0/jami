@@ -25,6 +25,7 @@
     <string name="conn_state_healthy">online · healthy</string>
     <string name="conn_state_connecting">connecting…</string>
     <string name="conn_state_not_syncing">NOT SYNCING</string>
+    <string name="conn_state_deaf">NOT RECEIVING</string>
     <string name="conn_state_offline">OFFLINE</string>
     <string name="conn_state_connected">connected</string>
     <string name="conn_state_reachable">reachable</string>
@@ -73,6 +74,10 @@
     <string name="notif_restricted_exit">Normal network restored — UDP open (%s)</string>
     <string name="notif_uniform_wedge">All accounts silent and probe unanswered → recovering (%s)</string>
     <string name="notif_mode_deaf">No inbound after the mode switch → re-registering (%s)</string>
+    <string name="notif_push_down">Push path DOWN — ntfy self-test unanswered; proxy inbound cannot arrive (%s)</string>
+    <string name="notif_push_up">Push path RESTORED — ntfy self-test answered (%s)</string>
+    <string name="notif_nopush_on">Push leg dead → switched to streaming (LISTEN) reception; higher battery until it recovers (%s)</string>
+    <string name="notif_nopush_off">Push leg recovered → back to push reception (%s)</string>
 
     <!-- Info page (dashboard help) -->
     <string name="info_dot_header">Account dot</string>

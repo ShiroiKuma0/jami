@@ -64,6 +64,8 @@ object ConnectionWatchdog {
     private const val UNIFORM_PROBE_VERDICT_MS = 75_000L   // uniform (0-healthy) probe window: the 60 s gate + echo-suppression slack
     private const val UNIFORM_PROBE_FAIL_CAP = 2           // consecutive unanswered-probe recovers before standing down (dead-quiet night ≠ churn)
     private const val MODE_SWITCH_PROBE_DELAY_MS = 10_000L // let a just-switched DHT mode register before its verification probe
+    private const val BACKFILL_DELAY_MS = 12_000L          // post-recovery backfill fires this long after the recover (let the re-register land)
+    private const val BACKFILL_DEBOUNCE_MS = 90_000L       // min gap between backfills — a wedge storm must not churn connections continuously
     private const val NOTIF_CHANNEL = "shiroikuma_watchdog"
     private const val NOTIF_ID_BASE = 58_000
 
@@ -94,6 +96,11 @@ object ConnectionWatchdog {
     private const val RESTRICTED_RETEST_MS = 2 * 60_000L   // re-test UDP egress this often while restricted
     private const val RESTRICTED_EXIT_PASSES = 2           // consecutive UDP passes required to exit (flap damping)
     private const val DIAG_THROTTLE_MS = 10 * 60_000L      // at most one transport diagnosis per this window
+    private const val PUSH_PROBE_THROTTLE_MS = 10 * 60_000L // at most one push (ntfy) self-test per this window
+    private const val PUSH_PROBE_PERIODIC_MS = 30 * 60_000L // standing cadence in proxy mode (~48 msgs/day worst case)
+    @Volatile private var lastPushProbeMs = 0L
+    @Volatile private var pushLegDown: Boolean? = null      // null = never tested this process; drives DOWN→UP transition notices
+    @Volatile private var noPushAdaptive = false            // push token cleared, proxy clients riding streaming LISTENs
     @Volatile private var lastDiagMs = 0L
     @Volatile private var restrictedPasses = 0
     @Volatile private var retestScheduled = false
@@ -119,6 +126,7 @@ object ConnectionWatchdog {
     @Volatile private var proxyOffSinceMs = 0L             // when the proxy was last switched off (for log durations)
     @Volatile private var wedgeStrikes = 0                 // consecutive wedges → grows the linger window
     @Volatile private var lastRecoverMs = 0L               // when a recover (any kind) last started — drives the lightning blue
+    @Volatile private var lastBackfillMs = 0L              // when a post-recovery backfill was last scheduled (debounce)
     @Volatile private var canaryInFlight = false
     @Volatile private var recovering = false
 
@@ -157,6 +165,9 @@ object ConnectionWatchdog {
             if (UiPrefs.isRecoveryPingEnabled(c) && UiPrefs.isCanaryConfigured(c)) canaryTick(c, accounts)
             else heuristicTick(c, accounts)
             perAccountTick(c, accounts)
+            // Standing push-leg watch (proxy mode only): one ~1 KB self-test per 30 min, so the log
+            // shows when a dead push leg (e.g. an ntfy rate limit) comes back — DOWN→UP notifies.
+            if (now() - lastPushProbeMs >= PUSH_PROBE_PERIODIC_MS) maybeProbePush(c, accounts, "periodic")
         }
         if (UiPrefs.isRestrictedNet(c)) scheduleRestrictedRetest(c, accounts)  // resume after process restart
         applyProxyState(c, accounts)
@@ -279,7 +290,12 @@ object ConnectionWatchdog {
             val st = acctStates.getOrPut(acc.accountId) { AcctState() }
             if (InboundEvidence.quietMs(acc.accountId) < limit) {
                 healthy++
-                if (st.strikes > 0) log(c, "acct ${acc.accountId.take(6)}: inbound back (${InboundEvidence.lastKind(acc.accountId)}) — deaf cleared")
+                if (st.strikes > 0) {
+                    log(c, "acct ${acc.accountId.take(6)}: inbound back (${InboundEvidence.lastKind(acc.accountId)}) — deaf cleared")
+                    // The account just came back from verified deafness — messages sent to it during
+                    // the deaf window are still sitting on their senders. Pull them now.
+                    scheduleBackfill(c, accounts, "acct ${acc.accountId.take(6)} deaf cleared")
+                }
                 st.strikes = 0; st.nextCheckMs = 0L
             } else if (netUp && t >= st.nextCheckMs) anyQuiet = true
         }
@@ -295,20 +311,45 @@ object ConnectionWatchdog {
                 if (!netAlive) {
                     accountDeafConfirmed(c, accounts, id, st, networkDown = true)
                 } else if (healthy > 0) {
-                    // DIFFERENTIAL DEAFNESS = a real per-account proxy wedge. Each account rides its OWN proxy
-                    // server (dhtproxyN.jami.net), so if siblings are still receiving on the SAME live network
-                    // while this one has heard nothing past the limit, this one's push subscription is wedged —
-                    // genuine idle would silence them all. Recover just this account (re-register + resubscribe),
-                    // fast, leaving the healthy ones untouched. Modest backoff so a still-wedged proxy isn't hammered.
-                    st.strikes++
-                    st.nextCheckMs = t2 + WEDGE_RECOVER_BACKOFF_MS
-                    recovering = true; lastRecoverMs = t2
-                    // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
-                    val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
-                    writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet / 60_000}m while $healthy/${regd.size} siblings healthy — $path wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
-                    log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m but $healthy/${regd.size} healthy on a live network → WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
-                    accounts.forceReconnectAccount(id)
+                    // DIFFERENTIAL DEAFNESS SUSPECTED — but silence + sibling contrast is NOT proof
+                    // (2026-07-23: on a quiet phone the bare clock false-positived every ~3 min all
+                    // evening — real inbound evidence naturally arrives sparser than the limit, and
+                    // each recovery's own subscribe echoes reset the sibling clocks, keeping the
+                    // differential condition true forever: a self-sustaining limit cycle that churned
+                    // the proxy clients and spammed the push topic into a 429 rate-limit). Gate the
+                    // action behind the SAME verification the uniform path got in +11: a silent
+                    // presence re-arm probe on THIS account; only an unanswered probe recovers.
+                    // A healthy-but-quiet client answers via the subscribe-response echoes (they ride
+                    // the HTTP connection, not push, so a dead push leg does not fail the probe);
+                    // a genuinely wedged client stays silent and recovers ~60 s later than before.
+                    if (st.probeInFlight) continue
+                    st.probeInFlight = true
+                    st.probeStartQuiet = t2 - InboundEvidence.quietMs(id)   // lastMs snapshot
+                    log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m but $healthy/${regd.size} healthy — probe (presence re-arm), verdict in ${PROBE_VERDICT_MS / 1000}s")
                     accounts.resubscribeAccountPresence(id)
+                    handler.postDelayed({
+                        st.probeInFlight = false
+                        val lastNow = now() - InboundEvidence.quietMs(id)
+                        if (lastNow > st.probeStartQuiet) {
+                            log(c, "acct ${id.take(6)}: probe answered (${InboundEvidence.lastKind(id)}) — quiet but receiving, no recovery")
+                            st.strikes = 0
+                            st.nextCheckMs = now() + IDLE_REARM_MS
+                        } else {
+                            val t3 = now()
+                            val quiet3 = InboundEvidence.quietMs(id)
+                            st.strikes++
+                            st.nextCheckMs = t3 + WEDGE_RECOVER_BACKOFF_MS
+                            recovering = true; lastRecoverMs = t3
+                            // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
+                            val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
+                            writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet3 / 60_000}m, probe unanswered ${PROBE_VERDICT_MS / 1000}s — $path wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
+                            log(c, "acct ${id.take(6)}: probe UNANSWERED → verified WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
+                            accounts.forceReconnectAccount(id)
+                            accounts.resubscribeAccountPresence(id)
+                            scheduleBackfill(c, accounts, "acct ${id.take(6)} wedge recover")
+                            maybeProbePush(c, accounts, "acct ${id.take(6)} wedge")
+                        }
+                    }, PROBE_VERDICT_MS)
                 } else {
                     // Uniform deafness (no sibling receiving) on a live network — genuine idle OR an
                     // ALL-accounts wedge (2026-07-23: four wedged proxy subscriptions read as "idle" for
@@ -343,7 +384,93 @@ object ConnectionWatchdog {
             log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m → recover; next +${backoff / 60_000}m")
             notifyUser(c, c.getString(cx.ring.R.string.notif_deaf_hard, (quiet / 60_000).toInt(), stamp()))
             accounts.recoverAccountFromWedge(id) { accounts.resubscribeAccountPresence(id) }
+            scheduleBackfill(c, accounts, "acct ${id.take(6)} deaf recover")
         }
+    }
+
+    // ---- Push-path (ntfy) self-test ----------------------------------------------------------
+    /** In proxy(push) mode the ONLY carrier of new DHT values is proxy→ntfy→app — the daemon
+     *  subscribes push-style and then hears nothing except what the distributor delivers. When
+     *  accounts go deaf in that mode, self-test the leg end-to-end (PushProbe POSTs a marker to
+     *  our own ntfy endpoint and waits for the echo). Failure is STRUCTURAL: no amount of
+     *  re-register/proxy-cycling can conjure inbound while the push leg is dead (2026-07-23:
+     *  ntfy riding Kōjiki's rewritten DNS silently killed every push for days — the daemon read
+     *  "wedged" while nothing could ever arrive). Log + incident + notify; throttled. */
+    private fun maybeProbePush(c: Context, accounts: AccountService, reason: String) {
+        if (UiPrefs.isFullDhtMode(c)) return   // full DHT does not ride push
+        val t = now()
+        if (t - lastPushProbeMs < PUSH_PROBE_THROTTLE_MS) return
+        lastPushProbeMs = t
+        log(c, "push self-test ($reason) — marker to own ntfy endpoint, 20s echo window")
+        PushProbe.run { ok, detail ->
+            handler.post {
+                val was = pushLegDown
+                pushLegDown = !ok
+                if (ok) {
+                    if (noPushAdaptive) {
+                        log(c, "push self-test OK — $detail; push leg RESTORED")
+                        exitNoPushAdaptive(c, accounts)
+                    } else if (was == true) {
+                        // DOWN→UP transition: the leg came back (e.g. a rate limit lifted) — say so.
+                        log(c, "push self-test OK — $detail; push leg RESTORED")
+                        notifyUser(c, c.getString(cx.ring.R.string.notif_push_up, stamp()))
+                    } else {
+                        log(c, "push self-test OK — $detail; push leg alive")
+                    }
+                } else {
+                    log(c, "push self-test FAILED — $detail; push delivery CANNOT arrive (check ntfy app / DNS exclusion / rate limit)")
+                    if (!noPushAdaptive) {
+                        writeIncident(c, "push-down",
+                            "ntfy self-test FAILED ($detail) — push delivery dead ($reason) → adaptive no-push",
+                            LogStormMonitor.recentLines())
+                        enterNoPushAdaptive(c, accounts)
+                    }
+                }
+            }
+        }
+    }
+
+    /** Adaptive no-push proxy (2026-07-23). With the push leg dead, push-mode subscriptions are
+     *  structurally deaf: SUBSCRIBE delivers new values ONLY via proxy→ntfy→app. The F-Droid
+     *  (noPush-flavor) configuration needs no push at all — with NO device key the proxy client
+     *  subscribes with LISTEN, a keep-alive connection the proxy STREAMS values over continuously.
+     *  So while the self-test says the leg is down, clear the daemon's push token and re-register:
+     *  the rebuilt clients come up in LISTEN mode → streaming inbound, zero ntfy dependence, at a
+     *  battery cost paid only for the outage's duration. Restore the token on recovery. NOTE the
+     *  re-register is mandatory: opendht's token-change resubscribe no-ops on an EMPTY key, so a
+     *  bare token clear leaves the old push subscriptions in place. */
+    private fun enterNoPushAdaptive(c: Context, accounts: AccountService) {
+        noPushAdaptive = true
+        log(c, "adaptive no-push ON — clearing push token; re-register rebuilds proxy clients in LISTEN (streaming) mode")
+        notifyUser(c, c.getString(cx.ring.R.string.notif_nopush_on, stamp()))
+        accounts.setPushNotificationToken("")
+        handler.postDelayed({
+            recovering = true; lastRecoverMs = now()
+            accounts.forceReconnectAllAccounts()
+            resubscribeAllPresence(accounts)
+            scheduleBackfill(c, accounts, "adaptive no-push enter")
+        }, REREGISTER_DELAY_MS)
+    }
+
+    private fun exitNoPushAdaptive(c: Context, accounts: AccountService) {
+        val token = cx.ring.application.JamiApplication.instance?.pushToken
+        val platform = cx.ring.application.JamiApplication.instance?.pushPlatform ?: ""
+        if (token == null || token.first.isEmpty()) {
+            // The leg answered but the app holds no endpoint (distributor unregistered?) — a token
+            // we cannot restore. Stay in streaming mode; the next periodic test retries the exit.
+            log(c, "push leg answered but no UnifiedPush endpoint to restore — staying in LISTEN mode")
+            return
+        }
+        noPushAdaptive = false
+        log(c, "adaptive no-push OFF — push leg restored; re-registering push token, clients rebuild in push mode")
+        notifyUser(c, c.getString(cx.ring.R.string.notif_nopush_off, stamp()))
+        accounts.setPushNotificationConfig(token.first, token.second, platform)
+        handler.postDelayed({
+            recovering = true; lastRecoverMs = now()
+            accounts.forceReconnectAllAccounts()
+            resubscribeAllPresence(accounts)
+            scheduleBackfill(c, accounts, "adaptive no-push exit")
+        }, REREGISTER_DELAY_MS)
     }
 
     // ---- Restricted-network (hostile WiFi) mode ----------------------------------------------
@@ -491,6 +618,26 @@ object ConnectionWatchdog {
         }
     }
 
+    /** Post-recovery backfill (2026-07-23). A message that arrived while an account was deaf is NOT
+     *  redelivered by re-register + presence re-arm: swarm delivery is sender-initiated, the sender
+     *  only retries when it notices us again, and "healthy" here is presence-based — so a pending
+     *  message can sit through several healthy windows until the sender happens to retry or the app
+     *  restarts (observed: sent 17:10, delivered 17:35 only by a reinstall, through two "recovered —
+     *  4/4 healthy" windows). connectivityChanged() is the daemon's own network-change signal: every
+     *  account re-evaluates connectivity and each conversation's swarm manager re-maintains its
+     *  buckets, re-opening device channels — and an opened channel pulls pending commits from the
+     *  peer, receiver-initiated. Fire it a moment AFTER each recovery (let the re-register land) and
+     *  on a deaf→alive transition; debounced so a wedge storm doesn't churn connections continuously. */
+    private fun scheduleBackfill(c: Context, accounts: AccountService, reason: String) {
+        val t = now()
+        if (t - lastBackfillMs < BACKFILL_DEBOUNCE_MS) return
+        lastBackfillMs = t
+        handler.postDelayed({
+            log(c, "backfill sync — connectivityChanged ($reason)")
+            accounts.nudgeConnectivity()
+        }, BACKFILL_DELAY_MS)
+    }
+
     /** Full recover: drop to the full DHT, re-register so the stuck backlog flushes, and linger off (window
      *  grows on repeats). For a real proxy wedge or the hard reset. */
     private fun fullRecover(c: Context, accounts: AccountService) {
@@ -505,6 +652,7 @@ object ConnectionWatchdog {
             // only re-register; TURN relays carry what they can.
             log(c, "→ restricted network: proxy stays ON; re-registering only")
             accounts.forceReconnectAllAccounts()
+            scheduleBackfill(c, accounts, "full recover, restricted")
             return
         }
         if (proxyOffSinceMs == 0L) proxyOffSinceMs = t
@@ -514,6 +662,7 @@ object ConnectionWatchdog {
             accounts.forceReconnectAllAccounts()
             resubscribeAllPresence(accounts)   // re-arm presence listens (else dots stay red)
             log(c, "↻ re-registered all accounts on full DHT")
+            scheduleBackfill(c, accounts, "full recover")
         }, REREGISTER_DELAY_MS)
     }
 
@@ -525,6 +674,7 @@ object ConnectionWatchdog {
         log(c, "light recover — re-register on the current proxy (stays on)")
         accounts.forceReconnectAllAccounts()
         resubscribeAllPresence(accounts)
+        scheduleBackfill(c, accounts, "light recover")
     }
 
     /** Re-arm every registered account's presence listens after a global recover. */
@@ -575,6 +725,7 @@ object ConnectionWatchdog {
                     recovering = true; lastRecoverMs = now()
                     accounts.forceReconnectAllAccounts()
                     resubscribeAllPresence(accounts)
+                    scheduleBackfill(c, accounts, "mode-switch recover")
                 }
             }, UNIFORM_PROBE_VERDICT_MS)
         }, MODE_SWITCH_PROBE_DELAY_MS)
@@ -634,10 +785,19 @@ object ConnectionWatchdog {
     fun proxyOn(accounts: AccountService): Boolean =
         accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
 
-    /** For the main-bar dot: any registered account currently deaf (no REAL inbound past the limit).
-     *  The honest "something is wrong" signal — network down or an account wedged. */
+    /** Probe-VERIFIED deafness for one account: a 60-s presence-re-arm probe went unanswered (the
+     *  strike count survives until real inbound clears it). This — never the bare quiet clock — is
+     *  the metric the UI surfaces trust (2026-07-23: the bare clock false-positived every ~3 min on
+     *  a quiet evening; "quiet" and "deaf" are different states, and only the probe tells them apart). */
+    fun accountVerifiedDeaf(accountId: String): Boolean = (acctStates[accountId]?.strikes ?: 0) > 0
+
+    /** A verification probe is currently in flight for this account (suspected, not yet judged). */
+    fun accountProbing(accountId: String): Boolean = acctStates[accountId]?.probeInFlight == true
+
+    /** For the main-bar dot: any registered account with VERIFIED deafness (probe unanswered) —
+     *  the honest "something is wrong" signal, immune to quiet-evening false positives. */
     fun anyDeaf(accounts: AccountService): Boolean =
-        accountHealthList(accounts).any { it.registered && it.deaf }
+        accounts.getAccounts().any { it.isJami && it.isRegistered && accountVerifiedDeaf(it.accountId) }
 
     /** True when the last network egress check came back DOWN and is still fresh. */
     fun networkDown(): Boolean = !netAlive && netVerdictMs != 0L && now() - netVerdictMs < NET_VERDICT_TTL_MS
@@ -837,6 +997,7 @@ object ConnectionWatchdog {
                 writeIncident(c, "uniform-wedge", "${silent.size}/${regd.size} account(s) silent through a ${UNIFORM_PROBE_VERDICT_MS / 1000}s probe on a live network — receive path wedged ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)", LogStormMonitor.recentLines())
                 notifyUser(c, c.getString(cx.ring.R.string.notif_uniform_wedge, stamp()))
                 log(c, "probe UNANSWERED by ${silent.size}/${regd.size} ($answered answered) — wedge → strong recover ($uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)")
+                maybeProbePush(c, accounts, "uniform wedge")
                 fullRecover(c, accounts)
             }
         }, UNIFORM_PROBE_VERDICT_MS)
