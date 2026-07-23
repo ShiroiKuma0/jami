@@ -17,7 +17,7 @@ import net.jami.model.Contact
 import net.jami.model.interaction.Interaction
 
 object ConnectionHealth {
-    enum class Health { OFFLINE, HEALTHY, CONNECTING, NOT_SYNCING }
+    enum class Health { OFFLINE, HEALTHY, CONNECTING, NOT_SYNCING, DEAF }
 
     /** An outgoing message undelivered (no ✓ from any recipient) longer than this is "stuck". */
     const val STUCK_MSG_MS = 90_000L
@@ -78,17 +78,23 @@ object ConnectionHealth {
         return out
     }
 
-    /** Account health. NOT_SYNCING iff it has a stuck outgoing message (the real, self-explanatory
-     *  problem). Otherwise: connected → HEALTHY; actively attempting → CONNECTING (blue); idle / nothing
-     *  to sync → HEALTHY. Connecting is never itself a problem. */
-    fun classify(registered: Boolean, hasConnectedNow: Boolean, hasStuckMsg: Boolean, hasAttempts: Boolean): Health {
+    /** Account health (2026-07-23 metric redesign: "registered" is NOT "receiving" — the watchdog's
+     *  probe-VERIFIED verdicts outrank the registration table). Priority: OFFLINE → DEAF (verified
+     *  not-receiving: an unanswered 60-s probe, never the bare quiet clock — that false-positives on
+     *  every quiet evening) → NOT_SYNCING (stuck outgoing message) → CONNECTING (a verification
+     *  probe in flight, or connection attempts — in-progress, blue, never itself a problem) →
+     *  HEALTHY. The default deaf/probing arguments keep old call sites compiling unchanged. */
+    fun classify(registered: Boolean, hasConnectedNow: Boolean, hasStuckMsg: Boolean, hasAttempts: Boolean,
+                 deaf: Boolean = false, probing: Boolean = false): Health {
         if (!registered) return Health.OFFLINE
+        if (deaf) return Health.DEAF
         if (hasStuckMsg) return Health.NOT_SYNCING
+        if (probing) return Health.CONNECTING
         if (hasConnectedNow) return Health.HEALTHY
         if (hasAttempts) return Health.CONNECTING
         return Health.HEALTHY
     }
 
     /** Health states that should raise the alarm (red dot ring + "needs attention"). */
-    fun isProblem(h: Health) = h == Health.OFFLINE || h == Health.NOT_SYNCING
+    fun isProblem(h: Health) = h == Health.OFFLINE || h == Health.NOT_SYNCING || h == Health.DEAF
 }
