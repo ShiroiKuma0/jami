@@ -48,6 +48,7 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import net.jami.daemon.JamiService
 import java.io.File
 import java.io.IOException
+import cx.ring.utils.showThemed
 
 class ExtensionsListSettingsFragment : Fragment(), ExtensionListItemListener {
     private var binding: FragExtensionsListSettingsBinding? = null
@@ -150,7 +151,7 @@ class ExtensionsListSettingsFragment : Fragment(), ExtensionListItemListener {
                     .setView(ItemProgressDialogBinding.inflate(layoutInflater).root)
                     .setBackground(ColorDrawable(Color.TRANSPARENT))
                     .setCancelable(false)
-                    .show()
+                    .showThemed()
         else if(!show && progress != null && progress.isShowing)
             progress.dismiss()
     }

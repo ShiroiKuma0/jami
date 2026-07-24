@@ -81,6 +81,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.io.File
 import java.util.*
 import javax.inject.Inject
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class LocationSharingFragment : Fragment() {
@@ -164,7 +165,7 @@ class LocationSharingFragment : Fragment() {
                 MaterialAlertDialogBuilder(view.context)
                     .setTitle(R.string.location_share_about_title)
                     .setView(textView)
-                    .create().show()
+                    .showThemed()
             }
             binding.btnCenterPosition.setOnClickListener {
                 overlay?.let { overlay ->

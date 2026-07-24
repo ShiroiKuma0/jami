@@ -63,7 +63,9 @@ class TwoButtonEditText @JvmOverloads constructor(
         setPadding(0, 0, 0, 0)
 
         editTextLayout?.defaultHintTextColor =
-            ContextCompat.getColorStateList(context, R.color.settings_submenu_header)
+            android.content.res.ColorStateList.valueOf(0xFFFFFF00.toInt())
+        mButtonRight!!.setColorFilter(0xFFFFFF00.toInt(), PorterDuff.Mode.SRC_IN)
+        mButtonLeft!!.setColorFilter(0xFFFFFF00.toInt(), PorterDuff.Mode.SRC_IN)
 
         val a =
             context.obtainStyledAttributes(attrs, R.styleable.TwoButtonEditText, defStyleAttr, 0)

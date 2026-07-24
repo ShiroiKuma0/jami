@@ -36,6 +36,7 @@ import net.jami.model.AccountConfig
 import net.jami.model.ConfigKey
 import net.jami.settings.AdvancedAccountPresenter
 import net.jami.settings.AdvancedAccountView
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class AdvancedAccountFragment : BasePreferenceFragment<AdvancedAccountPresenter>(),
@@ -138,7 +139,7 @@ class AdvancedAccountFragment : BasePreferenceFragment<AdvancedAccountPresenter>
                 .setMessage(R.string.account_advanced_reset_confirm)
                 .setPositiveButton(android.R.string.ok) { _, _ -> presenter.resetToDefaults() }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .showThemed()
             true
         }
     }

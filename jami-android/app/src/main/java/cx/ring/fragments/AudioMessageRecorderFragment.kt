@@ -56,6 +56,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.min
 import kotlin.math.sqrt
+import cx.ring.utils.showThemed
 
 /**
  * Modal bottom sheet allowing the user to record an audio message and, before sending it:
@@ -437,7 +438,7 @@ class AudioMessageRecorderFragment : BottomSheetDialogFragment() {
             .setMessage(R.string.audio_recording_discard_message)
             .setNegativeButton(R.string.audio_recording_discard_keep, null)
             .setPositiveButton(R.string.audio_recording_discard_confirm) { _, _ -> discardAndDismiss() }
-            .show()
+            .showThemed()
     }
 
     // endregion

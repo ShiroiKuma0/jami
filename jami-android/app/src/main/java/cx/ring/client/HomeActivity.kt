@@ -97,6 +97,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.math.max
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicked {
@@ -292,7 +293,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
                     .setPositiveButton(android.R.string.ok) { _, _ ->
                         localNetworkPermissionLauncher.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
                     }
-                    .show()
+                    .showThemed()
             }
             else -> {
                 localNetworkPermissionPromptShown = true
@@ -310,7 +311,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
                             Log.w(TAG, "Cannot open app settings", e)
                         }
                     }
-                    .show()
+                    .showThemed()
             }
         }
     }
@@ -345,7 +346,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
                         postNotificationsPermissionLauncher
                             .launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
-                    .show()
+                    .showThemed()
             }
             else -> {
                 notifPermissionPromptShown = true
@@ -361,7 +362,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
                             Log.w(TAG, "Cannot open app settings", e)
                         }
                     }
-                    .show()
+                    .showThemed()
             }
         }
     }
@@ -492,7 +493,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
                 goToAccountSettings()
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .showThemed()
     }
 
     private val iconSize by lazy { max(ShortcutManagerCompat.getIconMaxHeight(this), ShortcutManagerCompat.getIconMaxWidth(this)) }

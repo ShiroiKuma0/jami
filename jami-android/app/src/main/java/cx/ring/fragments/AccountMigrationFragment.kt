@@ -41,6 +41,7 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import net.jami.model.AccountConfig
 import net.jami.services.AccountService
 import javax.inject.Inject
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class AccountMigrationFragment : Fragment() {
@@ -86,8 +87,7 @@ class AccountMigrationFragment : Fragment() {
             .setMessage(R.string.account_delete_dialog_message)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.menu_delete) { d: DialogInterface?, w: Int -> deleteAccount() }
-            .create()
-            .show()
+            .showThemed()
     }
 
     private fun deleteAccount() {
@@ -110,7 +110,7 @@ class AccountMigrationFragment : Fragment() {
             .setTitle(R.string.dialog_wait_update)
             .setMessage(R.string.dialog_wait_update_details)
             .setCancelable(false)
-            .show()
+            .showThemed()
 
         mDisposableBag.add(mAccountService.migrateAccount(accountId, password)
             .observeOn(AndroidSchedulers.mainThread())
@@ -152,7 +152,7 @@ class AccountMigrationFragment : Fragment() {
                 .setMessage(R.string.account_device_updated_message)
             success = true
         }
-        val dialogSuccess = dialogBuilder.show()
+        val dialogSuccess = dialogBuilder.showThemed()
         if (success) {
             dialogSuccess.setOnDismissListener {
                 val activity: Activity? = activity

@@ -52,6 +52,7 @@ import java.io.IOException
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class RingtoneActivity : AppCompatActivity() {
@@ -279,7 +280,7 @@ class RingtoneActivity : AppCompatActivity() {
             .setTitle(R.string.ringtone_error_title)
             .setMessage(getString(R.string.ringtone_error_size_too_big, MAX_SIZE_RINGTONE))
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .showThemed()
     }
 
     /**
@@ -290,7 +291,7 @@ class RingtoneActivity : AppCompatActivity() {
         val item = arrayOf("Remove")
         // subject callback from adapter will update the view
         AlertDialog.Builder(this)
-            .setItems(item) { _: DialogInterface?, _: Int -> setDefaultRingtone() }.show()
+            .setItems(item) { _: DialogInterface?, _: Int -> setDefaultRingtone() }.showThemed()
     }
 
     @SuppressLint("WrongConstant")

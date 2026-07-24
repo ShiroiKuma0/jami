@@ -65,10 +65,10 @@
     <color name="settings_option_background">#EBEBEB</color>
     <color name="settings_submenu_header">@color/grey_500</color>
 
-    <color name="material_switch_thumb_checked">#000000</color>
-    <color name="material_switch_thumb_unchecked">@color/black</color>
-    <color name="material_switch_track_checked">#FFFF00</color>
-    <color name="material_switch_track_unchecked">@color/white</color>
+    <color name="material_switch_thumb_checked">#FFFF00</color>
+    <color name="material_switch_thumb_unchecked">#FFFF00</color>
+    <color name="material_switch_track_checked">#000000</color>
+    <color name="material_switch_track_unchecked">#000000</color>
 
     <!--  TV  -->
     <color name="tv_transparent">#a0000000</color>
