@@ -28,6 +28,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             </intent-filter>
         </service>
 
+        <!-- shiroikuma dual-backend: FCM receiver + its foreground-service escalation. -->
+        <service
+            android:name=".services.JamiFirebaseMessagingService"
+            android:stopWithTask="false"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="cx.ring.service.PushForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync|remoteMessaging" />
+
     </application>
 
 </manifest>

@@ -623,15 +623,25 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         mFgWatchdogHandler.postDelayed({ updateLightningIcon() }, 31_000L)
     }
 
-    /** DHT-mode icon: the same distributed-hub glyph in both modes; colour alone marks it —
-     *  yellow = full DHT (robust), blue = proxy. */
+    /** DHT-mode icon (2026-07-24 redesign): the SHAPE encodes the mode — filled hub = full DHT
+     *  (the heavy local node), hollow thick-outline hub = DHT proxy (the light mode). The COLOUR
+     *  encodes only state quality, matching the app-wide ideology: yellow = the chosen mode is
+     *  verified working, blue = transitional (recovering, mode-switch verification, or the adaptive
+     *  streaming fallback riding out a dead push leg), red = the current mode is verifiably broken.
+     *  Settable roles reused: yellow from DHT_FULL, blue from DHT_PROXY, red from MONITOR_PROBLEM. */
     private fun updateDhtModeIcon() {
         val iv = mBinding?.searchBar?.menu?.findItem(R.id.menu_dht_mode)?.actionView as? ImageView ?: return
         val ctx = context ?: return
         val full = cx.ring.utils.UiPrefs.isFullDhtMode(ctx)
-        iv.setImageResource(R.drawable.connectivity_mode_dht_24)
-        iv.setColorFilter(cx.ring.utils.ColorPrefs.getColor(ctx,
-            if (full) cx.ring.utils.ColorPrefs.DHT_FULL else cx.ring.utils.ColorPrefs.DHT_PROXY))
+        iv.setImageResource(if (full) R.drawable.connectivity_mode_dht_filled_24 else R.drawable.connectivity_mode_dht_hollow_24)
+        val problem = cx.ring.utils.ConnectionWatchdog.networkDown() ||
+            cx.ring.utils.ConnectionWatchdog.anyDeaf(mAccountService)
+        val transitional = cx.ring.utils.ConnectionWatchdog.hubTransitional()
+        iv.setColorFilter(cx.ring.utils.ColorPrefs.getColor(ctx, when {
+            problem -> cx.ring.utils.ColorPrefs.MONITOR_PROBLEM
+            transitional -> cx.ring.utils.ColorPrefs.DHT_PROXY
+            else -> cx.ring.utils.ColorPrefs.DHT_FULL
+        }))
     }
 
     /** Flip full DHT ↔ proxy: authoritative + immediate — persist the mode AND set every account's proxy
@@ -765,8 +775,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             stateRow(box, 0xFF888888.toInt(), false, ctx.getString(R.string.info_dot_off))
             item(box, ctx.getString(R.string.info_b_main_dot))
             sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
-            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
-            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_PROXY), ctx.getString(R.string.info_dht_proxy))
+            // Shape = mode (both shown healthy-yellow); colour on the hub is state quality now.
+            iconRow(box, R.drawable.connectivity_mode_dht_filled_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
+            iconRow(box, R.drawable.connectivity_mode_dht_hollow_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_proxy))
             item(box, ctx.getString(R.string.info_b_main_dht))
             sub(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_header))
             iconRow(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_ready))
@@ -919,6 +930,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     dotDeaf = deaf
                     applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
                 }
+                // The hub's colour is state quality (yellow/blue/red) — repaint it on the same
+                // cadence so watchdog transitions (recovery, adaptive streaming) show promptly.
+                updateDhtModeIcon()
             }, {}))
 
         if (mBinding!!.searchView.isShowing)
@@ -1276,6 +1290,18 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             if (problems > 0) ctx.getString(R.string.conn_dash_need_attention, problems) else ctx.getString(R.string.conn_dash_all_healthy),
             if (problems > 0) red else healthyCol, bold = true, sizeSp = 15f))
         container.addView(text(ctx.getString(R.string.conn_dash_network, networkLabel() ?: ctx.getString(R.string.conn_dash_network_none)), grey, sizeSp = 12f))
+        // Push-leg surface: which backend/endpoint the accounts are registered against and when a
+        // real push last arrived — the verification line for endpoint switches (e.g. self-hosted
+        // ntfy) and for judging the leg at a glance.
+        container.addView(text(ctx.getString(R.string.conn_dash_push, run {
+            val app = cx.ring.application.JamiApplication.instance
+            val endpoint = app?.pushToken?.first?.takeIf { it.isNotEmpty() }?.let {
+                if (it.length > 44) it.take(44) + "…" else it
+            } ?: ctx.getString(R.string.conn_dash_push_none)
+            val last = cx.ring.utils.PushEvidence.lastRealPushMs
+            val age = if (last == 0L) "—" else "${(System.currentTimeMillis() - last) / 1000}s"
+            "${app?.pushPlatform ?: "?"} · $endpoint · rx $age"
+        }), grey, sizeSp = 12f))
         for (da in ranked) {
             val ac = da.ac
             val health = healthOf(da)
@@ -1631,6 +1657,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         if (hasInvites) {
             binding.invitationCard.invitationBadge.text = conversations.size.toString()
             binding.invitationCard.invitationReceivedTxt.text = snip.joinToString(", ") { it.title }
+            // The two-tone envelope vector has no theme hook — tint it here (its only runtime
+            // reference) from the same settable role as the badge border, so it follows the theme.
+            binding.invitationCard.invitationIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                cx.ring.utils.ColorPrefs.getColor(requireContext(), cx.ring.utils.ColorPrefs.BADGE_BORDER))
         }
         updateAppBarLayoutBottomPadding(hasInvites)
     }
