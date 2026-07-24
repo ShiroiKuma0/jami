@@ -135,6 +135,24 @@ class Conversation(
 
     private val lastEventSubject: Subject<Interaction> = BehaviorSubject.createDefault(Interaction(accountId))
     val lastEventObservable: Observable<Interaction> = lastEventSubject
+
+    /** shiroikuma fork — the newest OUTGOING deliverable interaction (TEXT or DATA_TRANSFER), for
+     *  the stuck-message scan (ConnectionHealth). Calls and contact events carry no delivery
+     *  receipt, so they must not mask a stuck message/file behind them (2026-07-24: an undelivered
+     *  file followed by missed calls kept a dead contact blue — the scan only saw the call). Walks
+     *  the loaded history backwards; falls back to lastEvent when the history is not loaded. */
+    @Synchronized
+    fun lastDeliverableOutgoing(): Interaction? {
+        for (n in aggregateHistory.indices.reversed()) {
+            val i = aggregateHistory[n]
+            if (!i.isIncoming && (i.type == Interaction.InteractionType.TEXT ||
+                        i.type == Interaction.InteractionType.DATA_TRANSFER))
+                return i
+        }
+        val e = lastEvent
+        return if (e != null && !e.isIncoming && (e.type == Interaction.InteractionType.TEXT ||
+                    e.type == Interaction.InteractionType.DATA_TRANSFER)) e else null
+    }
     val currentStateObservable: Observable<Pair<Interaction, Boolean>> =
         Observable.combineLatest(
             lastEventSubject,

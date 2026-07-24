@@ -62,6 +62,7 @@ import net.jami.model.ContactViewModel
 import net.jami.services.AccountService
 import net.jami.services.AccountService.ConnectionStatus
 import net.jami.services.ContactService
+import net.jami.utils.PeerReachability
 import javax.inject.Inject
 
 private val YELLOW = 0xFFFFEB3B.toInt()   // legend section-header accent only (not a monitor state)
@@ -152,6 +153,7 @@ class ConnectionMonitorFragment: Fragment() {
         val accountId: String? = null,
         val connection: AccountService.DeviceConnection? = null,
         val stuckLabel: String? = null,   // a "message not delivered → <chat>" sub-row (account avatar)
+        val stuckConvId: String? = null,  // conversation to open when the stuck sub-row is tapped
     )
 
     class ConnectionAdapter(
@@ -234,7 +236,14 @@ class ConnectionMonitorFragment: Fragment() {
                     holder.headerIcon?.setImageDrawable(avatarFor(vm.accountId ?: ""))
                     tv.text = vm.stuckLabel
                     tv.setTextColor(vm.contactStatusColor)
-                    holder.root.setOnClickListener(null)
+                    // Tap the stuck sub-row → open that conversation (白い熊, 2026-07-24).
+                    val acctId = vm.accountId; val convId = vm.stuckConvId
+                    if (acctId != null && convId != null) holder.root.setOnClickListener { v ->
+                        v.context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            cx.ring.utils.ConversationPath.toUri(acctId, net.jami.model.Uri.fromString(convId)),
+                            v.context, cx.ring.client.HomeActivity::class.java)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } else holder.root.setOnClickListener(null)
                 } else {
                     val h = vm.accountHeader!!
                     holder.headerIcon?.setImageDrawable(avatarFor(h.accountId))
@@ -370,11 +379,20 @@ class ConnectionMonitorFragment: Fragment() {
             .map { it.account.uri }.toSet()
         // Per-account stuck (undelivered) outgoing messages — the real "not going through" signal,
         // works for group swarms (invisible to the connection table) — named by the stuck chat's member.
-        val stuckChats = HashMap<String, List<String>>()
+        val stuckChats = HashMap<String, List<ConnectionHealth.StuckConv>>()
         for (la in lastLoaded) {
             val model = service.getAccount(la.account.accountId)
-            val uris = model?.let { ConnectionHealth.accountStuckConvUris(it, now, myUris) } ?: emptyList()
-            stuckChats[la.account.accountId] = uris.map { peerNames[it] ?: it.take(8) }.distinct()
+            val convs = model?.let { ConnectionHealth.accountStuckConvs(it, now, myUris) } ?: emptyList()
+            stuckChats[la.account.accountId] = convs.distinctBy { it.convId }
+        }
+        // Disambiguate the recipient: 白い熊 shares the profile name "白い熎" across accounts, so append
+        // the account username (when it differs) and the id tail (2026-07-24).
+        val sibByUri = lastLoaded.filter { it.account.uri.isNotEmpty() }.associateBy { it.account.uri }
+        fun recipientLabel(uri: String): String {
+            val disp = peerNames[uri] ?: uri.take(8)
+            val user = sibByUri[uri]?.account?.name?.takeIf { it.isNotBlank() && it != disp }
+            val tail = uri.take(8)
+            return if (user != null) "$disp ($user · $tail)" else "$disp · $tail"
         }
         fun healthOf(la: LoadedAccount): Health {
             val cn = la.peers.any { (_, c) -> c.any { it.status == ConnectionStatus.Connected } }
@@ -389,18 +407,42 @@ class ConnectionMonitorFragment: Fragment() {
             val ac = la.account
             val health = healthOf(la)
             if (ConnectionHealth.isProblem(health)) problem++ else healthy++
+            // The account avatar's dot must match the HEALTH verdict — a red NOT SYNCING row with a
+            // yellow presence dot is a contradiction (白い熊, 2026-07-24).
+            (accountAvatars[ac.accountId] as? AvatarDrawable)?.setPresenceStatus(when {
+                ConnectionHealth.isProblem(health) -> Contact.PresenceStatus.OFFLINE
+                health == Health.CONNECTING -> Contact.PresenceStatus.AVAILABLE
+                else -> Contact.PresenceStatus.CONNECTED
+            })
             val isCollapsed = ac.accountId in collapsed
             val chats = stuckChats[ac.accountId] ?: emptyList()
-            val word = healthWord(health) + if (chats.isNotEmpty()) " (${chats.size} msg stuck)" else ""
+            // Only FAULT-class (red) messages count as the account's "N msg stuck".
+            val faultCount = chats.count { it.severity == ConnectionHealth.StuckSeverity.FAULT }
+            val word = healthWord(health) + if (faultCount > 0) " ($faultCount msg stuck)" else ""
             rows.add(DeviceConnectionViewModel(accountHeader =
                 AccountHeader(ac.accountId, ac.name, word, healthColor(health), la.peers.size, isCollapsed)))
-            // Stuck-message sub-rows (account avatar + red "not delivered → chat") — shown even when
-            // the account is collapsed, since they ARE the problem the user needs to see.
-            for (chat in chats) {
+            // Stuck-message sub-rows — shown even when the account is collapsed. COLOUR is the cause
+            // (白い熎, 2026-07-24): FAULT = red ("not delivered" — same-device stall or live-peer-no-ACK,
+            // ours to fix); PENDING = blue ("delivering…" — recipient away, benign, we're attempting).
+            for (sc in chats) {
+                val fault = sc.severity == ConnectionHealth.StuckSeverity.FAULT
+                val age = ConnectionHealth.ageLabel(now - sc.timestamp)
+                val kind = if (sc.isFile) "📎 " + sc.preview
+                    else if (sc.preview.isNotEmpty()) "💬 " + sc.preview else "text"
+                val label = if (fault) {
+                    val why = if (PeerReachability.isUnreachable(ac.accountId, sc.memberUri))
+                        " · unreachable — their device looks off (stale presence)" else ""
+                    "⚠ message not delivered → ${recipientLabel(sc.memberUri)}$why"
+                } else {
+                    val away = if (sc.presence == Contact.PresenceStatus.AVAILABLE)
+                        "announced, opening a channel…" else "recipient offline — delivers when they return"
+                    "⏳ delivering… → ${recipientLabel(sc.memberUri)} · $away"
+                }
                 rows.add(DeviceConnectionViewModel(
                     accountId = ac.accountId,
-                    stuckLabel = "⚠ message not delivered → $chat",
-                    contactStatusColor = problemColor))
+                    stuckLabel = "$label\n    $age · $kind ▸",
+                    stuckConvId = sc.convId,
+                    contactStatusColor = if (fault) problemColor else idleColor))
             }
             if (!isCollapsed) {
                 // connected first, then reconnecting, then disconnected; alphabetical within each.
@@ -419,6 +461,10 @@ class ConnectionMonitorFragment: Fragment() {
                     val (stext, scolor) = when {
                         connected -> "connected" to connectedColor                  // yellow — live link
                         attempting -> "connecting…" to idleColor                     // blue — establishing (in progress, not a problem)
+                        // Verified unreachable (stuck outgoing message, no live channel): the dot is
+                        // demoted red by the presence gate — say WHY instead of a bare "offline".
+                        PeerReachability.isUnreachable(ac.accountId, peerKey) ->
+                            "unreachable — msg stuck, device off?" to problemColor
                         // A same-device account of mine (always reachable here), or a contact present on
                         // the network → reachable. Same-device accounts don't publish presence to each
                         // other, so without this they'd falsely read "offline".
