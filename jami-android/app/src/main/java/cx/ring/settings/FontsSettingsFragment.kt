@@ -261,6 +261,9 @@ class FontsSettingsFragment : Fragment() {
         box.addView(orSwitchRow("Full DHT — proxy off, robustness-first (default)", UiPrefs.isFullDhtMode(ctx)) {
             UiPrefs.setFullDhtMode(ctx, it)
             mAccountService.setProxyEnabled(!it)   // authoritative + immediate: full DHT → all accounts proxy off; off → proxy on
+            // Same log + verification probe as the ⬡ tap — this silent write is what made the
+            // recovery log untrustworthy about the active mode (2026-07-23 retraction).
+            cx.ring.utils.ConnectionWatchdog.onDhtModeSwitched(ctx, mAccountService)
         })
         box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
             UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping

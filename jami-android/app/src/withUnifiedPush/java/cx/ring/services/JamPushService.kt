@@ -33,7 +33,7 @@ class JamiPushService : PushService() {
         Log.w("JamiPushReceiver", "onNewEndpoint $endpoint $instance")
         val app = JamiApplication.instance as JamiApplicationUnifiedPush?
         val topicKey = endpoint.pubKeySet?.let { "${it.pubKey}|${it.auth}" } ?: ""
-        app?.pushToken = Pair(endpoint.url, topicKey)
+        app?.setUnifiedPushEndpoint(endpoint.url, topicKey)
     }
 
     override fun onMessage(

@@ -113,6 +113,10 @@ abstract class JamiApplication : Application() {
     abstract val pushToken: Pair<String, String>?
     abstract val pushPlatform: String
 
+    /** The push backend selection changed (dual-backend flavor) — re-register the selected token.
+     *  No-op in single-backend flavors. Kept in the base so main-source callers stay flavor-safe. */
+    open fun onPushBackendChanged() {}
+
     var androidPhoneAccountHandle: PhoneAccountHandle? = null
 
     open fun activityInit(activityContext: Context) {}
