@@ -1,6 +1,12 @@
-# 白い熊 GNU Jami — `20260717-01+62`
+# 白い熊 GNU Jami — `20260717-01+64`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## Call-screen fixes (new in +64)
+
+- **In-call avatar** no longer sits in a grey box; the presence dot stays **yellow during an active call** (you're demonstrably connected to whoever you're talking to).
+- **Camera toggle button** un-reversed — camera **on** is a filled yellow button with a black plain-camera icon (the app's "active" look, like Speaker); camera **off** is an outlined button with a yellow crossed-camera icon.
+- **Quiet-account wedge tuning** — the per-account recovery no longer fires on a single unanswered presence probe when nothing is actually stuck; a genuinely stuck message still recovers immediately, but a merely-idle account needs a second consecutive miss, removing the occasional needless recovery on quiet accounts.
 
 ## Connectivity — three-fold push & adaptive resilience (headline of this release)
 
