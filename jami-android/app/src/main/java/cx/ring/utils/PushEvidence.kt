@@ -27,11 +27,14 @@ object PushEvidence {
     @Volatile private var expectedNonce: String? = null
     @Volatile private var matchedNonce: String? = null
 
-    /** When ANY push message (real or probe) last reached the app — passive liveness. */
-    @Volatile var lastAnyPushMs = 0L
+    /** When a REAL daemon push (proxy→ntfy→app, probe echoes excluded) last reached the app.
+     *  This is the proxies' leg — the one the self-test structurally cannot see (it only proves
+     *  phone→ntfy→phone; 2026-07-24 morning: self-test green for 3 h while the proxies' pushes
+     *  never arrived and 44 verified wedges piled up). Zero = none this process. */
+    @Volatile var lastRealPushMs = 0L
         private set
 
-    fun noteAnyPush() { lastAnyPushMs = System.currentTimeMillis() }
+    fun noteRealPush() { lastRealPushMs = System.currentTimeMillis() }
 
     fun expect(nonce: String) { expectedNonce = nonce; matchedNonce = null }
 
