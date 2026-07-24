@@ -29,6 +29,30 @@ object UiPrefs {
         p(c).edit().putStringSet("suppressed_media", s).apply()
     }
 
+    // ---- Push backend selection (dual-backend flavor: FCM ⟷ UnifiedPush) --------------------
+    // Which push transport the daemon registers against. Both receivers stay alive; only the
+    // registered token switches. Default "fcm" (fresh-install Firebase default, 2026-07-24).
+    const val PUSH_FCM = "fcm"
+    const val PUSH_UNIFIED = "unifiedpush"
+    fun getPushBackend(c: Context): String = p(c).getString("push_backend", PUSH_FCM) ?: PUSH_FCM
+    fun setPushBackend(c: Context, backend: String) {
+        p(c).edit().putString("push_backend", backend).apply()
+    }
+
+    // ---- Adaptive no-push persistence (survive process restart mid-outage) -------------------
+    // noPushAdaptive + the hold deadline + the permanent-service backup, so a restart during an
+    // outage re-enters streaming immediately instead of eating a 10-min re-detection.
+    fun isAdaptivePersisted(c: Context): Boolean = p(c).getBoolean("adaptive_nopush", false)
+    fun getAdaptiveHoldUntil(c: Context): Long = p(c).getLong("adaptive_hold_until", 0L)
+    fun getAdaptivePermBackup(c: Context): Boolean = p(c).getBoolean("adaptive_perm_backup", false)
+    fun setAdaptivePersisted(c: Context, on: Boolean, holdUntil: Long, permBackup: Boolean) {
+        p(c).edit()
+            .putBoolean("adaptive_nopush", on)
+            .putLong("adaptive_hold_until", holdUntil)
+            .putBoolean("adaptive_perm_backup", permBackup)
+            .apply()
+    }
+
     // ---- Crash-safe re-register ledger ------------------------------------------------------
     // Accounts currently inside a watchdog unregister→register nudge. sendRegister persists
     // ACCOUNT_ENABLE, so a process death inside the 1.5-s window leaves the account disabled on

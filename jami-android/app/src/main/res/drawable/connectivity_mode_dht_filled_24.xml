@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork: FILLED hexagon (⬡) — the full-DHT mode glyph (the heavy mode: the device IS a
+     node). A large POINTY-TOP solid hexagon: the points at top and bottom make it clearly angular
+     (unmistakable from the round account status dot ●). Matched pair with the hollow variant (same
+     hexagon, thick open wall). Colour is applied at runtime (state quality). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="?attr/colorControlNormal">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M480,60 L844,270 L844,690 L480,900 L116,690 L116,270 Z" />
+</vector>
