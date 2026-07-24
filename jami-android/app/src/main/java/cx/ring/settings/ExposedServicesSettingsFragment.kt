@@ -52,6 +52,7 @@ import net.jami.services.ExposedServiceType
 import net.jami.services.ExposedServicesService
 import net.jami.services.PeerServicesService
 import javax.inject.Inject
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class ExposedServicesSettingsFragment : Fragment() {
@@ -164,7 +165,7 @@ class ExposedServicesSettingsFragment : Fragment() {
                 viewModel.disconnectAll(accountId)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .showThemed()
     }
 
     private fun openAddDialog() {

@@ -220,11 +220,18 @@ class SwitchButton(context: Context, attrs: AttributeSet? = null, defStyle: Int 
         }
         mPaint.color = mBackColor
         canvas.drawRoundRect(mBackRectF, mBackRadius, mBackRadius, mPaint)
+        // shiroikuma 2026-07-24: the pill follows the fork's switch design — black fill (set by the
+        // caller), 2dp yellow trace border, yellow thumb dot.
+        mPaint.style = android.graphics.Paint.Style.STROKE
+        mPaint.strokeWidth = 2 * resources.displayMetrics.density
+        mPaint.color = 0xFFFFFF00.toInt()
+        canvas.drawRoundRect(mBackRectF, mBackRadius, mBackRadius, mPaint)
+        mPaint.style = android.graphics.Paint.Style.FILL
 
         // thumb
         mPresentThumbPos.set(mThumbPos)
         mPresentThumbPos.offset(mProgress * mSafeRectF.width(), 0f)
-        mPaint.color = Color.WHITE
+        mPaint.color = 0xFFFFFF00.toInt()
         canvas.drawCircle(mPresentThumbPos.x, mPresentThumbPos.y, mThumbRadius, mPaint)
 
         // image

@@ -48,6 +48,7 @@
         <item name="preferenceTheme">@style/JamiPreferenceThemeOverlay</item>
         <item name="popupMenuBackground">@drawable/custom_popup_background</item>
         <item name="materialSwitchStyle">@style/CustomMaterialSwitch</item>
+        <item name="colorControlActivated">#FFFF00</item>
 
         <item name="textInputOutlinedStyle">@style/Widget.Material3.TextInputLayout.OutlinedBox</item>
         <item name="textInputFilledStyle">@style/Widget.Jami.TextInputLayout</item>
@@ -245,7 +246,7 @@
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">true</item>
-        <item name="android:textColor">@color/settings_submenu_header</item>
+        <item name="android:textColor">#FFFF00</item>
     </style>
 
     <style name="ListPrimary">
@@ -315,6 +316,9 @@
     <style name="CustomMaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
         <item name="thumbTint">@color/material_switch_thumb_tint</item>
         <item name="trackTint">@color/material_switch_track_tint</item>
+        <!-- 2026-07-24: OFF switches read as yellow-traced black pills (fork request) - the track
+             decoration is MaterialSwitch's outline; on the checked yellow fill it blends away. -->
+        <item name="trackDecorationTint">#FFFF00</item>
     </style>
 
     <!-- AndroidTV Style -->

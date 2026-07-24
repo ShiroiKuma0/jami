@@ -63,6 +63,7 @@ class ChangePasswordDialog : DialogFragment() {
             .setNegativeButton(android.R.string.cancel) { dialog: DialogInterface?, whichButton: Int -> dismiss() }
             .create()
         result.setOnShowListener { dialog: DialogInterface ->
+            cx.ring.utils.DialogTheme.theme(dialog as androidx.appcompat.app.AlertDialog)
             val positiveButton = (dialog as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
             positiveButton.setOnClickListener {
                 if (validate()) {

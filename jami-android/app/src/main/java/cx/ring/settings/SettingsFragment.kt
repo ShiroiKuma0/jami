@@ -62,6 +62,7 @@ import net.jami.services.PreferencesService
 import net.jami.settings.SettingsPresenter
 import net.jami.settings.SettingsViewModel
 import net.jami.utils.DonationUtils
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class SettingsFragment :
@@ -134,7 +135,7 @@ class SettingsFragment :
                     .setNegativeButton(android.R.string.cancel) { dialog, _ ->
                         dialog.dismiss()
                     }
-                    .show()
+                    .showThemed()
             }
             settingsExtensionsLayout.setOnClickListener {
                 if (JamiService.getPluginsEnabled()) {
@@ -196,7 +197,7 @@ class SettingsFragment :
                         saveSettings(this)
                     }
                     .setNegativeButton(android.R.string.cancel) { dialog: DialogInterface?, id: Int -> }
-                    .show()
+                    .showThemed()
             }
             settingsLogs.setOnClickListener { v: View ->
                 startActivity(Intent(v.context, LogsActivity::class.java))
@@ -512,7 +513,7 @@ class SettingsFragment :
                 binding.settingsStatusIconValue.text = String.format(java.util.Locale.US, "%.2f×", v)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .showThemed()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -673,9 +674,12 @@ class ConnectivityOptionsAdapter(
 
         option?.let {
             imageView.setImageResource(it.iconResId)
+            imageView.imageTintList = android.content.res.ColorStateList.valueOf(
+                cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.SETTINGS_ICON))
             titleView.text = it.title
             descriptionView.text = it.description
             radioButton.isChecked = position == selectedPosition
+            radioButton.buttonTintList = android.content.res.ColorStateList.valueOf(0xFFFFFF00.toInt())
         }
         view.setOnClickListener {
             selectedPosition = position

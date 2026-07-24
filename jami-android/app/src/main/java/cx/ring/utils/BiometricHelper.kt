@@ -48,6 +48,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
+import cx.ring.utils.showThemed
 
 object BiometricHelper {
     class BiometricInfo(val keyName: String, val encryptedKey: ByteArray, val iv: ByteArray)
@@ -333,8 +334,7 @@ object BiometricHelper {
                     callback(null)
                 }
                 .setCancelable(false)
-                .create()
-                .show()
+                .showThemed()
         }
 
         fun dispose() {

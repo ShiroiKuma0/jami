@@ -17,6 +17,7 @@
 package cx.ring.account
 
 import cx.ring.utils.Flash
+import cx.ring.utils.showThemed
 
 import android.Manifest
 import android.animation.Animator
@@ -332,7 +333,7 @@ class JamiAccountSummaryFragment :
                 mDialogRemovePhoto = null
                 mSourcePhoto = null
             }
-            .show()
+            .showThemed()
     }
 
     fun onClickExport() {
@@ -361,7 +362,7 @@ class JamiAccountSummaryFragment :
             .setView(ItemProgressDialogBinding.inflate(layoutInflater).root)
             .setTitle(R.string.export_account_wait_title)
             .setMessage(R.string.export_account_wait_message)
-            .show()
+            .showThemed()
     }
 
     override fun showPasswordProgressDialog() {
@@ -369,7 +370,7 @@ class JamiAccountSummaryFragment :
             .setView(ItemProgressDialogBinding.inflate(layoutInflater).root)
             .setTitle(R.string.export_account_wait_title)
             .setMessage(R.string.account_password_change_wait_message)
-            .show()
+            .showThemed()
     }
 
     private fun dismissWaitDialog() {
@@ -386,7 +387,7 @@ class JamiAccountSummaryFragment :
                 .setTitle(R.string.account_device_revocation_wrong_password)
                 .setMessage(R.string.account_export_end_decryption_message)
                 .setPositiveButton(android.R.string.ok, null)
-                .show()
+                .showThemed()
         } else if (newPassword.isNotEmpty()) {
             biometricEnroll = BiometricHelper.BiometricEnroll(
                 accountId,
@@ -438,7 +439,7 @@ class JamiAccountSummaryFragment :
                     mAccountService.refreshAccount(accountId)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .showThemed()
         } else {
             ConfirmBiometricDialog().apply {
                 setListener { password: String ->
@@ -575,7 +576,7 @@ class JamiAccountSummaryFragment :
 
     private fun setSwitchStatus(account: Account) {
         val switchButton = mBinding!!.accountSwitch
-        var color = R.color.red_400
+        var color = R.color.black
         val status: String
         if (account.isEnabled) {
             if (account.isTrying) {
@@ -592,11 +593,11 @@ class JamiAccountSummaryFragment :
                 switchButton.status = status
             } else if (account.isRegistered) {
                 status = getString(R.string.account_status_online)
-                color = R.color.green_400
+                color = R.color.black
                 switchButton.showImage(false)
                 switchButton.status = status
             } else if (!account.isRegistered) {
-                color = R.color.grey_400
+                color = R.color.black
                 status = getString(R.string.account_status_offline)
                 switchButton.showImage(false)
                 switchButton.status = status
@@ -606,7 +607,7 @@ class JamiAccountSummaryFragment :
                 switchButton.status = status
             }
         } else {
-            color = R.color.grey_400
+            color = R.color.black
             status = getString(R.string.account_status_offline)
             switchButton.showImage(false)
             switchButton.status = status
@@ -619,7 +620,7 @@ class JamiAccountSummaryFragment :
             .setView(ItemProgressDialogBinding.inflate(layoutInflater).root)
             .setTitle(R.string.revoke_device_wait_title)
             .setMessage(R.string.revoke_device_wait_message)
-            .show()
+            .showThemed()
     }
 
     override fun deviceRevocationEnded(device: String, status: Int) {
@@ -644,7 +645,7 @@ class JamiAccountSummaryFragment :
                     onDeviceRevocationAsked(device)
                 }
             }
-            .show()
+            .showThemed()
     }
 
     override fun updateDeviceList(devices: Map<String, String>, currentDeviceId: String) {
@@ -713,8 +714,7 @@ class JamiAccountSummaryFragment :
                 }
             }
             .setNegativeButton(android.R.string.cancel) { di, _ -> di.dismiss() }
-            .create()
-            .show()
+            .showThemed()
     }
 
     override fun onDeviceRename() {

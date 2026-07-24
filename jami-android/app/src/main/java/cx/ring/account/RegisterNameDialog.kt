@@ -128,6 +128,7 @@ class RegisterNameDialog : DialogFragment() {
             .setNegativeButton(android.R.string.cancel) { d: DialogInterface?, b: Int -> dismiss() }
             .create()
         result.setOnShowListener { d: DialogInterface ->
+            cx.ring.utils.DialogTheme.theme(d as androidx.appcompat.app.AlertDialog)
             val positiveButton = (d as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
             positiveButton.setOnClickListener {
                 if (validate()) {

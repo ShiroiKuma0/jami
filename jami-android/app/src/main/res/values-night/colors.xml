@@ -27,10 +27,10 @@
     <color name="settings_option_background">#303030</color>
     <color name="settings_submenu_header">@color/grey_600</color>
 
-    <color name="material_switch_thumb_checked">@color/black</color>
-    <color name="material_switch_thumb_unchecked">@color/icon_color</color>
-    <color name="material_switch_track_checked">#FFFF00</color>
-    <color name="material_switch_track_unchecked">@color/settings_option_background</color>
+    <color name="material_switch_thumb_checked">#FFFF00</color>
+    <color name="material_switch_thumb_unchecked">#FFFF00</color>
+    <color name="material_switch_track_checked">#000000</color>
+    <color name="material_switch_track_unchecked">@color/black</color>
 
     <!--  TwoButton EditText  -->
     <color name="edit_text_background">#2e2e2e</color>
