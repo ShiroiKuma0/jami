@@ -36,15 +36,23 @@ object InboundEvidence {
     @Volatile private var lastSubscribeMs = 0L
     private const val ECHO_SUPPRESS_MS = 8_000L
 
+    /** True while the accounts ride push-SUBSCRIBE proxy subscriptions — the ONLY regime where a
+     *  subscribe's instant cached-value echo proves nothing about delivery (pushes ride a separate
+     *  leg). On full DHT or streaming LISTEN, a subscribe answer IS the receive path working, so
+     *  echoes count as evidence there (2026-07-23: the suppression discarded the probes' own
+     *  answers on full DHT — near-instant listen results — and quiet evenings false-wedged).
+     *  The watchdog keeps this current every tick. */
+    @Volatile var pushMode = true
+
     /** Call immediately before a buddy (re)subscription so the cached-presence echoes it triggers
-     *  are not mistaken for live inbound traffic. */
+     *  are not mistaken for live inbound traffic (push mode only — see [pushMode]). */
     fun noteSubscribe() { lastSubscribeMs = System.currentTimeMillis() }
 
     /** Record one peer-originated event for [accountId]. Keep it trivial — called from daemon
      *  signal callbacks. A blank accountId still updates the global clock. */
     fun note(accountId: String?, kind: String) {
         val now = System.currentTimeMillis()
-        if (kind == "presence" && now - lastSubscribeMs < ECHO_SUPPRESS_MS) return   // subscribe echo, not real
+        if (kind == "presence" && pushMode && now - lastSubscribeMs < ECHO_SUPPRESS_MS) return   // push-mode subscribe echo, not real
         lastMs = now
         lastKind = kind
         if (!accountId.isNullOrEmpty()) perAccount[accountId] = Mark(now, kind)
