@@ -165,25 +165,46 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         // - Menu (for settings, about jami)
         searchBar.setNavigationOnClickListener { // Account selection
             mDisposable.add(mAccountService.observableAccountList.firstElement().subscribe { accounts ->
-                MaterialAlertDialogBuilder(requireContext(), R.style.ShiroikumaDialog)
+                // Custom content instead of setAdapter(): the ListView the builder makes clipped the
+                // last row ("+ Add account") once the rows were enlarged — its measured height capped
+                // below the full item count and it did not scroll (白い熊, 2026-07-24). A ScrollView +
+                // LinearLayout renders EVERY row (accounts + Add-account) and scrolls if they overflow.
+                val adapter = AccountAdapter(
+                    requireContext(), accounts, mDisposable, mAccountService, mConversationFacade)
+                val list = android.widget.LinearLayout(requireContext()).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                }
+                val scroll = android.widget.ScrollView(requireContext()).apply {
+                    isFillViewport = true; addView(list)
+                }
+                val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.ShiroikumaDialog)
                     .setTitle(getString(R.string.account_selection))
-                    .setAdapter(
-                            AccountAdapter(
-                                requireContext(),
-                                accounts,
-                                mDisposable, mAccountService, mConversationFacade
-                            )
-                    ) { _, index ->
+                    .setView(scroll)
+                    .show()
+                for (index in 0 until adapter.count) {
+                    val row = adapter.getView(index, null, list)
+                    row.setOnClickListener {
                         if (index >= accounts.size) // Add account
                             startActivity(Intent(activity, AccountWizardActivity::class.java))
                         else if (mAccountService.currentAccount != accounts[index]) {
-                            // Disable account settings menu option when account is loading
                             searchBar.menu.findItem(R.id.menu_account_settings).isEnabled = false
                             mAccountService.currentAccount = accounts[index]
                         }
-                    }.show().apply {
-                        window?.setBackgroundDrawable(requireContext().getDrawable(R.drawable.dialog_black_yellow))
+                        dialog.dismiss()
                     }
+                    list.addView(row, android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT))
+                }
+                dialog.window?.setBackgroundDrawable(requireContext().getDrawable(R.drawable.dialog_black_yellow))
+                // Half-width picker (白い熊, 2026-07-24): the default dialog spanned ~80% of the screen
+                // with much dead space. 40% ≈ half of that, floored for narrow (folded) screens. Height
+                // wraps but is capped at 90% so a long account list scrolls instead of clipping.
+                val dm = resources.displayMetrics
+                val w = (dm.widthPixels * 0.40f).toInt()
+                    .coerceAtLeast((300 * dm.density).toInt())
+                    .coerceAtMost((dm.widthPixels * 0.95f).toInt())
+                dialog.window?.setLayout(w, android.view.WindowManager.LayoutParams.WRAP_CONTENT)
             })
         }
         searchView.editText.addTextChangedListener { // Search bar
@@ -860,27 +881,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             .observeOn(DeviceUtils.uiScheduler)
             .subscribe { profile ->
                 val binding = mBinding ?: return@subscribe
-                binding.searchBar.navigationIcon =
-                    BitmapUtils.withPadding(
-                        AvatarDrawable.build(
-                            binding.root.context,
-                            profile.first,
-                            profile.second,
-                            true,
-                            profile.first.presenceStatus
-                        ).setInSize(
-                            TypedValue.applyDimension(
-                                TypedValue.COMPLEX_UNIT_DIP,
-                                54f,
-                                resources.displayMetrics
-                            ).toInt()
-                        ),
-                        TypedValue.applyDimension(
-                            TypedValue.COMPLEX_UNIT_DIP,
-                            2f,
-                            resources.displayMetrics
-                        ).toInt()
-                    )
+                navAvatarData = profile
+                applyNavAvatar()
                 binding.searchView.toolbar.navigationIcon = AppCompatResources.getDrawable(
                     binding.root.context, R.drawable.baseline_arrow_back_24
                 )
@@ -898,8 +900,22 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         // dot red ONLY for a genuine hidden problem — an account registered but unable to sync for
         // >2.5min (ConnectionHealth.NOT_SYNCING). Transient sync churn never triggers it. Foreground-only.
         mDisposable.add(mAccountService.monitorAllConnections(true)
+            // The poll chain touches daemon JNI every tick; one exception (e.g. during a watchdog
+            // daemon restart) would TERMINATE the observable and freeze the dot on its last colour
+            // forever — seen 2026-07-24 as a stale-yellow dot while the dashboard showed NOT SYNCING.
+            // Resubscribe after 5 s instead, and leave a trace in the recovery log.
+            .retryWhen { errors ->
+                errors.doOnNext { e ->
+                    context?.let {
+                        cx.ring.utils.UiPrefs.appendRecoveryLog(it,
+                            java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date()) +
+                                "  status-dot poll error (${e.message ?: e.javaClass.simpleName}) — resubscribing in 5s")
+                    }
+                }.delay(5, TimeUnit.SECONDS)
+            }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ accounts ->
+                try {
                 val now = System.currentTimeMillis()
                 val myUris = accounts.mapNotNull { it.uri.takeIf(String::isNotEmpty) }.toSet()
                 // RED ring = a genuine problem (an account with an outgoing message stuck undelivered —
@@ -907,6 +923,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 // still connecting (in progress, not a problem). No ring = all healthy. Normal churn and
                 // offline-contact waits never ring it; plain offline is shown by the hollow dot icon.
                 var problems = 0; var connecting = 0
+                val problemIds = HashSet<String>()
                 accounts.forEach { a ->
                     val cn = a.peers.any { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
                     val at = a.peers.any { (_, c) -> c.any { it.status != AccountService.ConnectionStatus.Connected } }
@@ -915,8 +932,8 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     when (cx.ring.utils.ConnectionHealth.classify(a.registered, cn, stuckMsg, at,
                         cx.ring.utils.ConnectionWatchdog.accountVerifiedDeaf(a.accountId),
                         cx.ring.utils.ConnectionWatchdog.accountProbing(a.accountId))) {
-                        cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> problems++
-                        cx.ring.utils.ConnectionHealth.Health.DEAF -> problems++
+                        cx.ring.utils.ConnectionHealth.Health.NOT_SYNCING -> { problems++; problemIds.add(a.accountId) }
+                        cx.ring.utils.ConnectionHealth.Health.DEAF -> { problems++; problemIds.add(a.accountId) }
                         cx.ring.utils.ConnectionHealth.Health.CONNECTING -> connecting++
                         else -> {}
                     }
@@ -924,15 +941,22 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 // DEAF (probe-verified) accounts are already counted into problems above; the network
                 // verified DOWN keeps its own red — real even when registration still says OK.
                 val deaf = cx.ring.utils.ConnectionWatchdog.networkDown()
-                if (problems != dotAlarmCount || connecting != dotConnectingCount || deaf != dotDeaf) {
+                if (problems != dotAlarmCount || connecting != dotConnectingCount || deaf != dotDeaf ||
+                    problemIds != dotProblemAcctIds) {
                     dotAlarmCount = problems
                     dotConnectingCount = connecting
                     dotDeaf = deaf
+                    dotProblemAcctIds = problemIds
                     applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
+                    applyNavAvatar()   // the top-left avatar dot follows the current account's health
                 }
                 // The hub's colour is state quality (yellow/blue/red) — repaint it on the same
                 // cadence so watchdog transitions (recovery, adaptive streaming) show promptly.
                 updateDhtModeIcon()
+                } catch (e: Exception) {
+                    // A throw here would cancel the subscription (dot frozen); log and keep polling.
+                    Log.w(TAG, "status-dot poll tick failed", e)
+                }
             }, {}))
 
         if (mBinding!!.searchView.isShowing)
@@ -945,6 +969,28 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         24f * cx.ring.utils.UiPrefs.getStatusDotScale(requireContext()),
         resources.displayMetrics
     ).toInt()
+
+    /** Latest (account, profile) behind the top-left nav avatar, kept so the avatar can be rebuilt
+     *  when the account's HEALTH changes (not only when the profile emits). */
+    private var navAvatarData: Pair<net.jami.model.Account, net.jami.model.Profile>? = null
+
+    /** Account ids currently classified as a problem (NOT_SYNCING / DEAF) by the dot poll. */
+    private var dotProblemAcctIds: Set<String> = emptySet()
+
+    /** Build the top-left own-account avatar; its dot shows the account's HEALTH — red when the
+     *  account is NOT_SYNCING/DEAF even though presence says online (a red account row with a
+     *  yellow avatar dot is a contradiction — 白い熊, 2026-07-24). */
+    private fun applyNavAvatar() {
+        val data = navAvatarData ?: return
+        val binding = mBinding ?: return
+        val presence = if (data.first.accountId in dotProblemAcctIds)
+            net.jami.model.Contact.PresenceStatus.OFFLINE else data.first.presenceStatus
+        binding.searchBar.navigationIcon = BitmapUtils.withPadding(
+            AvatarDrawable.build(binding.root.context, data.first, data.second, true, presence)
+                .setInSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 54f, resources.displayMetrics).toInt()),
+            TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2f, resources.displayMetrics).toInt()
+        )
+    }
 
     /** >0 when an account has a stuck (undelivered) message — rings the account dot RED as an alarm. */
     private var dotAlarmCount = 0
@@ -1273,6 +1319,16 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             if (da.ac.uri.isNotEmpty()) nameOf[da.ac.uri] = da.ac.name
             da.peers.forEach { (cvm, _) -> cvm.contact.uri.rawRingId?.let { nameOf[it] = cvm.displayName } }
         }
+        // Disambiguate the stuck recipient. 白い熊 gave the SAME profile name ("白い熎") to more than one
+        // account, so a bare "→ 白い熎" is ambiguous (even self-referential) — 2026-07-24. Show the
+        // profile name plus, when it differs, the account's username, and always the id tail.
+        val sibByUri = loaded.filter { it.ac.uri.isNotEmpty() }.associateBy { it.ac.uri }
+        fun recipientLabel(uri: String): String {
+            val disp = nameOf[uri] ?: uri.take(8)
+            val user = sibByUri[uri]?.ac?.name?.takeIf { it.isNotBlank() && it != disp }
+            val tail = uri.take(8)
+            return if (user != null) "$disp ($user · $tail)" else "$disp · $tail"
+        }
         fun healthOf(da: DlgAcct): cx.ring.utils.ConnectionHealth.Health {
             // Use the raw connection list (ac.peers), not the contact-keyed da.peers — so health stays
             // accurate even when the contact roster timed out (da.peers empty but connections known).
@@ -1318,8 +1374,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 else -> red
             }
             val acctExpanded = ac.accountId in expanded
-            val stuckUris = mAccountService.getAccount(ac.accountId)
-                ?.let { H.accountStuckConvUris(it, now, myUris) } ?: emptyList()
+            val stuckConvs = mAccountService.getAccount(ac.accountId)
+                ?.let { H.accountStuckConvs(it, now, myUris) } ?: emptyList()
+            // Only FAULT-class (red) messages count as the account's "N msg stuck" — a benign
+            // PENDING message to an away contact never makes the account look broken (白い熎).
+            val faultCount = stuckConvs.count { it.severity == cx.ring.utils.ConnectionHealth.StuckSeverity.FAULT }
             // Account header: triangle + avatar + name/health, tap to fold/unfold; a per-account
             // ⚡ recover-flash on the right recovers just this account.
             val header = android.widget.LinearLayout(ctx).apply {
@@ -1337,10 +1396,19 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             val s = (40 * d).toInt()
             header.addView(ImageView(ctx).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(s, s).apply { marginEnd = (10 * d).toInt() }
-                avatars[ac.accountId]?.let { setImageDrawable(it) }
+                avatars[ac.accountId]?.let { av ->
+                    // The avatar's dot must match the HEALTH verdict, not bare registration — a red
+                    // NOT SYNCING row with a yellow dot is a contradiction (白い熊, 2026-07-24).
+                    (av as? cx.ring.views.AvatarDrawable)?.setPresenceStatus(when {
+                        cx.ring.utils.ConnectionHealth.isProblem(health) -> net.jami.model.Contact.PresenceStatus.OFFLINE
+                        health == cx.ring.utils.ConnectionHealth.Health.CONNECTING -> net.jami.model.Contact.PresenceStatus.AVAILABLE
+                        else -> net.jami.model.Contact.PresenceStatus.CONNECTED
+                    })
+                    setImageDrawable(av)
+                }
             })
             val cnt = da.ac.peers.count { (_, c) -> c.any { it.status == AccountService.ConnectionStatus.Connected } }
-            val stuckWord = if (stuckUris.isNotEmpty()) " (${ctx.getString(R.string.conn_msg_stuck_count, stuckUris.size)})" else ""
+            val stuckWord = if (faultCount > 0) " (${ctx.getString(R.string.conn_msg_stuck_count, faultCount)})" else ""
             header.addView(text("${ac.name} — $word$stuckWord · ${ctx.getString(R.string.conn_connected_count, cnt)}", col).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
@@ -1360,9 +1428,33 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             // Disambiguate same-named accounts (e.g. two 白い熊): the id tail — which matches the tokens
             // in the history below (e.g. "41c041…") — plus the Jami address. (2026-07-23, 白い熊.)
             container.addView(text("id ${ac.accountId.take(8)} · ${ac.uri.removePrefix("jami:").take(18)}", grey, sizeSp = 11f, padL = 48))
-            // Stuck-message sub-rows — always shown (the problem the user must see).
-            for (n in stuckUris.map { nameOf[it] ?: it.take(8) }.distinct())
-                container.addView(text(ctx.getString(R.string.conn_msg_not_delivered, n), red, sizeSp = 13f, padL = 48, padT = 4))
+            // Stuck-message sub-rows — always shown (the problem the user must see). Each names the
+            // recipient unambiguously, shows how long it's been stuck + what kind of message, and is
+            // TAPPABLE → opens that conversation. COLOUR is the cause (白い熊, 2026-07-24): FAULT = red
+            // ("not delivered" — a same-device stall or a live peer that never ACKed, ours to fix);
+            // PENDING = blue ("delivering…" — the recipient is simply away, benign, we're attempting).
+            val faultCol = red
+            val pendingCol = amber   // MONITOR_CONNECTING (blue) — "in progress / attempting"
+            for (sc in stuckConvs.distinctBy { it.convId }) {
+                val fault = sc.severity == cx.ring.utils.ConnectionHealth.StuckSeverity.FAULT
+                val age = cx.ring.utils.ConnectionHealth.ageLabel(now - sc.timestamp)
+                val kind = if (sc.isFile) "📎 " + sc.preview
+                    else if (sc.preview.isNotEmpty()) "💬 " + sc.preview
+                    else ctx.getString(R.string.conn_msg_text)
+                val head = if (fault)
+                    ctx.getString(R.string.conn_msg_not_delivered, recipientLabel(sc.memberUri))
+                else ctx.getString(R.string.conn_msg_pending, recipientLabel(sc.memberUri))
+                val awayNote = if (!fault) " · " + (if (sc.presence == net.jami.model.Contact.PresenceStatus.AVAILABLE)
+                    ctx.getString(R.string.conn_peer_announced) else ctx.getString(R.string.conn_peer_away)) else ""
+                container.addView(text("$head$awayNote\n   $age · $kind ▸", if (fault) faultCol else pendingCol, sizeSp = 13f, padL = 48, padT = 4).apply {
+                    setOnClickListener {
+                        mConnStatusDialog?.dismiss(); mConnStatusDialog = null
+                        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            cx.ring.utils.ConversationPath.toUri(ac.accountId, net.jami.model.Uri.fromString(sc.convId)),
+                            ctx, cx.ring.client.HomeActivity::class.java))
+                    }
+                })
+            }
             if (acctExpanded) {
                 val sorted = da.peers.sortedWith(compareBy({ (_, conns) ->
                     when { conns.any { it.status == AccountService.ConnectionStatus.Connected } -> 0
@@ -1375,6 +1467,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     val (st, sc) = when {
                         connected -> ctx.getString(R.string.conn_state_connected) to connectedCol
                         attempting -> ctx.getString(R.string.conn_state_connecting) to idleCol
+                        // Verified unreachable (stuck msg, no channel) — red word, matching the red dot.
+                        net.jami.utils.PeerReachability.isUnreachable(ac.accountId, peerKey) ->
+                            ctx.getString(R.string.conn_state_unreachable) to red
                         peerKey in myOnlineUris || cvm.presence != net.jami.model.Contact.PresenceStatus.OFFLINE ->
                             ctx.getString(R.string.conn_state_reachable) to connectedCol
                         else -> ctx.getString(R.string.conn_state_peer_offline) to offlineCol
