@@ -103,10 +103,13 @@ object ConnectionWatchdog {
     @Volatile private var pushLegDown: Boolean? = null      // null = never tested this process; drives DOWN→UP transition notices
     @Volatile private var noPushAdaptive = false            // push token cleared, proxy clients riding streaming LISTENs
     private const val REAL_PUSH_STARVATION_MS = 10 * 60_000L   // verified wedge + no real push this long = proxies' leg dead for us
-    private const val ADAPTIVE_REENTRY_HOLD_MS = 2 * 60 * 60_000L // quick relapse after an exit → hold streaming this long
+    private const val ADAPTIVE_REENTRY_HOLD_MS = 2 * 60 * 60_000L // UP relapse after an exit → hold streaming this long
     private const val ADAPTIVE_RELAPSE_WINDOW_MS = 15 * 60_000L   // re-entry this soon after an exit counts as a relapse
+    private const val ADAPTIVE_FCM_HOLD_BASE_MS = 15 * 60_000L    // FCM: stream at least this long before an optimistic push re-entry
+    private const val ADAPTIVE_FCM_HOLD_MAX_MS = 4 * 60 * 60_000L // FCM: doubling hold cap on repeated relapse
     @Volatile private var lastAdaptiveExitMs = 0L
     @Volatile private var adaptiveHoldUntil = 0L
+    @Volatile private var adaptiveFcmHoldMs = ADAPTIVE_FCM_HOLD_BASE_MS  // current FCM hold, doubles on relapse
     @Volatile private var ledgerWired = false               // reregisterMarker hooked into AccountService
     @Volatile private var ledgerHealed = false              // interrupted-re-register healing done this process
     @Volatile private var lastDiagMs = 0L
@@ -175,6 +178,24 @@ object ConnectionWatchdog {
             ledgerWired = true
             val app = c.applicationContext
             accounts.reregisterMarker = { id, inFlight -> UiPrefs.setReregisterInFlight(app, id, inFlight) }
+            // Telemetry honesty: start the proxy-off clock from the ACTUAL standing mode at process
+            // start (it used to start at 0 and only track the watchdog's own linger windows).
+            if (UiPrefs.isFullDhtMode(c) && proxyOffSinceMs == 0L) proxyOffSinceMs = now()
+            // Restore adaptive no-push across a process restart mid-outage (a restart during an
+            // outage would otherwise return to push mode and eat a 10-min re-detection). Re-enter
+            // streaming immediately; the permanent-service backup is remembered so exit restores it.
+            if (!UiPrefs.isFullDhtMode(c) && UiPrefs.isAdaptivePersisted(c)) {
+                noPushAdaptive = true
+                adaptiveHoldUntil = UiPrefs.getAdaptiveHoldUntil(c)
+                adaptivePermBackup = UiPrefs.getAdaptivePermBackup(c)
+                log(c, "restored adaptive no-push from a previous process — re-entering streaming (hold ${((adaptiveHoldUntil - now()).coerceAtLeast(0)) / 60_000}m)")
+                accounts.setPushNotificationToken("")
+                handler.postDelayed({
+                    recovering = true; lastRecoverMs = now()
+                    accounts.forceReconnectAllAccounts()
+                    resubscribeAllPresence(accounts)
+                }, REREGISTER_DELAY_MS)
+            }
         }
         healInterruptedReregisters(c, accounts)
         val active = UiPrefs.isRecoveryBaseEnabled(c) || UiPrefs.isRecoveryPingEnabled(c)
@@ -361,9 +382,18 @@ object ConnectionWatchdog {
                             // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
                             val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
                             writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet3 / 60_000}m, probe unanswered ${PROBE_VERDICT_MS / 1000}s — $path wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
-                            log(c, "acct ${id.take(6)}: probe UNANSWERED → verified WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
-                            accounts.forceReconnectAccount(id)
-                            accounts.resubscribeAccountPresence(id)
+                            if (st.strikes >= 2 && !UiPrefs.isFullDhtMode(c)) {
+                                // Repeat verified wedge on the SAME account: a bare re-register re-attaches
+                                // the CACHED proxy endpoint (proxyServerCached_ survives it) — the 41c041
+                                // 12-min hard wedge rode that forever. Cycle THIS account's proxy off→on
+                                // instead, which is the only thing that re-picks the endpoint.
+                                log(c, "acct ${id.take(6)}: probe UNANSWERED again (strike ${st.strikes}) → proxy cycle for a FRESH endpoint; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
+                                accounts.recoverAccountFromWedge(id) { accounts.resubscribeAccountPresence(id) }
+                            } else {
+                                log(c, "acct ${id.take(6)}: probe UNANSWERED → verified WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
+                                accounts.forceReconnectAccount(id)
+                                accounts.resubscribeAccountPresence(id)
+                            }
                             scheduleBackfill(c, accounts, "acct ${id.take(6)} wedge recover")
                             maybeEnterAdaptiveOnStarvation(c, accounts, "acct ${id.take(6)} wedge")
                             maybeProbePush(c, accounts, "acct ${id.take(6)} wedge")
@@ -418,6 +448,20 @@ object ConnectionWatchdog {
     private fun maybeProbePush(c: Context, accounts: AccountService, reason: String) {
         if (UiPrefs.isFullDhtMode(c)) return   // full DHT does not ride push
         val t = now()
+        // FCM backend has NO end-to-end self-test — the phone cannot POST to its own FCM token
+        // (only the dhtproxy servers, holding the server key, can). DOWN detection is the
+        // starvation trigger's job (transport-agnostic); EXIT is timed optimistic re-entry: once
+        // the hold expires, restore the token and re-register — if pushes resume, we stay in push
+        // mode; if the starvation trigger re-fires, we re-enter with a doubled hold.
+        if (UiPrefs.getPushBackend(c) == UiPrefs.PUSH_FCM) {
+            if (t - lastPushProbeMs < PUSH_PROBE_THROTTLE_MS) return
+            lastPushProbeMs = t
+            if (noPushAdaptive && t >= adaptiveHoldUntil) {
+                log(c, "FCM adaptive: hold expired → optimistic push re-entry (restore token, re-register)")
+                exitNoPushAdaptive(c, accounts)
+            }
+            return
+        }
         // Startup grace: right after process start the UnifiedPush distributor has not registered
         // the endpoint yet — "no endpoint" then is a race, not a verdict, and acting on it entered
         // adaptive no-push at every app start (2026-07-23 21:39). No verdict until the endpoint
@@ -471,9 +515,20 @@ object ConnectionWatchdog {
         val t = now()
         val ref = maxOf(PushEvidence.lastRealPushMs, processStartMs)
         if (t - ref < REAL_PUSH_STARVATION_MS) return
-        if (t - lastAdaptiveExitMs < ADAPTIVE_RELAPSE_WINDOW_MS) {
-            adaptiveHoldUntil = t + ADAPTIVE_REENTRY_HOLD_MS
-            log(c, "push starvation relapse ${(t - lastAdaptiveExitMs) / 60_000}m after adaptive exit — holding streaming ${ADAPTIVE_REENTRY_HOLD_MS / 3_600_000}h")
+        val fcm = UiPrefs.getPushBackend(c) == UiPrefs.PUSH_FCM
+        val relapse = lastAdaptiveExitMs != 0L && t - lastAdaptiveExitMs < ADAPTIVE_RELAPSE_WINDOW_MS
+        if (relapse) {
+            if (fcm) {
+                // Optimistic re-entry failed again quickly — the leg is still dead. Double the hold.
+                adaptiveFcmHoldMs = minOf(adaptiveFcmHoldMs * 2, ADAPTIVE_FCM_HOLD_MAX_MS)
+                log(c, "FCM push starvation relapse ${(t - lastAdaptiveExitMs) / 60_000}m after re-entry — hold doubled to ${adaptiveFcmHoldMs / 60_000}m")
+            } else {
+                adaptiveHoldUntil = t + ADAPTIVE_REENTRY_HOLD_MS
+                log(c, "push starvation relapse ${(t - lastAdaptiveExitMs) / 60_000}m after adaptive exit — holding streaming ${ADAPTIVE_REENTRY_HOLD_MS / 3_600_000}h")
+            }
+        } else if (fcm) {
+            // Leg was healthy long enough since the last exit → reset the FCM hold to baseline.
+            adaptiveFcmHoldMs = ADAPTIVE_FCM_HOLD_BASE_MS
         }
         writeIncident(c, "push-starved",
             "verified wedge ($reason) with no real push for ${(t - ref) / 60_000}m in push mode — proxies' push leg dead for us (self-test notwithstanding)",
@@ -493,7 +548,21 @@ object ConnectionWatchdog {
      *  bare token clear leaves the old push subscriptions in place. */
     private fun enterNoPushAdaptive(c: Context, accounts: AccountService) {
         noPushAdaptive = true
-        log(c, "adaptive no-push ON — clearing push token; re-register rebuilds proxy clients in LISTEN (streaming) mode")
+        // FCM has no self-test to confirm recovery, so stream at least a baseline (doubling on
+        // relapse) before optimistically re-trying push. UnifiedPush leaves the hold at whatever
+        // the relapse logic set (0 normally — the self-test drives its exit).
+        if (UiPrefs.getPushBackend(c) == UiPrefs.PUSH_FCM)
+            adaptiveHoldUntil = now() + adaptiveFcmHoldMs
+        // Guarantee the process survives the outage: streaming LISTEN only works while the daemon
+        // lives, but the push lifecycle lets Android reap it (a push would normally revive it —
+        // and push is exactly what's dead). Turn on the permanent foreground service for the
+        // duration, backing up the user's setting so exit restores it. This makes adaptive mode
+        // equal the F-Droid noPush configuration (which always runs the permanent service).
+        val permBackup = mPrefs(c)?.settings?.enablePermanentService ?: false
+        adaptivePermBackup = permBackup
+        if (!permBackup) setPermanentService(c, true)
+        persistAdaptive(c)
+        log(c, "adaptive no-push ON — clearing push token; permanent service on; re-register rebuilds proxy clients in LISTEN (streaming) mode")
         notifyUser(c, c.getString(cx.ring.R.string.notif_nopush_on, stamp()))
         accounts.setPushNotificationToken("")
         handler.postDelayed({
@@ -510,12 +579,15 @@ object ConnectionWatchdog {
         if (token == null || token.first.isEmpty()) {
             // The leg answered but the app holds no endpoint (distributor unregistered?) — a token
             // we cannot restore. Stay in streaming mode; the next periodic test retries the exit.
-            log(c, "push leg answered but no UnifiedPush endpoint to restore — staying in LISTEN mode")
+            log(c, "push leg answered but no push endpoint to restore — staying in LISTEN mode")
             return
         }
         noPushAdaptive = false
         lastAdaptiveExitMs = now()
-        log(c, "adaptive no-push OFF — push leg restored; re-registering push token, clients rebuild in push mode")
+        // Restore the permanent-service setting to whatever it was before we forced it on.
+        if (!adaptivePermBackup) setPermanentService(c, false)
+        persistAdaptive(c)
+        log(c, "adaptive no-push OFF — push leg restored; permanent service restored; re-registering push token, clients rebuild in push mode")
         notifyUser(c, c.getString(cx.ring.R.string.notif_nopush_off, stamp()))
         accounts.setPushNotificationConfig(token.first, token.second, platform)
         handler.postDelayed({
@@ -525,6 +597,25 @@ object ConnectionWatchdog {
             scheduleBackfill(c, accounts, "adaptive no-push exit")
         }, REREGISTER_DELAY_MS)
     }
+
+    /** Backup of the user's enablePermanentService before adaptive forced it on. */
+    @Volatile private var adaptivePermBackup = false
+
+    private fun mPrefs(c: Context): net.jami.services.PreferencesService? =
+        (c.applicationContext as? cx.ring.application.JamiApplication)?.mPreferencesService
+
+    /** Flip enablePermanentService via the settings model — DRingService reacts and starts/stops the
+     *  permanent foreground service on the settings subject. */
+    private fun setPermanentService(c: Context, on: Boolean) {
+        val ps = mPrefs(c) ?: return
+        val s = ps.settings
+        if (s.enablePermanentService == on) return
+        ps.settings = s.copy(enablePermanentService = on)
+        log(c, "permanent foreground service → ${if (on) "ON (adaptive streaming needs a live process)" else "restored"}")
+    }
+
+    private fun persistAdaptive(c: Context) =
+        UiPrefs.setAdaptivePersisted(c, noPushAdaptive, adaptiveHoldUntil, adaptivePermBackup)
 
     // ---- Restricted-network (hostile WiFi) mode ----------------------------------------------
     /** Called after a recovery visibly failed to help (spent wedge ledger, repeat storm,
@@ -764,6 +855,9 @@ object ConnectionWatchdog {
     fun onDhtModeSwitched(c: Context, accounts: AccountService) {
         val full = UiPrefs.isFullDhtMode(c)
         val mode = if (full) "full DHT" else "proxy"
+        // Keep the proxy-off duration clock honest across DELIBERATE mode switches too — it used to
+        // track only the watchdog's own linger windows, so "recovered (22877s on full DHT)" lied.
+        proxyOffSinceMs = if (full) now() else 0L
         log(c, "mode switched → $mode — verification probe in ${MODE_SWITCH_PROBE_DELAY_MS / 1000}s")
         handler.postDelayed({
             val baseline = InboundEvidence.lastMs
@@ -866,6 +960,10 @@ object ConnectionWatchdog {
             UiPrefs.setReregisterInFlight(c, id, false)
         }
     }
+
+    /** Hub-icon transitional state (blue): a recovery is settling, or the adaptive streaming
+     *  fallback is riding out a dead push leg — functioning, but not in the chosen steady state. */
+    fun hubTransitional(): Boolean = recovering || noPushAdaptive
 
     /** True while adaptive no-push is active — the UnifiedPush token setter checks this so a late
      *  distributor registration does not silently re-enter push mode behind the watchdog's back
@@ -1002,7 +1100,13 @@ object ConnectionWatchdog {
             if (firstHealthyMs == 0L) firstHealthyMs = t
             lastAnyConnectedMs = t
             uniformProbeFails = 0
-            if (recovering && wedgeEvidence.isEmpty()) { recovering = false; val off = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L; log(c, "recovered — $healthy/$reg healthy (${off}s on full DHT)") }
+            if (recovering && wedgeEvidence.isEmpty()) {
+                recovering = false
+                // Only claim time-on-full-DHT when the proxy-off clock is actually running — the
+                // bare "(0s on full DHT)" / stale-clock variants were misleading (2026-07-24).
+                val off = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L
+                log(c, "recovered — $healthy/$reg healthy" + (if (off > 0) " (${off}s on full DHT)" else ""))
+            }
         } else if (lastAnyConnectedMs == 0L) lastAnyConnectedMs = t
         val summary = tokens.toString().trim()
         val stuckSuffix = if (stuck.isNotEmpty()) "; ${stuck.size} undelivered (${offlineCount} to offline — benign)" else ""
