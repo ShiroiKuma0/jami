@@ -1,6 +1,21 @@
-# 白い熊 GNU Jami — `20260717-01+66`
+# 白い熊 GNU Jami — `20260717-01+77`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## Honest connection status + actionable stuck messages (new in +67–+77)
+
+- **Status-dot freeze fixed.** The top-bar account dot is refreshed by a 2-second connectivity poll; a single exception in that poll (e.g. during a watchdog-triggered daemon restart) used to terminate the RxJava chain permanently, freezing the dot on its last colour while the dashboard showed the truth. The poll now resubscribes after 5 seconds and records the swallowed error in the recovery log, so the dot can no longer fossilize on stale-yellow.
+- **Every account-status dot follows verified health, not registration.** The top-bar dot, the side-bar (nav) avatar, the dashboard rows, the monitor rows, **and the "Select account" picker** all colour their dot by the account's real health verdict — red for `NOT SYNCING` / `NOT RECEIVING`, blue for connecting, yellow only when genuinely healthy. A red account row is never paired with a green dot.
+- **Stuck messages are actionable.** Each "message not delivered" line on the dashboard and monitor now:
+  - **names the recipient unambiguously** — profile name **plus** the account username **plus** the id tail — so two of your own identities that share a display name (e.g. two accounts both named 白い熊) are never confused or shown as pointing "to themselves";
+  - shows **how long it's been stuck** and **what it is** (📎 filename for a file, 💬 preview for text);
+  - is **tappable → it opens that conversation** directly.
+- **Red vs blue by cause.** A stuck message is **red — "message not delivered"** only when it's a genuine fault you can act on: a **same-device sync stall** (one of your own accounts failing to sync to another on the same phone), or a peer that is **connected yet never acknowledged**. It's **blue — "delivering…"** when you're simply reaching a recipient who is **offline or only announced** (away) — that's benign, leaves the account healthy, isn't counted as "needs attention", and ages out after 24 h. A message queued to an offline external contact can no longer turn your account red.
+- **Verified-unreachable contact demotion.** A contact whose last outgoing message is stuck with no live channel is shown **red** on its presence dot; a stale `AVAILABLE` announce is held down until the message actually delivers or a real connected channel appears — so the dot can't claim a reachability the network can't back. (Deliberately distinct from the softer blue "delivering…" line: the dot is the strict "can't reach them" signal.)
+- **File- and call-aware stuck detection.** The stuck scan walks to the newest outgoing **text *or* file** in a conversation (instead of only the last event), so an undelivered file followed by missed calls is caught — and delivery is judged by the per-recipient receipt map with the sender's *own* status entry excluded, fixing a false "delivered" that hid stuck messages in any conversation you had open.
+- **Self-match fix.** The same-device detector no longer matches your own participant entry, so a one-to-one chat with an external contact is never mislabelled a same-device stall "to myself".
+- **Same-device stalls drive recovery.** Because your own accounts on one phone are reachable by definition, a message stuck between them is treated as real local-fault evidence and drives the auto-recovery (with the existing once-then-escalate-then-stand-down ledger), instead of being written off as a benign offline wait.
+- **Account picker restyle.** The "Select account" dialog is now about **half width** with **larger, tighter rows** (bigger avatars and names), rendered in a **scrollable container** so the **"+ Add account"** row is always present and can never be clipped off the bottom; the "+ Add account" row itself is compact.
 
 ## Export / Import of every setting + accounts, UI-page restyle (new in +65/+66)
 
