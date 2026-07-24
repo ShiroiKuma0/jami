@@ -1,6 +1,17 @@
-# 白い熊 GNU Jami — `20260717-01+64`
+# 白い熊 GNU Jami — `20260717-01+66`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## Export / Import of every setting + accounts, UI-page restyle (new in +65/+66)
+
+- **Export / Import — the first section of the UI page.** Backs up **everything settable in the app into one timestamped zip** (`shiroikuma-jami-export_….zip`) and restores it category by category:
+  - **Accounts (Jami archives)** — every password-less Jami account's daemon archive travels inside the zip (`accounts/<id>.gz` + metadata); password-protected archives are skipped and named in the result dialog. Import restores each archive through the daemon (wizard-style, with the fork's connectivity defaults) and **skips identities already on the device**, so a re-import never duplicates an account.
+  - **Fonts & sizes** — the full per-element font config *plus the imported `.ttf`/`.otf` files themselves*, re-pointed to the new install on import.
+  - **Colours**, **UI behaviour** (split view, dot/fold scales, app language), **online recovery & connectivity** (watchdog config, DHT mode, push backend), **automation & protected contacts**, and the stock **app settings**.
+  - **Settable export directory** (SAF, persisted) with a **latest-export status line** queried in the background every time the page opens; no directory set → a save-as picker fallback.
+  - Import is a **per-key merge — never a wipe** — so unknown keys survive and old exports load into new versions; the format is a zip of typed-JSON files plus a manifest.
+  - Flow polish: the panel has select-all + per-category checkboxes and an ArcaneChat-style pill row (Cancel left, Import + Export right); the finished dialogs carry the yellow border; export-OK / import-"Later" close the whole chain (dialog → panel → page), "Restart now" relaunches the app, and failures flash while leaving the panel open.
+- **kxkb-style restyle of the whole UI page** — section headings are 20 sp bold with **text-wide** underlines, sections are separated by thin full-width hairlines, element headings are 17 sp bold with thinner text-wide underlines, and the whole page uses the tighter kxkb indent ladder.
 
 ## Call-screen fixes (new in +64)
 
