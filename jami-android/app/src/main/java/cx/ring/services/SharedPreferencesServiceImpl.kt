@@ -74,7 +74,10 @@ class SharedPreferencesServiceImpl(private val context: Context, accountService:
             useSystemContacts = appPrefs.getBoolean(PREF_SYSTEM_CONTACTS, false),
             allowPlaceSystemCalls = appPrefs.getBoolean(PREF_PLACE_CALLS, false),
             runOnStartup = appPrefs.getBoolean(PREF_ON_STARTUP, true),
-            enablePushNotifications = appPrefs.getBoolean(PREF_PUSH_NOTIFICATIONS, false),
+            // shiroikuma fresh-install default = push ON (Firebase, via UiPrefs push_backend=fcm).
+            // Without working microG this degrades safely: no pushes arrive and the watchdog's
+            // starvation trigger drops to streaming LISTEN automatically.
+            enablePushNotifications = appPrefs.getBoolean(PREF_PUSH_NOTIFICATIONS, true),
             enablePermanentService = appPrefs.getBoolean(PREF_PERSISTENT_NOTIFICATION, false),
             enableAddGroup = appPrefs.getBoolean(PREF_ADD_GROUP, false),
             enableTypingIndicator = appPrefs.getBoolean(PREF_SHOW_TYPING, true),

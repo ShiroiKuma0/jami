@@ -34,7 +34,20 @@ object PushEvidence {
     @Volatile var lastRealPushMs = 0L
         private set
 
-    fun noteRealPush() { lastRealPushMs = System.currentTimeMillis() }
+    fun noteRealPush() {
+        val now = System.currentTimeMillis()
+        val prev = lastRealPushMs
+        lastRealPushMs = now
+        // Push-cadence observability (2026-07-24): one recovery-log line per real push arriving
+        // after ≥60 s of push silence — burst-suppressed, gives every window a cadence histogram
+        // and makes a degrading leg visible before it is dead.
+        if (prev != 0L && now - prev >= 60_000L) {
+            cx.ring.application.JamiApplication.instance?.let { app ->
+                val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(now))
+                UiPrefs.appendRecoveryLog(app, "$stamp  push rx after ${(now - prev) / 1000}s")
+            }
+        }
+    }
 
     fun expect(nonce: String) { expectedNonce = nonce; matchedNonce = null }
 
