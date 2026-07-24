@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork: HOLLOW hexagon (⬡) — the DHT-proxy mode glyph (the light mode). The same large
+     pointy-top hexagon as the filled variant, drawn as a thick-walled open ring (110/960 wall) so
+     it reads as a bold hollow hexagon at menu size — clearly distinct from both the solid hexagon
+     (full DHT) and the round status dot. Colour is applied at runtime (state quality). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="?attr/colorControlNormal">
+    <path
+        android:pathData="M480,120 L792,300 L792,660 L480,840 L168,660 L168,300 Z"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="110"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+</vector>

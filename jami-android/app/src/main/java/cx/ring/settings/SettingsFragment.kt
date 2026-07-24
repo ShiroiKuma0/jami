@@ -263,12 +263,20 @@ class SettingsFragment :
                     description = getString(R.string.connectivity_google_services_description)
                 )
             )
+            // shiroikuma dual-backend: this flavor carries BOTH FCM and UnifiedPush, so it offers
+            // all three connectivity options (local node + Firebase + UnifiedPush).
             "withUnifiedPush" -> listOf(
                 ConnectivityOption(
                     mode = ConnectivityType.LOCAL_NODE,
                     iconResId = R.drawable.connectivity_mode_dht_24,
                     title = getString(R.string.connectivity_local_node_title),
                     description = getString(R.string.connectivity_local_node_description)
+                ),
+                ConnectivityOption(
+                    mode = ConnectivityType.GOOGLE_SERVICES,
+                    iconResId = R.drawable.connectivity_mode_firebase_24,
+                    title = getString(R.string.connectivity_google_services_title),
+                    description = getString(R.string.connectivity_google_services_description)
                 ),
                 ConnectivityOption(
                     mode = ConnectivityType.UNIFIED_PUSH,
@@ -306,20 +314,22 @@ class SettingsFragment :
     private fun adjustSettingsForConnectivityMode() {
         if(currentSettings != null) {
             currentSettings = when (mConnectivityMode) {
-                ConnectivityType.GOOGLE_SERVICES -> currentSettings?.copy(
-                    enablePushNotifications = true,
-                    enablePermanentService = false
-                )
+                ConnectivityType.GOOGLE_SERVICES -> {
+                    cx.ring.utils.UiPrefs.setPushBackend(requireContext(), cx.ring.utils.UiPrefs.PUSH_FCM)
+                    cx.ring.application.JamiApplication.instance?.onPushBackendChanged()
+                    currentSettings?.copy(enablePushNotifications = true, enablePermanentService = false)
+                }
 
                 ConnectivityType.LOCAL_NODE -> currentSettings?.copy(
                     enablePushNotifications = false,
                     enablePermanentService = true
                 )
 
-                ConnectivityType.UNIFIED_PUSH -> currentSettings?.copy(
-                    enablePushNotifications = true,
-                    enablePermanentService = false
-                )
+                ConnectivityType.UNIFIED_PUSH -> {
+                    cx.ring.utils.UiPrefs.setPushBackend(requireContext(), cx.ring.utils.UiPrefs.PUSH_UNIFIED)
+                    cx.ring.application.JamiApplication.instance?.onPushBackendChanged()
+                    currentSettings?.copy(enablePushNotifications = true, enablePermanentService = false)
+                }
 
                 else -> currentSettings
             }
@@ -346,7 +356,10 @@ class SettingsFragment :
                 !mPreferencesService.settings.enablePermanentService -> {
                 when (BuildConfig.FLAVOR) {
                     "withFirebase" -> ConnectivityType.GOOGLE_SERVICES
-                    "withUnifiedPush" -> ConnectivityType.UNIFIED_PUSH
+                    // Dual-backend: push+!permanent maps to whichever backend is selected.
+                    "withUnifiedPush" ->
+                        if (cx.ring.utils.UiPrefs.getPushBackend(requireContext()) == cx.ring.utils.UiPrefs.PUSH_UNIFIED)
+                            ConnectivityType.UNIFIED_PUSH else ConnectivityType.GOOGLE_SERVICES
                     else -> ConnectivityType.CUSTOM
                 }
             }

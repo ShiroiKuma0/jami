@@ -248,6 +248,13 @@ dependencies {
         exclude(group= "com.google.protobuf", module= "protobuf-java")
     }
     "withUnifiedPushImplementation"(libs.unifiedpush.connector.ui)
+    // shiroikuma dual-backend: FCM alongside UnifiedPush in this one flavor. Firebase is initialized
+    // programmatically (JamiFirebaseConfig) — the google-services plugin is NOT applied here.
+    "withUnifiedPushImplementation"(libs.firebase.messaging) {
+        exclude(group= "com.google.firebase", module= "firebase-core")
+        exclude(group= "com.google.firebase", module= "firebase-analytics")
+        exclude(group= "com.google.firebase", module= "firebase-measurement-connector")
+    }
 
     implementation(libs.nanohttpd)
     implementation(libs.androidx.documentfile)
