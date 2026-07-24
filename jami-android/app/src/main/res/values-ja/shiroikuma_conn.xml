@@ -10,6 +10,8 @@
     <string name="conn_dash_all_healthy">✓ 全アカウント正常</string>
     <string name="conn_dash_need_attention">⚠ %d 個のアカウントに注意</string>
     <string name="conn_dash_network">ネットワーク: %s</string>
+    <string name="conn_dash_push">プッシュ: %s</string>
+    <string name="conn_dash_push_none">エンドポイントなし</string>
     <string name="conn_dash_network_none">なし</string>
     <string name="conn_dash_history">履歴</string>
     <string name="conn_dash_history_none">（まだ記録なし）</string>
@@ -47,7 +49,7 @@
     <string name="tip_close">ダッシュボードを閉じる。</string>
     <string name="tip_dot">接続ダッシュボード：アカウントごとの状態・履歴・回復。</string>
     <string name="tip_flash">今すぐ回復：フルDHT + 再登録 + 在席再取得。</string>
-    <string name="tip_dht_mode">接続モード：黄＝フルDHT（堅牢・詰まる単一代理なし）、青＝DHT代理（軽量）。タップで切替——全アカウントに一括適用します。</string>
+    <string name="tip_dht_mode">接続モード：形がモード（塗り＝フルDHT・中抜き＝DHT代理）、色が状態（黄＝正常受信、青＝切替・回復・ストリーミング代替中、赤＝現在のモードが受信不能）。タップで切替——全アカウントに一括適用します。</string>
     <string name="dht_switched_full">フルDHTに切替（全アカウント）</string>
     <string name="dht_switched_proxy">DHT代理に切替（全アカウント）</string>
 
@@ -96,7 +98,7 @@
     <string name="info_flash_recovering">回復中 — 修復の実行中</string>
     <string name="info_dht_full">フルDHT — 堅牢。詰まる単一の代理リンクがない</string>
     <string name="info_dht_proxy">代理 — 軽量。受信は代理サーバー経由</string>
-    <string name="info_b_main_dht">⬡ 接続モードアイコン — 色が現在のモードを表します（黄＝フルDHT、青＝代理）。タップでモード切替。全アカウントに一括適用するので、アカウント個別の「DHT代理を使う」設定がずれることはありません。</string>
+    <string name="info_b_main_dht">⬡ 接続モードアイコン — 形が現在のモードを表します：塗りつぶし＝フルDHT（端末が自らノードになる重いモード）、太線の中抜き＝DHT代理（軽量モード）。色は状態です：黄＝選択中のモードが正常に受信、青＝移行中（モード切替の検証・回復中・プッシュ経路死亡時のストリーミング代替）、赤＝現在のモードが受信不能と確認。タップでモード切替。全アカウントに一括適用するので、アカウント個別の「DHT代理を使う」設定がずれることはありません。</string>
 
     <string name="info_h_dash">このダッシュボード</string>
     <string name="info_b_dash_rows">アカウント行 — 行をタップすると連絡先とそのライブ接続（接続中 → ICE → TLS → 接続済み）が展開します。各行には専用の ⚡ があり、そのアカウントだけを回復します（正常なアカウントはそのまま）。</string>

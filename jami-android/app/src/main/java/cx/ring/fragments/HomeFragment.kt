@@ -83,10 +83,8 @@ import net.jami.model.AccountConfig
 import net.jami.model.Conversation
 import net.jami.services.AccountService
 import net.jami.services.ConversationFacade
-import net.jami.smartlist.ConversationFilter
 import net.jami.smartlist.ConversationItemViewModel
 import java.util.concurrent.TimeUnit
-import java.text.NumberFormat
 import javax.inject.Inject
 import com.google.android.material.search.SearchView.TransitionState
 import com.google.android.material.shape.MaterialShapeDrawable
@@ -112,9 +110,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     private var searchDisposable: Disposable? = null
     private var searchAdapter: SmartListAdapter? = null
     private var pendingAdapter: SmartListAdapter? = null
-    private var pendingRequests = emptyList<Conversation>()
-    private var pendingFeeds = false
-    private val conversationFilter = BehaviorSubject.createDefault(ConversationFilter.All)
     private val querySubject = BehaviorSubject.createDefault("")
     private val debouncedQuery = querySubject.debounce { item ->
         if (item.isEmpty()) Observable.empty()
@@ -155,20 +150,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        savedInstanceState?.getString(STATE_CONVERSATION_FILTER)?.let { name ->
-            val filter = ConversationFilter.entries.find { it.name == name }
-            if (filter != null) conversationFilter.onNext(filter)
-            else Log.w(TAG, "Unknown saved conversation filter: $name")
-        }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(STATE_CONVERSATION_FILTER, checkNotNull(conversationFilter.value).name)
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -177,28 +158,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         qrCode.setOnClickListener { goToQRFragment() }
         newSwarm.setOnClickListener { startNewSwarm() }
-        newFeed.setOnClickListener { startNewFeed() }
-
-        conversationFilters.check(
-            when (checkNotNull(conversationFilter.value)) {
-                ConversationFilter.All -> R.id.filter_all
-                ConversationFilter.Contacts -> R.id.filter_contacts
-                ConversationFilter.Groups -> R.id.filter_groups
-                ConversationFilter.Feeds -> R.id.filter_feeds
-            }
-        )
-        conversationFilters.setOnCheckedStateChangeListener { _, checkedIds ->
-            val filter = when (checkedIds.singleOrNull()) {
-                R.id.filter_all -> ConversationFilter.All
-                R.id.filter_contacts -> ConversationFilter.Contacts
-                R.id.filter_groups -> ConversationFilter.Groups
-                R.id.filter_feeds -> ConversationFilter.Feeds
-                else -> return@setOnCheckedStateChangeListener
-            }
-            conversationFilter.onNext(filter)
-            mSmartListFragment?.setConversationFilter(filter)
-            mSmartListFragment?.scrollToTop()
-        }
 
         // SearchBar is composed of:
         // - Account selection (navigation)
@@ -434,6 +393,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 mDisposable
         ).apply { pendingAdapter = this }
 
+        // Setup invitation card
         invitationCard.invitationGroup.setOnClickListener {
             expandPendingView()
         }
@@ -443,9 +403,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         mBinding = this
     }.root
-
-    private fun pendingTitle(isFeed: Boolean): Int =
-        if (isFeed) R.string.joinable_feeds else R.string.invitation_card_title
 
     private fun displayConversationRequestDialog(conversation: Conversation) {
         val request = conversation.request ?: return
@@ -462,16 +419,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 }.showThemed()
         else
             MaterialAlertDialogBuilder(requireContext())
-                .apply {
-                    if (conversation.effectiveMode == Conversation.Mode.Feed) {
-                        setTitle(R.string.joinable_feeds)
-                        setIcon(R.drawable.ic_feed)
-                    }
-                }
-                .setItems(
-                    if (conversation.effectiveMode == Conversation.Mode.Feed) R.array.feed_request_actions
-                    else R.array.swarm_request_group_actions
-                ) { _, which ->
+                .setItems(R.array.swarm_request_group_actions) { _, which ->
                     when (which) {
                         0 -> mConversationFacade.acceptRequest(conversation)
                         1 -> mConversationFacade
@@ -500,13 +448,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
     private fun expandPendingView() {
         val binding = mBinding ?: return
-        if (pendingFeeds) {
-            binding.conversationFilters.check(R.id.filter_feeds)
-        } else if (conversationFilter.value == ConversationFilter.Feeds) {
-            binding.conversationFilters.check(R.id.filter_all)
-        }
-        pendingAdapter?.update(pendingRequests)
-        binding.invitationCard.pendingToolbar.setTitle(pendingTitle(pendingFeeds))
 
         // Transitions to animate the changes
         // Make the search bar slide down
@@ -537,10 +478,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         binding.invitationCard.invitationSummary.isVisible = false
         binding.fragmentContainer.isVisible = false
         binding.newSwarmFab.isVisible = false
-        binding.filterAll.isVisible = !pendingFeeds
-        binding.filterContacts.isVisible = !pendingFeeds
-        binding.filterGroups.isVisible = !pendingFeeds
-        binding.filterFeeds.isVisible = pendingFeeds
 
         // Display pending list.
         binding.invitationCard.pendingListGroup.isVisible = true
@@ -594,10 +531,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         binding.invitationCard.invitationSummary.isVisible = true
         binding.newSwarmFab.isVisible = true
         binding.fragmentContainer.isVisible = true
-        binding.filterAll.isVisible = true
-        binding.filterContacts.isVisible = true
-        binding.filterGroups.isVisible = true
-        binding.filterFeeds.isVisible = true
 
         // Hide pending list.
         binding.invitationCard.pendingListGroup.isVisible = false
@@ -639,7 +572,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         }
 
         mSmartListFragment = mBinding!!.fragmentContainer.getFragment()
-        mSmartListFragment?.setConversationFilter(checkNotNull(conversationFilter.value))
 
         disableAppBarScroll()
 
@@ -661,12 +593,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         super.onDestroyView()
         mSmartListFragment = null
         pendingAdapter = null
-        pendingRequests = emptyList()
-        pendingFeeds = false
-        conversationBackPressedCallback.isEnabled = false
         searchAdapter = null
         mBinding = null
-        mDisposable.clear()
+        mDisposable.dispose()
     }
 
     // Foreground online-recovery: while the chat list is open, run the watchdog every minute (faster
@@ -694,15 +623,25 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         mFgWatchdogHandler.postDelayed({ updateLightningIcon() }, 31_000L)
     }
 
-    /** DHT-mode icon: the same distributed-hub glyph in both modes; colour alone marks it —
-     *  yellow = full DHT (robust), blue = proxy. */
+    /** DHT-mode icon (2026-07-24 redesign): the SHAPE encodes the mode — filled hub = full DHT
+     *  (the heavy local node), hollow thick-outline hub = DHT proxy (the light mode). The COLOUR
+     *  encodes only state quality, matching the app-wide ideology: yellow = the chosen mode is
+     *  verified working, blue = transitional (recovering, mode-switch verification, or the adaptive
+     *  streaming fallback riding out a dead push leg), red = the current mode is verifiably broken.
+     *  Settable roles reused: yellow from DHT_FULL, blue from DHT_PROXY, red from MONITOR_PROBLEM. */
     private fun updateDhtModeIcon() {
         val iv = mBinding?.searchBar?.menu?.findItem(R.id.menu_dht_mode)?.actionView as? ImageView ?: return
         val ctx = context ?: return
         val full = cx.ring.utils.UiPrefs.isFullDhtMode(ctx)
-        iv.setImageResource(R.drawable.connectivity_mode_dht_24)
-        iv.setColorFilter(cx.ring.utils.ColorPrefs.getColor(ctx,
-            if (full) cx.ring.utils.ColorPrefs.DHT_FULL else cx.ring.utils.ColorPrefs.DHT_PROXY))
+        iv.setImageResource(if (full) R.drawable.connectivity_mode_dht_filled_24 else R.drawable.connectivity_mode_dht_hollow_24)
+        val problem = cx.ring.utils.ConnectionWatchdog.networkDown() ||
+            cx.ring.utils.ConnectionWatchdog.anyDeaf(mAccountService)
+        val transitional = cx.ring.utils.ConnectionWatchdog.hubTransitional()
+        iv.setColorFilter(cx.ring.utils.ColorPrefs.getColor(ctx, when {
+            problem -> cx.ring.utils.ColorPrefs.MONITOR_PROBLEM
+            transitional -> cx.ring.utils.ColorPrefs.DHT_PROXY
+            else -> cx.ring.utils.ColorPrefs.DHT_FULL
+        }))
     }
 
     /** Flip full DHT ↔ proxy: authoritative + immediate — persist the mode AND set every account's proxy
@@ -836,8 +775,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             stateRow(box, 0xFF888888.toInt(), false, ctx.getString(R.string.info_dot_off))
             item(box, ctx.getString(R.string.info_b_main_dot))
             sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
-            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
-            iconRow(box, R.drawable.connectivity_mode_dht_24, C.getColor(ctx, C.DHT_PROXY), ctx.getString(R.string.info_dht_proxy))
+            // Shape = mode (both shown healthy-yellow); colour on the hub is state quality now.
+            iconRow(box, R.drawable.connectivity_mode_dht_filled_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
+            iconRow(box, R.drawable.connectivity_mode_dht_hollow_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_proxy))
             item(box, ctx.getString(R.string.info_b_main_dht))
             sub(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_header))
             iconRow(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_ready))
@@ -886,34 +826,30 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             .observeOn(DeviceUtils.uiScheduler)
             .subscribe {
                 mBinding?.newSwarm?.isVisible = !it.isSip
-                mBinding?.newFeed?.isVisible = !it.isSip
                 mBinding?.searchBar?.menu?.findItem(R.id.menu_account_settings)?.isEnabled = true
             }
         )
 
+        // Subscribe on invitation pending list to show a badge counter
         mDisposable.add(mAccountService
             .currentAccountSubject
             .switchMap { account ->
-                Observable.combineLatest(
-                    account.getPendingSubject(),
-                    conversationFilter.distinctUntilChanged()
-                ) { list, filter ->
-                    list.filter {
-                        filter.matches(it) &&
-                            (filter == ConversationFilter.Feeds || it.effectiveMode != Conversation.Mode.Feed)
-                    }
-                }
-                    .switchMap { requests ->
-                        val previews = if (requests.isEmpty()) {
-                            Observable.just(emptyList<ConversationItemViewModel>())
-                        } else {
-                            mConversationFacade.observeConversations(account, requests.take(3), false)
-                        }
-                        previews.map { Pair(requests, it) }.observeOn(DeviceUtils.uiScheduler)
+                account.getPendingSubject()
+                    .switchMap { list ->
+                        Log.w(TAG, "setBadge getPendingSubject ${list.size}")
+                        if (list.isEmpty()) Observable.just(Pair(emptyList(), emptyList()))
+                        else mConversationFacade.observeConversations(
+                            account, list.take(3), false
+                        ).map { Pair(it, list) }
                     }
             }
-            .subscribe { (requests, previews) ->
-                setPendingRequests(requests, previews)
+            .observeOn(DeviceUtils.uiScheduler)
+            .subscribe { count ->
+                // Collapse pending view if there is no more pending invitations
+                if(count.first.isEmpty()) {
+                    collapsePendingView()
+                }
+                setInvitationBadge(count.second, count.first)
             }
         )
 
@@ -994,6 +930,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     dotDeaf = deaf
                     applyStatusDot(mAccountService.currentAccount?.isRegistered == true)
                 }
+                // The hub's colour is state quality (yellow/blue/red) — repaint it on the same
+                // cadence so watchdog transitions (recovery, adaptive streaming) show promptly.
+                updateDhtModeIcon()
             }, {}))
 
         if (mBinding!!.searchView.isShowing)
@@ -1351,6 +1290,18 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             if (problems > 0) ctx.getString(R.string.conn_dash_need_attention, problems) else ctx.getString(R.string.conn_dash_all_healthy),
             if (problems > 0) red else healthyCol, bold = true, sizeSp = 15f))
         container.addView(text(ctx.getString(R.string.conn_dash_network, networkLabel() ?: ctx.getString(R.string.conn_dash_network_none)), grey, sizeSp = 12f))
+        // Push-leg surface: which backend/endpoint the accounts are registered against and when a
+        // real push last arrived — the verification line for endpoint switches (e.g. self-hosted
+        // ntfy) and for judging the leg at a glance.
+        container.addView(text(ctx.getString(R.string.conn_dash_push, run {
+            val app = cx.ring.application.JamiApplication.instance
+            val endpoint = app?.pushToken?.first?.takeIf { it.isNotEmpty() }?.let {
+                if (it.length > 44) it.take(44) + "…" else it
+            } ?: ctx.getString(R.string.conn_dash_push_none)
+            val last = cx.ring.utils.PushEvidence.lastRealPushMs
+            val age = if (last == 0L) "—" else "${(System.currentTimeMillis() - last) / 1000}s"
+            "${app?.pushPlatform ?: "?"} · $endpoint · rx $age"
+        }), grey, sizeSp = 12f))
         for (da in ranked) {
             val ac = da.ac
             val health = healthOf(da)
@@ -1695,25 +1646,23 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         recyclerView.clipToPadding = enabled
     }
 
-    private fun setPendingRequests(requests: List<Conversation>, previews: List<ConversationItemViewModel>) {
+    /**
+     * Set a badge to display how many invitations are pending.
+     */
+    private fun setInvitationBadge(conversations: List<Conversation>, snip: List<ConversationItemViewModel>) {
         val binding = mBinding ?: return
-        val isFeed = requests.firstOrNull()?.effectiveMode == Conversation.Mode.Feed
-        if (conversationBackPressedCallback.isEnabled && (requests.isEmpty() || pendingFeeds != isFeed)) {
-            collapsePendingView()
+        pendingAdapter?.update(conversations)
+        val hasInvites = conversations.isNotEmpty()
+        binding.invitationCard.invitationGroup.isVisible = hasInvites
+        if (hasInvites) {
+            binding.invitationCard.invitationBadge.text = conversations.size.toString()
+            binding.invitationCard.invitationReceivedTxt.text = snip.joinToString(", ") { it.title }
+            // The two-tone envelope vector has no theme hook — tint it here (its only runtime
+            // reference) from the same settable role as the badge border, so it follows the theme.
+            binding.invitationCard.invitationIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                cx.ring.utils.ColorPrefs.getColor(requireContext(), cx.ring.utils.ColorPrefs.BADGE_BORDER))
         }
-        pendingRequests = requests
-        pendingFeeds = isFeed
-        pendingAdapter?.update(requests)
-        val hasRequests = requests.isNotEmpty()
-        binding.invitationCard.apply {
-            invitationGroup.isVisible = hasRequests
-            invitationReceivedLabel.setText(pendingTitle(isFeed))
-            invitationIcon.setImageResource(if (isFeed) R.drawable.ic_feed else R.drawable.new_invitation)
-            invitationIcon.imageTintList = if (isFeed) invitationReceivedLabel.textColors else null
-            invitationBadge.text = NumberFormat.getIntegerInstance().format(requests.size)
-            invitationReceivedTxt.text = previews.joinToString(", ") { it.title }
-        }
-        updateAppBarLayoutBottomPadding(hasRequests)
+        updateAppBarLayoutBottomPadding(hasInvites)
     }
 
     fun handleIntent(intent: Intent) {
@@ -1734,23 +1683,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             }
 
             NotificationService.NOTIF_TRUST_REQUEST_MULTIPLE -> {
-                mDisposable.add(mAccountService.currentAccountSubject
-                    .switchMap { it.getPendingSubject() }
-                    .firstOrError()
-                    .observeOn(DeviceUtils.uiScheduler)
-                    .subscribe({ list ->
-                        val (feeds, invitations) = list.partition { it.effectiveMode == Conversation.Mode.Feed }
-                        val isFeed = invitations.isEmpty()
-                        mBinding?.conversationFilters?.check(
-                            if (isFeed) R.id.filter_feeds else R.id.filter_all
-                        )
-                        pendingRequests = if (isFeed) feeds else invitations
-                        pendingFeeds = isFeed
-                        if (pendingRequests.isNotEmpty()) expandPendingView()
-                    }, { error ->
-                        Log.e(TAG, "Unable to open pending requests", error)
-                    })
-                )
+                expandPendingView()
             }
 
             else -> {}
@@ -1792,15 +1725,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         collapseSearchActionView()
     }
 
-    private fun startNewFeed() {
-        val account = mAccountService.currentAccount ?: return
-        if (account.isSip || parentFragmentManager.findFragmentByTag(CreateFeedFragment.TAG) != null)
-            return
-        CreateFeedFragment.newInstance(account.accountId)
-            .show(parentFragmentManager, CreateFeedFragment.TAG)
-        collapseSearchActionView()
-    }
-
     private fun expandSearchActionView() {
         mBinding?.searchView?.show()
     }
@@ -1821,7 +1745,6 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
     companion object {
         private val TAG = HomeFragment::class.simpleName!!
-        private const val STATE_CONVERSATION_FILTER = "conversation_filter"
     }
 
 }

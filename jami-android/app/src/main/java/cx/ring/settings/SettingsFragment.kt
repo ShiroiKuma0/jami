@@ -70,7 +70,7 @@ class SettingsFragment :
     GenericView<SettingsViewModel>,
     AppBarStateListener {
     enum class ConnectivityType {
-        LOCAL_NODE, GOOGLE_SERVICES, UNIFIED_PUSH, HUAWEI_PUSH, CUSTOM
+        LOCAL_NODE, GOOGLE_SERVICES, UNIFIED_PUSH, CUSTOM
     }
     private var binding: FragSettingsBinding? = null
     private var currentSettings: Settings? = null
@@ -263,6 +263,8 @@ class SettingsFragment :
                     description = getString(R.string.connectivity_google_services_description)
                 )
             )
+            // shiroikuma dual-backend: this flavor carries BOTH FCM and UnifiedPush, so it offers
+            // all three connectivity options (local node + Firebase + UnifiedPush).
             "withUnifiedPush" -> listOf(
                 ConnectivityOption(
                     mode = ConnectivityType.LOCAL_NODE,
@@ -271,24 +273,16 @@ class SettingsFragment :
                     description = getString(R.string.connectivity_local_node_description)
                 ),
                 ConnectivityOption(
+                    mode = ConnectivityType.GOOGLE_SERVICES,
+                    iconResId = R.drawable.connectivity_mode_firebase_24,
+                    title = getString(R.string.connectivity_google_services_title),
+                    description = getString(R.string.connectivity_google_services_description)
+                ),
+                ConnectivityOption(
                     mode = ConnectivityType.UNIFIED_PUSH,
                     iconResId = R.drawable.connectivity_mode_firebase_24,
                     title = getString(R.string.connectivity_unified_push_title),
                     description = getString(R.string.connectivity_unified_push_description)
-                )
-            )
-            "withHuaweiPush" -> listOf(
-                ConnectivityOption(
-                    mode = ConnectivityType.LOCAL_NODE,
-                    iconResId = R.drawable.connectivity_mode_dht_24,
-                    title = getString(R.string.connectivity_local_node_title),
-                    description = getString(R.string.connectivity_local_node_description)
-                ),
-                ConnectivityOption(
-                    mode = ConnectivityType.HUAWEI_PUSH,
-                    iconResId = R.drawable.connectivity_mode_huawei_24,
-                    title = getString(R.string.connectivity_huawei_push_title),
-                    description = getString(R.string.connectivity_huawei_push_description)
                 )
             )
             else -> emptyList()
@@ -296,10 +290,9 @@ class SettingsFragment :
 
         val isPushCompatible = BuildConfig.FLAVOR == "withFirebase"
                 || BuildConfig.FLAVOR == "withUnifiedPush"
-                || BuildConfig.FLAVOR == "withHuaweiPush"
         // Verify if the user has selected a valid combination of settings:
-        // - If the user wants to enable push notifications, the build must support it (Firebase,
-        //   Unified Push or Huawei Push), or the 'enablePermanentService' option must be enabled.
+        // - If the user wants to enable push notifications, the build must support it (Firebase or
+        //   Unified Push), or the 'enablePermanentService' option must be enabled.
         // - If the user wants to act as a local DHT node, push notifications are not required, but
         //   the 'enablePermanentService' option must be enabled.
         return if ((enablePushNotifications && !enablePermanentService && isPushCompatible)
@@ -321,25 +314,22 @@ class SettingsFragment :
     private fun adjustSettingsForConnectivityMode() {
         if(currentSettings != null) {
             currentSettings = when (mConnectivityMode) {
-                ConnectivityType.GOOGLE_SERVICES -> currentSettings?.copy(
-                    enablePushNotifications = true,
-                    enablePermanentService = false
-                )
+                ConnectivityType.GOOGLE_SERVICES -> {
+                    cx.ring.utils.UiPrefs.setPushBackend(requireContext(), cx.ring.utils.UiPrefs.PUSH_FCM)
+                    cx.ring.application.JamiApplication.instance?.onPushBackendChanged()
+                    currentSettings?.copy(enablePushNotifications = true, enablePermanentService = false)
+                }
 
                 ConnectivityType.LOCAL_NODE -> currentSettings?.copy(
                     enablePushNotifications = false,
                     enablePermanentService = true
                 )
 
-                ConnectivityType.UNIFIED_PUSH -> currentSettings?.copy(
-                    enablePushNotifications = true,
-                    enablePermanentService = false
-                )
-
-                ConnectivityType.HUAWEI_PUSH -> currentSettings?.copy(
-                    enablePushNotifications = true,
-                    enablePermanentService = false
-                )
+                ConnectivityType.UNIFIED_PUSH -> {
+                    cx.ring.utils.UiPrefs.setPushBackend(requireContext(), cx.ring.utils.UiPrefs.PUSH_UNIFIED)
+                    cx.ring.application.JamiApplication.instance?.onPushBackendChanged()
+                    currentSettings?.copy(enablePushNotifications = true, enablePermanentService = false)
+                }
 
                 else -> currentSettings
             }
@@ -366,8 +356,10 @@ class SettingsFragment :
                 !mPreferencesService.settings.enablePermanentService -> {
                 when (BuildConfig.FLAVOR) {
                     "withFirebase" -> ConnectivityType.GOOGLE_SERVICES
-                    "withUnifiedPush" -> ConnectivityType.UNIFIED_PUSH
-                    "withHuaweiPush" -> ConnectivityType.HUAWEI_PUSH
+                    // Dual-backend: push+!permanent maps to whichever backend is selected.
+                    "withUnifiedPush" ->
+                        if (cx.ring.utils.UiPrefs.getPushBackend(requireContext()) == cx.ring.utils.UiPrefs.PUSH_UNIFIED)
+                            ConnectivityType.UNIFIED_PUSH else ConnectivityType.GOOGLE_SERVICES
                     else -> ConnectivityType.CUSTOM
                 }
             }
