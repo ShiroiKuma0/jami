@@ -98,9 +98,17 @@ object ConnectionWatchdog {
     private const val DIAG_THROTTLE_MS = 10 * 60_000L      // at most one transport diagnosis per this window
     private const val PUSH_PROBE_THROTTLE_MS = 10 * 60_000L // at most one push (ntfy) self-test per this window
     private const val PUSH_PROBE_PERIODIC_MS = 30 * 60_000L // standing cadence in proxy mode (~48 msgs/day worst case)
+    private const val PUSH_ENDPOINT_GRACE_MS = 5 * 60_000L  // no push verdict while the distributor may still be registering
     @Volatile private var lastPushProbeMs = 0L
     @Volatile private var pushLegDown: Boolean? = null      // null = never tested this process; drives DOWN→UP transition notices
     @Volatile private var noPushAdaptive = false            // push token cleared, proxy clients riding streaming LISTENs
+    private const val REAL_PUSH_STARVATION_MS = 10 * 60_000L   // verified wedge + no real push this long = proxies' leg dead for us
+    private const val ADAPTIVE_REENTRY_HOLD_MS = 2 * 60 * 60_000L // quick relapse after an exit → hold streaming this long
+    private const val ADAPTIVE_RELAPSE_WINDOW_MS = 15 * 60_000L   // re-entry this soon after an exit counts as a relapse
+    @Volatile private var lastAdaptiveExitMs = 0L
+    @Volatile private var adaptiveHoldUntil = 0L
+    @Volatile private var ledgerWired = false               // reregisterMarker hooked into AccountService
+    @Volatile private var ledgerHealed = false              // interrupted-re-register healing done this process
     @Volatile private var lastDiagMs = 0L
     @Volatile private var restrictedPasses = 0
     @Volatile private var retestScheduled = false
@@ -159,6 +167,16 @@ object ConnectionWatchdog {
     /** One watchdog tick — periodic driver (DRingService bg, HomeFragment fg). The caller skips this
      *  during an active call (toggling proxy mid-call would drop it). */
     fun tick(c: Context, accounts: AccountService) {
+        // Echo-suppression regime: subscribe echoes are non-evidence ONLY in push-SUBSCRIBE mode.
+        // On full DHT or adaptive LISTEN a subscribe answer proves the receive path — it must count,
+        // or the probes discard their own answers and quiet evenings false-wedge (2026-07-23).
+        InboundEvidence.pushMode = !UiPrefs.isFullDhtMode(c) && !noPushAdaptive
+        if (!ledgerWired) {
+            ledgerWired = true
+            val app = c.applicationContext
+            accounts.reregisterMarker = { id, inFlight -> UiPrefs.setReregisterInFlight(app, id, inFlight) }
+        }
+        healInterruptedReregisters(c, accounts)
         val active = UiPrefs.isRecoveryBaseEnabled(c) || UiPrefs.isRecoveryPingEnabled(c)
         if (!active) return   // recovery fully off → leave the proxy alone
         if (active) {
@@ -347,6 +365,7 @@ object ConnectionWatchdog {
                             accounts.forceReconnectAccount(id)
                             accounts.resubscribeAccountPresence(id)
                             scheduleBackfill(c, accounts, "acct ${id.take(6)} wedge recover")
+                            maybeEnterAdaptiveOnStarvation(c, accounts, "acct ${id.take(6)} wedge")
                             maybeProbePush(c, accounts, "acct ${id.take(6)} wedge")
                         }
                     }, PROBE_VERDICT_MS)
@@ -399,6 +418,12 @@ object ConnectionWatchdog {
     private fun maybeProbePush(c: Context, accounts: AccountService, reason: String) {
         if (UiPrefs.isFullDhtMode(c)) return   // full DHT does not ride push
         val t = now()
+        // Startup grace: right after process start the UnifiedPush distributor has not registered
+        // the endpoint yet — "no endpoint" then is a race, not a verdict, and acting on it entered
+        // adaptive no-push at every app start (2026-07-23 21:39). No verdict until the endpoint
+        // exists or the process is old enough for its absence to be real.
+        val endpointReady = cx.ring.application.JamiApplication.instance?.pushToken?.first?.isNotEmpty() == true
+        if (!endpointReady && t - processStartMs < PUSH_ENDPOINT_GRACE_MS) return
         if (t - lastPushProbeMs < PUSH_PROBE_THROTTLE_MS) return
         lastPushProbeMs = t
         log(c, "push self-test ($reason) — marker to own ntfy endpoint, 20s echo window")
@@ -408,8 +433,12 @@ object ConnectionWatchdog {
                 pushLegDown = !ok
                 if (ok) {
                     if (noPushAdaptive) {
-                        log(c, "push self-test OK — $detail; push leg RESTORED")
-                        exitNoPushAdaptive(c, accounts)
+                        if (now() < adaptiveHoldUntil) {
+                            log(c, "push self-test OK ($detail) but adaptive HELD ${(adaptiveHoldUntil - now()) / 60_000}m more — the proxies' leg was dead on the last exit")
+                        } else {
+                            log(c, "push self-test OK — $detail; push leg RESTORED")
+                            exitNoPushAdaptive(c, accounts)
+                        }
                     } else if (was == true) {
                         // DOWN→UP transition: the leg came back (e.g. a rate limit lifted) — say so.
                         log(c, "push self-test OK — $detail; push leg RESTORED")
@@ -428,6 +457,29 @@ object ConnectionWatchdog {
                 }
             }
         }
+    }
+
+    /** The self-test's blind spot (2026-07-24): it proves phone→ntfy→phone, but delivery rides
+     *  proxy→ntfy→phone — a leg that can be dead (the dhtproxy IPs chronically rate-limited at
+     *  ntfy.sh) while our own posts echo fine. The observable truth for THAT leg is real daemon
+     *  pushes arriving. A VERIFIED wedge in push mode with no real push for
+     *  [REAL_PUSH_STARVATION_MS] means push delivery is dead for us regardless of the self-test →
+     *  enter streaming. A quick relapse after an exit arms a 2-h hold so a green self-test can't
+     *  oscillate us back onto a dead leg. */
+    private fun maybeEnterAdaptiveOnStarvation(c: Context, accounts: AccountService, reason: String) {
+        if (UiPrefs.isFullDhtMode(c) || noPushAdaptive) return
+        val t = now()
+        val ref = maxOf(PushEvidence.lastRealPushMs, processStartMs)
+        if (t - ref < REAL_PUSH_STARVATION_MS) return
+        if (t - lastAdaptiveExitMs < ADAPTIVE_RELAPSE_WINDOW_MS) {
+            adaptiveHoldUntil = t + ADAPTIVE_REENTRY_HOLD_MS
+            log(c, "push starvation relapse ${(t - lastAdaptiveExitMs) / 60_000}m after adaptive exit — holding streaming ${ADAPTIVE_REENTRY_HOLD_MS / 3_600_000}h")
+        }
+        writeIncident(c, "push-starved",
+            "verified wedge ($reason) with no real push for ${(t - ref) / 60_000}m in push mode — proxies' push leg dead for us (self-test notwithstanding)",
+            LogStormMonitor.recentLines())
+        log(c, "verified wedge + no real push ${(t - ref) / 60_000}m (push mode) → adaptive no-push (self-test notwithstanding)")
+        enterNoPushAdaptive(c, accounts)
     }
 
     /** Adaptive no-push proxy (2026-07-23). With the push leg dead, push-mode subscriptions are
@@ -462,6 +514,7 @@ object ConnectionWatchdog {
             return
         }
         noPushAdaptive = false
+        lastAdaptiveExitMs = now()
         log(c, "adaptive no-push OFF — push leg restored; re-registering push token, clients rebuild in push mode")
         notifyUser(c, c.getString(cx.ring.R.string.notif_nopush_off, stamp()))
         accounts.setPushNotificationConfig(token.first, token.second, platform)
@@ -785,6 +838,41 @@ object ConnectionWatchdog {
     fun proxyOn(accounts: AccountService): Boolean =
         accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
 
+    /** Heal accounts left persistently DISABLED by a re-register nudge the previous process never
+     *  finished (kill/crash/install inside the 1.5-s sendRegister(false)→(true) window — exactly
+     *  what disabled two accounts on the 2026-07-23 +52 install). A ledger marker surviving into
+     *  this process is proof the disable was OURS, never the user's, so re-enabling is always
+     *  correct. Runs once, on the first tick after the account list has loaded. */
+    private fun healInterruptedReregisters(c: Context, accounts: AccountService) {
+        if (ledgerHealed) return
+        val loaded = accounts.getAccounts()
+        if (loaded.isEmpty()) return   // account list not loaded yet — retry next tick
+        ledgerHealed = true
+        for (id in UiPrefs.getReregisterInFlight(c)) {
+            val a = loaded.firstOrNull { it.accountId == id }
+            when {
+                a == null ->
+                    log(c, "re-register ledger: unknown account ${id.take(6)} — marker cleared")
+                !a.isEnabled -> {
+                    writeIncident(c, "reregister-heal",
+                        "account ${id.take(8)} was left DISABLED by an interrupted re-register (process died mid-nudge) — auto re-enabled",
+                        emptyList())
+                    log(c, "re-register ledger: acct ${id.take(6)} left DISABLED by an interrupted nudge — re-enabling")
+                    accounts.forceReconnectAccount(id)   // its !isEnabled branch re-enables + registers
+                }
+                else ->
+                    log(c, "re-register ledger: stale marker for ${id.take(6)} (already enabled) — cleared")
+            }
+            UiPrefs.setReregisterInFlight(c, id, false)
+        }
+    }
+
+    /** True while adaptive no-push is active — the UnifiedPush token setter checks this so a late
+     *  distributor registration does not silently re-enter push mode behind the watchdog's back
+     *  (2026-07-23: exactly that race put the accounts back on the dead push leg minutes after
+     *  adaptive mode had escaped it). */
+    fun isNoPushAdaptive(): Boolean = noPushAdaptive
+
     /** Probe-VERIFIED deafness for one account: a 60-s presence-re-arm probe went unanswered (the
      *  strike count survives until real inbound clears it). This — never the bare quiet clock — is
      *  the metric the UI surfaces trust (2026-07-23: the bare clock false-positived every ~3 min on
@@ -997,6 +1085,7 @@ object ConnectionWatchdog {
                 writeIncident(c, "uniform-wedge", "${silent.size}/${regd.size} account(s) silent through a ${UNIFORM_PROBE_VERDICT_MS / 1000}s probe on a live network — receive path wedged ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)", LogStormMonitor.recentLines())
                 notifyUser(c, c.getString(cx.ring.R.string.notif_uniform_wedge, stamp()))
                 log(c, "probe UNANSWERED by ${silent.size}/${regd.size} ($answered answered) — wedge → strong recover ($uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)")
+                maybeEnterAdaptiveOnStarvation(c, accounts, "uniform wedge")
                 maybeProbePush(c, accounts, "uniform wedge")
                 fullRecover(c, accounts)
             }

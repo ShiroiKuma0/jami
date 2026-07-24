@@ -31,7 +31,12 @@ class JamiApplicationUnifiedPush : JamiApplication() {
         set(token) {
             Log.d(TAG, "setPushToken: $token");
             field = token
-            if (mPreferencesService.settings.enablePushNotifications) {
+            if (cx.ring.utils.ConnectionWatchdog.isNoPushAdaptive()) {
+                // The watchdog verified the push leg dead and moved the daemon to streaming LISTEN
+                // subscriptions. Registering the token now would silently flip the accounts back onto
+                // the dead push leg — store the endpoint (the watchdog reads it on exit) and defer.
+                Log.d(TAG, "adaptive no-push active — endpoint stored, daemon registration deferred")
+            } else if (mPreferencesService.settings.enablePushNotifications) {
                 mAccountService.setPushNotificationConfig(token.first, token.second, PUSH_PLATFORM)
             } else {
                 mAccountService.setPushNotificationToken("")
@@ -67,8 +72,8 @@ class JamiApplicationUnifiedPush : JamiApplication() {
 
     fun onMessage(remoteMessage: Map<String, String>) {
         //Log.d(TAG, "onMessage: from:${remoteMessage.from} priority:${remoteMessage.priority} (was ${remoteMessage.originalPriority})")
-        cx.ring.utils.PushEvidence.noteAnyPush()
         if (cx.ring.utils.PushEvidence.noteIfProbe(remoteMessage)) return   // self-test echo — not for the daemon
+        cx.ring.utils.PushEvidence.noteRealPush()   // a genuine proxy push — the proxies' leg is alive
         mAccountService.pushNotificationReceived("", remoteMessage)
         mNotificationService.processPush()
     }
