@@ -75,6 +75,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicked {
@@ -218,7 +219,7 @@ class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.O
                                     }
                                     d.dismiss()
                                 }
-                                .show()
+                                .showThemed()
                         }
 
                         binding.conversationAvatar.setOnClickListener {
@@ -260,7 +261,7 @@ class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.O
                                 d.dismiss()
                             }
                             .setNegativeButton(android.R.string.cancel, null)
-                            .show()
+                            .showThemed()
                     }
                 }
 
@@ -378,7 +379,7 @@ class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.O
                 mProfilePhoto = null
                 mSourcePhoto = null
             }
-            .show()
+            .showThemed()
     }
 
     private fun gotToImageCapture() {

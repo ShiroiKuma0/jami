@@ -17,6 +17,7 @@
 package cx.ring.fragments
 
 import cx.ring.utils.Flash
+import cx.ring.utils.showThemed
 
 import android.Manifest
 import android.animation.LayoutTransition
@@ -1292,7 +1293,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
                         .setMessage(getString(R.string.delete_conversation_confirmation))
                         .setPositiveButton(R.string.menu_delete) { _, _ -> presenter.deleteConversation() }
                         .setNegativeButton(android.R.string.cancel, null)
-                        .show()
+                        .showThemed()
                 }
             }
             btnSwitch.visibility = if (canSwitch) View.VISIBLE else View.GONE
