@@ -378,25 +378,46 @@ object ConnectionWatchdog {
                             val quiet3 = InboundEvidence.quietMs(id)
                             st.strikes++
                             st.nextCheckMs = t3 + WEDGE_RECOVER_BACKOFF_MS
-                            recovering = true; lastRecoverMs = t3
-                            // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
-                            val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
-                            writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet3 / 60_000}m, probe unanswered ${PROBE_VERDICT_MS / 1000}s — $path wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
-                            if (st.strikes >= 2 && !UiPrefs.isFullDhtMode(c)) {
-                                // Repeat verified wedge on the SAME account: a bare re-register re-attaches
-                                // the CACHED proxy endpoint (proxyServerCached_ survives it) — the 41c041
-                                // 12-min hard wedge rode that forever. Cycle THIS account's proxy off→on
-                                // instead, which is the only thing that re-picks the endpoint.
-                                log(c, "acct ${id.take(6)}: probe UNANSWERED again (strike ${st.strikes}) → proxy cycle for a FRESH endpoint; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
-                                accounts.recoverAccountFromWedge(id) { accounts.resubscribeAccountPresence(id) }
+                            // Corroboration against the coin-flip false positive (2026-07-24): on a
+                            // QUIET account the only thing that can answer the probe is a peer's own
+                            // periodic presence re-put (~10–15 min) landing in the ~52 s window after
+                            // the 8 s echo blackout — so a single unanswered probe is often just bad
+                            // luck, not a wedge. A REAL wedge, by contrast, has a message STUCK to a
+                            // reachable (CONNECTED) peer. So: recover on the first miss only when
+                            // something is genuinely stuck-to-connected; otherwise require a SECOND
+                            // consecutive unanswered probe (no inbound cleared the strike in between)
+                            // before treating it as verified. The extra ~2 min only ever applies when
+                            // nothing is being sent to the account — i.e. when it can't cost a message.
+                            val stuckToConnected = runCatching {
+                                accounts.getAccount(id)?.let { acct ->
+                                    ConnectionHealth.accountStuckMessages(acct, t3)
+                                        .any { m -> m.presence == net.jami.model.Contact.PresenceStatus.CONNECTED }
+                                } ?: false
+                            }.getOrDefault(false)
+                            if (st.strikes < 2 && !stuckToConnected) {
+                                log(c, "acct ${id.take(6)}: probe unanswered but nothing stuck to a reachable peer — SUSPECT (strike ${st.strikes}), re-probe in ${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
                             } else {
-                                log(c, "acct ${id.take(6)}: probe UNANSWERED → verified WEDGE, re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
-                                accounts.forceReconnectAccount(id)
-                                accounts.resubscribeAccountPresence(id)
+                                recovering = true; lastRecoverMs = t3
+                                // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
+                                val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
+                                val why = if (stuckToConnected) "stuck→connected peer" else "probe unanswered ×${st.strikes}"
+                                writeIncident(c, "acct-wedge", "account ${id.take(8)} deaf ${quiet3 / 60_000}m, $why — $path wedged (strike ${st.strikes})", LogStormMonitor.recentLines())
+                                if (st.strikes >= 3 && !UiPrefs.isFullDhtMode(c)) {
+                                    // Repeat verified wedge on the SAME account: a bare re-register re-attaches
+                                    // the CACHED proxy endpoint (proxyServerCached_ survives it) — the 41c041
+                                    // 12-min hard wedge rode that forever. Cycle THIS account's proxy off→on
+                                    // instead, which is the only thing that re-picks the endpoint.
+                                    log(c, "acct ${id.take(6)}: verified WEDGE again (strike ${st.strikes}) → proxy cycle for a FRESH endpoint; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
+                                    accounts.recoverAccountFromWedge(id) { accounts.resubscribeAccountPresence(id) }
+                                } else {
+                                    log(c, "acct ${id.take(6)}: verified WEDGE ($why) → re-register + resubscribe; next +${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
+                                    accounts.forceReconnectAccount(id)
+                                    accounts.resubscribeAccountPresence(id)
+                                }
+                                scheduleBackfill(c, accounts, "acct ${id.take(6)} wedge recover")
+                                maybeEnterAdaptiveOnStarvation(c, accounts, "acct ${id.take(6)} wedge")
+                                maybeProbePush(c, accounts, "acct ${id.take(6)} wedge")
                             }
-                            scheduleBackfill(c, accounts, "acct ${id.take(6)} wedge recover")
-                            maybeEnterAdaptiveOnStarvation(c, accounts, "acct ${id.take(6)} wedge")
-                            maybeProbePush(c, accounts, "acct ${id.take(6)} wedge")
                         }
                     }, PROBE_VERDICT_MS)
                 } else {
