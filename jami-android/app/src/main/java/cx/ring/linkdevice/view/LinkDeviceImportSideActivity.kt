@@ -35,6 +35,7 @@ import cx.ring.linkdevice.viewmodel.AddDeviceImportState
 import cx.ring.linkdevice.viewmodel.ImportSideViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class LinkDeviceImportSideActivity : AppCompatActivity(),
@@ -219,7 +220,7 @@ class LinkDeviceImportSideActivity : AppCompatActivity(),
             .setTitle(resources.getString(R.string.link_device_dialog_stop_title))
             .setMessage(message)
             .setPositiveButton(android.R.string.ok) { _, _ -> finish(1) }
-            .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
     }
 
     companion object {

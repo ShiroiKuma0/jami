@@ -108,6 +108,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import androidx.core.net.toUri
 import com.google.android.material.button.MaterialButton
+import cx.ring.utils.showThemed
 
 class ConversationAdapter(
     private val conversationFragment: ConversationFragment,
@@ -450,7 +451,7 @@ class ConversationAdapter(
             )
             val dialog = MaterialAlertDialogBuilder(context)
                 .setAdapter(adapter) { _, _ -> }
-                .show()
+                .showThemed()
 
             val observable = interaction.reactionObservable
                 .map { reactions -> reactions.groupBy { reaction -> reaction.contact!! } }
@@ -1229,8 +1230,7 @@ class ConversationAdapter(
                                 .setItems(c.filterIsInstance<TextMessage>().map { it.body!! }
                                     .toTypedArray())
                                 { dialog, _ -> dialog.dismiss() }
-                                .create()
-                                .show()
+                                .showThemed()
                         }
                     )
                     popupWindow.dismiss()
