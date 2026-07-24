@@ -61,6 +61,14 @@ class AccountService(
     private val mVCardService: VCardService
 ) {
     private val scheduler = Schedulers.from(mExecutor)
+
+    /** Crash-safe re-register ledger hook (the app wires it to persistent prefs; the watchdog heals
+     *  from it at startup). Called (id, true) synchronously BEFORE the disable half of an
+     *  unregister→register nudge and (id, false) after the re-enable half. sendRegister PERSISTS
+     *  ACCOUNT_ENABLE to the account config, so a process death inside the 1.5-s window leaves the
+     *  account disabled ON DISK (2026-07-23: an install kill during a recovery burst left two
+     *  accounts disabled); a marker surviving into the next process marks the account for healing. */
+    @Volatile var reregisterMarker: ((accountId: String, inFlight: Boolean) -> Unit)? = null
     /**
      * @return the current Account from the local cache
      */
@@ -725,6 +733,7 @@ class AccountService(
                 }
                 val id = a.accountId
                 Log.w(TAG, "reconnectStaleAccounts: re-registering $id (state=$state, force=$force)")
+                reregisterMarker?.invoke(id, true)   // sendRegister(false) persists the disable — mark first
                 JamiService.sendRegister(id, false)
                 scheduler.scheduleDirect({
                     // Re-registering replays the swarm history; mute the stale "new message"
@@ -732,6 +741,7 @@ class AccountService(
                     NotificationService.suppressNewMessageNotificationsUntil =
                         System.currentTimeMillis() + 15_000L
                     JamiService.sendRegister(id, true)
+                    reregisterMarker?.invoke(id, false)
                 }, 1500, TimeUnit.MILLISECONDS)
             }
         }
@@ -925,11 +935,13 @@ class AccountService(
         } else {
             // Enabled but possibly stuck: unregister -> re-register nudge.
             Log.w(TAG, "forceReconnect: re-registering $id (state=${a.registrationState})")
+            reregisterMarker?.invoke(id, true)   // sendRegister(false) persists the disable — mark first
             JamiService.sendRegister(id, false)
             scheduler.scheduleDirect({
                 NotificationService.suppressNewMessageNotificationsUntil =
                     System.currentTimeMillis() + 15_000L
                 JamiService.sendRegister(id, true)
+                reregisterMarker?.invoke(id, false)
             }, 1500, TimeUnit.MILLISECONDS)
         }
     }
