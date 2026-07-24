@@ -723,7 +723,10 @@ class Account(
     fun presenceUpdate(contactUri: String, status: Int) {
         //Log.w(TAG, "presenceUpdate $contactUri $status");
         val contact = getContactFromCache(contactUri)
-        contact.setPresence(when (status) {
+        // Verified-unreachable gate: while a message to this peer is stuck (PeerReachability
+        // evidence), a stale AVAILABLE announce must not paint the dot blue — demote to OFFLINE.
+        // CONNECTED (live channel) clears the evidence and always wins.
+        contact.setPresence(when (net.jami.utils.PeerReachability.gate(accountId, contactUri, status)) {
             0 -> Contact.PresenceStatus.OFFLINE
             1 -> Contact.PresenceStatus.AVAILABLE
             else -> Contact.PresenceStatus.CONNECTED
