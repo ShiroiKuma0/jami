@@ -16,7 +16,7 @@ too), **in-app message forwarding**, token-gated **automation intents**, smarter
 lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
 account** as a single backup file.
 
-**📥 Latest release: [`20260717-01+66`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+77`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -138,6 +138,18 @@ contact with a message stuck more than a few seconds never reads connected. The 
 connections. **Long-press the dot for an in-app help page** explaining every icon and what to do when
 something's wrong — its button references render as the real pills, and its own headings, body and pill
 colours (plus fonts) are settable too. Every colour, and the fold-triangle size, lives in *UI fonts & colours*.
+
+**Actionable, honestly-coloured stuck messages.** When a message won't go through, the dashboard and
+monitor don't just flag it — they explain and act. Each stuck line **names the recipient
+unambiguously** (profile name + username + id tail, so two identities sharing a display name are never
+confused), shows **how long it's been stuck and what it is** (📎 file or 💬 text preview), and is
+**tappable — it opens that very conversation**. The colour tells you *whose* problem it is: **red** is
+a genuine fault you can fix — a same-device sync stall between your own accounts, or a peer that's
+connected yet never acknowledged — and **blue "delivering…"** means you're simply reaching someone
+who's away (their message will land when they return). A message queued to an offline contact never
+makes your account look broken, and every account-status dot — top bar, side avatar, dashboard,
+monitor, and the account picker — follows the *verified health*, so a red row is never paired with a
+falsely-green dot.
 
 **Dual-backend push in one build.** The app ships both **Firebase/FCM** and **UnifiedPush** in a
 single APK — switch between them (or a local DHT node) at runtime. Firebase is wired to work through
