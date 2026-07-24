@@ -29,6 +29,7 @@
     <string name="conn_state_offline">オフライン</string>
     <string name="conn_state_connected">接続済み</string>
     <string name="conn_state_reachable">到達可能</string>
+    <string name="conn_state_unreachable">到達不能 — メッセージ滞留・相手端末オフ？</string>
     <string name="conn_state_peer_offline">オフライン</string>
     <string name="conn_state_waiting">待機中…</string>
     <string name="conn_state_ice">交渉中 (ICE)…</string>
@@ -36,6 +37,10 @@
     <string name="conn_connected_count">%d 件接続</string>
     <string name="conn_msg_stuck_count">%d 件未配信</string>
     <string name="conn_msg_not_delivered">⚠ 未配信 → %s</string>
+    <string name="conn_msg_text">テキスト</string>
+    <string name="conn_msg_pending">配信中… → %s</string>
+    <string name="conn_peer_away">相手はオフライン — 復帰時に配信されます</string>
+    <string name="conn_peer_announced">相手はDHT告知済み — チャネル確立中…</string>
     <string name="conn_no_active">接続なし</string>
     <string name="conn_channels">%d ch</string>
     <string name="conn_acct_history">アカウント履歴</string>
