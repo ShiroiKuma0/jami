@@ -29,6 +29,7 @@
     <string name="conn_state_offline">OFFLINE</string>
     <string name="conn_state_connected">připojeno</string>
     <string name="conn_state_reachable">dostupné</string>
+    <string name="conn_state_unreachable">nedosažitelný — zpráva vázne, zařízení vypnuté?</string>
     <string name="conn_state_peer_offline">offline</string>
     <string name="conn_state_waiting">čeká…</string>
     <string name="conn_state_ice">vyjednávání (ICE)…</string>
@@ -36,6 +37,10 @@
     <string name="conn_connected_count">%d připojeno</string>
     <string name="conn_msg_stuck_count">%d nedoručeno</string>
     <string name="conn_msg_not_delivered">⚠ zpráva nedoručena → %s</string>
+    <string name="conn_msg_text">textová zpráva</string>
+    <string name="conn_msg_pending">doručuji… → %s</string>
+    <string name="conn_peer_away">příjemce offline — doručí se po návratu</string>
+    <string name="conn_peer_announced">příjemce ohlášen, otevírám kanál…</string>
     <string name="conn_no_active">žádné aktivní připojení</string>
     <string name="conn_channels">%d k.</string>
     <string name="conn_acct_history">Historie účtu</string>

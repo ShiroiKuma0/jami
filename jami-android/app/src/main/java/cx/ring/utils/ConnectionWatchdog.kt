@@ -26,10 +26,12 @@ import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import net.jami.model.Contact
 import net.jami.model.Uri
 import net.jami.model.interaction.Interaction
 import net.jami.services.AccountService
 import net.jami.utils.InboundEvidence
+import net.jami.utils.PeerReachability
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -204,6 +206,7 @@ object ConnectionWatchdog {
             if (UiPrefs.isRecoveryPingEnabled(c) && UiPrefs.isCanaryConfigured(c)) canaryTick(c, accounts)
             else heuristicTick(c, accounts)
             perAccountTick(c, accounts)
+            verifyStuckPeers(c, accounts)
             // Standing push-leg watch (proxy mode only): one ~1 KB self-test per 30 min, so the log
             // shows when a dead push leg (e.g. an ntfy rate limit) comes back — DOWN→UP notifies.
             if (now() - lastPushProbeMs >= PUSH_PROBE_PERIODIC_MS) maybeProbePush(c, accounts, "periodic")
@@ -270,6 +273,45 @@ object ConnectionWatchdog {
                 }
             }
         }
+    }
+
+    /** Verified-unreachable dot demotion (2026-07-24). A contact can keep a stale BLUE (available)
+     *  dot while the last outgoing message to them is stuck: presence is a DHT announce with its
+     *  own TTL, delivery needs a live device channel. When the stuck scan finds a peer below
+     *  CONNECTED, record PeerReachability evidence: the presence gate paints the dot RED and the
+     *  monitor surfaces say "unreachable", until the message delivers or a real channel appears
+     *  (CONNECTED clears it in the gate). Purely a truth-display mechanism — it triggers NO
+     *  recovery (the wedge triage above stays the only recovery path, per the +10 redesign). */
+    private fun verifyStuckPeers(c: Context, accounts: AccountService) {
+        val t = now()
+        // Same-device siblings are never "unreachable" (same daemon process) — their stuck
+        // messages are the ACCOUNT's sync problem (NOT_SYNCING red), not the contact's; the
+        // wedge triage in heuristicTick handles them as CONNECTED-class evidence.
+        val sameDeviceUris = accounts.getAccounts()
+            .filter { it.isJami && it.isRegistered }
+            .mapNotNull { it.uri?.removePrefix("jami:")?.removePrefix("ring:")?.takeIf(String::isNotEmpty) }
+            .toSet()
+        accounts.getAccounts().filter { it.isJami }.forEach { acc -> runCatching {
+            val stuck = ConnectionHealth.accountStuckMessages(acc, t)
+                .filter { it.presence != Contact.PresenceStatus.CONNECTED &&
+                    it.memberUri.removePrefix("jami:").removePrefix("ring:") !in sameDeviceUris }
+                .map { it.memberUri }.distinct()
+            val (newly, restore) = PeerReachability.sync(acc.accountId, stuck)
+            newly.forEach { uri ->
+                val wasAvailable = acc.getContactFromCache(uri).lastPresence == Contact.PresenceStatus.AVAILABLE
+                acc.presenceUpdate(uri, 0)   // gate holds it OFFLINE against stale re-announces
+                // Note AFTER the synthetic OFFLINE above (the gate wipes hadAvailable on raw 0).
+                if (wasAvailable) PeerReachability.noteHadAvailable(acc.accountId, uri)
+                log(c, "acct ${acc.accountId.take(6)}: peer ${uri.take(8)}… unreachable (msg stuck, no live channel) — dot red")
+            }
+            restore.forEach { uri ->
+                acc.presenceUpdate(uri, 1)   // evidence gone + peer was announced → back to blue
+                log(c, "acct ${acc.accountId.take(6)}: peer ${uri.take(8)}… delivering again — dot restored")
+            }
+        }.onFailure { e ->
+            // A silent per-account failure here would look identical to "nothing stuck" — log it.
+            log(c, "acct ${acc.accountId.take(6)}: stuck-peer scan FAILED (${e.javaClass.simpleName}: ${e.message})")
+        } }
     }
 
     /** Corroboration for an error storm: a message stuck to a peer the daemon still sees as reachable
@@ -1072,6 +1114,15 @@ object ConnectionWatchdog {
         var reg = 0; var conn = 0; var healthy = 0
         val stuck = ArrayList<ConnectionHealth.StuckMsg>()
         val tokens = StringBuilder()
+        // Same-device recipients (another of MY registered accounts) are reachable BY DEFINITION —
+        // they never publish presence to each other, so they read stale-OFFLINE and their stuck
+        // messages were triaged "benign offline" forever (2026-07-24: 6 msgs stuck to a same-device
+        // sibling, no recovery). Upgrade them to CONNECTED so the wedge ledger treats them as the
+        // local-fault evidence they are (the classic inter-account sync stall).
+        val sameDeviceUris = accounts.getAccounts()
+            .filter { it.isJami && it.isRegistered }
+            .mapNotNull { it.uri?.removePrefix("jami:")?.removePrefix("ring:")?.takeIf(String::isNotEmpty) }
+            .toSet()
         for (acc in accounts.getAccounts()) {
             if (!acc.isJami || !acc.isRegistered) continue
             reg++
@@ -1083,7 +1134,10 @@ object ConnectionWatchdog {
             tokens.append(acc.accountId.take(6))
                 .append(if (deaf) ":⚠${quiet / 60_000}m" else if (connected) ":✓" else ":✓idle")
                 .append(' ')
-            stuck += ConnectionHealth.accountStuckMessages(acc, t)
+            stuck += ConnectionHealth.accountStuckMessages(acc, t).map { m ->
+                if (m.memberUri.removePrefix("jami:").removePrefix("ring:") in sameDeviceUris)
+                    m.copy(presence = Contact.PresenceStatus.CONNECTED) else m
+            }
         }
         if (reg == 0) {
             // Cold-start stall: enabled accounts that never reach REGISTERED are invisible to the
@@ -1251,8 +1305,8 @@ object ConnectionWatchdog {
         val e: Interaction = conv.lastEvent ?: return true
         if (e.isIncoming) return true
         if (e.body != marker) return true
-        return e.status == Interaction.InteractionStatus.SUCCESS ||
-            e.status == Interaction.InteractionStatus.DISPLAYED ||
-            e.statusMap.values.any { it == Interaction.MessageStates.SUCCESS || it == Interaction.MessageStates.DISPLAYED }
+        // deliveredToPeer filters the sender's own statusMap entry — the raw check read one's own
+        // DISPLAYED mark (set by merely viewing the conv) as "delivered" (2026-07-24).
+        return ConnectionHealth.deliveredToPeer(conv, e)
     }
 }

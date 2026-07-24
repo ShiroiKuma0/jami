@@ -31,6 +31,7 @@
     <string name="conn_state_offline">OFFLINE</string>
     <string name="conn_state_connected">connected</string>
     <string name="conn_state_reachable">reachable</string>
+    <string name="conn_state_unreachable">unreachable — msg stuck, device off?</string>
     <string name="conn_state_peer_offline">offline</string>
     <string name="conn_state_waiting">waiting…</string>
     <string name="conn_state_ice">negotiating (ICE)…</string>
@@ -38,6 +39,10 @@
     <string name="conn_connected_count">%d connected</string>
     <string name="conn_msg_stuck_count">%d msg stuck</string>
     <string name="conn_msg_not_delivered">⚠ message not delivered → %s</string>
+    <string name="conn_msg_text">text message</string>
+    <string name="conn_msg_pending">delivering… → %s</string>
+    <string name="conn_peer_away">recipient offline — will deliver when they return</string>
+    <string name="conn_peer_announced">recipient announced, opening a channel…</string>
     <string name="conn_no_active">no active connection</string>
     <string name="conn_channels">%d ch</string>
     <string name="conn_acct_history">Account history</string>
