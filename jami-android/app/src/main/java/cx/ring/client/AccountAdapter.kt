@@ -70,6 +70,16 @@ class AccountAdapter(
         // - available accounts (type=TYPE_ACCOUNT)
         // - a button to create a new account (type=TYPE_CREATE_ACCOUNT)
         val type = getItemViewType(position)
+        // Row metrics per type (recycling-safe: a recycled Add-account holder must be restored to the
+        // full account size, and vice-versa). Account rows use the layout defaults (60dp / 24sp);
+        // the "Add account" row is half that (白い熊, 2026-07-24).
+        val density = context.resources.displayMetrics.density
+        val logoDp = if (type == TYPE_ACCOUNT) 60 else 30
+        val titleSp = if (type == TYPE_ACCOUNT) 24f else 12f
+        holder.binding.logo.layoutParams = holder.binding.logo.layoutParams.apply {
+            width = (logoDp * density).toInt(); height = (logoDp * density).toInt()
+        }
+        holder.binding.title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, titleSp)
         if (type == TYPE_ACCOUNT) {
             holder.binding.logo.imageTintList = null
             val account = getItem(position)!!
@@ -105,13 +115,30 @@ class AccountAdapter(
                 .observeOn(DeviceUtils.uiScheduler)
                 .subscribe({ profile ->
                     val subtitle = getUri(account, ip2ipString)
+                    // The dot must show the account's HEALTH, not bare presence: a NOT_SYNCING /
+                    // deaf / unregistered account is red here too — a red account with a yellow
+                    // dot in "Select account" is a contradiction (白い熊, 2026-07-24).
+                    val acct = profile.first
+                    val healthPresence = runCatching {
+                        val myUris = mAccountService.getAccounts()
+                            .filter { it.isJami }
+                            .mapNotNull { a -> a.uri?.takeIf(String::isNotEmpty) }.toSet()
+                        val stuck = cx.ring.utils.ConnectionHealth
+                            .accountStuckConvUris(acct, System.currentTimeMillis(), myUris).isNotEmpty()
+                        when {
+                            !acct.isRegistered || stuck ||
+                                cx.ring.utils.ConnectionWatchdog.accountVerifiedDeaf(acct.accountId) ->
+                                net.jami.model.Contact.PresenceStatus.OFFLINE
+                            else -> acct.presenceStatus
+                        }
+                    }.getOrDefault(acct.presenceStatus)
                     holder.binding.logo.setImageDrawable(
                         AvatarDrawable.build(
                             holder.binding.root.context,
                             profile.first,
                             profile.second,
                             true,
-                            profile.first.presenceStatus
+                            healthPresence
                         )
                     )
                     holder.binding.title.text = getTitle(profile.first, profile.second)
