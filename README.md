@@ -13,9 +13,10 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
 too), **in-app message forwarding**, token-gated **automation intents**, smarter **registered-name**
-lookups, and a **split-view** toggle.
+lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
+account** as a single backup file.
 
-**📥 Latest release: [`20260717-01+64`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+66`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -66,6 +67,16 @@ family, weight and size**, *and* set its **text, fill and border colours**.
   locale.
 
 Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settings → Appearance**.
+
+## 💾 Export / Import — settings *and* accounts
+
+The first section of the UI page backs up **everything settable in the app — and your Jami accounts
+— into a single timestamped zip**, and restores it category by category. Pick an export directory
+once (the page shows the latest export in it at a glance), tick the categories — **Accounts (Jami
+archives)**, fonts & sizes (your imported font files travel inside the zip), colours, UI behaviour,
+online recovery & connectivity, automation & protected contacts, app settings — and hit Export.
+Import merges key-by-key (it never wipes what it doesn't know), skips accounts already on the
+device so a re-import can't duplicate identities, and offers a one-tap restart to apply everything.
 
 ## 📶 Connectivity, self-healing & a live connection monitor
 
