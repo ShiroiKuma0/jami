@@ -7,15 +7,15 @@
 **Private, peer-to-peer messaging & calling — themed and tuned to taste.**
 
 A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
-per-element **UI fonts & colours** system with an RGBA colour picker, **connectivity resilience** —
-**full DHT by default** with a self-healing recovery watchdog (per-account proxy-wedge recovery and
-OpenDHT 4.2.0 proxy fixes), a live **connection monitor** (per-contact too), a one-tap
-**connection-mode toggle** and **Google-free push** — a swipeable **media viewer** with hide/restore,
-**protected contacts** with vague notifications (now masking media too), **in-app message
-forwarding**, token-gated **automation intents**, smarter **registered-name** lookups, and a
-**split-view** toggle.
+per-element **UI fonts & colours** system with an RGBA colour picker, deep **connectivity
+resilience** — a **three-fold connection mode** (full DHT / Firebase / UnifiedPush) with an
+**adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
+with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
+**media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
+too), **in-app message forwarding**, token-gated **automation intents**, smarter **registered-name**
+lookups, and a **split-view** toggle.
 
-**📥 Latest release: [`20260717-01+30`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+62`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -70,9 +70,21 @@ Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settin
 ## 📶 Connectivity, self-healing & a live connection monitor
 
 Jami can quietly drift offline; this fork helps it heal itself **and** shows you the truth about its
-links. A measured on-device A/B test settled the base config: **DHT proxy off, UPnP + TURN on** is the
-reliable one — proxy-on routes every connection through a single link that, when it wedges, strands
-delivery while the UI still says "connected" — so new accounts default to that.
+links.
+
+**Three-fold connection mode with an adaptive fallback.** Pick how the app stays reachable — a
+**local DHT node**, **Firebase/FCM** (works through microG, no Google Play needed), or a custom
+**UnifiedPush** distributor — from one dialog. The battery-cheap modes ride a push subscription, and
+this fork adds the missing safety net: a watchdog measures whether **real pushes actually arrive**,
+and when the push leg dies (a rate-limited server, a filtering VPN, a dead distributor) it
+automatically clears the push token and switches the proxy to **streaming reception** so messages
+keep flowing — then quietly returns to push when the leg recovers. It even keeps the process alive
+for the outage's duration so streaming can't be reaped. The push path never silently strands you.
+
+**Verified health, not guesses.** Every connectivity indicator is driven by what the app can *prove*
+it received — a 60-second silent presence probe, an active call, real push arrivals — never a
+registration flag that lies. A contact you're on a call with can never show red; an account that
+reads "connected" but receives nothing is caught and recovered.
 
 **Port mapping that actually works on phones.** Upstream dhtnet binds UPnP/NAT-PMP to the *first*
 network interface it finds — on a real phone with mobile data up that's the cellular link, so both
@@ -89,7 +101,15 @@ charging (reliability is free when you're plugged in) and manages it intelligent
 **Two-tier recovery — the ⚡ lightning.** Tap for a **smart recover**: it just re-registers when your
 links are healthy, and drops to the full DHT only when nothing is connected, so fixing one stuck
 contact never needlessly disables the proxy. Long-press for a **hard reset** — full DHT +
-re-register, unconditionally. The lightning glows blue while recovering.
+re-register, unconditionally. The lightning glows blue while recovering. After any recovery it also
+**back-fills**: it actively pulls the messages that piled up while you were deaf, instead of waiting
+for senders to notice you again.
+
+**The ⬡ hub — mode by shape, state by colour.** The connection-mode icon is a **solid hexagon** for
+full DHT (the heavy mode — your device is a node) and a **thick hollow hexagon** for proxy (the light
+mode); its **colour** is the live state — yellow when the chosen mode is receiving fine, blue while
+recovering or riding the streaming fallback, red when the current mode is verifiably broken. One tap
+switches every account at once.
 
 **Per-contact live monitor.** Tap any contact's (or group's) avatar to open a live monitor for just
 them — it self-refreshes every couple of seconds. Each member's channels are colour-coded exactly like
@@ -108,9 +128,11 @@ connections. **Long-press the dot for an in-app help page** explaining every ico
 something's wrong — its button references render as the real pills, and its own headings, body and pill
 colours (plus fonts) are settable too. Every colour, and the fold-triangle size, lives in *UI fonts & colours*.
 
-**Optional Google-free push.** The `withUnifiedPush` flavor, paired with a UnifiedPush distributor
-(e.g. [ntfy](https://ntfy.sh)) and the proxy, lets backgrounded accounts deactivate and wake on a push
-— no Google/Firebase — when you'd rather trade the proxy's wedge-risk for near-zero idle CPU.
+**Dual-backend push in one build.** The app ships both **Firebase/FCM** and **UnifiedPush** in a
+single APK — switch between them (or a local DHT node) at runtime. Firebase is wired to work through
+**microG**, so you get Google-style push with **no Google Play Services**; UnifiedPush pairs with any
+distributor (e.g. [ntfy](https://ntfy.sh)), including a self-hosted one. Whichever you pick, the
+adaptive fallback above covers it when the push server fails.
 
 ## 🖼 Media viewer with hide/restore
 
