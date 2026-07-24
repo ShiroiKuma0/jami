@@ -48,6 +48,7 @@ import net.jami.model.Uri
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import cx.ring.utils.showThemed
 
 object ActionHelper {
     val TAG = ActionHelper::class.simpleName!!
@@ -122,7 +123,7 @@ object ActionHelper {
                 callback.clearConversation(accountId, uri)
             }
             .setNegativeButton(android.R.string.cancel) { dialog: DialogInterface?, whichButton: Int -> }
-            .show()
+            .showThemed()
     }
 
     fun launchDeleteSwarmOneToOneAction(
@@ -135,7 +136,7 @@ object ActionHelper {
                 callback.removeConversation(accountId, uri)
             }
             .setNegativeButton(android.R.string.cancel) { _, _ -> }
-            .show()
+            .showThemed()
     }
 
     fun launchAddContactAction(
@@ -148,7 +149,7 @@ object ActionHelper {
             .setTitle(R.string.ab_action_contact_add_question)
             .setMessage(R.string.conversation_action_add_this_message)
             .setPositiveButton(android.R.string.ok) { _, _ -> callback(accountId, contact.uri) }
-            .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
     }
 
     fun launchClearAction(
@@ -171,7 +172,7 @@ object ActionHelper {
             .setTitle(title)
             .setMessage(message)
             .setPositiveButton(android.R.string.ok) { _, _ -> callback(accountId, uri) }
-            .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
     }
 
     fun launchDeleteSwarmOneToOneAction(
@@ -184,7 +185,7 @@ object ActionHelper {
             .setTitle(R.string.conversation_action_remove_this_title)
             .setMessage(R.string.conversation_action_remove_this_message)
             .setPositiveButton(android.R.string.ok) { _, _ -> callback(accountId, uri) }
-            .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
     }
 
     fun launchDeleteSwarmGroupAction(
@@ -197,7 +198,7 @@ object ActionHelper {
                 callback.removeConversation(accountId, uri)
             }
             .setNegativeButton(android.R.string.cancel) { _, _ -> }
-            .show()
+            .showThemed()
     }
 
     fun launchDeleteSwarmGroupAction(
@@ -210,7 +211,7 @@ object ActionHelper {
             .setTitle(R.string.swarm_group_action_leave_title)
             .setMessage(R.string.swarm_group_action_leave_message)
             .setPositiveButton(android.R.string.ok) { _, _ -> callback(accountId, uri) }
-            .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+            .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
     }
 
     fun launchBlockContactAction(
@@ -229,7 +230,7 @@ object ActionHelper {
                     .setTitle(context.getString(R.string.block_contact_dialog_title, displayName))
                     .setMessage(context.getString(R.string.block_contact_dialog_message, displayName))
                     .setPositiveButton(android.R.string.ok) { _, _ -> callback(accountId, contact.uri) }
-                    .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+                    .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
             }
 
     fun launchAcceptInvitation(
@@ -249,7 +250,7 @@ object ActionHelper {
                     .setTitle(R.string.accept_invitation)
                     .setMessage(context.getString(R.string.accept_invitation_body, displayName))
                     .setPositiveButton(android.R.string.ok) { _, _ -> callback(conversation) }
-                    .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+                    .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
             }
     }
 
@@ -269,7 +270,7 @@ object ActionHelper {
                     .setTitle(context.getString(R.string.unblock_contact_dialog_title, displayName))
                     .setMessage(context.getString(R.string.unblock_contact_dialog_message, displayName))
                     .setPositiveButton(android.R.string.ok) { _, _ -> callback(accountId, contact.uri) }
-                    .setNegativeButton(android.R.string.cancel) { _, _ -> }.show()
+                    .setNegativeButton(android.R.string.cancel) { _, _ -> }.showThemed()
             }
 
     fun getAddNumberIntentForContact(contact: Contact): Intent {

@@ -41,6 +41,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:padding="@dimen/padding_large">
 
                 <ImageView
+                    app:tint="#FFFF00"
                     android:id="@+id/system_export_image"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -78,6 +79,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:padding="@dimen/padding_large">
 
                 <ImageView
+                    app:tint="#FFFF00"
                     android:id="@+id/system_change_password_image"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -115,6 +117,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:padding="@dimen/padding_large">
 
                 <ImageView
+                    app:tint="#FFFF00"
                     android:id="@+id/system_biometric_image"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -152,6 +155,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:padding="@dimen/padding_large">
 
                 <ImageView
+                    app:tint="#FFFF00"
                     android:id="@+id/system_black_list_image"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -189,6 +193,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:padding="@dimen/padding_large">
 
                 <ImageView
+                    app:tint="#FFFF00"
                     android:id="@+id/system_delete_account_image"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
