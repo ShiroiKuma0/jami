@@ -27,6 +27,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.databinding.FragmentExportSideStep2Binding
+import cx.ring.utils.showThemed
 
 class ExportSideStep2Fragment : Fragment() {
     private var _binding: FragmentExportSideStep2Binding? = null
@@ -63,7 +64,7 @@ class ExportSideStep2Fragment : Fragment() {
                     callback.onIdentityConfirmation(false)
                 }
                 .setNegativeButton(android.R.string.cancel) { _, _ -> }
-                .show()
+                .showThemed()
         }
 
         binding.confirm.setOnClickListener {

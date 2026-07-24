@@ -22,6 +22,16 @@ object DialogTheme {
     fun builder(ctx: Context): MaterialAlertDialogBuilder =
         MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
 
+    /** theme() with the context taken from the dialog itself. */
+    fun theme(dialog: AlertDialog): AlertDialog = theme(dialog, dialog.context)
+
+    /** Attach the theme at show time — for create()-then-show-later patterns and DialogFragments.
+     *  REPLACES any OnShowListener; where the site already sets one, call theme() inside it instead. */
+    fun onShow(dialog: AlertDialog): AlertDialog {
+        dialog.setOnShowListener { theme(dialog) }
+        return dialog
+    }
+
     /** Apply (after show) the rounded black fill + yellow border + yellow buttons. */
     fun theme(dialog: AlertDialog, ctx: Context): AlertDialog {
         dialog.window?.setBackgroundDrawable(
@@ -39,3 +49,9 @@ object DialogTheme {
         return dialog
     }
 }
+
+/** Show any AlertDialog.Builder chain (Material or androidx) with the black/yellow chrome —
+ *  the drop-in replacement for a chain-ending .show() (2026-07-24 border sweep: the global
+ *  ShiroikumaDialog theme styles fill/text/buttons, but MaterialAlertDialogBuilder replaces the
+ *  window background at create time, losing the 2dp yellow border — this puts it back). */
+fun AlertDialog.Builder.showThemed(): AlertDialog = DialogTheme.theme(show())
