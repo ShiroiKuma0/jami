@@ -137,6 +137,11 @@ class ParticipantsContainerView// adding name, mic etc..
                 if (!hasVideo) {
                     participantInfoOverlay.avatar.setImageDrawable(AvatarDrawable.Builder()
                         .withContact(i.contact)
+                        // A participant in an active call IS connected to you — force the presence
+                        // dot yellow, whatever stale DHT presence says (it must never read red while
+                        // you're literally talking to them; withContact would otherwise use
+                        // contact.presence, which resolves OFFLINE→red mid-call).
+                        .withOnlineState(net.jami.model.Contact.PresenceStatus.CONNECTED)
                         .withCircleCrop(true)
                         .build(context))
                 }
