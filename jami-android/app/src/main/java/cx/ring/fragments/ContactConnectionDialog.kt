@@ -42,6 +42,7 @@ import net.jami.model.interaction.Interaction
 import net.jami.services.AccountService
 import net.jami.services.AccountService.ConnectionStatus
 import net.jami.services.ConversationFacade
+import net.jami.utils.PeerReachability
 
 private const val C_CONNECTED = 0xFFFFFF00.toInt()   // yellow — a live, usable channel
 private const val C_ATTEMPT = 0xFF0000FF.toInt()     // blue — connecting / negotiating / reachable
@@ -228,6 +229,7 @@ fun showContactConnectionDialog(
         membersContainer.removeAllViews()
         val isGroup = memberVms.size > 1
         var anyConnected = false; var anyAttempt = false; var anyOnline = false; var totalCh = 0; var maxP = -1
+        var anyUnreachable = false   // verified: msg stuck + no live channel (PeerReachability)
 
         // LIVE channels drive the summary. If live is empty but we still have a recent snapshot of the last
         // attempt (e.g. you exited and re-opened), re-show that snapshot so the picture isn't lost.
@@ -254,6 +256,8 @@ fun showContactConnectionDialog(
             val raw = vm.contact.uri.rawRingId
             val liveConns = connsFor(lastAccounts, raw)
             val mOnline = vm.presence != Contact.PresenceStatus.OFFLINE
+            val mUnreachable = raw != null && PeerReachability.isUnreachable(accountId, raw)
+            if (mUnreachable) anyUnreachable = true
             if (liveConns.any { it.status == ConnectionStatus.Connected }) anyConnected = true
             if (liveConns.any { it.status != ConnectionStatus.Connected }) anyAttempt = true
             if (mOnline) anyOnline = true
@@ -274,6 +278,7 @@ fun showContactConnectionDialog(
             // No channel to show (live empty + no snapshot) → say what's happening, never a blank.
             if (rowConns.isEmpty()) membersContainer.addView(TextView(ctx).apply {
                 text = "   " + when {
+                    mUnreachable -> "unreachable — your message is stuck and no route to their device exists; their presence record was stale (device off or asleep?). Watching the DHT — delivers the moment they return."
                     pingAtMs != 0L && lastUndelivered -> "no channel yet — ⌁ queued; watching the DHT for them, opens the moment they're reachable…"
                     mOnline -> "reachable — no open channel (opens when you message)"
                     else -> "offline — not announced on the DHT; watching for them. A channel opens here the moment they come online."
@@ -296,6 +301,7 @@ fun showContactConnectionDialog(
             anyAttempt -> "● connecting · $totalCh channel(s)"
             anyOnline -> "● reachable — online, no open channel (opens when you message)"
             memberVms.isEmpty() -> "○ checking channels…"
+            anyUnreachable -> "✕ unreachable — message stuck, no route to their device"
             else -> "○ offline — no presence, no channel"
         }
         summaryTv.setTextColor(when {
@@ -306,6 +312,7 @@ fun showContactConnectionDialog(
 
         val diag = when {
             pingDelivered -> ""
+            anyUnreachable -> "ⓘ Verified unreachable: the last message is stuck and no route to their device exists — the presence record was stale. Nothing on your side to fix; it delivers the moment their device returns."
             pendingLong -> "⏳ Still no delivery receipt after a while — they may be offline; it'll go through once they're back. Try the ⚡ lightning (top bar) if you suspect it's your link."
             pingPending -> "⏳ Delivering — waiting for the delivery receipt…"
             anyConnected && lastUndelivered -> "⚠ Connected, but your last message hasn't delivered — a sync stall, not a connection problem. The ⚡ lightning may re-kick it."
