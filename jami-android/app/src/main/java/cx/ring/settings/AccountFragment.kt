@@ -106,7 +106,7 @@ class AccountFragment : Fragment() {
             .setNegativeButton(android.R.string.cancel, null)
             .create()
         activity?.let { activity -> alertDialog.setOwnerActivity(activity) }
-        return alertDialog
+        return cx.ring.utils.DialogTheme.onShow(alertDialog)
     }
 
     companion object {

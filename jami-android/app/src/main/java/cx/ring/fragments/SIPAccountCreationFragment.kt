@@ -35,6 +35,7 @@ import cx.ring.mvp.BaseSupportFragment
 import dagger.hilt.android.AndroidEntryPoint
 import net.jami.account.SIPCreationView
 import net.jami.account.SIPCreationPresenter
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class SIPAccountCreationFragment : BaseSupportFragment<SIPCreationPresenter, SIPCreationView>(),
@@ -92,7 +93,7 @@ class SIPAccountCreationFragment : BaseSupportFragment<SIPCreationPresenter, SIP
             .setTitle(R.string.dialog_wait_create)
             .setMessage(R.string.dialog_wait_create_details)
             .setCancelable(false)
-            .show()
+            .showThemed()
     }
 
     override fun resetErrors() {
@@ -175,7 +176,7 @@ class SIPAccountCreationFragment : BaseSupportFragment<SIPCreationPresenter, SIP
                 //unlock the screen orientation
                 requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
             }
-            .show()
+            .showThemed()
     }
 
     companion object {
