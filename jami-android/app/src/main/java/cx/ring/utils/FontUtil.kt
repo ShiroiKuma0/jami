@@ -109,14 +109,18 @@ object FontUtil {
 
     private fun applySettingsColor(root: View?) {
         val ctx = root?.context ?: return
-        if (!ColorPrefs.isSet(ctx, ColorPrefs.SETTINGS)) return
-        colorTree(root, ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS))
+        // Text recolours only when the user picked a colour (unset = keep the inflated look);
+        // icons are themed by DEFAULT (2026-07-24: yellow icons across all settings pages) —
+        // SETTINGS_ICON's default is the palette yellow, and stays user-settable.
+        val text = if (ColorPrefs.isSet(ctx, ColorPrefs.SETTINGS)) ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS) else null
+        colorTree(root, text, ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS_ICON))
     }
-    private fun colorTree(root: View?, color: Int) {
+    private fun colorTree(root: View?, textColor: Int?, iconColor: Int) {
         if (root?.tag == SKIP_SETTINGS_FONT_TAG) return
         when (root) {
-            is TextView -> root.setTextColor(color)
-            is ViewGroup -> for (i in 0 until root.childCount) colorTree(root.getChildAt(i), color)
+            is android.widget.ImageView -> root.imageTintList = android.content.res.ColorStateList.valueOf(iconColor)
+            is TextView -> if (textColor != null) root.setTextColor(textColor)
+            is ViewGroup -> for (i in 0 until root.childCount) colorTree(root.getChildAt(i), textColor, iconColor)
         }
     }
 

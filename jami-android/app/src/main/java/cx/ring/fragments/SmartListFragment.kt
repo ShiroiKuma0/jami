@@ -45,6 +45,7 @@ import net.jami.services.ConversationFacade
 import net.jami.smartlist.SmartListPresenter
 import net.jami.smartlist.SmartListView
 import androidx.core.net.toUri
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>(),
@@ -95,7 +96,7 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                     .setClass(context, CallActivity::class.java)
                     .setData(selected.toString().toUri())
                 startActivityForResult(intent, HomeActivity.REQUEST_CODE_CALL)
-            }.show()
+            }.showThemed()
     }
 
     override fun displayNoConversationMessage() {

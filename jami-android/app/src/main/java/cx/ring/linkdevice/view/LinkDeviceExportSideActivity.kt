@@ -34,6 +34,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import cx.ring.linkdevice.viewmodel.ExportSideViewModel
 import cx.ring.utils.ConversationPath
 import kotlinx.coroutines.launch
+import cx.ring.utils.showThemed
 
 
 @AndroidEntryPoint
@@ -207,7 +208,7 @@ class LinkDeviceExportSideActivity : AppCompatActivity(),
             .setMessage(message)
             .setPositiveButton(android.R.string.ok) { _, _ -> finish(1) }
             .setNegativeButton(android.R.string.cancel) { _, _ -> }
-            .show()
+            .showThemed()
     }
 
     companion object {

@@ -51,6 +51,7 @@ import net.jami.services.ConversationFacade
 import net.jami.utils.Log
 import javax.inject.Inject
 import javax.inject.Singleton
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class ConversationActionsFragment : Fragment() {
@@ -121,7 +122,7 @@ class ConversationActionsFragment : Fragment() {
                     d.dismiss()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .showThemed()
         }
 
         colorPickPanel.setOnClickListener {

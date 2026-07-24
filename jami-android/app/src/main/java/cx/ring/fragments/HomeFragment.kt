@@ -95,6 +95,7 @@ import cx.ring.utils.ActionHelper.openJamiDonateWebPage
 import io.reactivex.rxjava3.disposables.Disposable
 import net.jami.model.Uri
 import net.jami.services.NotificationService
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
@@ -458,7 +459,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                         2 -> mConversationFacade
                             .blockConversation(conversation.accountId, conversation.uri)
                     }
-                }.show()
+                }.showThemed()
         else
             MaterialAlertDialogBuilder(requireContext())
                 .apply {
@@ -476,7 +477,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                         1 -> mConversationFacade
                             .discardRequest(conversation.accountId, conversation.uri)
                     }
-                }.show()
+                }.showThemed()
     }
 
     private fun startSearch() {

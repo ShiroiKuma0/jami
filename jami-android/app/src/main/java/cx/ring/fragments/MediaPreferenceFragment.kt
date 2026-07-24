@@ -36,6 +36,7 @@ import net.jami.model.Codec
 import net.jami.model.ConfigKey
 import net.jami.settings.MediaPreferencePresenter
 import net.jami.settings.MediaPreferenceView
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class MediaPreferenceFragment : BasePreferenceFragment<MediaPreferencePresenter>(), MediaPreferenceView {
@@ -98,7 +99,7 @@ class MediaPreferenceFragment : BasePreferenceFragment<MediaPreferencePresenter>
             .setTitle(R.string.ringtone_error_title)
             .setMessage(R.string.ringtone_error_format_not_supported)
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .showThemed()
     }
 
     override fun displayPermissionCameraDenied() {
@@ -107,7 +108,7 @@ class MediaPreferenceFragment : BasePreferenceFragment<MediaPreferencePresenter>
             .setMessage(R.string.permission_dialog_camera_message)
             .setCancelable(false)
             .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, which: Int -> dialog.dismiss() }
-            .show()
+            .showThemed()
     }
 
     override fun displayFileSearchDialog() {

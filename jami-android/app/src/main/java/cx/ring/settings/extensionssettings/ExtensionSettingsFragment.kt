@@ -28,6 +28,7 @@ import cx.ring.extensions.ExtensionPreferences
 import cx.ring.extensions.ExtensionUtils.stringListToListString
 import cx.ring.settings.SettingsFragment
 import net.jami.daemon.JamiService
+import cx.ring.utils.showThemed
 
 class ExtensionSettingsFragment : PreferenceFragmentCompat() {
     private var mPreferencesAttributes: List<Map<String, String>>? = null
@@ -109,7 +110,7 @@ class ExtensionSettingsFragment : PreferenceFragmentCompat() {
                     parentFragmentManager.popBackStack()
                 }
                 .setNegativeButton(android.R.string.cancel) { dialog: DialogInterface?, whichButton: Int -> }
-                .show()
+                .showThemed()
         }
         preference.setInstallClickListener {
             MaterialAlertDialogBuilder(requireContext())
@@ -121,7 +122,7 @@ class ExtensionSettingsFragment : PreferenceFragmentCompat() {
                     parentFragmentManager.popBackStack()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .showThemed()
         }
         preference.setExtensionSettingsRedirect {
             if (accountId!!.isEmpty()) {

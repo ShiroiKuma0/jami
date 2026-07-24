@@ -24,6 +24,7 @@ object ColorPrefs {
     const val FILE_ARROW = "file_arrow"
     const val SEARCH_HINT = "search_hint"
     const val SETTINGS = "settings"
+    const val SETTINGS_ICON = "settings_icon"
     const val PRESENCE_CONNECTED = "presence_connected"
     const val PRESENCE_AVAILABLE = "presence_available"
     const val MSG_SENT_FILL = "msg_sent_fill"

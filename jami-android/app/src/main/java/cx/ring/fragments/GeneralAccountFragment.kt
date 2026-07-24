@@ -207,7 +207,7 @@ class GeneralAccountFragment : BasePreferenceFragment<GeneralAccountPresenter>()
             .create()
         val activity: Activity? = activity
         if (activity != null) alertDialog.setOwnerActivity(activity)
-        return alertDialog
+        return cx.ring.utils.DialogTheme.onShow(alertDialog)
     }
 
     companion object {
