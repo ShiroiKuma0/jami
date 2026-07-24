@@ -59,6 +59,7 @@ class RenameDeviceDialog : DialogFragment() {
             .create()
             .apply {
                 setOnShowListener { d: DialogInterface ->
+                    cx.ring.utils.DialogTheme.theme(d as androidx.appcompat.app.AlertDialog)
                     val button = (d as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
                     button.setOnClickListener {
                         if (validate()) {

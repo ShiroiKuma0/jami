@@ -50,6 +50,7 @@ import net.jami.model.Account
 import net.jami.model.AccountConfig
 import net.jami.model.AccountCreationModel
 import java.io.File
+import cx.ring.utils.showThemed
 
 @AndroidEntryPoint
 class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWizardView {
@@ -205,7 +206,7 @@ class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWiz
                 .setTitle(R.string.dialog_wait_create)
                 .setMessage(getString(R.string.dialog_wait_create_details))
                 .setCancelable(false)
-                .show()
+                .showThemed()
         } else {
             mProgress?.apply {
                 if (isShowing) dismiss()
@@ -244,7 +245,7 @@ class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWiz
             .setPositiveButton(android.R.string.ok, null)
             .setTitle(R.string.account_cannot_be_found_title)
             .setMessage(R.string.account_export_end_decryption_message)
-            .show()
+            .showThemed()
     }
 
     override fun displayNetworkError() {
@@ -255,7 +256,7 @@ class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWiz
             .setPositiveButton(android.R.string.ok, null)
             .setTitle(R.string.account_no_network_title)
             .setMessage(R.string.account_no_network_message)
-            .show()
+            .showThemed()
     }
 
     override fun displayCannotBeFoundError(mIsJamsAccount: Boolean) {
@@ -272,7 +273,7 @@ class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWiz
             .setTitle(R.string.account_cannot_be_found_title)
             .setMessage(message)
             .setOnDismissListener { supportFragmentManager.popBackStack() }
-            .show()
+            .showThemed()
     }
 
     override fun displaySuccessDialog() {
