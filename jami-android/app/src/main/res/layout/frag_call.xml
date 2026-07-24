@@ -528,7 +528,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                             android:contentDescription="@string/camera_toggle_btn_description"
                             android:padding="16dp"
                             app:srcCompat="@drawable/baseline_videocam_24"
-                            app:tint="@color/call_button" />
+                            app:tint="@color/shiroikuma_call_icon" />
 
                         <TextView
                             android:id="@+id/textView_call_videocam_btn"
