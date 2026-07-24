@@ -25,6 +25,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.FontPrefs
+import cx.ring.utils.SettingsExport
 import cx.ring.utils.FontUtil
 import cx.ring.utils.UiPrefs
 
@@ -133,6 +134,8 @@ class FontsSettingsFragment : Fragment() {
 
     private val yellow = 0xFFFFFF00.toInt()
     private val grey = 0xFFAAAAAA.toInt()
+    private val dim = 0xFFC8C800.toInt()      // kxkb_yellow_dim — summaries/captions
+    private val warnRed = 0xFFFF5252.toInt()  // warning state (dir unset / no export yet)
     private val sample = "AaIiMmOoQqWw 012 白い熊相撲道 áÁčČďĎéÉěĚíÍňŇóÓřŘšŠ"
 
     private var container: LinearLayout? = null
@@ -168,6 +171,9 @@ class FontsSettingsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         recoveryDisposable.clear()
+        eximDialog?.dismiss()
+        eximDialog = null
+        eximPageStatusTv = null
         (activity as? cx.ring.client.HomeActivity)?.refreshThemedViews()
     }
 
@@ -178,6 +184,7 @@ class FontsSettingsFragment : Fragment() {
     private fun rebuild() {
         val c = container ?: return
         c.removeAllViews()
+        addExportImportSection(c)
         addOnlineRecoverySection(c)
         c.addView(groupHeader("App language"))
         c.addView(languageRow())
@@ -199,8 +206,8 @@ class FontsSettingsFragment : Fragment() {
         return TextView(ctx).apply {
             text = "Language: $label"
             setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            setPadding(dp(84f), dp(16f), dp(12f), dp(16f))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setPadding(dp(72f), dp(10f), dp(16f), dp(10f))
             layoutParams = matchWrap()
             setOnClickListener { showLanguageDialog() }
         }
@@ -256,7 +263,7 @@ class FontsSettingsFragment : Fragment() {
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(84f), dp(6f), dp(12f), dp(4f))
+            setPadding(dp(72f), dp(6f), dp(16f), dp(4f))
         }
         box.addView(orSwitchRow("Full DHT — proxy off, robustness-first (default)", UiPrefs.isFullDhtMode(ctx)) {
             UiPrefs.setFullDhtMode(ctx, it)
@@ -466,22 +473,463 @@ class FontsSettingsFragment : Fragment() {
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
-    private fun groupHeader(title: String): View {
+    // ---- Export / Import (top of the page — Kōjiki flow, kxkb look) -------------------------
+    private var eximDialog: androidx.appcompat.app.AlertDialog? = null
+    private var eximFolderTv: TextView? = null
+    private var eximStatusTv: TextView? = null
+    private var eximPageStatusTv: TextView? = null
+    private var eximChecks: List<Pair<SettingsExport.Cat, android.widget.CheckBox>> = emptyList()
+    private var pendingExportCats: List<SettingsExport.Cat>? = null
+    private var pendingImportCats: List<SettingsExport.Cat>? = null
+
+    private val pickExportDir = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri ?: return@registerForActivityResult
+        val ctx = context ?: return@registerForActivityResult
+        runCatching {
+            ctx.contentResolver.takePersistableUriPermission(uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        SettingsExport.setDirUri(ctx, uri)
+        refreshEximStatus()
+    }
+    private val pickImportFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runEximImport(uri)
+    }
+    private val exportSaveAs = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        val cats = pendingExportCats
+        pendingExportCats = null
+        if (uri != null && cats != null) writeExportTo(uri, cats)
+    }
+
+    /** First section of the page: heading + a tappable summary row that opens the panel. */
+    private fun addExportImportSection(c: LinearLayout) {
+        val ctx = requireContext()
+        c.addView(groupHeader("Export / Import", first = true))
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(72f), dp(6f), dp(16f), dp(6f))
+            isClickable = true
+            setOnClickListener { showExportImportPanel() }
+        }
+        row.addView(TextView(ctx).apply {
+            text = "Save or load every setting — accounts, fonts, colours, recovery, automation — as selectable categories."
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        })
+        val status = TextView(ctx).apply {
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, dp(2f), 0, 0)
+        }
+        row.addView(status)
+        eximPageStatusTv = status
+        c.addView(row)
+        refreshEximPageStatus()
+    }
+
+    /** SAF listing can be slow — query the latest export off the main thread. */
+    private fun refreshEximPageStatus() {
+        val app = context?.applicationContext ?: return
+        Thread {
+            val status = SettingsExport.lastExportStatus(app)
+            val warn = SettingsExport.latestExport(app) == null
+            eximPageStatusTv?.post {
+                eximPageStatusTv?.let { it.text = status; it.setTextColor(if (warn) warnRed else dim) }
+            }
+        }.start()
+    }
+
+    /** The Export/Import panel: directory box, latest-export line, category checkboxes,
+     *  and the ArcaneChat pill row (Cancel left; Import + Export right). */
+    private fun showExportImportPanel() {
+        val ctx = context ?: return
+        val root = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20f), dp(12f), dp(20f), dp(8f))
+        }
+        root.addView(TextView(ctx).apply {
+            text = "Save or load every setting as selectable categories."
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        })
+        val dirBox = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12f), dp(10f), dp(12f), dp(10f))
+            background = GradientDrawable().apply {
+                setColor(Color.BLACK)
+                cornerRadius = dp(10f).toFloat()
+                setStroke(dp(2f), yellow)
+            }
+            isClickable = true
+            setOnClickListener { pickExportDir.launch(SettingsExport.getDirUri(ctx)) }
+        }
+        dirBox.addView(TextView(ctx).apply {
+            text = "Export directory (tap to choose)"
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        })
+        eximFolderTv = TextView(ctx).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTypeface(typeface, Typeface.BOLD)
+        }
+        dirBox.addView(eximFolderTv)
+        root.addView(dirBox, matchWrap().apply { topMargin = dp(10f) })
+        eximStatusTv = TextView(ctx).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f) }
+        root.addView(eximStatusTv, matchWrap().apply { topMargin = dp(8f); bottomMargin = dp(8f) })
+        root.addView(eximDivider())
+
+        val checks = ArrayList<Pair<SettingsExport.Cat, android.widget.CheckBox>>()
+        val selectAll = eximCheckbox("Select all", bold = true).apply { isChecked = true }
+        root.addView(selectAll)
+        for (cat in SettingsExport.Cat.entries) {
+            val cb = eximCheckbox(cat.label).apply { isChecked = true }
+            checks.add(cat to cb)
+            root.addView(cb)
+        }
+        selectAll.setOnCheckedChangeListener { _, on -> checks.forEach { it.second.isChecked = on } }
+        eximChecks = checks
+        root.addView(eximDivider(topGap = 8))
+
+        val buttons = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(14f), 0, 0)
+        }
+        buttons.addView(pillButton("Cancel") { eximDialog?.dismiss() })
+        buttons.addView(View(ctx), LinearLayout.LayoutParams(0, 0, 1f))
+        buttons.addView(pillButton("Import") { onEximImport() }.also {
+            it.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                .apply { marginEnd = dp(8f) }
+        })
+        buttons.addView(pillButton("Export") { onEximExport() })
+        root.addView(buttons)
+
+        val scroll = android.widget.ScrollView(ctx).apply { addView(root) }
+        eximDialog = cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Export / Import — 白い熊 GNU Jami")
+            .setView(scroll)
+            .setOnDismissListener {
+                eximFolderTv = null; eximStatusTv = null; eximChecks = emptyList(); eximDialog = null
+            }
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+        refreshEximStatus()
+    }
+
+    private fun eximDivider(topGap: Int = 0): View = View(requireContext()).apply {
+        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1f))
+            .apply { topMargin = dp(topGap.toFloat()) }
+        setBackgroundColor(yellow)
+        alpha = 0.4f
+    }
+
+    private fun eximCheckbox(label: String, bold: Boolean = false): android.widget.CheckBox =
+        android.widget.CheckBox(requireContext()).apply {
+            text = label
+            setTextColor(yellow)
+            if (bold) setTypeface(typeface, Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            buttonTintList = android.content.res.ColorStateList.valueOf(yellow)
+            setPadding(dp(8f), dp(7f), 0, dp(7f))
+        }
+
+    /** ArcaneChat pill: black fill, 1.5dp yellow stroke, full-round corners, yellow ripple. */
+    private fun pillButton(label: String, onClick: () -> Unit): android.widget.Button =
+        android.widget.Button(requireContext()).apply {
+            text = label
+            isAllCaps = false
+            setTextColor(yellow)
+            background = android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
+                GradientDrawable().apply {
+                    setColor(Color.BLACK)
+                    cornerRadius = dp(50f).toFloat()
+                    setStroke(dp(1.5f), yellow)
+                }, null)
+            minHeight = 0; minimumHeight = 0; minWidth = 0; minimumWidth = 0
+            setPadding(dp(20f), dp(6f), dp(20f), dp(6f))
+            stateListAnimator = null
+            setOnClickListener { onClick() }
+        }
+
+    private fun refreshEximStatus() {
+        val ctx = context ?: return
+        val dirName = SettingsExport.getExportDir(ctx)?.name ?: SettingsExport.getDirUri(ctx)?.lastPathSegment
+        eximFolderTv?.let {
+            it.text = dirName ?: "Not set — tap to choose a directory"
+            it.setTextColor(if (dirName == null) warnRed else yellow)
+        }
+        val app = ctx.applicationContext
+        Thread {
+            val status = SettingsExport.lastExportStatus(app)
+            val warn = SettingsExport.latestExport(app) == null
+            eximStatusTv?.post {
+                eximStatusTv?.let { it.text = status; it.setTextColor(if (warn) warnRed else dim) }
+            }
+        }.start()
+        refreshEximPageStatus()
+    }
+
+    private fun selectedCats(): List<SettingsExport.Cat> =
+        eximChecks.filter { it.second.isChecked }.map { it.first }
+
+    private fun postToUi(r: () -> Unit) { activity?.runOnUiThread(r) }
+
+    private fun onEximExport() {
+        val ctx = context ?: return
+        val cats = selectedCats()
+        if (cats.isEmpty()) { Flash.show(ctx, "No categories selected."); return }
+        val app = ctx.applicationContext
+        if (SettingsExport.getExportDir(app) != null) {
+            Flash.show(ctx, "Exporting…")
+            Thread {
+                try {
+                    val (bytes, notes) = buildExportBytes(app, cats)
+                    val dir = SettingsExport.getExportDir(app)
+                        ?: throw IllegalStateException("directory unavailable")
+                    val name = SettingsExport.exportFileName()
+                    val file = dir.createFile("application/zip", name)
+                        ?: throw IllegalStateException("could not create $name")
+                    app.contentResolver.openOutputStream(file.uri)?.use { it.write(bytes) }
+                        ?: throw IllegalStateException("no stream")
+                    postToUi { showExportDone(name, notes) }
+                } catch (e: Exception) {
+                    postToUi { context?.let { Flash.show(it, "Export failed: ${e.message}", Toast.LENGTH_LONG) } }
+                }
+            }.start()
+        } else {
+            // no directory configured — fall back to a save-as picker
+            pendingExportCats = cats
+            exportSaveAs.launch(SettingsExport.exportFileName())
+        }
+    }
+
+    private fun writeExportTo(uri: Uri, cats: List<SettingsExport.Cat>) {
+        val ctx = context ?: return
+        val app = ctx.applicationContext
+        Flash.show(ctx, "Exporting…")
+        Thread {
+            try {
+                val (bytes, notes) = buildExportBytes(app, cats)
+                app.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                    ?: throw IllegalStateException("no stream")
+                val name = uri.lastPathSegment?.substringAfterLast('/') ?: "export.zip"
+                postToUi { showExportDone(name, notes) }
+            } catch (e: Exception) {
+                postToUi { context?.let { Flash.show(it, "Export failed: ${e.message}", Toast.LENGTH_LONG) } }
+            }
+        }.start()
+    }
+
+    /** Builds the export zip on the calling (background) thread; collects the daemon account
+     *  archives first when the Accounts category is selected. Returns bytes + account notes. */
+    private fun buildExportBytes(
+        app: android.content.Context, cats: List<SettingsExport.Cat>
+    ): Pair<ByteArray, String> {
+        var archives = emptyMap<String, ByteArray>()
+        var meta: org.json.JSONObject? = null
+        var notes = ""
+        if (SettingsExport.Cat.ACCOUNTS in cats) {
+            val (a, m, n) = collectAccountArchives(app)
+            archives = a; meta = m; notes = n
+        }
+        return SettingsExport.export(app, cats, archives, meta) to notes
+    }
+
+    /** Exports every password-less Jami account to an archive via the daemon (blocking — call on a
+     *  background thread). Password-protected archives can't be exported silently → noted, skipped. */
+    private fun collectAccountArchives(
+        app: android.content.Context
+    ): Triple<Map<String, ByteArray>, org.json.JSONObject, String> {
+        val out = LinkedHashMap<String, ByteArray>()
+        val meta = org.json.JSONObject()
+        val notes = StringBuilder()
+        val cacheDir = java.io.File(app.cacheDir, "eximport").apply { mkdirs() }
+        for (a in mAccountService.getAccounts().filter { it.isJami }) {
+            val label = a.registeredName.ifBlank { a.alias.orEmpty() }.ifBlank { a.accountId.take(8) }
+            if (a.hasPassword()) {
+                notes.append("\n$label: archive has a password — not included.")
+                continue
+            }
+            val f = java.io.File(cacheDir, "${a.accountId}.gz")
+            try {
+                mAccountService.exportToFile(a.accountId, f.absolutePath, "", "").blockingAwait()
+                out[a.accountId] = f.readBytes()
+                meta.put(a.accountId, org.json.JSONObject()
+                    .put("uri", a.username ?: "")
+                    .put("alias", a.alias ?: "")
+                    .put("registeredName", a.registeredName))
+            } catch (e: Exception) {
+                notes.append("\n$label: export failed — ${e.message}")
+            } finally {
+                f.delete()
+            }
+        }
+        return Triple(out, meta, notes.toString())
+    }
+
+    /** Restores accounts/<id>.gz archives via the daemon; identities already on this device are
+     *  skipped. Blocking — call on a background thread. Returns the summary line. */
+    private fun importAccounts(app: android.content.Context, bytes: ByteArray): String {
+        val archives = SettingsExport.accountArchivesIn(bytes)
+        if (archives.isEmpty()) return "Accounts: none in this export"
+        val meta = SettingsExport.accountsMetaIn(bytes)
+        val existing = mAccountService.getAccounts().mapNotNull { it.username }.toSet()
+        var imported = 0
+        var skipped = 0
+        val errors = StringBuilder()
+        val cacheDir = java.io.File(app.cacheDir, "eximport").apply { mkdirs() }
+        for ((id, data) in archives) {
+            val m = meta.optJSONObject(id)
+            val uri = m?.optString("uri").orEmpty()
+            val label = m?.optString("registeredName").orEmpty()
+                .ifBlank { m?.optString("alias").orEmpty() }.ifBlank { id.take(8) }
+            if (uri.isNotEmpty() && uri in existing) { skipped++; continue }
+            try {
+                // The daemon may read the archive asynchronously after addAccount — leave the
+                // temp file for the cache auto-cleanup rather than deleting it immediately.
+                val f = java.io.File(cacheDir, "import_$id.gz")
+                f.writeBytes(data)
+                val details = mAccountService
+                    .getAccountTemplate(net.jami.model.AccountConfig.ACCOUNT_TYPE_JAMI)
+                    .blockingGet()
+                // Same shape as the wizard's backup-restore path (initJamiAccountBackup), incl.
+                // the fork's connectivity defaults; the archive then carries the account config.
+                details[net.jami.model.ConfigKey.ACCOUNT_ALIAS.key] =
+                    m?.optString("alias").orEmpty().ifBlank { "Jami account" }
+                details[net.jami.model.ConfigKey.VIDEO_ENABLED.key] = true.toString()
+                details[net.jami.model.ConfigKey.ACCOUNT_DTMF_TYPE.key] = "sipinfo"
+                details[net.jami.model.ConfigKey.ACCOUNT_UPNP_ENABLE.key] = net.jami.model.AccountConfig.TRUE_STR
+                details[net.jami.model.ConfigKey.TURN_ENABLE.key] = net.jami.model.AccountConfig.TRUE_STR
+                details[net.jami.model.ConfigKey.ACCOUNT_PEER_DISCOVERY.key] = net.jami.model.AccountConfig.FALSE_STR
+                details[net.jami.model.ConfigKey.PROXY_ENABLED.key] = net.jami.model.AccountConfig.FALSE_STR
+                details[net.jami.model.ConfigKey.ARCHIVE_PATH.key] = f.absolutePath
+                mAccountService.addAccount(details)
+                    .timeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .blockingFirst()
+                imported++
+            } catch (e: Exception) {
+                errors.append("\n  $label: ${e.message}")
+            }
+        }
+        val line = StringBuilder("Accounts: $imported imported")
+        if (skipped > 0) line.append(", $skipped already present")
+        if (errors.isNotEmpty()) line.append(errors)
+        return line.toString()
+    }
+
+    private fun onEximImport() {
+        val ctx = context ?: return
+        val cats = selectedCats()
+        if (cats.isEmpty()) { Flash.show(ctx, "No categories selected."); return }
+        pendingImportCats = cats
+        pickImportFile.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+    }
+
+    private fun runEximImport(uri: Uri) {
+        val ctx = context ?: return
+        val cats = pendingImportCats ?: return
+        pendingImportCats = null
+        val app = ctx.applicationContext
+        Flash.show(ctx, "Importing…")
+        Thread {
+            var summary: String? = null
+            var error: String? = null
+            try {
+                val bytes = app.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw IllegalStateException("no stream")
+                val present = SettingsExport.categoriesIn(bytes)
+                if (present.isEmpty()) {
+                    error = "No 白い熊 GNU Jami export found in that file."
+                } else {
+                    val parts = ArrayList<String>()
+                    SettingsExport.importData(app, bytes, cats)?.let { parts.add(it) }
+                    if (SettingsExport.Cat.ACCOUNTS in cats && SettingsExport.Cat.ACCOUNTS in present)
+                        parts.add(importAccounts(app, bytes))
+                    if (parts.isEmpty()) error = "No 白い熊 GNU Jami export found in that file."
+                    else summary = parts.joinToString("\n")
+                }
+            } catch (e: Exception) {
+                error = e.message ?: e.toString()
+            }
+            val s = summary
+            postToUi {
+                if (s != null) showImportDone(s)
+                else context?.let { Flash.show(it, "Import failed: $error", Toast.LENGTH_LONG) }
+            }
+        }.start()
+    }
+
+    /** Export-finished info dialog (yellow border); OK closes the whole chain: dialog → panel → page. */
+    private fun showExportDone(name: String, notes: String = "") {
+        val ctx = context ?: return
+        refreshEximStatus()
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Export finished")
+            .setMessage("Exported: $name" + if (notes.isEmpty()) "" else "\n$notes")
+            .setCancelable(false)
+            .setPositiveButton(android.R.string.ok) { _, _ -> closeEximChain() }
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    /** Import-finished info dialog (yellow border). "Restart now" restarts the app;
+     *  "Later" closes the whole chain: dialog → panel → page. */
+    private fun showImportDone(summary: String) {
+        val ctx = context ?: return
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Import finished")
+            .setMessage("Restored:\n\n$summary\n\nRestart to apply everything.")
+            .setCancelable(false)
+            .setPositiveButton("Restart now") { _, _ -> restartApp() }
+            .setNegativeButton("Later") { _, _ -> closeEximChain() }
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    private fun closeEximChain() {
+        eximDialog?.dismiss()
+        eximDialog = null
+        activity?.onBackPressedDispatcher?.onBackPressed()
+    }
+
+    private fun restartApp() {
+        val app = context?.applicationContext ?: return
+        val launch = app.packageManager.getLaunchIntentForPackage(app.packageName) ?: return
+        launch.component?.let { app.startActivity(android.content.Intent.makeRestartActivityTask(it)) }
+        Runtime.getRuntime().exit(0)
+    }
+
+    /** kxkb-style section header: a full-width 1px hairline above (skipped on the first section),
+     *  then a bold 20sp yellow title with a TEXT-WIDE 2.5dp underline. The underline is a
+     *  match_parent View inside a wrap_content wrapper, so it collapses to the text width. */
+    private fun groupHeader(title: String, first: Boolean = false): View {
         val ctx = requireContext()
         return LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(36f), dp(30f), dp(12f), dp(6f))
-            addView(TextView(ctx).apply {
-                text = title
-                setTextColor(yellow)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 30f)
-                setTypeface(typeface, Typeface.BOLD)
-            })
-            addView(View(ctx).apply {
+            setPadding(0, if (first) dp(12f) else dp(10f), 0, dp(2f))
+            if (!first) addView(View(ctx).apply {
                 setBackgroundColor(yellow)
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(3f))
-                    .apply { topMargin = dp(4f) }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
+            })
+            addView(LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                setPadding(dp(36f), dp(8f), 0, 0)
+                addView(TextView(ctx).apply {
+                    text = title
+                    setTextColor(yellow)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                    setTypeface(typeface, Typeface.BOLD)
+                })
+                addView(View(ctx).apply {
+                    setBackgroundColor(yellow)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, dp(2.5f))
+                        .apply { topMargin = dp(2f) }
+                })
             })
         }
     }
@@ -491,16 +939,16 @@ class FontsSettingsFragment : Fragment() {
         val col = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(84f), dp(16f), dp(12f), dp(4f))
+            setPadding(dp(54f), dp(10f), dp(16f), dp(4f))
         }
         // sub-heading: underline spans only the text width (bottom band drawable on a wrap_content view)
         col.addView(TextView(ctx).apply {
             text = e.label
             setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             setTypeface(typeface, Typeface.BOLD)
             background = underlineBg(yellow)
-            setPadding(0, 0, dp(6f), dp(5f))
+            setPadding(0, 0, dp(6f), dp(4f))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         })
@@ -509,7 +957,7 @@ class FontsSettingsFragment : Fragment() {
             val box = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = matchWrap()
-                setPadding(dp(60f), dp(6f), 0, 0)
+                setPadding(dp(18f), dp(6f), 0, 0)
             }
             for (role in e.colors) box.addView(colorRow(role))
             col.addView(box)
@@ -522,7 +970,7 @@ class FontsSettingsFragment : Fragment() {
         val band = android.graphics.drawable.ColorDrawable(color)
         val ld = android.graphics.drawable.LayerDrawable(arrayOf(band))
         ld.setLayerGravity(0, Gravity.BOTTOM)
-        ld.setLayerHeight(0, dp(2f))
+        ld.setLayerHeight(0, dp(1.5f))
         return ld
     }
 
@@ -531,7 +979,7 @@ class FontsSettingsFragment : Fragment() {
         val controls = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(60f), dp(6f), 0, 0)
+            setPadding(dp(18f), dp(6f), 0, 0)
         }
         controls.addView(miniLabel("Font"))
         controls.addView(valueRow(
@@ -590,7 +1038,7 @@ class FontsSettingsFragment : Fragment() {
         val controls = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(60f), dp(6f), 0, 0)
+            setPadding(dp(18f), dp(6f), 0, 0)
         }
         val cur = role.getPct(ctx)
         controls.addView(miniLabel(role.label))
