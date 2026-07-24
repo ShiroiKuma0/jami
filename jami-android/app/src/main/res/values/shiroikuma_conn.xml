@@ -12,6 +12,8 @@
     <string name="conn_dash_all_healthy">✓ All accounts healthy</string>
     <string name="conn_dash_need_attention">⚠ %d account(s) need attention</string>
     <string name="conn_dash_network">Network: %s</string>
+    <string name="conn_dash_push">Push: %s</string>
+    <string name="conn_dash_push_none">no endpoint</string>
     <string name="conn_dash_network_none">none</string>
     <string name="conn_dash_history">History</string>
     <string name="conn_dash_history_none">(no events yet)</string>
@@ -49,7 +51,7 @@
     <string name="tip_close">Close the dashboard.</string>
     <string name="tip_dot">Connection dashboard: per-account status, history and recovery.</string>
     <string name="tip_flash">Recover now: full DHT + re-register + presence refresh.</string>
-    <string name="tip_dht_mode">Connection mode: yellow = full DHT (robust, no single proxy to wedge); blue = DHT proxy (lighter). Tap to switch — it sets every account at once.</string>
+    <string name="tip_dht_mode">Connection mode: the shape is the mode (filled = full DHT, hollow = DHT proxy); the colour is the state (yellow = receiving fine, blue = switching/recovering/streaming fallback, red = current mode verified broken). Tap to switch — it sets every account at once.</string>
     <string name="dht_switched_full">Switched to full DHT (all accounts)</string>
     <string name="dht_switched_proxy">Switched to DHT proxy (all accounts)</string>
 
@@ -98,7 +100,7 @@
     <string name="info_flash_recovering">Recovering — while it repairs</string>
     <string name="info_dht_full">Full DHT — robust; no single proxy link that can wedge</string>
     <string name="info_dht_proxy">Proxy — lighter; inbound rides a proxy server</string>
-    <string name="info_b_main_dht">⬡ Connection-mode icon — its colour is the current mode (yellow = full DHT, blue = proxy). Tap to switch modes; it sets every account at once, so the per-account “Use DHT proxy” never drifts out of sync.</string>
+    <string name="info_b_main_dht">⬡ Connection-mode icon — its SHAPE is the current mode: filled hub = full DHT (the heavy mode, your device is a node), thick outline = DHT proxy (the light mode). Its COLOUR is the state: yellow = the chosen mode is receiving fine, blue = transitional (post-switch verification, recovery, or the streaming fallback while the push leg is dead), red = the current mode is verifiably not receiving. Tap to switch modes; it sets every account at once, so the per-account “Use DHT proxy” never drifts out of sync.</string>
 
     <string name="info_h_dash">In this dashboard</string>
     <string name="info_b_dash_rows">Account rows — tap a row to expand its contacts and their live connections (connecting → ICE → TLS → connected). Each row has its own ⚡ that recovers just that account, leaving the healthy ones untouched.</string>
