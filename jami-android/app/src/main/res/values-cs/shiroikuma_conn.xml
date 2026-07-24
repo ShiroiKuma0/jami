@@ -10,6 +10,8 @@
     <string name="conn_dash_all_healthy">✓ Všechny účty v pořádku</string>
     <string name="conn_dash_need_attention">⚠ %d účtů vyžaduje pozornost</string>
     <string name="conn_dash_network">Síť: %s</string>
+    <string name="conn_dash_push">Push: %s</string>
+    <string name="conn_dash_push_none">bez endpointu</string>
     <string name="conn_dash_network_none">žádná</string>
     <string name="conn_dash_history">Historie</string>
     <string name="conn_dash_history_none">(zatím žádné události)</string>
@@ -47,7 +49,7 @@
     <string name="tip_close">Zavřít přehled.</string>
     <string name="tip_dot">Přehled připojení: stav účtů, historie a obnova.</string>
     <string name="tip_flash">Obnovit: plné DHT + opětovná registrace + obnova přítomnosti.</string>
-    <string name="tip_dht_mode">Režim připojení: žlutá = plné DHT (robustní, žádná jediná proxy k uváznutí); modrá = DHT proxy (lehčí). Klepnutím přepnete — nastaví všechny účty najednou.</string>
+    <string name="tip_dht_mode">Režim připojení: tvar je režim (plný = plné DHT, obrys = DHT proxy); barva je stav (žlutá = příjem v pořádku, modrá = přepínání/obnova/streamovaná záloha, červená = aktuální režim prokazatelně nefunguje). Klepnutím přepnete — nastaví všechny účty najednou.</string>
     <string name="dht_switched_full">Přepnuto na plné DHT (všechny účty)</string>
     <string name="dht_switched_proxy">Přepnuto na DHT proxy (všechny účty)</string>
 
@@ -96,7 +98,7 @@
     <string name="info_flash_recovering">Obnova — během opravy</string>
     <string name="info_dht_full">Plné DHT — robustní; žádné jediné proxy spojení, které by mohlo uváznout</string>
     <string name="info_dht_proxy">Proxy — lehčí; příchozí provoz jde přes proxy server</string>
-    <string name="info_b_main_dht">⬡ Ikona režimu připojení — barva ukazuje aktuální režim (žlutá = plné DHT, modrá = proxy). Klepnutím režim přepnete; nastaví všechny účty najednou, takže se přepínač „Použít DHT proxy“ u jednotlivých účtů nerozejde.</string>
+    <string name="info_b_main_dht">⬡ Ikona režimu připojení — tvar ukazuje aktuální režim: plný hub = plné DHT (těžší režim, zařízení je samo uzlem), obrys silnou čarou = DHT proxy (lehký režim). Barva je stav: žlutá = zvolený režim v pořádku přijímá, modrá = přechodový stav (ověřování po přepnutí, obnova, streamovaná záloha při mrtvé push cestě), červená = aktuální režim prokazatelně nepřijímá. Klepnutím režim přepnete; nastaví všechny účty najednou, takže se přepínač „Použít DHT proxy“ u jednotlivých účtů nerozejde.</string>
 
     <string name="info_h_dash">V tomto přehledu</string>
     <string name="info_b_dash_rows">Řádky účtů — klepnutím na řádek rozbalíte jeho kontakty a jejich živá spojení (připojování → ICE → TLS → připojeno). Každý řádek má vlastní ⚡, které obnoví jen daný účet a zdravé nechá být.</string>
