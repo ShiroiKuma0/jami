@@ -353,6 +353,12 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             toolbar.setNavigationOnClickListener { activity?.onBackPressedDispatcher?.onBackPressed() }
             toolbar.setOnClickListener { presenter.openContact() }
             toolbar.addMenuProvider(menuProvider)
+            // Long-press on the ⋮ overflow opens the UI settings page (白い熊, 2026-07-25).
+            // The overflow button is toolbar-internal, so hook it whenever a layout pass
+            // materializes it; tap behaviour is untouched.
+            toolbar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                hookOverflowLongPress(toolbar)
+            }
 
             ongoingCallPane.setOnClickListener { presenter.clickOnGoingPane() }
             msgSend.setOnClickListener { sendMessageText() }
@@ -1437,6 +1443,28 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         binding?.histList?.doOnNextLayout {
             presenter.scrollToMessage(messageId)
         }
+    }
+
+    /** Long-press on the toolbar's ⋮ overflow button → the UI settings page (白い熊, 2026-07-25).
+     *  The overflow ImageView is created lazily by the ActionMenuView; setting the listener is
+     *  idempotent, so this is safe to call on every toolbar layout pass. */
+    private fun hookOverflowLongPress(toolbar: androidx.appcompat.widget.Toolbar) {
+        for (i in 0 until toolbar.childCount) {
+            val amv = toolbar.getChildAt(i) as? androidx.appcompat.widget.ActionMenuView ?: continue
+            for (j in 0 until amv.childCount) {
+                val b = amv.getChildAt(j)
+                if (b is android.widget.ImageView && b.javaClass.simpleName == "OverflowMenuButton") {
+                    b.setOnLongClickListener { openUiSettingsPage(); true }
+                }
+            }
+        }
+    }
+
+    private fun openUiSettingsPage() {
+        val act = activity ?: return
+        if (act is HomeActivity) act.goToAdvancedSettings(openFonts = true)
+        else startActivity(android.content.Intent(act, HomeActivity::class.java)
+            .setAction(HomeActivity.ACTION_SHOW_UI_SETTINGS))
     }
 
     companion object {
