@@ -28,7 +28,23 @@
      asio::streambuf write_buf_;
 --- a/src/http.cpp
 +++ b/src/http.cpp
-@@ -604,10 +604,47 @@
+@@ -7,6 +7,15 @@
+ #include "base64.h"
+ #include "compat/os_cert.h"
+
++// SK-PROXYDIAG (2026-07-25): the connect-deadline event must be visible in a release build —
++// logger_ is null there (the daemon only wires a logger at dhtLogLevel>0). Log directly.
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_HTTP_DIAG(...) __android_log_print(ANDROID_LOG_ERROR, "SK-PROXYDIAG", __VA_ARGS__)
++#else
++#define SK_HTTP_DIAG(...) do {} while (0)
++#endif
++
+ #include <asio.hpp>
+ #include <restinio/impl/tls_socket.hpp>
+ #include <llhttp.h>
+@@ -604,10 +604,49 @@
      }
      auto& base = ssl_socket_ ? ssl_socket_->lowest_layer() : *socket_;
  
@@ -55,6 +71,8 @@
 +            if (sthis->logger_)
 +                sthis->logger_->error("[connection:{:d}] connect deadline reached — aborting attempt",
 +                                      sthis->id_);
++            SK_HTTP_DIAG("[connection:%llu] connect DEADLINE (15s) fired — endpoint black-holed",
++                         (unsigned long long) sthis->id_);
 +            asio::error_code cec;
 +            if (sthis->ssl_socket_)
 +                sthis->ssl_socket_->lowest_layer().close(cec);

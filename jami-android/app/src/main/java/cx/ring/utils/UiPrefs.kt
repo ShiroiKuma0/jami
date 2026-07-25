@@ -135,6 +135,23 @@ object UiPrefs {
         p(c).edit().putBoolean("full_dht_mode", on).apply()
     }
 
+    /** One-shot push-token rotation after the 2026-07-25 update: weeks of churn left generations of
+     *  stale server-side proxy subscriptions all pushing to the same FCM token (measured 2–3/s,
+     *  600 KB standing microG backlog, Firebase-Messaging thread at ~24% CPU). A single rotation
+     *  orphans them all at Google; the flag makes it exactly once. */
+    fun isTokenRotatedOnce(c: Context): Boolean = p(c).getBoolean("token_rotated_20260725", false)
+    fun setTokenRotatedOnce(c: Context) {
+        p(c).edit().putBoolean("token_rotated_20260725", true).apply()
+    }
+
+    /** Full DHT while charging (default ON — battery is free, so charging switches to the robust
+     *  full DHT). Off = keep the DHT proxy even on the charger (the low-data profile). Only
+     *  meaningful in proxy mode; see [ConnectionWatchdog.applyProxyState]. */
+    fun isFullDhtWhileCharging(c: Context): Boolean = p(c).getBoolean("full_dht_while_charging", true)
+    fun setFullDhtWhileCharging(c: Context, on: Boolean) {
+        p(c).edit().putBoolean("full_dht_while_charging", on).apply()
+    }
+
     /** Watchdog tick, in minutes. Default 1 — a proxy wedge must be caught in ~a minute, not 3. */
     fun getRecoveryTickMinutes(c: Context): Int = p(c).getInt("recovery_tick_min", 1)
     fun setRecoveryTickMinutes(c: Context, v: Int) {
