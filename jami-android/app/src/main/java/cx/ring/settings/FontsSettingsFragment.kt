@@ -24,6 +24,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.utils.ColorPrefs
+import cx.ring.utils.DataMeter
 import cx.ring.utils.FontPrefs
 import cx.ring.utils.SettingsExport
 import cx.ring.utils.FontUtil
@@ -272,6 +273,9 @@ class FontsSettingsFragment : Fragment() {
             // recovery log untrustworthy about the active mode (2026-07-23 retraction).
             cx.ring.utils.ConnectionWatchdog.onDhtModeSwitched(ctx, mAccountService)
         })
+        box.addView(orSwitchRow("Full DHT on while charging (default on — battery is free)", UiPrefs.isFullDhtWhileCharging(ctx)) {
+            UiPrefs.setFullDhtWhileCharging(ctx, it)
+        })
         box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
             UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping
         })
@@ -294,7 +298,68 @@ class FontsSettingsFragment : Fragment() {
             }
         })
         box.addView(orTapRow("View recovery log") { showRecoveryLog() })
+        // ---- Data-usage meter (2026-07-25, from the 36-GiB runaway investigation) ----
+        box.addView(orSwitchRow("Measure data usage", DataMeter.isActive(ctx)) { on ->
+            if (on) {
+                DataMeter.start(ctx)
+                startMeterLive()
+            } else {
+                val rec = DataMeter.stop(ctx, meterModeInfo())
+                meterLiveRow?.text = "saved: $rec"
+            }
+        })
+        box.addView(TextView(ctx).apply {
+            setTextColor(0xFFAAAAAA.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(8f), 0, 0, dp(4f)); layoutParams = matchWrap()
+            text = if (DataMeter.isActive(ctx)) "measuring…" else "(off — flip on to start a measurement session)"
+            meterLiveRow = this
+        })
+        box.addView(orTapRow("Measurement history") { showDataMeasureHistory() })
+        if (DataMeter.isActive(ctx)) startMeterLive()
         c.addView(box)
+    }
+
+    // Live data-meter display: elapsed + rx/tx, ticking once a second while the row is attached.
+    private var meterLiveRow: TextView? = null
+    private val meterHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val meterTick = object : Runnable {
+        override fun run() {
+            val ctx = context ?: return
+            val row = meterLiveRow?.takeIf { it.isAttachedToWindow } ?: return
+            if (!DataMeter.isActive(ctx)) return
+            val (el, rx, tx) = DataMeter.snapshot(ctx)
+            row.text = "measuring ${DataMeter.elapsedLabel(el)} · ↓${DataMeter.bytesLabel(rx)} ↑${DataMeter.bytesLabel(tx)} · ${DataMeter.netLabel(ctx)}"
+            meterHandler.postDelayed(this, 1000L)
+        }
+    }
+    private fun startMeterLive() { meterHandler.removeCallbacks(meterTick); meterHandler.post(meterTick) }
+
+    /** Mode context for the history record: DHT pref + daemon-actual proxy + adaptive state. */
+    private fun meterModeInfo(): String {
+        val ctx = context ?: return "?"
+        val pref = if (UiPrefs.isFullDhtMode(ctx)) "fullDHT" else "proxy"
+        val actualProxy = runCatching { mAccountService.getAccounts().any { it.isJami && it.isDhtProxyEnabled } }.getOrDefault(false)
+        val adaptive = cx.ring.utils.ConnectionWatchdog.isNoPushAdaptive()
+        return "$pref(actual:${if (actualProxy) "proxy" else "fullDHT"}${if (adaptive) ",adaptive" else ""})"
+    }
+
+    private fun showDataMeasureHistory() {
+        val ctx = context ?: return
+        val f = DataMeter.historyFile(ctx)
+        val text = runCatching { f.readText().trim() }.getOrDefault("")
+            .ifEmpty { "(no measurements yet)" }
+            .lines().reversed().joinToString("\n\n")   // newest first, blank line between records
+        val tv = TextView(ctx).apply {
+            this.text = text; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(20f), dp(12f), dp(20f), dp(12f)); setTextIsSelectable(true)
+        }
+        val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Data measurements")
+            .setView(scroll)
+            .setPositiveButton("Close", null)
+            .setNegativeButton("Clear") { _, _ -> runCatching { f.delete() } }
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun orTapRow(text: String, onClick: () -> Unit): View = TextView(requireContext()).apply {

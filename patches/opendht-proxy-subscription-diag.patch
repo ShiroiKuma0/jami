@@ -1,9 +1,9 @@
 --- a/include/opendht/dht_proxy_client.h
 +++ b/include/opendht/dht_proxy_client.h
 @@ -361,6 +361,14 @@
- 
+
      std::atomic_bool isDestroying_ {false};
- 
+
 +    // SK-PROXYDIAG: subscription-lifecycle diagnostics (one DhtProxyClient per account, so these
 +    // counters are per-account). Written from http io threads, read from the confirm timer — atomics.
 +    std::atomic<uint64_t> diagRxLines_ {0};    // values received on listen response bodies
@@ -20,7 +20,7 @@
 @@ -9,6 +9,16 @@
  #include <llhttp.h>
  #include <deque>
- 
+
 +// SK-PROXYDIAG: the daemon only hands OpenDHT a logger when dhtLogLevel > 0 (a debug-only firehose),
 +// so logger_-routed diagnostics are invisible in a normal build. Log the subscription-lifecycle
 +// diagnostics straight to the Android log instead — unconditional, low-volume, grep 'SK-PROXYDIAG'.
@@ -32,7 +32,7 @@
 +#endif
 +
  namespace dht {
- 
+
  struct DhtProxyClient::InfoState
 @@ -193,6 +203,34 @@
      if (proxyUrl_.empty())
@@ -82,7 +82,14 @@
      try {
          auto request = buildRequest();
          listener.request = request;
-@@ -1103,6 +1143,18 @@
+@@ -1100,8 +1140,25 @@
+         auto rxBuf = std::make_shared<LineSplit>();
+-        request->add_on_body_callback([this, reqid, opstate, rxBuf, cb](const char* at, size_t length) {
++        // SK-PROXYDIAG: per-request rx accounting — which subscription key delivered how much
++        // (2026-07-25, from the runaway-download hunt: a landfilled key shows as huge bytes= here).
++        auto diagReqBytes = std::make_shared<uint64_t>(0);
++        auto diagKey = std::make_shared<std::string>(header.request_target());
++        request->add_on_body_callback([this, reqid, opstate, rxBuf, cb, diagReqBytes](const char* at, size_t length) {
              try {
                  auto& b = *rxBuf;
                  b.append(at, length);
@@ -93,32 +100,36 @@
 +                                     std::chrono::steady_clock::now().time_since_epoch()).count();
 +                    auto prev = diagLastRxMs_.exchange(nowMs);
 +                    diagRxLines_++;
++                    *diagReqBytes += length;
 +                    if (prev != 0 && nowMs - prev > 60'000)
 +                        SK_DIAG("[%s] listen rx RESUMED after %llds silence (req #%llu)",
 +                                proxyUrl_.c_str(), (long long) ((nowMs - prev) / 1000),
 +                                (unsigned long long) reqid);
 +                }
- 
+
                  // one value per body line
                  while (b.getLine('\n') and !opstate->stop) {
-@@ -1137,7 +1189,15 @@
+@@ -1137,7 +1195,18 @@
                  opstate->ok.store(false);
              }
          });
 -        request->add_on_done_callback([this, opstate, reqid](const http::Response& response) {
-+        request->add_on_done_callback([this, opstate, reqid, method](const http::Response& response) {
++        request->add_on_done_callback([this, opstate, reqid, method, diagReqBytes, diagKey](const http::Response& response) {
 +            // SK-PROXYDIAG: a LISTEN connection ending is the subscription pipe closing — always log
 +            // it (for SUBSCRIBE/RESUBSCRIBE, only failures are interesting; 200s fire every refresh).
++            // 2026-07-25: + per-request byte/key accounting — a fat (landfilled) key shows up here
++            // as a huge bytes= on its SUBSCRIBE/RESUBSCRIBE, key= names it directly.
 +            diagListenEnded_++;
-+            if (method == ListenMethod::LISTEN || response.status_code != 200)
-+                SK_DIAG("[%s] listen req #%llu ENDED code=%u aborted=%d (sent=%llu ended=%llu)",
++            if (method == ListenMethod::LISTEN || response.status_code != 200 || *diagReqBytes > 262144)
++                SK_DIAG("[%s] listen req #%llu ENDED code=%u aborted=%d bytes=%llu key=%s (sent=%llu ended=%llu)",
 +                        proxyUrl_.c_str(), (unsigned long long) reqid,
 +                        (unsigned) response.status_code, (int) response.aborted,
++                        (unsigned long long) *diagReqBytes, diagKey->c_str(),
 +                        (unsigned long long) diagListenSent_.load(), (unsigned long long) diagListenEnded_.load());
              if (response.status_code != 200) {
                  if (logger_)
                      logger_->error("[proxy:client] [listen] send request #{} failed with code={}",
-@@ -1280,6 +1340,16 @@
+@@ -1280,6 +1348,16 @@
          statusIpv4_ = NodeStatus::Connected;
          statusIpv6_ = NodeStatus::Connected;
      }
