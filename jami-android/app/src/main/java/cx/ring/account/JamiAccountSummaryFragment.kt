@@ -239,7 +239,15 @@ class JamiAccountSummaryFragment :
         val bestName = account.registeredName.ifEmpty { account.displayUsername ?: account.username!! }
         mBestName = "$bestName.jac"
         mBinding?.let { binding ->
-            binding.userPhoto.setImageDrawable(AvatarDrawable.build(binding.root.context, account, profile, true))
+            // Presence dot must reflect real account state — the parameterless build() defaults the
+            // dot to OFFLINE, which painted a permanently-red dot on a healthy account (2026-07-25).
+            val dotPresence = when {
+                !account.isRegistered -> net.jami.model.Contact.PresenceStatus.OFFLINE
+                cx.ring.utils.ConnectionWatchdog.accountVerifiedDeaf(account.accountId) ->
+                    net.jami.model.Contact.PresenceStatus.OFFLINE
+                else -> account.presenceStatus
+            }
+            binding.userPhoto.setImageDrawable(AvatarDrawable.build(binding.root.context, account, profile, true, dotPresence))
             binding.username.setText(profile.displayName)
             binding.userPhoto.setOnClickListener { profileContainerClicked(account) }
             binding.linkedDevices.text = account.deviceName
