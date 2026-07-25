@@ -1,6 +1,66 @@
-# 白い熊 GNU Jami — `20260717-01+77`
+# 白い熊 GNU Jami — `20260717-01+86`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## Data-runaway & false-wedge overhaul, 保存復元 automation, data meter (new in +78–+86)
+
+**The 2026-07-25 root-cause batch** — a full forensic day: a 36 GiB/15 h data burn, an overnight
+7-minute false-recovery limit cycle (56 incidents), and a ~400 % CPU runaway were traced to three
+interlocking causes and fixed at the root:
+
+- **False-wedge limit cycle killed.** The watchdog's echo-suppression regime (`pushMode`) was keyed
+  to the DHT-mode *preference* while the charging/wedge machinery switched the *daemon* to full DHT
+  underneath it — so every probe's own answers were discarded and the watchdog "recovered" a healthy
+  system every 7 minutes, all night. It now tracks the daemon's actual proxy state. The give-up
+  counter no longer resets on the transient post-recover health blip, and the wedge linger (5→10 min)
+  now outlasts the old cycle period so repeat-wedge backoff really engages.
+- **The data hog: blanket subscription refresh made conditional.** The fork's 3-minute proxy
+  subscription re-arm re-downloaded every subscribed key's **full value set** every cycle (measured:
+  1650 values / 2.5 MB on one landfilled account key; ~29 MB bursts; tens of GB/day). It now re-arms
+  only after 10 minutes of genuine client silence. Post-recovery backfill syncs are capped at 6/hour
+  (each one fanned fresh connection offers to every device of every contact).
+- **Push-token rotation.** Generations of stale server-side proxy subscriptions kept pushing 2–3/s
+  to the same FCM token (a standing 600 KB backlog inside microG, a Firebase thread at ~24 % CPU).
+  The token is now rotated once after the update and automatically on repeat wedges (6-hour
+  throttle) — orphaning the whole pile at Google's side within seconds.
+- **Per-key data forensics built in.** Subscription requests now log per-request `bytes=` and the
+  DHT `key=` (visible in release builds), and proxy connect-deadline events are logged too — a
+  landfilled key names itself in logcat instead of needing a day of detective work.
+- **"Full DHT on while charging" toggle** (Online recovery, default **on**): charging = the robust
+  full DHT because battery is free; switch it off to keep the proxy's low-data profile on the charger.
+- **Data-usage meter** (Online recovery): flip it on and the app measures its own real data use —
+  live elapsed / ↓rx / ↑tx line while measuring (kernel per-UID counters, reboot-safe accumulation);
+  flipping it off writes a history record (duration, bytes, DHT mode incl. the daemon-actual state,
+  network) viewable in a themed history dialog.
+- **Pinned recovery notification.** Repeating uniform-wedge notifications now update one pinned
+  notification with a ×N counter instead of rotating through 20 slots and overwriting the shade.
+- **Account Settings dot honesty.** The avatar dot on the account-settings page showed a hardcoded
+  red (the builder's OFFLINE default); it now reflects real account health.
+
+**保存復元 state-export automation** (the 自由作業盤 batch-backup wire contract):
+
+- New exported, token-gated broadcast receiver: `shiroikuma.jami.action.EXPORT_STATE` runs the
+  Export/Import backup **headlessly** (same engine, same restorable zip — accounts included), and
+  `…action.LIST_CATEGORIES` returns the category catalogue. Replies are fresh broadcasts with a
+  correlation id (the only reply channel that survives EMUI); progress broadcasts carry **real
+  counts** (`区分 n/7`), throttled to 500 ms. Directory precedence: caller-supplied path → the
+  configured export directory. Distinct `automation disabled` / `bad token` errors; the full
+  10-point acceptance checklist passed on-device.
+- **The automation token never travels in a backup zip** — excluded on export and refused on import,
+  so a restored backup can never leak or re-plant the credential.
+- **Export filenames simplified**: `shiroikuma-jami_<yyyy-MM-dd_HH-mm-ss>.zip` — app name + stamp,
+  no version; the latest-export scan still recognises the older names.
+- **Automation controls moved into the Export/Import section** of the UI page (master switch,
+  tap-to-copy token, regenerate, and a details link to the full usage page) — the backup automation
+  lives next to the backups it drives.
+
+**UI:**
+
+- **⋮ long-press → UI settings.** In a chat, long-pressing the toolbar's overflow button opens the
+  "白い熊 GNU Jami UI" settings page; its normal tap menu is untouched.
+- **Unread accounts pop in the account picker.** In "Select account", an account with unread
+  messages gets a row-wide box in the unread badge's own style (settable fill/border colours),
+  inset from the dialog border so the box, badge, and dialog outlines read as three clean lines.
 
 ## Honest connection status + actionable stuck messages (new in +67–+77)
 
