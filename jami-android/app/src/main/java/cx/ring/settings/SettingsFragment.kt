@@ -171,9 +171,6 @@ class SettingsFragment :
             settingsFontsLayout.setOnClickListener {
                 goToFontsSettings()
             }
-            settingsAutomationLayout.setOnClickListener {
-                goToAutomationSettings()
-            }
             settingsStatusIconLayout.setOnClickListener { showStatusIconSizeDialog() }
             settingsStatusIconValue.text = String.format(java.util.Locale.US, "%.2f×", FontPrefs.getStatusIconLines(requireContext()))
             settingsSplitView.isChecked = UiPrefs.isSplitView(requireContext())
@@ -382,7 +379,9 @@ class SettingsFragment :
         backPressedCallback.isEnabled = true
     }
 
-    private fun goToAutomationSettings() {
+    /** Opened from the UI page's Export/Import section (the standalone settings row moved there,
+     *  白い熊 2026-07-25) — hence internal, not private. */
+    internal fun goToAutomationSettings() {
         val binding = binding ?: return
         val content = AutomationSettingsFragment()
         childFragmentManager
