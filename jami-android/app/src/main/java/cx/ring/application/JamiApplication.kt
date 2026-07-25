@@ -117,6 +117,12 @@ abstract class JamiApplication : Application() {
      *  No-op in single-backend flavors. Kept in the base so main-source callers stay flavor-safe. */
     open fun onPushBackendChanged() {}
 
+    /** Rotate the push registration token (watchdog, repeat-wedge path): stale dhtproxy
+     *  subscription generations keep pushing to the old token indefinitely — a fresh token
+     *  orphans them upstream instead of at our battery/quota (2026-07-25). No-op unless the
+     *  flavor's active backend supports rotation (FCM does). */
+    open fun rotatePushToken() {}
+
     var androidPhoneAccountHandle: PhoneAccountHandle? = null
 
     open fun activityInit(activityContext: Context) {}

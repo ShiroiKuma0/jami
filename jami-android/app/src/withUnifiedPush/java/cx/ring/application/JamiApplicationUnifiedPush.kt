@@ -72,6 +72,28 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     /** Called from SettingsFragment (via the base hook) when the backend pref changes. */
     override fun onPushBackendChanged() = registerSelectedToken()
 
+    /** Watchdog repeat-wedge path: delete + re-fetch the FCM token so the accumulated stale
+     *  server-side proxy subscriptions (every churn generation × ~80 keys, all pushing to the
+     *  same token — measured 2–3 pushes/s, 2026-07-25) go orphaned at Google instead of flooding
+     *  microG. The fresh token re-enters via [setFcmToken] → [registerSelectedToken], and the
+     *  daemon re-subscribes everything against it. UnifiedPush backend: no rotation (endpoint
+     *  is distributor-managed), no-op. */
+    override fun rotatePushToken() {
+        if (backend() != UiPrefs.PUSH_FCM) return
+        try {
+            FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener {
+                FirebaseMessaging.getInstance().token.addOnSuccessListener { token: String? ->
+                    Log.w(TAG, "FCM token rotated (${token?.take(12)}…)")
+                    setFcmToken(token)
+                }.addOnFailureListener { e ->
+                    Log.w(TAG, "FCM token re-fetch after rotation failed: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "FCM token rotation failed", e)
+        }
+    }
+
     // ---- FCM token intake (from JamiFirebaseMessagingService.onNewToken + the initial fetch) ----
     fun setFcmToken(token: String?) {
         fcmToken = token?.let { Pair(it, "") }

@@ -1,6 +1,6 @@
 --- a/src/dht_proxy_client.cpp
 +++ b/src/dht_proxy_client.cpp
-@@ -193,6 +193,19 @@
+@@ -193,6 +193,31 @@
      if (proxyUrl_.empty())
          return;
      getConnectivityStatus();
@@ -9,12 +9,24 @@
 +    // reports Connected then, so nothing resubscribes and inbound is silently stranded for up to OP_TIMEOUT
 +    // (24h). Re-arming here bounds that gap to the confirmation interval; RESUBSCRIBE extends the existing
 +    // subscription rather than tearing it down, so there is no inbound gap for healthy accounts.
++    // 2026-07-25 data fix: the UNCONDITIONAL 3-min blanket re-arm was the #1 data hog — every SUBSCRIBE
++    // re-downloads the key's full value set (measured: 1650 values / 2.5 MB on one landfilled account
++    // key; ~29 MB refresh bursts; tens of GB/day). Re-arm ONLY when this client is actually silent —
++    // no inbound (listen body or push) for SK_SUBREFRESH_QUIET_MS. A client with fresh inbound is
++    // provably not lapsed. Uses diagLastRxMs_ from opendht-proxy-subscription-diag.patch (both are
++    // always applied together; diag maintains the rx clock).
 +#ifdef OPENDHT_PUSH_NOTIFICATIONS
 +    if (not deviceKey_.empty()) {
-+        std::lock_guard lock(searchLock_);
-+        for (auto& search : searches_)
-+            for (auto& listener : search.second.listeners)
-+                resubscribe(search.first, listener.first, listener.second);
++        constexpr int64_t SK_SUBREFRESH_QUIET_MS = 10 * 60 * 1000;
++        auto srNowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
++                           std::chrono::steady_clock::now().time_since_epoch()).count();
++        auto srLast = diagLastRxMs_.load();
++        if (srLast == 0 || srNowMs - srLast > SK_SUBREFRESH_QUIET_MS) {
++            std::lock_guard lock(searchLock_);
++            for (auto& search : searches_)
++                for (auto& listener : search.second.listeners)
++                    resubscribe(search.first, listener.first, listener.second);
++        }
 +    }
 +#endif
  }

@@ -46,7 +46,7 @@ object ConnectionWatchdog {
     private const val CANARY_RECHECK_MS = 20_000L          // confirm recheck before declaring stale
     private const val SILENT_WEDGE_MS = 20 * 60_000L      // 0-healthy on a NOT-down network this long = last-resort strong recover (idle ≠ wedge)
     private const val IDLE_REARM_MS = 5 * 60_000L         // cheap presence re-arm cadence while all-quiet (no re-register / no proxy toggle)
-    private const val WEDGE_WINDOW_BASE_MS = 5 * 60_000L   // proxy lingers off this long after a wedge…
+    private const val WEDGE_WINDOW_BASE_MS = 10 * 60_000L  // proxy lingers off this long after a wedge… (raised 5→10 min 2026-07-25: the false-wedge cycle period was 7 min, so a 5-min linger guaranteed recentWedge() was already false at the next wedge and the escalating backoff never engaged)
     private const val WEDGE_WINDOW_MAX_MS = 30 * 60_000L   // …growing on repeat wedges, capped here
     private const val REREGISTER_DELAY_MS = 2_000L         // re-register after proxy-off takes effect
     private const val RECOVER_SETTLE_MS = 30_000L          // lightning shows "recovering" (blue) this long after a recover
@@ -76,6 +76,11 @@ object ConnectionWatchdog {
     // self-certification kept resetting the last-resort fuse).
     @Volatile private var uniformProbePending = false
     @Volatile private var uniformProbeFails = 0
+    @Volatile private var uniformWedgeSeq = 0            // lifetime count, shown as ×N in the pinned notification
+    @Volatile private var backfillHourStartMs = 0L       // hourly backfill cap window
+    @Volatile private var backfillCountHour = 0
+    @Volatile private var lastTokenRotateMs = 0L         // FCM-token rotation throttle
+    private const val TOKEN_ROTATE_MIN_GAP_MS = 6 * 60 * 60_000L
     @Volatile private var manualProbeInFlight = false
 
     @Volatile private var lastStormMs = 0L                 // when a storm last triggered a reaction
@@ -175,11 +180,26 @@ object ConnectionWatchdog {
         // Echo-suppression regime: subscribe echoes are non-evidence ONLY in push-SUBSCRIBE mode.
         // On full DHT or adaptive LISTEN a subscribe answer proves the receive path — it must count,
         // or the probes discard their own answers and quiet evenings false-wedge (2026-07-23).
-        InboundEvidence.pushMode = !UiPrefs.isFullDhtMode(c) && !noPushAdaptive
+        // Keyed to the daemon's ACTUAL proxy state, never the UI pref: the charging/wedge machinery
+        // forces the proxy off while the pref still says proxy, and judging by the pref left the
+        // suppression armed on a de-facto full DHT — every probe answer discarded, a 7-min
+        // false-wedge limit cycle all night (56 incidents, 2026-07-25).
+        InboundEvidence.pushMode =
+            accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled } && !noPushAdaptive
         if (!ledgerWired) {
             ledgerWired = true
             val app = c.applicationContext
             accounts.reregisterMarker = { id, inFlight -> UiPrefs.setReregisterInFlight(app, id, inFlight) }
+            // One-shot after the 2026-07-25 update: rotate the FCM token to orphan the accumulated
+            // stale server-side subscription generations (2–3 pushes/s were burning CPU + microG
+            // quota; they would otherwise keep pushing for up to ~24 h). Delayed so startup settles.
+            if (!UiPrefs.isTokenRotatedOnce(c)) {
+                UiPrefs.setTokenRotatedOnce(c)
+                handler.postDelayed({
+                    log(c, "one-shot push-token rotation (stale subscription cleanup, 2026-07-25 update)")
+                    runCatching { cx.ring.application.JamiApplication.instance?.rotatePushToken() }
+                }, 30_000L)
+            }
             // Telemetry honesty: start the proxy-off clock from the ACTUAL standing mode at process
             // start (it used to start at 0 and only track the watchdog's own linger windows).
             if (UiPrefs.isFullDhtMode(c) && proxyOffSinceMs == 0L) proxyOffSinceMs = now()
@@ -762,12 +782,15 @@ object ConnectionWatchdog {
         }
     }
 
-    private fun notifyUser(c: Context, text: String) {
+    /** [fixedId] pins a notification to ONE slot that updates in place — used for the repeating
+     *  uniform-wedge so a night of incidents is one evolving notification, not a rotation that
+     *  overwrites the shade's history 20 IDs at a time (2026-07-25). */
+    private fun notifyUser(c: Context, text: String, fixedId: Int = -1) {
         runCatching {
             val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(
                 NotificationChannel(NOTIF_CHANNEL, "自動回復", NotificationManager.IMPORTANCE_DEFAULT))
-            nm.notify(NOTIF_ID_BASE + (incidentSeq % 20),
+            nm.notify(if (fixedId >= 0) fixedId else NOTIF_ID_BASE + (incidentSeq % 20),
                 NotificationCompat.Builder(c, NOTIF_CHANNEL)
                     .setSmallIcon(cx.ring.R.drawable.ic_ring_logo_white)
                     .setContentTitle(c.getString(cx.ring.R.string.notif_recover_title))
@@ -799,7 +822,10 @@ object ConnectionWatchdog {
             }
             return
         }
-        val offCharging = isCharging(c)
+        // "Full DHT on while charging" (default on): charging forces full DHT (battery is free);
+        // switching the toggle off keeps the proxy's low-data profile even on the charger
+        // (2026-07-25).
+        val offCharging = isCharging(c) && UiPrefs.isFullDhtWhileCharging(c)
         val desiredOff = !restricted && (offCharging || recentWedge(t))
         val currentlyOn = accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
         if (desiredOff && currentlyOn) {
@@ -838,6 +864,13 @@ object ConnectionWatchdog {
     private fun scheduleBackfill(c: Context, accounts: AccountService, reason: String) {
         val t = now()
         if (t - lastBackfillMs < BACKFILL_DEBOUNCE_MS) return
+        // Hourly cap: connectivityChanged makes every conversation's swarm re-maintain its buckets
+        // and re-open device channels — each nudge generates fresh ICE offers to every device of
+        // every contact. A recover storm nudging every few minutes was a top junk-value generator
+        // on our own DHT keys (2026-07-25). 6/h is plenty for real recoveries.
+        if (t - backfillHourStartMs > 60 * 60_000L) { backfillHourStartMs = t; backfillCountHour = 0 }
+        if (backfillCountHour >= 6) { log(c, "backfill sync SKIPPED ($reason) — hourly cap reached"); return }
+        backfillCountHour++
         lastBackfillMs = t
         handler.postDelayed({
             log(c, "backfill sync — connectivityChanged ($reason)")
@@ -851,6 +884,15 @@ object ConnectionWatchdog {
         val t = now()
         wedgeStrikes = if (recentWedge(t)) (wedgeStrikes + 1).coerceAtMost(5) else 0
         lastWedgeMs = t
+        // Repeat wedge in push mode → rotate the FCM token (throttled). Every churn generation
+        // leaves stale server-side proxy subscriptions pushing to the OLD token forever (measured
+        // 2–3 pushes/s + a 600 KB standing FCM Recv-Q, 2026-07-25); a fresh token orphans them at
+        // Google's side instead of our battery. No-op on flavors without FCM.
+        if (wedgeStrikes >= 1 && InboundEvidence.pushMode && t - lastTokenRotateMs > TOKEN_ROTATE_MIN_GAP_MS) {
+            lastTokenRotateMs = t
+            log(c, "repeat wedge in push mode → rotating the push token (stale server subscriptions)")
+            runCatching { cx.ring.application.JamiApplication.instance?.rotatePushToken() }
+        }
         recovering = true
         lastRecoverMs = t
         lastAnyConnectedMs = t
@@ -1174,7 +1216,11 @@ object ConnectionWatchdog {
         if (healthy > 0) {
             if (firstHealthyMs == 0L) firstHealthyMs = t
             lastAnyConnectedMs = t
-            uniformProbeFails = 0
+            // Give-up counter: reset only when health has OUTLIVED the wedge cycle, not on the
+            // transient post-recover blip — every recover produced a few healthy minutes, reset
+            // the counter, and the 2-strike stand-down never engaged (56 wedges, 2026-07-25).
+            if (uniformProbeFails > 0 && t - lastWedgeMs > wedgeWindow() + 5 * 60_000L)
+                uniformProbeFails = 0
             if (recovering && wedgeEvidence.isEmpty()) {
                 recovering = false
                 // Only claim time-on-full-DHT when the proxy-off clock is actually running — the
@@ -1260,9 +1306,11 @@ object ConnectionWatchdog {
                 log(c, "probe: ${silent.size}/${regd.size} still silent — recovered ${uniformProbeFails}× without effect, standing down until real inbound returns")
             } else {
                 uniformProbeFails++
+                uniformWedgeSeq++
                 val who = silent.joinToString { it.accountId.take(8) }
                 writeIncident(c, "uniform-wedge", "${silent.size}/${regd.size} account(s) silent through a ${UNIFORM_PROBE_VERDICT_MS / 1000}s probe on a live network — receive path wedged ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)", LogStormMonitor.recentLines())
-                notifyUser(c, c.getString(cx.ring.R.string.notif_uniform_wedge, stamp()))
+                val n = c.getString(cx.ring.R.string.notif_uniform_wedge, stamp())
+                notifyUser(c, if (uniformWedgeSeq > 1) "×$uniformWedgeSeq · $n" else n, NOTIF_ID_BASE - 1)
                 log(c, "probe UNANSWERED by ${silent.size}/${regd.size} ($answered answered) — wedge → strong recover ($uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)")
                 maybeEnterAdaptiveOnStarvation(c, accounts, "uniform wedge")
                 maybeProbePush(c, accounts, "uniform wedge")
