@@ -12,11 +12,11 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
-too), **in-app message forwarding**, token-gated **automation intents**, smarter **registered-name**
-lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
+too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a live **data-usage
+meter**, smarter **registered-name** lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
 account** as a single backup file.
 
-**📥 Latest release: [`20260717-01+77`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+86`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -182,11 +182,15 @@ pick the target conversation (with search and a content preview), and the messag
 that chat's composer. The long-press menu itself is black/yellow, colour-settable, and pinned in
 place so background sync can no longer make it dance.
 
-## 🤖 Automation intents
+## 🤖 Automation intents & 保存復元 batch backup
 
 Token-gated, exported **send / call / open** intents let external scripts and automation apps drive
 Jami headlessly — send a message, place a call, or open a conversation from anywhere on the device,
-guarded by a secret token so only your own automations can trigger them.
+guarded by a secret token so only your own automations can trigger them. The same token also gates
+the **保存復元 state-export contract**: an external backup orchestrator can list the export
+categories and trigger a full headless backup (real-count progress broadcasts, a broadcast reply
+with the written path and size), producing the exact same restorable zip as the Export/Import
+panel — with the token itself never travelling inside any backup.
 
 ## 🔎 Registered-name resolution
 
