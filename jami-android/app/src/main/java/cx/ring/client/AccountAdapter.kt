@@ -96,15 +96,39 @@ class AccountAdapter(
                 }
                     .observeOn(DeviceUtils.uiScheduler)
                     .subscribe {
+                        val c = holder.binding.root.context
+                        val d = c.resources.displayMetrics.density
                         if (it > 0) {
                             holder.binding.invitationBadge.visibility = View.VISIBLE
                             holder.binding.invitationBadge.text = it.toString()
                             (holder.binding.invitationBadge.background?.mutate() as? android.graphics.drawable.GradientDrawable)?.apply {
-                                val c = holder.binding.root.context
                                 setColor(cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_FILL))
-                                setStroke((2f * c.resources.displayMetrics.density).toInt(), cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_BORDER))
+                                setStroke((2f * d).toInt(), cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_BORDER))
                             }
-                        } else holder.binding.invitationBadge.visibility = View.GONE
+                            // Unread rows get a row-wide box in the badge's own style (白い熊,
+                            // 2026-07-25). Drawn INSET from the row edges so its verticals never
+                            // merge with the dialog border (left: 2 lines) or with the dialog
+                            // border + badge border (right: 3 lines); padding pushes the content
+                            // — badge included — clear of the box's stroke.
+                            val box = android.graphics.drawable.GradientDrawable().apply {
+                                setColor(cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_FILL))
+                                setStroke((2f * d).toInt(), cx.ring.utils.ColorPrefs.getColor(c, cx.ring.utils.ColorPrefs.BADGE_BORDER))
+                                cornerRadius = 8f * d
+                            }
+                            // Horizontal inset 10dp: a wider clear gap to the dialog border
+                            // (白い熊 2026-07-25 round 2); padding raised in step so the box-to-
+                            // content — and box-to-"1"-badge — spacing stays exactly as approved.
+                            holder.binding.root.background = android.graphics.drawable.InsetDrawable(
+                                box, (10f * d).toInt(), (3f * d).toInt(), (10f * d).toInt(), (3f * d).toInt())
+                            holder.binding.root.setPadding(
+                                (22f * d).toInt(), (10f * d).toInt(), (22f * d).toInt(), (10f * d).toInt())
+                        } else {
+                            holder.binding.invitationBadge.visibility = View.GONE
+                            // Recycled rows must drop the unread box again.
+                            holder.binding.root.background = null
+                            holder.binding.root.setPadding(
+                                (8f * d).toInt(), (8f * d).toInt(), (8f * d).toInt(), (8f * d).toInt())
+                        }
                     }
             )
 
