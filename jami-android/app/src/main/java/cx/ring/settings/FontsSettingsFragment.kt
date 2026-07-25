@@ -23,6 +23,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
+import cx.ring.utils.AutomationPrefs
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.DataMeter
 import cx.ring.utils.FontPrefs
@@ -592,6 +593,39 @@ class FontsSettingsFragment : Fragment() {
         row.addView(status)
         eximPageStatusTv = status
         c.addView(row)
+        // ---- Automation (moved here from its standalone settings row, 白い熊 2026-07-25):
+        //      the master switch + token live next to Export/Import because the 保存復元 batch
+        //      backup is token-gated automation of exactly this export. ----
+        val autoBox = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(72f), 0, dp(16f), dp(6f))
+        }
+        autoBox.addView(orSwitchRow("Automation — external control & 保存復元 backups", AutomationPrefs.isEnabled(ctx)) {
+            AutomationPrefs.setEnabled(ctx, it)
+        })
+        autoBox.addView(orMini("Secret token — tap to copy"))
+        val tokenTv = TextView(ctx).apply {
+            text = AutomationPrefs.getToken(ctx)
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            typeface = android.graphics.Typeface.MONOSPACE
+            setPadding(0, dp(2f), 0, dp(2f))
+            setOnClickListener {
+                val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("Jami automation token", AutomationPrefs.getToken(ctx)))
+                Flash.show(ctx, "Token copied")
+            }
+        }
+        autoBox.addView(tokenTv)
+        autoBox.addView(orTapRow("Regenerate token") {
+            tokenTv.text = AutomationPrefs.regenerateToken(ctx)
+            Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
+        })
+        autoBox.addView(orTapRow("Automation details & usage  ⓘ") {
+            (parentFragment as? SettingsFragment)?.goToAutomationSettings()
+        })
+        c.addView(autoBox)
         refreshEximPageStatus()
     }
 
@@ -797,42 +831,10 @@ class FontsSettingsFragment : Fragment() {
         var meta: org.json.JSONObject? = null
         var notes = ""
         if (SettingsExport.Cat.ACCOUNTS in cats) {
-            val (a, m, n) = collectAccountArchives(app)
+            val (a, m, n) = SettingsExport.collectAccountArchives(app, mAccountService)
             archives = a; meta = m; notes = n
         }
         return SettingsExport.export(app, cats, archives, meta) to notes
-    }
-
-    /** Exports every password-less Jami account to an archive via the daemon (blocking — call on a
-     *  background thread). Password-protected archives can't be exported silently → noted, skipped. */
-    private fun collectAccountArchives(
-        app: android.content.Context
-    ): Triple<Map<String, ByteArray>, org.json.JSONObject, String> {
-        val out = LinkedHashMap<String, ByteArray>()
-        val meta = org.json.JSONObject()
-        val notes = StringBuilder()
-        val cacheDir = java.io.File(app.cacheDir, "eximport").apply { mkdirs() }
-        for (a in mAccountService.getAccounts().filter { it.isJami }) {
-            val label = a.registeredName.ifBlank { a.alias.orEmpty() }.ifBlank { a.accountId.take(8) }
-            if (a.hasPassword()) {
-                notes.append("\n$label: archive has a password — not included.")
-                continue
-            }
-            val f = java.io.File(cacheDir, "${a.accountId}.gz")
-            try {
-                mAccountService.exportToFile(a.accountId, f.absolutePath, "", "").blockingAwait()
-                out[a.accountId] = f.readBytes()
-                meta.put(a.accountId, org.json.JSONObject()
-                    .put("uri", a.username ?: "")
-                    .put("alias", a.alias ?: "")
-                    .put("registeredName", a.registeredName))
-            } catch (e: Exception) {
-                notes.append("\n$label: export failed — ${e.message}")
-            } finally {
-                f.delete()
-            }
-        }
-        return Triple(out, meta, notes.toString())
     }
 
     /** Restores accounts/<id>.gz archives via the daemon; identities already on this device are
