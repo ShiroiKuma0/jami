@@ -26,7 +26,11 @@ object SettingsExport {
 
     const val FORMAT = "shiroikuma-jami-export"
     const val VERSION = 1
-    const val EXPORT_PREFIX = "shiroikuma-jami-"
+
+    /** Filename stem: english-dash-separated app name, no version (白い熊, 2026-07-25) —
+     *  `shiroikuma-jami_2026-07-25_18-58-23.zip`. Kept WITHOUT the trailing separator so the
+     *  latest-export scan still matches the older `shiroikuma-jami-export_*` files too. */
+    const val EXPORT_PREFIX = "shiroikuma-jami"
 
     /** Device-local prefs holding the export-directory URI; deliberately never exported. */
     private const val EXIM_PREFS = "shiroikuma_eximport"
@@ -65,13 +69,15 @@ object SettingsExport {
         Cat.COLORS -> mapOf(P_COLORS to null)
         Cat.UI -> mapOf(P_UI to { k: String -> k in UI_KEYS })
         Cat.RECOVERY -> mapOf(P_UI to { k: String -> k in RECOVERY_KEYS })
-        Cat.AUTOMATION -> mapOf(P_AUTOMATION to null, P_PROTECTED to null)
+        // The automation token must NEVER travel in a backup ZIP (保存復元 contract §2) — it is a
+        // live credential; a restored backup regenerates one lazily. Everything else exports.
+        Cat.AUTOMATION -> mapOf(P_AUTOMATION to { k: String -> k != "token" }, P_PROTECTED to null)
         Cat.APP -> mapOf(P_APP to null, P_VIDEO to null)
     }
 
     // --- export -------------------------------------------------------------------------------
 
-    fun exportFileName(): String = EXPORT_PREFIX + "export_" +
+    fun exportFileName(): String = EXPORT_PREFIX + "_" +
             SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.ROOT).format(Date()) + ".zip"
 
     /** Builds the export zip for the given categories. Account archives (collected by the caller —
@@ -252,6 +258,42 @@ object SettingsExport {
             }
         }
         return out
+    }
+
+    // --- account-archive collection (shared by the Export/Import panel and the headless
+    //     保存復元 StateExportReceiver — the ZIP engine must have exactly one implementation) ----
+
+    /** Exports every password-less Jami account to an archive via the daemon (blocking — call on a
+     *  background thread). Password-protected archives can't be exported silently → noted, skipped.
+     *  Returns (accountId → archive bytes, accounts meta, human notes). */
+    fun collectAccountArchives(
+        app: Context, accountService: net.jami.services.AccountService
+    ): Triple<Map<String, ByteArray>, JSONObject, String> {
+        val out = LinkedHashMap<String, ByteArray>()
+        val meta = JSONObject()
+        val notes = StringBuilder()
+        val cacheDir = java.io.File(app.cacheDir, "eximport").apply { mkdirs() }
+        for (a in accountService.getAccounts().filter { it.isJami }) {
+            val label = a.registeredName.ifBlank { a.alias.orEmpty() }.ifBlank { a.accountId.take(8) }
+            if (a.hasPassword()) {
+                notes.append("\n$label: archive has a password — not included.")
+                continue
+            }
+            val f = java.io.File(cacheDir, "${a.accountId}.gz")
+            try {
+                accountService.exportToFile(a.accountId, f.absolutePath, "", "").blockingAwait()
+                out[a.accountId] = f.readBytes()
+                meta.put(a.accountId, JSONObject()
+                    .put("uri", a.username ?: "")
+                    .put("alias", a.alias ?: "")
+                    .put("registeredName", a.registeredName))
+            } catch (e: Exception) {
+                notes.append("\n$label: export failed — ${e.message}")
+            } finally {
+                f.delete()
+            }
+        }
+        return Triple(out, meta, notes.toString())
     }
 
     // --- export directory + latest-export probe ----------------------------------------------

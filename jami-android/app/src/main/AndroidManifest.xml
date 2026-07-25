@@ -248,6 +248,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </intent-filter>
         </receiver>
 
+        <!-- 保存復元 batch-backup contract (自由作業盤): token-gated, no android:permission —
+             the caller cannot hold one; AutomationPrefs' token is the gate. -->
+        <receiver
+            android:name=".receivers.StateExportReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="${applicationId}.action.EXPORT_STATE" />
+                <action android:name="${applicationId}.action.LIST_CATEGORIES" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".service.CallNotificationService"
             android:description="@string/call_service_description"
