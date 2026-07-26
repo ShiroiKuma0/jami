@@ -369,6 +369,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:theme="@style/AppTheme.Fullscreen"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Launcher "Add shortcut" picker (shiroikuma fork): account → contact → chat or call,
+             handed back to the launcher as a pinned shortcut with a badged avatar icon. Also
+             reachable in-app from the search-bar overflow, which pins it directly. -->
+        <activity
+            android:name=".client.ShortcutPickerActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:theme="@style/AppTheme.ShortcutPicker">
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Target of every home-screen shortcut we create. Exported because a legacy launcher item
+             is started with a plain startActivity from the launcher's own uid; token-gated at
+             runtime via ShortcutPrefs. Deliberately NOT a launcher activity — Lightning Launcher
+             repaints the icon of any item whose component is a MAIN/LAUNCHER activity of an updated
+             package, which is what corrupted the chat shortcut's icon on every app update. -->
+        <activity
+            android:name=".client.ShortcutLaunchActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Exported, headless entry point for external automation (Tasker / OpenTasker / am).
              Token-gated at runtime via AutomationPrefs; see AutomationActivity. -->
         <activity
