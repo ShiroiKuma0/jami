@@ -75,6 +75,7 @@
     <string name="notif_stuck_hard">配信詰まり継続 → ハードリセット (%s)</string>
     <string name="notif_stuck_giveup">配信不能 (%1$s) — 回復を %2$d 分停止</string>
     <string name="notif_restricted">制限ネットワーク検出（UDP遮断）→ プロキシ固定ON・中継モード (%s)</string>
+    <string name="notif_transport_hostile">UDP遮断を検出（TCPは可）— このネットワークではDHTプロキシを推奨 (%s)</string>
     <string name="notif_network_down">ネットワーク切断の可能性 — 接続を確認してください (%s)</string>
     <string name="notif_restricted_exit">通常ネットワーク復帰 — UDP開通 (%s)</string>
     <string name="notif_uniform_wedge">全アカウント沈黙・プローブ無応答 → 回復します (%s)</string>
