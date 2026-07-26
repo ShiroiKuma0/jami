@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — launcher shortcut picker strings. English is the default (base) locale;
+     values-ja and values-cs carry Japanese and Czech. Any other app language falls back to this file. -->
+<resources>
+    <!-- Picker steps -->
+    <string name="shortcut_pick_account">Select an account</string>
+    <string name="shortcut_pick_contact">Select a contact</string>
+    <string name="shortcut_pick_kind">Shortcut type</string>
+    <string name="shortcut_kind_chat">Open the chat</string>
+    <string name="shortcut_kind_call">Place a call</string>
+    <string name="shortcut_pick_search">Search</string>
+
+    <!-- Entry point in the search-bar overflow menu -->
+    <string name="shortcut_create">Create a shortcut</string>
+
+    <!-- Shortcut long labels (the short label is the contact name alone) -->
+    <string name="shortcut_label_chat">Chat with %1$s</string>
+    <string name="shortcut_label_call">Call %1$s</string>
+
+    <!-- Failures -->
+    <string name="shortcut_error_accounts">Could not load the accounts</string>
+    <string name="shortcut_error_conversations">Could not load the conversations</string>
+    <string name="shortcut_error_empty">This account has no conversations</string>
+    <string name="shortcut_error_unsupported">This launcher cannot pin shortcuts</string>
+</resources>

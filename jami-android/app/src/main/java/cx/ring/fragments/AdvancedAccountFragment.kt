@@ -146,9 +146,19 @@ class AdvancedAccountFragment : BasePreferenceFragment<AdvancedAccountPresenter>
 
     override fun updateVolatileDetails(details: AccountConfig) {
         val used = details[ConfigKey.PROXY_SERVER]
-        findPreference<TwoStatePreference>(ConfigKey.PROXY_ENABLED.key)?.summaryOn =
+        val pref = findPreference<TwoStatePreference>(ConfigKey.PROXY_ENABLED.key)
+        pref?.summaryOn =
             if (used.isBlank()) ""
             else getString(R.string.account_proxy_server_used, details[ConfigKey.PROXY_SERVER])
+        // This switch shows the DAEMON's state while the search-bar hexagon shows the chosen mode;
+        // the watchdog can hold the proxy off underneath a "proxy" preference, and the switch then
+        // reads "off" with no hint why (2026-07-26). Say so instead of looking broken.
+        cx.ring.utils.ConnectionWatchdog.proxyForcedOffReason()?.let { reason ->
+            pref?.summaryOff = getString(
+                if (reason == cx.ring.utils.ConnectionWatchdog.REASON_CHARGING)
+                    R.string.proxy_held_off_charging
+                else R.string.proxy_held_off_wedge)
+        }
     }
 
     override fun refreshView(config: AccountConfig) {

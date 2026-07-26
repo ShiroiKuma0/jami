@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — data-meter UI, shared by the Connection monitor's "Data" dialog and
+     Settings → UI fonts & colours → Online recovery. English is the default (base) locale;
+     values-ja and values-cs carry Japanese and Czech. -->
+<resources>
+    <string name="data_meter_title">Data</string>
+    <string name="data_meter_measuring">Measuring: %1$s</string>
+    <string name="data_meter_idle">No measurement running.</string>
+    <string name="data_meter_start">▶  Start measuring</string>
+    <string name="data_meter_stop">■  Stop and save</string>
+    <string name="data_meter_sessions">Saved measurements…</string>
+    <string name="data_meter_sessions_title">Data measurements</string>
+    <string name="data_meter_recording">Recording automatically · window %1$s</string>
+    <string name="data_meter_not_recording">NOT recording automatically</string>
+    <string name="data_meter_empty">(nothing recorded yet)</string>
+    <string name="data_meter_close">Close</string>
+    <string name="data_meter_clear">Clear</string>
+    <string name="data_meter_tip">Live data measurement and the usage logs</string>
+</resources>
