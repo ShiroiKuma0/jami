@@ -75,6 +75,7 @@
     <string name="notif_stuck_hard">Doručení stále vázne → tvrdý reset (%s)</string>
     <string name="notif_stuck_giveup">Doručení selhává (%1$s) — obnova pozastavena na %2$d min</string>
     <string name="notif_restricted">Omezená síť (UDP blokováno) → proxy pevně ZAP, přenos přes relé (%s)</string>
+    <string name="notif_transport_hostile">UDP blokováno, TCP funguje — pro tuto síť doporučena DHT proxy (%s)</string>
     <string name="notif_network_down">Síť je zřejmě nedostupná — zkontrolujte připojení (%s)</string>
     <string name="notif_restricted_exit">Běžná síť obnovena — UDP průchozí (%s)</string>
     <string name="notif_uniform_wedge">Všechny účty tiché a sonda bez odpovědi → obnovuji (%s)</string>

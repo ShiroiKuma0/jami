@@ -103,6 +103,7 @@ object ConnectionWatchdog {
     private const val RESTRICTED_RETEST_MS = 2 * 60_000L   // re-test UDP egress this often while restricted
     private const val RESTRICTED_EXIT_PASSES = 2           // consecutive UDP passes required to exit (flap damping)
     private const val DIAG_THROTTLE_MS = 10 * 60_000L      // at most one transport diagnosis per this window
+    private const val TRANSPORT_PROBE_THROTTLE_MS = 2 * 60_000L // min spacing for network-change transport probes
     private const val PUSH_PROBE_THROTTLE_MS = 10 * 60_000L // at most one push (ntfy) self-test per this window
     private const val PUSH_PROBE_PERIODIC_MS = 30 * 60_000L // standing cadence in proxy mode (~48 msgs/day worst case)
     private const val PUSH_ENDPOINT_GRACE_MS = 5 * 60_000L  // no push verdict while the distributor may still be registering
@@ -121,6 +122,8 @@ object ConnectionWatchdog {
     @Volatile private var ledgerHealed = false              // interrupted-re-register healing done this process
     @Volatile private var lastDiagMs = 0L
     @Volatile private var restrictedPasses = 0
+    @Volatile private var lastTransportProbeMs = 0L
+    @Volatile private var advisedHostile = false   // notify on the transition into hostility, not every probe
     @Volatile private var retestScheduled = false
 
     // Wedge-recovery ledger: never recover twice for the SAME unchanged stuck evidence.
@@ -715,6 +718,30 @@ object ConnectionWatchdog {
      *  confirmed deafness). Runs the two-second egress diagnosis on a background thread:
      *  UDP blocked while TCP works = the hostile-network trap → enter restricted mode.
      *  Throttled; no-op when already restricted. */
+    /** Probe transport egress after a NETWORK CHANGE — the only moment hostility can actually change.
+     *  A timer would be the wrong trigger: on a stable network the answer never moves, and on a new
+     *  one it moves immediately. Advisory ONLY: it records the verdict for the monitor's Transport
+     *  row and notifies on a transition into hostility, but never switches mode. Mode stays a manual
+     *  act on the hexagon, except for the genuine emergency path in [enterRestricted].
+     *
+     *  Costs one STUN datagram pair and one TCP connect, throttled — negligible, but not free, so it
+     *  does not run on an unchanged network. */
+    fun onNetworkChanged(c: Context) {
+        val t = now()
+        if (t - lastTransportProbeMs < TRANSPORT_PROBE_THROTTLE_MS) return
+        lastTransportProbeMs = t
+        val app = c.applicationContext
+        NetProbe.refreshAsync({ r -> handler.post(r) }) { v ->
+            log(app, "transport probe (network change): UDP=${if (v.udp) "ok" else "BLOCKED"} TCP=${if (v.tcp) "ok" else "BLOCKED"}")
+            val hostile = v.transport == NetProbe.Transport.HOSTILE
+            // Notify only on the TRANSITION into hostility, and never while restricted mode is
+            // already engaged — that path posts its own, more specific notification.
+            if (hostile && !advisedHostile && !UiPrefs.isRestrictedNet(app))
+                notifyUser(app, app.getString(cx.ring.R.string.notif_transport_hostile, stamp()))
+            advisedHostile = hostile
+        }
+    }
+
     fun maybeDiagnoseTransport(c: Context, accounts: AccountService, reason: String) {
         val t = now()
         if (UiPrefs.isRestrictedNet(c)) return
@@ -723,6 +750,7 @@ object ConnectionWatchdog {
         Thread({
             val udp = NetProbe.udpWorks()
             val tcp = NetProbe.tcpWorks()
+            NetProbe.record(udp, tcp)   // feed the monitor's Transport row — don't discard the result
             handler.post {
                 log(c, "transport diagnosis ($reason): UDP=${if (udp) "ok" else "BLOCKED"} TCP=${if (tcp) "ok" else "BLOCKED"}")
                 when {
