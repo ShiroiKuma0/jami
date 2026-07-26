@@ -32,6 +32,7 @@
     <locale android:name="en-CA" />
     <locale android:name="zh-TW" />
     <locale android:name="it-IT" />
+    <locale android:name="ja-JP" />
     <locale android:name="de-DE" />
     <locale android:name="en-GB" />
     <locale android:name="ko-KR" />
