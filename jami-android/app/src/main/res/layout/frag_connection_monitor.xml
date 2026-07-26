@@ -68,6 +68,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             app:strokeColor="#FFFFFF00" />
     </LinearLayout>
 
+    <!-- Transport verdict (2026-07-26): UDP/TCP egress test. Its own row rather than a header
+         button, because a colour alone cannot say "switch to proxy" — the text is the point.
+         Tap re-tests; long-press explains. Mode switching stays solely on the top-bar hexagon. -->
+    <TextView
+        android:id="@+id/transport_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:textColor="#FFFFFF00"
+        android:textSize="@dimen/text_size_small"
+        android:background="?attr/selectableItemBackground"
+        tools:text="Transport:  UDP ✓  TCP ✓  — full DHT viable" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/connection_list"
         android:layout_width="match_parent"
