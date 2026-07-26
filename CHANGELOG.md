@@ -1,6 +1,73 @@
-# 白い熊 GNU Jami — `20260717-01+86`
+# 白い熊 GNU Jami — `20260717-01+91`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## DHT data-efficiency root fix, transport hostility indicator, unattended data log (new in +87–+91)
+
+**The 2026-07-26 root-cause batch.** After the +78–+86 work the data burn had fallen but refused to
+decay past ~118 MiB/h, and idle CPU sat far above where it belonged. Decoding every value the four
+accounts held on the DHT found the real cause — and it was an **upstream bug**, not a fork one.
+
+- **The account key was a landfill of revocation lists.** On every account registration the daemon
+  republished **every CRL it had ever pinned** — not just the current one. One account key carried
+  **266 values / 274 KB: 35 distinct CRLs spanning Oct 2024 → Jul 2026**, each stored 8 times over.
+  Three facts compounded: the whole history is republished (and the receive side pins every CRL it
+  hears, so the set only grows); each put builds a `dht::Value` with an unset id, which opendht then
+  fills with a **random** one, so a re-put *adds a copy* instead of replacing; and the puts are
+  **permanent**, so all of it is re-announced to the ~8 closest nodes every 10 minutes forever. That
+  is why it plateaued instead of decaying. The put side alone came to ~30 MB/h across four accounts
+  before any listen traffic.
+- **Fixed at the root** (`patches/jami-publish-current-crl-only.patch`): publish only the newest CRL,
+  selected by `getUpdateTime()`, under a **content-derived value id** so re-registration overwrites
+  instead of accumulating. Proven safe first — the CRLs are strictly cumulative, and the newest lists
+  **8 revoked serials, exactly the union of all 35**, so no revocation is lost. The post-revocation
+  announce got the same treatment.
+- **The device announcement had the identical defect**, leaving one orphaned copy per daemon run
+  (12 copies of a single announcement measured on one key). Now pinned to an id derived from
+  `getToSign()` — the very blob `checkSignature()` verifies, which does **not** include the id, so a
+  stable id cannot invalidate a signature.
+- **Measured result: 661 values / 611 KB → 9 values / 7.4 KB** across the four accounts — three of
+  them at the theoretical floor of one CRL plus one announcement, one copy each. Idle CPU roughly
+  halved alongside it, settling at ~16.5 % of one core (~2 % of an 8-core device) with the screen off.
+- **This is the daemon's own source**, not a contrib package — the first such patch in the fork. A
+  complete, submittable upstream report ships in `patches/UPSTREAM-REPORT-crl-landfill.md`.
+
+**Transport hostility, surfaced at last.** The UDP/TCP egress probe had existed since the
+restricted-network work, but ran only *reactively* — after a recovery had already failed, throttled
+to once per 10 minutes — and its answer went nowhere but the recovery log.
+
+- **A Transport row in the connection monitor** shows the live verdict with **its age**:
+  `UDP ✓ TCP ✓ — full DHT viable`, or in red `UDP ✗ TCP ✓ — hostile network, DHT proxy advised`, or
+  `no egress at all`. **Tap re-tests, long-press explains.** A stale reading is never shown as live.
+- **It probes on network change**, from the existing debounced settle path — the only moment
+  hostility can actually change, and after flapping stops rather than during it.
+- **Advisory notification** on the transition into hostility (in English, Japanese and Czech),
+  suppressed while restricted mode is already engaged since that path posts its own.
+- **Strictly advisory: it never switches mode.** The top-bar hexagon remains the one and only control
+  that changes DHT mode.
+
+**Monitor help page audited and corrected.** It had described *NOT SYNCING* as "registered but
+isolated >2.5 min" when the classifier actually raises it on an outgoing message unacknowledged for
+90 s, and it **omitted the DEAF / "NOT RECEIVING" state entirely** — the probe-verified verdict added
+in the metric redesign. All five health states now mirror the classifier exactly, in its priority
+order. A new **Transport** section explains, prominently, the one case where DHT proxy is clearly
+right: the full DHT rides UDP, so a UDP-blocking network (hotel, café, campus, corporate Wi-Fi, some
+carriers) breaks it completely while the proxy keeps working over TCP.
+
+**Unattended data-usage log.** The manual measurement session needed a human at both ends; comparing
+a mode change across a night needs neither.
+
+- **One line per window**, appended from the watchdog's existing ~1-minute tick — no alarm, no
+  worker, no extra wakeups.
+- **Switchable** (default on) with explicit `— sampling started —` / `— sampling stopped —` markers,
+  so a gap in the history can never be mistaken for a crash or a dead app.
+- **Settable window, 1 minute to 6 hours**, via a slider with a live lines-per-day readout. Windows
+  land on the check tick and say so — that tick is the sampling clock.
+- Readable from a new **Data** button in the connection monitor, and from Online recovery in settings.
+
+**日本語 in the app language picker.** `locales_config.xml` listed 43 locales without `ja`, so the
+370 Japanese strings that already shipped were unreachable from the in-app picker — only by setting
+the whole phone to Japanese. Czech was already present and complete.
 
 ## Data-runaway & false-wedge overhaul, 保存復元 automation, data meter (new in +78–+86)
 
