@@ -132,6 +132,10 @@ class FontsSettingsFragment : Fragment() {
                 ColorRole("Text", ColorPrefs.INFO_PILL_TEXT),
                 ColorRole("Border", ColorPrefs.INFO_PILL_BORDER),
                 ColorRole("Fill", ColorPrefs.INFO_PILL_FILL))))),
+        Group("Launcher shortcuts", listOf(
+            Element("Chat / call badge (applies to newly created shortcuts)", null, listOf(
+                ColorRole("Glyph + ring", ColorPrefs.SHORTCUT_ICON),
+                ColorRole("Glyph outline", ColorPrefs.SHORTCUT_FILL))))),
     )
 
     private val yellow = 0xFFFFFF00.toInt()
@@ -363,21 +367,9 @@ class FontsSettingsFragment : Fragment() {
     /** Shared renderer for both data logs — the manual session history and the unattended hourly
      *  log. Same themed scroll dialog, same newest-first order, same Clear. */
     private fun showDataHistory(f: java.io.File, title: String) {
-        val ctx = context ?: return
-        val text = runCatching { f.readText().trim() }.getOrDefault("")
-            .ifEmpty { "(no measurements yet)" }
-            .lines().reversed().joinToString("\n\n")   // newest first, blank line between records
-        val tv = TextView(ctx).apply {
-            this.text = text; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(dp(20f), dp(12f), dp(20f), dp(12f)); setTextIsSelectable(true)
-        }
-        val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle(title)
-            .setView(scroll)
-            .setPositiveButton("Close", null)
-            .setNegativeButton("Clear") { _, _ -> runCatching { f.delete() } }
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+        // Shared with the Connection monitor's "Data" dialog (2026-07-26) so the two pages can
+        // never render the same log differently.
+        context?.let { cx.ring.utils.DataMeterUi.showHistory(it, f, title) }
     }
 
     private fun orTapRow(text: String, onClick: () -> Unit): View = TextView(requireContext()).apply {

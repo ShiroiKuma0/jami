@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="data_meter_title">データ</string>
+    <string name="data_meter_measuring">計測中：%1$s</string>
+    <string name="data_meter_idle">計測していません。</string>
+    <string name="data_meter_start">▶  計測を開始</string>
+    <string name="data_meter_stop">■  停止して保存</string>
+    <string name="data_meter_sessions">保存した計測…</string>
+    <string name="data_meter_sessions_title">データ計測</string>
+    <string name="data_meter_recording">自動記録中・窓 %1$s</string>
+    <string name="data_meter_not_recording">自動記録していません</string>
+    <string name="data_meter_empty">（まだ記録がありません）</string>
+    <string name="data_meter_close">閉じる</string>
+    <string name="data_meter_clear">消去</string>
+    <string name="data_meter_tip">データ使用量の計測と記録</string>
+</resources>

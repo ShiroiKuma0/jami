@@ -65,6 +65,11 @@ object ColorPrefs {
     const val MENU_TEXT = "menu_text"
     const val MENU_FILL = "menu_fill"
     const val MENU_BORDER = "menu_border"
+    // Launcher shortcuts: the chat/phone trace drawn over the contact avatar — SHORTCUT_ICON is
+    // the glyph itself plus the Jami badge's hairline ring, SHORTCUT_FILL the thin rim behind the
+    // glyph that keeps it readable on a light photo. Baked into the icon bitmap at creation time.
+    const val SHORTCUT_ICON = "shortcut_icon"
+    const val SHORTCUT_FILL = "shortcut_fill"
 
     private const val PREFS = "shiroikuma_colors"
     private const val YELLOW = 0xFFFFFF00.toInt()
@@ -79,7 +84,7 @@ object ColorPrefs {
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
-        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL -> BLACK
+        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL, SHORTCUT_FILL -> BLACK
         CALL_TEXT, CALL_BORDER -> GREEN   // call-event pill: black fill, green text + border (settable)
         INFO_HEADING -> 0xFFFFFFFF.toInt()   // help-page section headings — white (readable on black; #0000FF was not)
         STATUS_SENDING, STATUS_SUCCESS -> ContextCompat.getColor(c, R.color.grey_500)

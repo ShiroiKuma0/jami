@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Picker steps -->
+    <string name="shortcut_pick_account">アカウントを選択</string>
+    <string name="shortcut_pick_contact">連絡先を選択</string>
+    <string name="shortcut_pick_kind">ショートカットの種類</string>
+    <string name="shortcut_kind_chat">チャットを開く</string>
+    <string name="shortcut_kind_call">通話をかける</string>
+    <string name="shortcut_pick_search">検索</string>
+
+    <!-- Entry point in the search-bar overflow menu -->
+    <string name="shortcut_create">ショートカットを作成</string>
+
+    <!-- Shortcut long labels (the short label is the contact name alone) -->
+    <string name="shortcut_label_chat">%1$s とチャット</string>
+    <string name="shortcut_label_call">%1$s に通話</string>
+
+    <!-- Failures -->
+    <string name="shortcut_error_accounts">アカウントを読み込めませんでした</string>
+    <string name="shortcut_error_conversations">会話を読み込めませんでした</string>
+    <string name="shortcut_error_empty">このアカウントには会話がありません</string>
+    <string name="shortcut_error_unsupported">このランチャーはショートカットの固定に対応していません</string>
+</resources>
