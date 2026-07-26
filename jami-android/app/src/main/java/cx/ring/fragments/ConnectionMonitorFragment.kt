@@ -51,6 +51,7 @@ import cx.ring.utils.ConnectionHealth
 import cx.ring.utils.ConnectionHealth.Health
 import cx.ring.utils.DialogTheme
 import cx.ring.utils.Flash
+import cx.ring.utils.NetProbe
 import cx.ring.views.AvatarDrawable
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -125,6 +126,15 @@ class ConnectionMonitorFragment: Fragment() {
             // New control (2026-07-26) — the unattended data-usage log, where it is actually looked
             // for. Deliberately a NEW button: `help` and `reconnect` keep their existing actions.
             dataLog.setOnClickListener { showDataLogDialog() }
+            transportView = transportRow
+            transportRow.setOnClickListener { probeTransport() }
+            transportRow.setOnLongClickListener { showTransportDialog(); true }
+            renderTransport()
+            // Probe on open only when the cached verdict is stale — reopening the screen every
+            // minute shouldn't re-test a network that hasn't changed.
+            NetProbe.lastVerdict().let { v ->
+                if (v == null || System.currentTimeMillis() - v.atMs > TRANSPORT_STALE_MS) probeTransport()
+            }
             reconnect.setOnClickListener {
                 service.forceReconnectAllAccounts()
                 Flash.show(context, "Reconnecting all accounts…")
@@ -493,6 +503,93 @@ class ConnectionMonitorFragment: Fragment() {
         (list?.adapter as? ConnectionAdapter)?.setData(rows)
     }
 
+    // ---- Transport row (2026-07-26) ----
+    /** A cached verdict older than this is re-tested when the screen opens. */
+    private val TRANSPORT_STALE_MS = 10 * 60_000L
+    private var transportView: TextView? = null
+    private var transportProbing = false
+    // Not view?.post(): the first probe is kicked off from onCreateView, where the fragment's view
+    // is still null, and the completion callback would be silently dropped.
+    private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private fun ageLabel(ms: Long): String {
+        val s = ms / 1000
+        return when {
+            s < 60 -> "just now"
+            s < 3600 -> "${s / 60} min ago"
+            else -> "${s / 3600} h ago"
+        }
+    }
+
+    /** Render the cached verdict. Always states its AGE — a stale reading presented as live is
+     *  exactly what misleads during an incident. */
+    private fun renderTransport() {
+        val tv = transportView ?: return
+        val ctx = context ?: return
+        if (transportProbing) {
+            tv.text = "Transport:  testing…"
+            tv.setTextColor(ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTING))
+            return
+        }
+        val v = NetProbe.lastVerdict()
+        if (v == null) {
+            tv.text = "Transport:  not tested yet — tap to test"
+            tv.setTextColor(ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE))
+            return
+        }
+        val udp = if (v.udp) "UDP ✓" else "UDP ✗"
+        val tcp = if (v.tcp) "TCP ✓" else "TCP ✗"
+        val (verdict, color) = when (v.transport) {
+            NetProbe.Transport.OK ->
+                "full DHT viable" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_HEALTHY)
+            NetProbe.Transport.HOSTILE ->
+                "hostile network — DHT proxy advised" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
+            NetProbe.Transport.DEAD ->
+                "no egress at all" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
+            else -> "unknown" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
+        }
+        tv.text = "Transport:  $udp  $tcp  — $verdict\n${ageLabel(System.currentTimeMillis() - v.atMs)} · tap to re-test, hold for detail"
+        tv.setTextColor(color)
+    }
+
+    /** Re-run the egress test. Blocking work goes to NetProbe's own thread; only the render is here. */
+    private fun probeTransport() {
+        if (transportProbing) return
+        transportProbing = true
+        renderTransport()
+        NetProbe.refreshAsync({ r -> uiHandler.post(r) }) {
+            transportProbing = false
+            if (isAdded) renderTransport()
+        }
+    }
+
+    private fun showTransportDialog() {
+        val ctx = context ?: return
+        val v = NetProbe.lastVerdict()
+        val state = when (v?.transport) {
+            NetProbe.Transport.OK -> "Right now: UDP is getting out, so the full DHT works here."
+            NetProbe.Transport.HOSTILE -> "Right now: UDP is blocked but TCP works. This is the case where DHT proxy is clearly right — the full DHT cannot function on this network."
+            NetProbe.Transport.DEAD -> "Right now: neither UDP nor TCP is getting out. That is not a DHT-mode problem — the network itself is unusable."
+            else -> "Not tested yet."
+        }
+        val body = state + "\n\n" +
+            "What is tested: one STUN binding request over plain UDP, and one bare TCP connect, both to Jami's TURN server. No Jami traffic; nothing a contact can see.\n\n" +
+            "Why it matters: the full DHT rides UDP. Networks that block UDP — many hotel, café, campus and corporate Wi-Fi networks, and some carriers — break it completely, while DHT proxy keeps working over TCP.\n\n" +
+            "Where UDP is fine, full DHT is the better default: no proxy server to depend on, nothing central seeing your subscriptions.\n\n" +
+            "This screen only measures and advises. Switching modes is always the hexagon in the top bar."
+        val tv = TextView(ctx).apply {
+            text = body; setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            val p = (16 * ctx.resources.displayMetrics.density).toInt()
+            setPadding(p, p, p, p); setTextIsSelectable(true)
+        }
+        DialogTheme.builder(ctx)
+            .setTitle("Transport test")
+            .setView(android.widget.ScrollView(ctx).apply { addView(tv) })
+            .setPositiveButton("Close", null)
+            .setNegativeButton("Test again") { _, _ -> probeTransport() }
+            .show().let { DialogTheme.theme(it, ctx) }
+    }
+
     /** The unattended data-usage log, newest window first. Read-only here — the switch and the
      *  window length live in Settings → UI fonts & colors → Online recovery, next to the manual
      *  measurement session they belong with. */
@@ -554,16 +651,28 @@ class ConnectionMonitorFragment: Fragment() {
             layoutParams = LinearLayout.LayoutParams((30 * d).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
                 .apply { marginEnd = (14 * d).toInt() }
         }
+        // Plain full-width paragraph (no badge column) — for explanation rather than a legend entry.
+        fun para(t: String, emphasis: Boolean = false) = root.addView(TextView(ctx).apply {
+            text = t
+            setTextColor(if (emphasis) YELLOW else 0xFFFFFFFF.toInt())
+            if (emphasis) setTypeface(typeface, Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (emphasis) 15f else 14f)
+            setPadding(0, (6 * d).toInt(), 0, (6 * d).toInt())
+        })
         val cHealthy = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_HEALTHY)
         val cConnecting = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTING)
         val cProblem = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
         val cConnected = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTED)
         val cIdle = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
         val cOffline = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_OFFLINE)
+        // Wording mirrors ConnectionHealth.classify() exactly — priority OFFLINE → DEAF →
+        // NOT_SYNCING → CONNECTING → HEALTHY. Keep these in step if the classifier changes.
         header("Account health")
-        row(dot(cHealthy), "Healthy — registered & syncing")
-        row(dot(cConnecting), "Connecting — establishing (transient)")
-        row(dot(cProblem), "OFFLINE (not registered) or NOT SYNCING (registered but isolated >2.5 min)")
+        row(dot(cHealthy), "Healthy — registered, and nothing says otherwise")
+        row(dot(cConnecting), "Connecting — a link is being established, or a verification probe is in flight. In progress, never itself a fault")
+        row(dot(cProblem), "NOT RECEIVING — a silent presence probe went unanswered for 60 s. This is verified deafness, not merely a quiet phone")
+        row(dot(cProblem), "NOT SYNCING — an outgoing message has gone unacknowledged for 90 s while the peer is reachable")
+        row(dot(cProblem), "OFFLINE — the account is not registered at all")
         header("Each contact (full list)")
         row(dot(cConnected), "Connected or reachable — messages will get through")
         row(dot(cIdle), "Connecting — a link is being established")
@@ -572,12 +681,18 @@ class ConnectionMonitorFragment: Fragment() {
         row(icon(R.drawable.baseline_radar_24, cIdle), "Radar — looking up the peer / waiting")
         row(icon(R.drawable.p2p_24, cIdle), "Two phones — ICE: finding a direct path")
         row(icon(R.drawable.baseline_private_connectivity_24, cConnected), "Shield — secured (TLS) & connected")
+        header("Transport — and when DHT proxy is worth it")
+        para("The Transport row at the top of this screen tests two things: whether UDP can leave this network, and whether TCP can. Tap it to re-test, hold it for detail.")
+        para("⚠  UDP blocked, TCP working = the one case where DHT proxy is clearly the right mode.", emphasis = true)
+        para("The full DHT is carried over UDP. On a network that blocks UDP — many hotel, café, campus and corporate Wi-Fi networks, and some mobile carriers — the full DHT simply cannot work, no matter how healthy everything else looks. The DHT proxy reaches its server over TCP instead, so it keeps working exactly where the full DHT dies. This is the strongest reason to switch modes.")
+        para("When UDP is fine, the full DHT is the better default: no dependency on a proxy server, nothing central seeing your subscriptions, and no proxy outage can become your outage.")
+        para("Switching modes is always the hexagon in the top bar. This screen only measures and advises — it never changes the mode behind your back.")
         header("Note")
         row(TextView(ctx).apply {
             text = "ⓘ"; setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams((30 * d).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
                 .apply { marginEnd = (14 * d).toInt() }
-        }, "Every contact is listed with its status. Connections constantly open & close — that's normal swarm sync, not a fault. Tap a contact to test/wake its link; tap a device row for its IDs.")
+        }, "Every contact is listed with its status. Connections constantly open & close — that's normal swarm sync, not a fault. Tap a contact to test/wake its link; tap a device row for its IDs. The Data button shows recorded data usage per window.")
         val scroll = android.widget.ScrollView(ctx).apply { addView(root) }
         DialogTheme.builder(ctx)
             .setTitle("What this means")

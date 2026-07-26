@@ -77,6 +77,7 @@
     <string name="notif_stuck_hard">Delivery still stuck → hard reset (%s)</string>
     <string name="notif_stuck_giveup">Delivery failing (%1$s) — pausing recovery %2$d min</string>
     <string name="notif_restricted">Restricted network (UDP blocked) → proxy pinned ON, relay mode (%s)</string>
+    <string name="notif_transport_hostile">UDP blocked, TCP alive — DHT proxy advised for this network (%s)</string>
     <string name="notif_network_down">Network appears down — check your connection (%s)</string>
     <string name="notif_restricted_exit">Normal network restored — UDP open (%s)</string>
     <string name="notif_uniform_wedge">All accounts silent and probe unanswered → recovering (%s)</string>
