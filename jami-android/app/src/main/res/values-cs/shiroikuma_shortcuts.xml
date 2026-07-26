@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Picker steps -->
+    <string name="shortcut_pick_account">Vyberte účet</string>
+    <string name="shortcut_pick_contact">Vyberte kontakt</string>
+    <string name="shortcut_pick_kind">Typ zástupce</string>
+    <string name="shortcut_kind_chat">Otevřít konverzaci</string>
+    <string name="shortcut_kind_call">Zavolat</string>
+    <string name="shortcut_pick_search">Hledat</string>
+
+    <!-- Entry point in the search-bar overflow menu -->
+    <string name="shortcut_create">Vytvořit zástupce</string>
+
+    <!-- Shortcut long labels (the short label is the contact name alone) -->
+    <string name="shortcut_label_chat">Konverzace s %1$s</string>
+    <string name="shortcut_label_call">Zavolat %1$s</string>
+
+    <!-- Failures -->
+    <string name="shortcut_error_accounts">Účty se nepodařilo načíst</string>
+    <string name="shortcut_error_conversations">Konverzace se nepodařilo načíst</string>
+    <string name="shortcut_error_empty">Tento účet nemá žádné konverzace</string>
+    <string name="shortcut_error_unsupported">Tento launcher neumí připnout zástupce</string>
+</resources>
