@@ -184,8 +184,18 @@ object ConnectionWatchdog {
         // forces the proxy off while the pref still says proxy, and judging by the pref left the
         // suppression armed on a de-facto full DHT — every probe answer discarded, a 7-min
         // false-wedge limit cycle all night (56 incidents, 2026-07-25).
-        InboundEvidence.pushMode =
-            accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled } && !noPushAdaptive
+        val proxyOnNow = accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
+        InboundEvidence.pushMode = proxyOnNow && !noPushAdaptive
+        // Unattended per-hour data accounting (2026-07-26, CRL-landfill work). Piggy-backs on this
+        // existing ~1-min tick — appends only when an hour has elapsed, so it costs one counter read
+        // per tick and nothing else. Mode label from the ACTUAL daemon state plus the pref, since
+        // the two diverge whenever charging or a wedge forces the proxy off under a "proxy" pref.
+        runCatching {
+            val mode = (if (proxyOnNow) "proxy" else "fullDHT") +
+                    (if (UiPrefs.isFullDhtMode(c)) "" else "/pref=proxy") +
+                    (if (noPushAdaptive) "/adaptive" else "")
+            DataMeter.hourlyTick(c, mode)
+        }
         if (!ledgerWired) {
             ledgerWired = true
             val app = c.applicationContext

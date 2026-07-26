@@ -89,6 +89,90 @@ object DataMeter {
 
     fun historyFile(c: Context): File = File(c.getExternalFilesDir(null), "data-measure-log.txt")
 
+    fun hourlyFile(c: Context): File = File(c.getExternalFilesDir(null), "data-hourly-log.txt")
+
+    // ---- Unattended sampler settings (2026-07-26) ----
+    const val WINDOW_MIN_MINUTES = 1        // the watchdog tick is the sampling clock — can't go finer
+    const val WINDOW_MAX_MINUTES = 360      // 6 h
+    const val WINDOW_DEFAULT_MINUTES = 60
+
+    fun isSamplingOn(c: Context): Boolean = p(c).getBoolean("hour_on", true)   // default ON
+
+    fun getWindowMinutes(c: Context): Int =
+        p(c).getInt("hour_window_min", WINDOW_DEFAULT_MINUTES)
+            .coerceIn(WINDOW_MIN_MINUTES, WINDOW_MAX_MINUTES)
+
+    fun setWindowMinutes(c: Context, v: Int) {
+        val w = v.coerceIn(WINDOW_MIN_MINUTES, WINDOW_MAX_MINUTES)
+        p(c).edit().putInt("hour_window_min", w).apply()
+        mark(c, "window → ${windowLabel(w)}")
+        resetWindow(c)   // don't measure a partial window against the new length
+    }
+
+    /** Turning sampling off/on writes an explicit marker. Without it, a gap in the history is
+     *  indistinguishable from a crash, a reboot or a dead app — the exact ambiguity that wasted time
+     *  during the 2026-07-25 wedge investigation. */
+    fun setSamplingOn(c: Context, on: Boolean) {
+        if (isSamplingOn(c) == on) return
+        p(c).edit().putBoolean("hour_on", on).apply()
+        mark(c, if (on) "sampling started (window ${windowLabel(getWindowMinutes(c))})" else "sampling stopped")
+        if (on) resetWindow(c)
+    }
+
+    fun windowLabel(minutes: Int): String = when {
+        minutes < 60 -> "${minutes}m"
+        minutes % 60 == 0 -> "${minutes / 60}h"
+        else -> "${minutes / 60}h${minutes % 60}m"
+    }
+
+    private fun mark(c: Context, what: String) {
+        runCatching { hourlyFile(c).appendText("${fmt.format(Date())}  — $what —\n") }
+    }
+
+    /** Start a fresh window from now, discarding the partial one in progress. */
+    private fun resetWindow(c: Context) {
+        p(c).edit().putLong("hour_mark_ms", System.currentTimeMillis())
+            .putLong("hour_rx", rxNow()).putLong("hour_tx", txNow()).apply()
+    }
+
+    /** Unattended sampler (2026-07-26). The manual [start]/[stop] sessions above need a human at both
+     *  ends; the CRL-landfill work needs unwatched per-window numbers to tell a real drop from
+     *  measurement noise, and polling it over adb would mean a standing wireless-adb session (which
+     *  by itself costs ~1.3 Ah/day). So: one line per elapsed window, appended from the watchdog's
+     *  existing ~1-minute tick — no alarm, no worker, no extra wakeups. That is also why the window
+     *  cannot be finer than a minute and lands on tick boundaries: the tick IS the clock.
+     *
+     *  Keys are namespaced `hour_*` so a running manual session is left completely alone.
+     *  [modeInfo] is caller-supplied for the same reason as in [stop]: only the UI layer can see the
+     *  DHT mode. */
+    fun hourlyTick(c: Context, modeInfo: String) {
+        if (!isSamplingOn(c)) return
+        val pr = p(c)
+        val now = System.currentTimeMillis()
+        val curRx = rxNow(); val curTx = txNow()
+        val markMs = pr.getLong("hour_mark_ms", 0L)
+        if (markMs == 0L) {                                  // first ever tick — just set the mark
+            pr.edit().putLong("hour_mark_ms", now)
+                .putLong("hour_rx", curRx).putLong("hour_tx", curTx).apply()
+            return
+        }
+        if (now - markMs < getWindowMinutes(c) * 60_000L) return
+        val baseRx = pr.getLong("hour_rx", curRx); val baseTx = pr.getLong("hour_tx", curTx)
+        // Counters are since-boot: a reboot inside the window makes them run backwards. Bank that
+        // window as unknown rather than logging a negative (the manual session banks a partial
+        // delta instead — it can, because it keeps an accumulator; here each line stands alone).
+        val rebooted = curRx < baseRx || curTx < baseTx
+        val rec = if (rebooted)
+            "${fmt.format(Date(now))}  ${elapsedLabel(now - markMs)}  (reboot in window — not counted)"
+        else
+            "${fmt.format(Date(now))}  ${elapsedLabel(now - markMs)}  " +
+                    "rx=${bytesLabel(curRx - baseRx)} tx=${bytesLabel(curTx - baseTx)}  " +
+                    "mode=$modeInfo  net=${netLabel(c)}"
+        runCatching { hourlyFile(c).appendText(rec + "\n") }
+        pr.edit().putLong("hour_mark_ms", now)
+            .putLong("hour_rx", curRx).putLong("hour_tx", curTx).apply()
+    }
+
     fun elapsedLabel(ms: Long): String {
         val s = ms / 1000
         return when {
