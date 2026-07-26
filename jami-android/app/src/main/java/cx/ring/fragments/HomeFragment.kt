@@ -305,6 +305,12 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
                 R.id.menu_ui_fonts_colors -> (activity as? HomeActivity)?.goToAdvancedSettings(openFonts = true)
 
+                // In-app twin of the launcher's "Add shortcut" entry: same picker, but it asks the
+                // launcher to pin the result instead of returning it.
+                R.id.menu_create_shortcut -> startActivity(
+                    Intent(requireContext(), cx.ring.client.ShortcutPickerActivity::class.java)
+                        .setAction(cx.ring.client.ShortcutPickerActivity.ACTION_PICK_SHORTCUT))
+
                 R.id.menu_location_sharing -> showLocationSharingStatus()
 
                 R.id.menu_about -> (activity as? HomeActivity)?.goToAbout()
@@ -812,6 +818,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             item(box, ctx.getString(R.string.info_b_dash_recover))
             item(box, ctx.getString(R.string.info_b_dash_probe))
             item(box, ctx.getString(R.string.info_b_dash_info))
+            item(box, ctx.getString(R.string.info_b_dash_data))
             item(box, ctx.getString(R.string.info_b_dash_longpress))
         }
 
@@ -824,6 +831,16 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             item(box, ctx.getString(R.string.info_b_auto_restricted))
             item(box, ctx.getString(R.string.info_b_auto_stuck))
             item(box, ctx.getString(R.string.info_b_auto_proxy))
+        }
+
+        // Data cost (2026-07-26). Everything here is measured on this phone and the second one, not
+        // asserted: the modes cost the same, a recovery is what was expensive, and the CRL landfill
+        // on the oldest account key is permanent and cannot be filtered out.
+        card(R.drawable.connectivity_mode_dht_24, ctx.getString(R.string.info_h_data)).also { box ->
+            item(box, ctx.getString(R.string.info_b_data_modes))
+            item(box, ctx.getString(R.string.info_b_data_recovery))
+            item(box, ctx.getString(R.string.info_b_data_landfill))
+            item(box, ctx.getString(R.string.info_b_data_where))
         }
 
         cx.ring.utils.DialogTheme.builder(ctx)
@@ -1066,6 +1083,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         // already expand to; the inbound test took its place (2026-07-23, 白い熊).
         val probePill = pill(ctx.getString(R.string.conn_dash_probe), ctx.getString(R.string.tip_probe))
         val infoPill = pill(ctx.getString(R.string.conn_dash_info), ctx.getString(R.string.tip_info))
+        // Data pill (2026-07-26): the live measurement session + the usage logs, on the surface that
+        // is actually used day to day. The same dialog as the Connection monitor page's "Data"
+        // button — one meter, three doors. A NEW pill: Inbound test and ⓘ Info are untouched.
+        val dataPill = pill(ctx.getString(R.string.data_meter_title), ctx.getString(R.string.data_meter_tip))
         val titleRow = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
@@ -1077,6 +1098,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
+            addView(dataPill, android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = (8 * d).toInt() })
             addView(probePill, android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginEnd = (8 * d).toInt() })
@@ -1092,6 +1116,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         mConnStatusDialog = dialog
         probePill.setOnClickListener { showInboundTestDialog() }
         infoPill.setOnClickListener { showConnectionInfoDialog() }
+        dataPill.setOnClickListener { cx.ring.utils.DataMeterUi.showDataDialog(ctx, mAccountService) }
         val dis = CompositeDisposable()
         dialog.setOnDismissListener { dis.clear(); mConnStatusDialog = null }
         // Account avatars (by accountId) for the dialog rows, loaded async; rebuild on either source.
