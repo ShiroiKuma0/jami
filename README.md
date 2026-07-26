@@ -12,11 +12,11 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
-too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a live **data-usage
-meter**, smarter **registered-name** lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
+too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
+meter** with unattended logging, smarter **registered-name** lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
 account** as a single backup file.
 
-**📥 Latest release: [`20260717-01+86`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+91`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -156,6 +156,34 @@ single APK — switch between them (or a local DHT node) at runtime. Firebase is
 **microG**, so you get Google-style push with **no Google Play Services**; UnifiedPush pairs with any
 distributor (e.g. [ntfy](https://ntfy.sh)), including a self-hosted one. Whichever you pick, the
 adaptive fallback above covers it when the push server fails.
+
+## 📉 DHT data efficiency — an upstream bug, fixed at the root
+
+Jami's daemon republished **every certificate revocation list an account had ever seen** on each
+registration — and because each put drew a fresh random value id, every re-registration *added* a
+copy rather than replacing one. All of it permanent, re-announced to the network every 10 minutes,
+forever. One account key here carried **266 values / 274 KB: 35 CRLs going back to October 2024**,
+where 1.5 KB would do.
+
+This fork publishes only the **current** CRL, under a content-derived id so re-registration
+overwrites instead of piling up — verified safe first, since the newest list contains exactly the
+union of every older one. The device announcement got the same treatment. Result across four
+accounts: **661 values / 611 KB → 9 values / 7.4 KB**, with idle CPU roughly halved. A complete
+upstream report ships in the repo.
+
+---
+
+## 🧭 Transport check — when DHT proxy is actually worth it
+
+The full DHT rides UDP, so a network that blocks UDP breaks it completely no matter how healthy
+everything else looks — the one case where DHT proxy is clearly the right mode. The connection
+monitor now shows a **Transport** row: `UDP ✓ TCP ✓ — full DHT viable`, or in red
+`UDP ✗ TCP ✓ — hostile network, DHT proxy advised`, always stamped with how old the reading is.
+Tap to re-test, hold for the explanation; it re-tests itself whenever the network actually changes,
+and tells you when a network turns hostile. It only ever **advises** — switching modes stays your
+decision, on the hexagon.
+
+---
 
 ## 🖼 Media viewer with hide/restore
 
