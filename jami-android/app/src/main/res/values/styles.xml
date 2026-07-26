@@ -133,6 +133,16 @@
         <item name="android:windowIsTranslucent">true</item>
     </style>
 
+    <!-- shiroikuma: the launcher shortcut picker is dialogs only — no window of its own. -->
+    <style name="AppTheme.ShortcutPicker" parent="AppThemeBase">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
     <!-- DarkToolBar style -->
     <style name="AppTheme.DarkToolbar" parent="AppThemeBase.DarkToolbar" />
 
