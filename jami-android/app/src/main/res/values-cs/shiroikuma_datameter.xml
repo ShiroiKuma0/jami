@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="data_meter_title">Data</string>
+    <string name="data_meter_measuring">Měřím: %1$s</string>
+    <string name="data_meter_idle">Žádné měření neběží.</string>
+    <string name="data_meter_start">▶  Spustit měření</string>
+    <string name="data_meter_stop">■  Zastavit a uložit</string>
+    <string name="data_meter_sessions">Uložená měření…</string>
+    <string name="data_meter_sessions_title">Měření dat</string>
+    <string name="data_meter_recording">Automatický záznam · okno %1$s</string>
+    <string name="data_meter_not_recording">Automatický záznam VYPNUT</string>
+    <string name="data_meter_empty">(zatím nic nezaznamenáno)</string>
+    <string name="data_meter_close">Zavřít</string>
+    <string name="data_meter_clear">Vymazat</string>
+    <string name="data_meter_tip">Živé měření dat a záznamy spotřeby</string>
+</resources>

@@ -46,6 +46,9 @@ object ConnectionWatchdog {
     private const val CANARY_RECHECK_MS = 20_000L          // confirm recheck before declaring stale
     private const val SILENT_WEDGE_MS = 20 * 60_000L      // 0-healthy on a NOT-down network this long = last-resort strong recover (idle ≠ wedge)
     private const val IDLE_REARM_MS = 5 * 60_000L         // cheap presence re-arm cadence while all-quiet (no re-register / no proxy toggle)
+    // A real push this recently ⇒ the proxy→app leg is delivering ⇒ a wedge does not implicate the
+    // proxy, so recovery must not tear its subscriptions down (see proxyImplicated()).
+    private const val PROXY_ALIVE_MS = 10 * 60_000L
     private const val WEDGE_WINDOW_BASE_MS = 10 * 60_000L  // proxy lingers off this long after a wedge… (raised 5→10 min 2026-07-25: the false-wedge cycle period was 7 min, so a 5-min linger guaranteed recentWedge() was already false at the next wedge and the escalating backoff never engaged)
     private const val WEDGE_WINDOW_MAX_MS = 30 * 60_000L   // …growing on repeat wedges, capped here
     private const val REREGISTER_DELAY_MS = 2_000L         // re-register after proxy-off takes effect
@@ -65,6 +68,9 @@ object ConnectionWatchdog {
     private const val PROBE_VERDICT_MS = 60_000L           // silent presence probe must be answered within this
     private const val UNIFORM_PROBE_VERDICT_MS = 75_000L   // uniform (0-healthy) probe window: the 60 s gate + echo-suppression slack
     private const val UNIFORM_PROBE_FAIL_CAP = 2           // consecutive unanswered-probe recovers before standing down (dead-quiet night ≠ churn)
+    private const val PROBE_PUSH_GRACE_MS = 60_000L        // …a real push this close to the probe window refutes a UNIFORM wedge
+    const val REASON_CHARGING = "charging"                 // why the proxy is being held off — keys, localised by the UI
+    const val REASON_WEDGE = "wedge"
     private const val MODE_SWITCH_PROBE_DELAY_MS = 10_000L // let a just-switched DHT mode register before its verification probe
     private const val BACKFILL_DELAY_MS = 12_000L          // post-recovery backfill fires this long after the recover (let the re-register land)
     private const val BACKFILL_DEBOUNCE_MS = 90_000L       // min gap between backfills — a wedge storm must not churn connections continuously
@@ -76,6 +82,17 @@ object ConnectionWatchdog {
     // self-certification kept resetting the last-resort fuse).
     @Volatile private var uniformProbePending = false
     @Volatile private var uniformProbeFails = 0
+    // Did the last wedge implicate the proxy leg? Scopes both the teardown and the 10-min linger.
+    @Volatile private var wedgeProxyImplicated = false
+    // Why the proxy was last forced off — reported when it comes back, and shown in Account
+    // settings → Advanced so that switch can explain why it disagrees with the search-bar hexagon.
+    @Volatile private var proxyOffReason = REASON_WEDGE
+
+    /** Non-null while the watchdog is holding the proxy off against a "proxy" preference — the state
+     *  that makes the hexagon and the per-account Advanced switch disagree. Returns a stable key
+     *  ([REASON_CHARGING] / [REASON_WEDGE]) for the UI to localise. */
+    fun proxyForcedOffReason(): String? =
+        if (proxyOffSinceMs != 0L) proxyOffReason else null
     @Volatile private var uniformWedgeSeq = 0            // lifetime count, shown as ×N in the pinned notification
     @Volatile private var backfillHourStartMs = 0L       // hourly backfill cap window
     @Volatile private var backfillCountHour = 0
@@ -162,6 +179,27 @@ object ConnectionWatchdog {
         (WEDGE_WINDOW_BASE_MS * (1 + wedgeStrikes)).coerceAtMost(WEDGE_WINDOW_MAX_MS)
 
     private fun recentWedge(t: Long) = lastWedgeMs != 0L && t - lastWedgeMs < wedgeWindow()
+
+    /**
+     * Is the PROXY LEG itself the suspect? Only then is a proxy OFF→ON worth its price.
+     *
+     * That toggle is not free: `DhtRunner::enableProxy` shuts the DHT down and constructs a brand-new
+     * `DhtProxyClient`, and a new client can only issue a fresh SUBSCRIBE — which the proxy server
+     * answers with the FULL value set of the key (`dht_proxy_server.cpp`: a subscribe on an existing
+     * listener with `"refresh": true` returns `{}` and zero bytes; a new listener gets a whole
+     * `dht_->get` dump). Measured 2026-07-26 on the oldest account key: **1,348,230 bytes per
+     * subscribe**, ×4 accounts, ×6 recoveries in two hours — that is the entire 100 → 300 MiB/h gap.
+     *
+     * A real push proves the proxy→app leg is delivering, so a wedge is not the proxy's fault and
+     * re-registering alone is the honest remedy.
+     */
+    private fun proxyImplicated(accounts: AccountService, t: Long): Boolean {
+        val proxyOn = accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
+        if (!proxyOn) return false        // already full DHT — there is nothing to toggle
+        if (noPushAdaptive) return true   // streaming LISTEN is the only inbound path, so it IS the suspect
+        val push = PushEvidence.lastRealPushMs
+        return push == 0L || t - push > PROXY_ALIVE_MS
+    }
 
     /** Lightning shows "recovering" (blue) for a settle window after any recover starts. */
     fun isRecovering(): Boolean = lastRecoverMs != 0L && now() - lastRecoverMs < RECOVER_SETTLE_MS
@@ -864,12 +902,17 @@ object ConnectionWatchdog {
         // switching the toggle off keeps the proxy's low-data profile even on the charger
         // (2026-07-25).
         val offCharging = isCharging(c) && UiPrefs.isFullDhtWhileCharging(c)
-        val desiredOff = !restricted && (offCharging || recentWedge(t))
+        // The wedge linger applies ONLY to proxy-implicated wedges (2026-07-26). It used to fire on
+        // every wedge, which is what kept the daemon on full DHT for 10 of every 18 minutes while
+        // the hexagon still said "proxy" — the mode=proxy(actual:fullDHT) split, and the reason
+        // Account settings → Advanced disagreed with the search bar.
+        val desiredOff = !restricted && (offCharging || (recentWedge(t) && wedgeProxyImplicated))
         val currentlyOn = accounts.getAccounts().any { it.isJami && it.isDhtProxyEnabled }
         if (desiredOff && currentlyOn) {
-            val why = if (offCharging) "charging" else "recent wedge"
+            // Stable key (not prose): the recovery log stays English, the UI localises it.
+            proxyOffReason = if (offCharging) REASON_CHARGING else REASON_WEDGE
             if (proxyOffSinceMs == 0L) proxyOffSinceMs = t
-            log(c, "DHT proxy OFF — full DHT ($why)")
+            log(c, "DHT proxy OFF — full DHT (${if (offCharging) "charging" else "recent proxy-implicated wedge"})")
             accounts.setProxyEnabled(false)
         } else if (!desiredOff && !currentlyOn) {
             // Startup hold: never switch the proxy ON before this process has seen at
@@ -883,8 +926,11 @@ object ConnectionWatchdog {
             }
             val offFor = if (proxyOffSinceMs != 0L) (t - proxyOffSinceMs) / 1000 else 0L
             proxyOffSinceMs = 0L
+            // Name the REAL reason (2026-07-26). This line always read "back on battery, stable"
+            // even when the phone had never been on a charger and it was the wedge linger expiring —
+            // which made the 18-minute limit cycle read like charger noise in the log.
             log(c, if (restricted) "DHT proxy ON — pinned (restricted network, UDP blocked)"
-                else "DHT proxy ON — back on battery, stable (was off ${offFor}s)")
+                else "DHT proxy ON — ${if (proxyOffReason == REASON_CHARGING) "charging" else "wedge linger"} cleared (was off ${offFor}s)")
             accounts.setProxyEnabled(true)
         }
     }
@@ -940,6 +986,20 @@ object ConnectionWatchdog {
             log(c, "→ restricted network: proxy stays ON; re-registering only")
             accounts.forceReconnectAllAccounts()
             scheduleBackfill(c, accounts, "full recover, restricted")
+            return
+        }
+        // Only pay for the proxy teardown when the proxy is the suspect (2026-07-26). Otherwise
+        // re-register and re-arm presence with the subscriptions left standing: same remedy for a
+        // stuck receive path, none of the full-value-set re-download that made every recovery cost
+        // megabytes. wedgeProxyImplicated also scopes applyProxyState's 10-min linger, so a
+        // non-proxy wedge no longer drags the daemon onto full DHT behind the user's chosen mode.
+        wedgeProxyImplicated = proxyImplicated(accounts, t)
+        if (!wedgeProxyImplicated) {
+            val ago = if (PushEvidence.lastRealPushMs == 0L) "n/a" else "${(t - PushEvidence.lastRealPushMs) / 1000}s"
+            log(c, "→ recovering WITHOUT touching the proxy (real push $ago ago — the proxy leg delivers); re-registering + presence re-arm")
+            accounts.forceReconnectAllAccounts()
+            resubscribeAllPresence(accounts)
+            scheduleBackfill(c, accounts, "full recover, proxy kept")
             return
         }
         if (proxyOffSinceMs == 0L) proxyOffSinceMs = t
@@ -1291,13 +1351,21 @@ object ConnectionWatchdog {
         // InboundEvidence clock, so fabricated idle-health can no longer hold the last-resort fuse
         // open forever (2026-07-23: four wedged accounts cycled "✓idle" while the fuse clock reset).
         val realQuiet = t - InboundEvidence.lastMs
-        val silentFuse = if (t - processStartMs < STARTUP_FAST_WINDOW_MS) SILENT_WEDGE_MS / 4 else SILENT_WEDGE_MS
+        // No startup quartering any more (2026-07-26). A fresh process on a quiet four-account phone
+        // hit the 5-minute fuse almost every time, and the fuse used to recover BLIND — that is what
+        // fired at 10:42, 10:49, 10:53, 13:23 and 14:39 on plain full DHT, and after every install.
+        // The fuse now only starts the probe, so it no longer needs to be cautious about its length.
+        val silentFuse = SILENT_WEDGE_MS
         when {
             networkDown() ->
                 log(c, "0/$reg healthy + network egress DOWN — per-account handler recovering [$summary]")
             realQuiet > silentFuse && !recentWedge(t) && uniformProbeFails < UNIFORM_PROBE_FAIL_CAP -> {
-                log(c, "silent wedge: no real inbound ${realQuiet / 60_000}m, 0/$reg healthy on a working network — strong recover [$summary]")
-                fullRecover(c, accounts)
+                // PROBE, never recover blind (2026-07-26). This branch used to call fullRecover()
+                // straight off a quiet clock — "idle ≠ wedge" was already the stated intent of this
+                // block, but the code hammered anyway. The probe's per-account verdict now decides,
+                // exactly as the deafness path does.
+                log(c, "silent ${realQuiet / 60_000}m, 0/$reg healthy on a working network — probing before any recover [$summary]")
+                startUniformProbe(c, accounts, reg, summary)
             }
             t - lastIdleRearmMs > IDLE_REARM_MS -> {
                 lastIdleRearmMs = t
@@ -1338,6 +1406,16 @@ object ConnectionWatchdog {
             if (silent.isEmpty()) {
                 uniformProbeFails = 0
                 log(c, "probe: all ${regd.size} answered on their own inbound — receiving fine")
+            } else if (silent.size == regd.size && PushEvidence.lastRealPushMs != 0L &&
+                t - PushEvidence.lastRealPushMs <= UNIFORM_PROBE_VERDICT_MS + PROBE_PUSH_GRACE_MS) {
+                // A push landed inside the probe window, so the shared proxy→app leg is demonstrably
+                // delivering and a UNIFORM accusation ("every account is deaf") cannot be true — the
+                // presence re-arm simply cannot answer in proxy mode (trackBuddy only listens on
+                // refCount 0→1, and SK-SUBREFRESH's re-arm is suppressed while the client is busy).
+                // Scoped to the uniform case on purpose: with only some accounts silent the push may
+                // belong to one that answered, so a single-account wedge still stands.
+                uniformProbeFails = 0
+                log(c, "probe: ${silent.size}/${regd.size} silent, but a real push landed ${(t - PushEvidence.lastRealPushMs) / 1000}s ago — receive path alive, no recover")
             } else if (recentWedge(t)) {
                 log(c, "probe: ${silent.size}/${regd.size} still silent (${silent.joinToString { it.accountId.take(6) }}) but inside the wedge linger — standing by")
             } else if (uniformProbeFails >= UNIFORM_PROBE_FAIL_CAP) {

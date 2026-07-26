@@ -38,6 +38,16 @@ object PushEvidence {
         val now = System.currentTimeMillis()
         val prev = lastRealPushMs
         lastRealPushMs = now
+        // A delivered push IS inbound evidence (2026-07-26). In proxy(push) mode it is the ONLY
+        // carrier of new DHT values — as this class's own KDoc says — yet the deafness clock was fed
+        // exclusively by peer-originated DaemonService callbacks, so a phone receiving pushes every
+        // 1–2 min still read "no real inbound 418s" and false-wedged. Measured that day: pushes at
+        // 16:45:50 and 16:47:36, wedge verdict at 16:50:30, six recoveries in two hours, each one
+        // re-subscribing every key on every account.
+        //
+        // GLOBAL clock only (blank accountId): a push proves the shared proxy→app leg is delivering,
+        // not that a particular account is receiving, so per-account deafness stays honest.
+        net.jami.utils.InboundEvidence.note(null, "push")
         // Push-cadence observability (2026-07-24): one recovery-log line per real push arriving
         // after ≥60 s of push silence — burst-suppressed, gives every window a cadence histogram
         // and makes a degrading leg visible before it is dead.
