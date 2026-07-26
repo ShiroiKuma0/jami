@@ -36,13 +36,6 @@ Two recent fixes — **already shipped, do not re-implement**:
 - **File-card overflow when the filename is long** (commit `dddd66a`). The outgoing file card's `fileInfoLayout` had its `Start` anchored to `file_download_button`, which is `GONE` on a sent file — so `constrainedWidth` had no firm left bound and long filenames overflowed. Fix: a single-line change anchoring `Start_toStartOf="parent"` in `item_conv_file_me.xml`. The tick stays exactly where upstream puts it (below the card); a previous attempt to move the tick beside / re-anchor both ends caused regressions and was reverted — **do not reintroduce that approach**.
 - **Online/offline menu icon stuck on the filled shape** (commit `d142957`). The previous tint code did `mi.icon = mutate()+tint`, and that drawable reassignment interfered with the SearchBar's resource-based shape swap. Fix: `MenuItemCompat.setIconTintList(mi, …)` in `HomeFragment` — tints the icon *without* replacing the drawable, so `setIcon(online/offline)` is free to swap filled↔hollow. Still `isSet`-gated.
 
-## Open backlog (deferred, with honest reasons)
-
-- **App background + accent (`colorOnSurface`)** — static theme attributes plus ~13 hardcoded layout refs; a runtime `ColorPrefs` dial is invisible or no-op even with `recreate()`. Real path: a few predefined theme variants switched via `recreate()` (fixed choices, not the RGBA picker) — a dedicated effort.
-- **`new_invitation` envelope vector** — two-tone vector in `frag_invitation_card.xml`, no Kotlin binding site found, so no runtime recolor hook. Needs the binding site identified first.
-- **`[CXX5304]` SDK-XML notes** — NDK / cmdline-tools version skew on the build machine. Fix is updating the NDK locally, not a repo patch.
-- **javac `ノート:` deprecation/unchecked mandatory notes** — no reliable global mute flag. Plan: one diagnostic build with `-Xlint:deprecation,unchecked` on the JavaCompile tasks to enumerate offending files, then per-site `@SuppressWarnings` on the ~15 hand-written `.java` files; the SWIG-generated bindings can't be durably annotated and will leave a residual note.
-
 ## Skills loaded for this repo
 
 - `.claude/skills/jami-build/` — the project skill. Always read.
