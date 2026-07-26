@@ -39,6 +39,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             tools:text="4 peers · 6 connected · 1 failing" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/data_log"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:text="Data"
+            android:textColor="#FFFFFF00"
+            app:strokeColor="#FFFFFF00" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/help"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
