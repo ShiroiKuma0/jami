@@ -1,6 +1,94 @@
-# 白い熊 GNU Jami — `20260717-01+91`
+# 白い熊 GNU Jami — `20260717-01+99`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## Home-screen shortcuts, and the end of the proxy-mode data burn (new in +92–+99)
+
+**Two things this round: a feature you asked for, and an RCA that overturned what we thought the
+data cost was.**
+
+### 🔗 Home-screen shortcuts to a chat or a call
+
+- **From the launcher's "Add shortcut"**, pick **白い熊 GNU Jami** and walk three dialogs: account →
+  contact → **chat or call**. Multi-account is handled properly (the account step is skipped when
+  there is only one), the contact list carries avatars and a search box once it exceeds eight
+  entries, and everything is **trilingual** (English default, Japanese, Czech) driven by the system
+  locale rather than hardcoded.
+- **Also reachable in-app** from the search-bar overflow (「ショートカットを作成」), which pins the
+  result through `requestPinShortcut` instead of handing it back to the launcher.
+- **The icon is the contact's avatar, badged**: the Jami mark flush in the bottom-right corner with a
+  hairline ring at the logo's own line weight, and a **yellow-traced chat or phone glyph** hugging the
+  bottom-left edge with a thin black rim so it reads over a light photo. The badge colours are
+  settable roles (`SHORTCUT_ICON` / `SHORTCUT_FILL`) in **UI fonts & colours → Launcher shortcuts**.
+- **Tapping opens the chat or places the call directly** — the same intents the in-app UI uses, so a
+  chat shortcut still switches to the right account first.
+- **Icons survive app updates.** The first build lost the chat shortcut's avatar on every install:
+  Lightning Launcher's `MPReceiver.updatePackage()` repaints the icon of **any** desktop item whose
+  component is a MAIN/LAUNCHER activity of the updated package. Shortcuts now target a dedicated
+  `ShortcutLaunchActivity` — not a launcher activity, so it is never matched, and exported so a
+  legacy launcher item can actually start it, with an unguessable per-shortcut token gating that
+  exported surface.
+
+### 📉 The proxy "data blast" was never proxy overhead — it was a recovery loop
+
+Two phones on the same Wi-Fi, same build: this one at **281–309 MiB/h**, the second at **24.6**. The
+investigation ended somewhere unexpected.
+
+- **Mode is irrelevant to data cost.** On a phone that is not recovering in a loop, DHT proxy and
+  full DHT cost the same: **24.6 vs 24.8 MiB/h** measured. Per account the two phones agree at
+  **25–40 MiB/h**, so four accounts ⇒ ~100–170 MiB/h — exactly what full DHT costs here. **The whole
+  gap was churn.**
+- **The loop, measured:** proxy ON → ~6 min → all four accounts read deaf → 75-s probe unanswered →
+  "receive path wedged" → proxy OFF + re-register + backfill → healthy in 44 s → 10-min linger →
+  proxy ON → repeat. Six cycles in two hours.
+- **The verdict was false, and the app's own log proved it**: `push rx after 124s/101s` at 16:45:50
+  and 16:47:36, then `no real inbound 418s` at 16:50:15 and a wedge at 16:50:30 — with
+  `SK-PROXYDIAG` showing all four proxy clients alive and pushes landing 30 s before the verdict.
+- **Two independent causes, both ours.** `PushEvidence.noteRealPush()` recorded pushes but was never
+  fed into `InboundEvidence`, whose evidence sites are all peer-originated callbacks — even though
+  push is the *only* carrier of new values in proxy mode. And the deafness probe is a presence
+  re-arm, which in proxy mode is a no-op on the wire, so it **cannot be answered**.
+- **Why each recovery cost so much:** `enableProxy()` shuts the DHT down and builds a **new**
+  `DhtProxyClient`, which can only issue a fresh SUBSCRIBE — and the proxy answers a new listener
+  with the **full value set of every key**, while a RESUBSCRIBE on a live one returns nothing at all.
+  One old account key measured **1,348,230 bytes per subscribe**, across four accounts, six times in
+  two hours.
+
+**Fixed:**
+
+- **Recovery no longer touches the proxy** unless the proxy leg is implicated — a real push proves it
+  delivers. It re-registers and re-arms presence with the subscriptions left standing.
+- **A delivered push counts as inbound evidence** (global clock only, so per-account deafness stays
+  honest).
+- **A push inside the probe window refutes a uniform wedge**, mirroring the existing error-storm veto.
+- **The silent-wedge fuse probes before it hammers** and no longer quarters itself during the startup
+  window — that combination fired a blind recovery after every restart, including every install.
+- **The 10-min proxy linger applies only to proxy-implicated wedges**, so the search-bar hexagon and
+  the per-account Advanced switch stop disagreeing; when they still differ, Advanced now says why.
+
+### 📊 The data meter where you actually look
+
+- The **Data pill** on the Connection dashboard (and the Data button on the Connection monitor) now
+  opens one shared dialog: a **live measurement** with start/stop and a ticking counter, your **saved
+  measurements**, and the **automatic hourly log** with its recording state and window.
+
+### ⓘ A help page that matches reality
+
+- New **"Data cost"** card carrying the measured figures, what a recovery costs and why, and an
+  honest account of the CRL landfill: **~990 permanent, unsigned revocation lists** from 2024–2025 on
+  the oldest account's key that **cannot be deleted, overwritten or filtered out** — unsigned values
+  admit no edit policy, permanent ones never expire, and the proxy ignores any query a client sends
+  on listen. They fade only as the machines holding them restart. That, plus account count, is the
+  entire difference between an old phone and a fresh one.
+- The "silent account" explanation was corrected: silence alone is never acted on any more.
+
+### Also
+
+- Account settings → Advanced explains a watchdog-held proxy instead of just reading "off"; the
+  recovery log names the real reason the proxy returned rather than always claiming the charger.
+- The shortcut picker's account rows no longer paint a misleading red presence dot.
+
+
 
 ## DHT data-efficiency root fix, transport hostility indicator, unattended data log (new in +87–+91)
 

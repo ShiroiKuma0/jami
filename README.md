@@ -13,10 +13,10 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
 too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
-meter** with unattended logging, smarter **registered-name** lookups, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
+meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
 account** as a single backup file.
 
-**📥 Latest release: [`20260717-01+91`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+99`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -77,6 +77,16 @@ archives)**, fonts & sizes (your imported font files travel inside the zip), col
 online recovery & connectivity, automation & protected contacts, app settings — and hit Export.
 Import merges key-by-key (it never wipes what it doesn't know), skips accounts already on the
 device so a re-import can't duplicate identities, and offers a one-tap restart to apply everything.
+
+## 🔗 Home-screen shortcuts
+
+Add a shortcut from the launcher and pick account → contact → **chat or call**. The icon is the
+contact's avatar badged with the Jami mark and a yellow-traced chat or phone glyph, so the two kinds
+are told apart at a glance; the badge colours are settable like everything else. Tapping opens that
+conversation or places the call directly. Also available in-app from the search-bar overflow, and the
+picker speaks English, Japanese and Czech by system locale.
+
+---
 
 ## 📶 Connectivity, self-healing & a live connection monitor
 
