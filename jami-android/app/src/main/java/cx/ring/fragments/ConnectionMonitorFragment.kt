@@ -593,28 +593,10 @@ class ConnectionMonitorFragment: Fragment() {
     /** The unattended data-usage log, newest window first. Read-only here — the switch and the
      *  window length live in Settings → UI fonts & colors → Online recovery, next to the manual
      *  measurement session they belong with. */
+    /** The "Data" dialog — live measurement session, saved sessions and the hourly log. Shared
+     *  with the dot-tap Connection dashboard's "Data" pill so both show exactly the same thing. */
     private fun showDataLogDialog() {
-        val ctx = context ?: return
-        val d = ctx.resources.displayMetrics.density
-        val f = cx.ring.utils.DataMeter.hourlyFile(ctx)
-        val on = cx.ring.utils.DataMeter.isSamplingOn(ctx)
-        val win = cx.ring.utils.DataMeter.windowLabel(cx.ring.utils.DataMeter.getWindowMinutes(ctx))
-        val body = runCatching { f.readText().trim() }.getOrDefault("")
-            .ifEmpty { "(nothing recorded yet)" }
-            .lines().reversed().joinToString("\n")
-        val head = if (on) "recording · window $win\n\n" else "NOT recording\n\n"
-        val tv = TextView(ctx).apply {
-            text = head + body
-            setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding((16 * d).toInt(), (12 * d).toInt(), (16 * d).toInt(), (12 * d).toInt())
-            setTextIsSelectable(true)
-        }
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Data usage log")
-            .setView(android.widget.ScrollView(ctx).apply { addView(tv) })
-            .setPositiveButton("Close", null)
-            .setNegativeButton("Clear") { _, _ -> runCatching { f.delete() } }
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+        context?.let { cx.ring.utils.DataMeterUi.showDataDialog(it, service) }
     }
 
     private fun showLegendDialog() {

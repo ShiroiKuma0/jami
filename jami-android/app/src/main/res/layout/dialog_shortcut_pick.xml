@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma.jami fork: account / contact chooser for the launcher shortcut picker. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp">
+
+    <EditText
+        android:id="@+id/shortcut_pick_filter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:hint="@string/shortcut_pick_search"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLines="1"
+        android:textColor="#FFFF00"
+        android:textColorHint="#808080"
+        android:textSize="16sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/shortcut_pick_list"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:scrollbars="vertical" />
+
+</LinearLayout>
