@@ -316,6 +316,17 @@ class FontsSettingsFragment : Fragment() {
             meterLiveRow = this
         })
         box.addView(orTapRow("Measurement history") { showDataMeasureHistory() })
+        // ---- Unattended sampler (2026-07-26): records without a human at either end ----
+        box.addView(orSwitchRow("Record data usage automatically", DataMeter.isSamplingOn(ctx)) { on ->
+            DataMeter.setSamplingOn(ctx, on); rebuild()
+        })
+        if (DataMeter.isSamplingOn(ctx)) {
+            box.addView(orTapRow("Sample window:  ${DataMeter.windowLabel(DataMeter.getWindowMinutes(ctx))}") {
+                showWindowSlider()
+            })
+            box.addView(orMini("One line per window. Windows land on the ${UiPrefs.getRecoveryTickMinutes(ctx)}-min check tick, so they are approximate."))
+        }
+        box.addView(orTapRow("Data usage log") { showDataHistory(DataMeter.hourlyFile(ctx), "Data usage log") })
         if (DataMeter.isActive(ctx)) startMeterLive()
         c.addView(box)
     }
@@ -346,7 +357,13 @@ class FontsSettingsFragment : Fragment() {
 
     private fun showDataMeasureHistory() {
         val ctx = context ?: return
-        val f = DataMeter.historyFile(ctx)
+        showDataHistory(DataMeter.historyFile(ctx), "Data measurements")
+    }
+
+    /** Shared renderer for both data logs — the manual session history and the unattended hourly
+     *  log. Same themed scroll dialog, same newest-first order, same Clear. */
+    private fun showDataHistory(f: java.io.File, title: String) {
+        val ctx = context ?: return
         val text = runCatching { f.readText().trim() }.getOrDefault("")
             .ifEmpty { "(no measurements yet)" }
             .lines().reversed().joinToString("\n\n")   // newest first, blank line between records
@@ -356,7 +373,7 @@ class FontsSettingsFragment : Fragment() {
         }
         val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Data measurements")
+            .setTitle(title)
             .setView(scroll)
             .setPositiveButton("Close", null)
             .setNegativeButton("Clear") { _, _ -> runCatching { f.delete() } }
@@ -503,6 +520,47 @@ class FontsSettingsFragment : Fragment() {
                         .show().let { cx.ring.utils.DialogTheme.theme(it, c2) }
                 }, { context?.let { Flash.show(it, "Could not load conversations") } })
         )
+    }
+
+    /** Sample-window picker: a SeekBar rather than the numeric field the recovery settings use,
+     *  because the useful range (1 min … 6 h) is wide and browsing it by feel beats typing. */
+    private fun showWindowSlider() {
+        val ctx = context ?: return
+        val lo = DataMeter.WINDOW_MIN_MINUTES
+        val hi = DataMeter.WINDOW_MAX_MINUTES
+        val label = TextView(ctx).apply {
+            setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setPadding(dp(24f), dp(16f), dp(24f), dp(4f))
+        }
+        var minutes = DataMeter.getWindowMinutes(ctx)
+        fun paint() {
+            val perDay = (24 * 60) / minutes
+            label.text = "${DataMeter.windowLabel(minutes)}   (~$perDay lines/day)"
+        }
+        paint()
+        val bar = android.widget.SeekBar(ctx).apply {
+            max = hi - lo
+            progress = minutes - lo
+            setPadding(dp(24f), dp(8f), dp(24f), dp(16f))
+            setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: android.widget.SeekBar, p: Int, fromUser: Boolean) {
+                    minutes = (p + lo).coerceIn(lo, hi); paint()
+                }
+                override fun onStartTrackingTouch(sb: android.widget.SeekBar) {}
+                override fun onStopTrackingTouch(sb: android.widget.SeekBar) {}
+            })
+        }
+        val col = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL; addView(label); addView(bar)
+        }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("Sample window")
+            .setView(col)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                DataMeter.setWindowMinutes(ctx, minutes); rebuild()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     private fun showRecoveryNumber(title: String, current: Int, min: Int, max: Int, onSet: (Int) -> Unit) {
