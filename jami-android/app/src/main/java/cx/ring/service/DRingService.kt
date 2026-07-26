@@ -332,6 +332,10 @@ class DRingService : Service() {
             // Let the daemon settle on the new path, then replay the manual toggle.
             mHandler.removeCallbacks(mForceReconnectRunnable)
             mHandler.postDelayed(mForceReconnectRunnable, TRANSITION_RECONNECT_DELAY_MS)
+            // A new path is the only moment UDP-blocking can actually change, so re-test transport
+            // egress here rather than on a timer. Advisory only — it feeds the monitor's Transport
+            // row and notifies on a transition into hostility; it never switches DHT mode.
+            cx.ring.utils.ConnectionWatchdog.onNetworkChanged(this)
         }
     }
 
