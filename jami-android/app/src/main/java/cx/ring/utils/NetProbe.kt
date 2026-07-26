@@ -59,4 +59,45 @@ object NetProbe {
     } catch (_: Exception) {
         false
     }
+
+    // ---- Cached verdict (2026-07-26) ----
+    //
+    // Until now the probe ran only reactively, after a recovery had already failed, and its answer
+    // went nowhere but the recovery log — so you could sit on a UDP-blocking network and see nothing
+    // until something broke. The verdict is now cached and readable, so the connection monitor can
+    // show it and a network change can refresh it.
+
+    enum class Transport { UNKNOWN, OK, HOSTILE, DEAD }
+
+    data class Verdict(val udp: Boolean, val tcp: Boolean, val atMs: Long) {
+        val transport: Transport get() = when {
+            udp -> Transport.OK           // full DHT viable (TCP state is then not decisive)
+            tcp -> Transport.HOSTILE      // the trap: UDP blocked, TCP alive → DHT proxy is the answer
+            else -> Transport.DEAD        // no egress at all
+        }
+    }
+
+    @Volatile private var cached: Verdict? = null
+
+    /** Last verdict, or null if never probed. Cheap and non-blocking. */
+    fun lastVerdict(): Verdict? = cached
+
+    /** Record a verdict measured elsewhere (the watchdog already probes during diagnosis — its
+     *  result should feed the same cache rather than being thrown away). */
+    fun record(udp: Boolean, tcp: Boolean): Verdict =
+        Verdict(udp, tcp, System.currentTimeMillis()).also { cached = it }
+
+    /** Run both probes and cache the result. BLOCKING (up to ~2 x TIMEOUT_MS + a TCP connect) —
+     *  background thread only. */
+    fun refresh(): Verdict = record(udpWorks(), tcpWorks())
+
+    /** Refresh off the caller's thread; [done] runs on the caller's Looper via [post] if given. */
+    fun refreshAsync(post: ((Runnable) -> Unit)? = null, done: ((Verdict) -> Unit)? = null) {
+        Thread({
+            val v = refresh()
+            if (done != null) {
+                if (post != null) post(Runnable { done(v) }) else done(v)
+            }
+        }, "net-probe").start()
+    }
 }
