@@ -16,7 +16,7 @@ too), **in-app message forwarding**, token-gated **automation intents** plus **�
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
 account** as a single backup file.
 
-**📥 Latest release: [`20260717-01+99`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+102`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
