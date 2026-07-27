@@ -1,8 +1,118 @@
 diff --git a/src/jamidht/account_manager.cpp b/src/jamidht/account_manager.cpp
-index 5dada427a..8c28f0a60 100644
+index 5dada427a..21743c4aa 100644
 --- a/src/jamidht/account_manager.cpp
 +++ b/src/jamidht/account_manager.cpp
-@@ -288,6 +288,19 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
+@@ -29,9 +29,11 @@
+ #include <opendht/thread_pool.h>
+ #include <opendht/crypto.h>
+ 
++#include <algorithm>
+ #include <exception>
+ #include <future>
+ #include <fstream>
++#include <iterator>
+ #include <gnutls/ocsp.h>
+ 
+ namespace jami {
+@@ -281,6 +283,97 @@ AccountManager::reloadContacts()
+     }
+ }
+ 
++/* SK-CRL-CURRENT (shiroikuma fork, 2026-07-27): keep exactly ONE permanent CRL put alive per
++ * account key, for the whole daemon run.
++ *
++ * The value id is derived from the CRL's own bytes, so a newer CRL necessarily lands under a
++ * different id — it cannot replace its predecessor in place, and must not try to. A fixed "slot"
++ * id looks tempting but is broken in current OpenDHT for this value:
++ *
++ *   - The CRL goes out through SecureDht::put(), which does NOT sign (securedht.h), so the stored
++ *     value is an unsigned ValueType::USER_DATA. SecureDht::secureType()'s edit wrapper defers to
++ *     the base policy for unsigned values, and USER_DATA's is DEFAULT_EDIT_POLICY — `return false`.
++ *     A node that already holds the old CRL under that id answers a put of the new one with
++ *     "Rejecting edition ... because of storage policy" (dht.cpp).
++ *   - Worse, it would never even get that far: when the announce step finds the target already
++ *     holds our value id and `seq_no < value->seq` is false (unsigned values keep seq == 0), it
++ *     renews the put with a bare id-only 'refresh' (dht.cpp) — which extends the lifetime of the
++ *     SUPERSEDED CRL on precisely the closest nodes that serve it.
++ *   - And signing to unlock the seq-increasing edit path would not survive multiple devices: the
++ *     edit policy requires an unchanged owner, and SecureDht signs with the *device* key.
++ *
++ * So: let the new CRL take its own id, and cancel the one it supersedes. cancelPut() drops the
++ * local permanent put and removes the value from our own store, so the superseded CRL stops being
++ * re-announced and expires from the network within one value expiration (10 min). Without this,
++ * revoking a device mid-run leaves startSync's put of the previous CRL refreshing alongside the new
++ * one until the next restart.
++ *
++ * Content-derived ids stay the right choice for the rest: two devices publishing the same current
++ * CRL derive the same id for identical bytes, so they refresh one value instead of adding a copy.
++ */
++/* SK-CRL-CURRENT: compare two X.509 CRL numbers as big-endian unsigned integers.
++ *
++ * The number is the tiebreak that makes CRL freshness a TOTAL order: getUpdateTime() comes from the
++ * thisUpdate field, which has one-second granularity, so two lists generated in the same second
++ * would otherwise compare equal and a stale publisher could roll back a revocation. Within one
++ * account the number is strictly increasing — opendht's RevocationList::sign() seeds it randomly on
++ * the first signature and increments it by one on every later one (crypto.cpp) — and we only ever
++ * compare lists belonging to the same account. Leading zeroes are skipped so the comparison does not
++ * depend on the encoded width. */
++static bool
++crlNumberLess(const dht::Blob& a, const dht::Blob& b)
++{
++    const auto significant = [](const dht::Blob& v) {
++        auto it = v.begin();
++        while (it != v.end() and *it == 0)
++            ++it;
++        return it;
++    };
++    const auto ab = significant(a), bb = significant(b);
++    const auto aLen = std::distance(ab, a.end()), bLen = std::distance(bb, b.end());
++    if (aLen != bLen)
++        return aLen < bLen;
++    return std::lexicographical_compare(ab, a.end(), bb, b.end());
++}
++
++void
++AccountManager::publishCurrentCrl(const dht::InfoHash& h, const std::shared_ptr<dht::crypto::RevocationList>& crl)
++{
++    if (not crl or not dht_)
++        return;
++    const auto updateTime = crl->getUpdateTime();
++    const auto number = crl->getNumber();
++    const dht::Value::Id id = crlValueId(*crl);
++
++    /* The whole decision is serialized, not just the bookkeeping write: startSync() and
++     * revokeDevice() publish from different threads, and an unserialized cancel/put pair lets a
++     * slower call from an in-flight registration cancel the CRL a concurrent revocation has just
++     * published, leaving the account announcing the pre-revocation list. Ordering on top of the lock
++     * is what makes the outcome independent of which thread wins the race — the newest list ends up
++     * published whichever order the calls arrive in. Holding the lock across the DHT calls is cheap:
++     * put()/cancelPut() only queue an operation on the DhtRunner. */
++    std::lock_guard<std::mutex> lock(publishedCrlMutex_);
++    if (publishedCrlId_ and id != publishedCrlId_) {
++        // A different list from the one we are publishing: take it only if it is strictly newer.
++        // Re-publishing the SAME list (equal id) always proceeds, so a re-registration can restore
++        // the permanent put after the DhtRunner has been restarted.
++        const bool newer = updateTime > publishedCrlTime_
++                           or (updateTime == publishedCrlTime_
++                               and crlNumberLess(publishedCrlNumber_, number));
++        if (not newer)
++            return;
++        dht_->cancelPut(h, publishedCrlId_);
++    }
++    publishedCrlId_ = id;
++    publishedCrlTime_ = updateTime;
++    publishedCrlNumber_ = number;
++
++    auto crlVal = std::make_shared<dht::Value>(*crl);
++    crlVal->priority = 1; // CRLs are not urgent — use normal priority
++    crlVal->id = id;
++    dht_->put(h, crlVal, dht::DoneCallback {}, {}, true);
++}
++
+ void
+ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dcb, bool publishPresence)
+ {
+@@ -288,6 +381,19 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
      if (info_->announce) {
          auto h = dht::InfoHash(info_->accountId);
          if (publishPresence) {
@@ -22,7 +132,7 @@ index 5dada427a..8c28f0a60 100644
              dht_->put(
                  h,
                  info_->announce,
-@@ -302,10 +315,30 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
+@@ -302,10 +408,25 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
                  {},
                  true);
          }
@@ -48,20 +158,24 @@ index 5dada427a..8c28f0a60 100644
 +            for (const auto& crl : info_->identity.second->issuer->getRevocationLists())
 +                if (not newest or crl->getUpdateTime() > newest->getUpdateTime())
 +                    newest = crl;
-+            if (newest) {
-+                auto crlVal = std::make_shared<dht::Value>(*newest);
-+                crlVal->priority = 1; // CRLs are not urgent — use normal priority
-+                crlVal->id = crlValueId(*newest);
-+                dht_->put(h, crlVal, dht::DoneCallback {}, {}, true);
-+            }
++            publishCurrentCrl(h, newest);
          }
          dht_->listen<DeviceAnnouncement>(h, [this, cb = std::move(cb)](DeviceAnnouncement&& dev) {
              if (dev.pk) {
 diff --git a/src/jamidht/account_manager.h b/src/jamidht/account_manager.h
-index 5134fec28..916850ce0 100644
+index 5134fec28..59649fd0f 100644
 --- a/src/jamidht/account_manager.h
 +++ b/src/jamidht/account_manager.h
-@@ -58,6 +58,44 @@ struct AccountInfo
+@@ -25,6 +25,8 @@
+ #include "namedirectory.h"
+ 
+ #include <opendht/crypto.h>
++#include <chrono>
++#include <mutex>
+ #include <optional>
+ #include <functional>
+ #include <map>
+@@ -58,6 +60,44 @@ struct AccountInfo
      std::string photo;
  };
  
@@ -106,17 +220,52 @@ index 5134fec28..916850ce0 100644
  template<typename To, typename From>
  std::unique_ptr<To>
  dynamic_unique_cast(std::unique_ptr<From>&& p)
+@@ -275,12 +315,28 @@ public:
+     dhtnet::tls::CertificateStore& certStore() const;
+ 
+ protected:
++    /* SK-CRL-CURRENT (shiroikuma fork, 2026-07-27): publish `crl` as THE account's revocation list,
++     * cancelling the permanent put of whichever CRL it supersedes. See the definition for why the
++     * superseded put has to be cancelled rather than overwritten in place. */
++    void publishCurrentCrl(const dht::InfoHash& h, const std::shared_ptr<dht::crypto::RevocationList>& crl);
++
+     const std::string accountId_;
+     const std::filesystem::path path_;
+     OnChangeCallback onChange_;
+     std::unique_ptr<AccountInfo> info_;
+     std::shared_ptr<dht::DhtRunner> dht_;
+     std::reference_wrapper<NameDirectory> nameDir_;
++    /* SK-CRL-CURRENT: the CRL we currently maintain a permanent put for — its value id (0 if none),
++     * its update time, and its CRL number, the tiebreak that makes freshness a TOTAL order (thisUpdate
++     * has one-second granularity, so time alone lets same-second lists compare equal).
++     * startSync() and ArchiveAccountManager::revokeDevice() publish from different threads, so the
++     * WHOLE decision (is this list stale? cancel, then put) runs under publishedCrlMutex_. An atomic
++     * id alone is not enough: it makes the swap indivisible but still lets a slower, older call
++     * cancel and overwrite the list a newer one just published. */
++    std::mutex publishedCrlMutex_;
++    uint64_t publishedCrlId_ {0};
++    std::chrono::system_clock::time_point publishedCrlTime_ {};
++    dht::Blob publishedCrlNumber_ {};
+ };
+ 
+ } // namespace jami
 diff --git a/src/jamidht/archive_account_manager.cpp b/src/jamidht/archive_account_manager.cpp
-index 42c9e089f..352d643a8 100644
+index 42c9e089f..9692bdb94 100644
 --- a/src/jamidht/archive_account_manager.cpp
 +++ b/src/jamidht/archive_account_manager.cpp
-@@ -1456,6 +1456,9 @@ ArchiveAccountManager::revokeDevice(const std::string& device,
+@@ -1454,9 +1454,12 @@ ArchiveAccountManager::revokeDevice(const std::string& device,
+ 
+                         // Announce CRL immediately
                          auto h = a.id.second->getId();
-                         auto crlVal = std::make_shared<dht::Value>(*a.revoked);
-                         crlVal->priority = 1; // CRLs are not urgent
-+                        // SK-CRL-CURRENT: stable, content-derived id — without it this put lands as
-+                        // a fresh random-id copy alongside the one startSync already maintains.
-+                        crlVal->id = crlValueId(*a.revoked);
-                         this_->dht_->put(h, crlVal, dht::DoneCallback {}, {}, true);
+-                        auto crlVal = std::make_shared<dht::Value>(*a.revoked);
+-                        crlVal->priority = 1; // CRLs are not urgent
+-                        this_->dht_->put(h, crlVal, dht::DoneCallback {}, {}, true);
++                        // SK-CRL-CURRENT: publish through publishCurrentCrl() so this newer CRL not
++                        // only gets its stable content-derived id, but also CANCELS the permanent
++                        // put of the CRL it supersedes — the one startSync registered at
++                        // registration. Left alone, that put keeps re-announcing the pre-revocation
++                        // list for the rest of the daemon run, alongside the new one.
++                        this_->publishCurrentCrl(h, a.revoked);
  
                          this_->saveArchive(a, scheme, password);
+                         this_->info_->contacts->removeAccountDevice(crt->getLongId());
