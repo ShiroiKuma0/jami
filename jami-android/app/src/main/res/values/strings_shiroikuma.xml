@@ -120,4 +120,11 @@
     <string name="sk_rep_corrupt">DAMAGED: %1$d entries failed verification — do not rely on this backup</string>
     <string name="sk_rep_damaged">%1$d damaged entries skipped</string>
     <string name="sk_rep_links">Links: %1$d of %2$d restored</string>
+    <string name="sk_exim_stop">Stop</string>
+    <string name="sk_exim_stopping">Stopping…</string>
+    <string name="sk_exim_cancelled">Stopped — the partial file was deleted</string>
+    <string name="sk_exim_phase_pause">Pausing account — %1$s</string>
+    <string name="sk_exim_phase_link">Rebuilding file links — %1$s</string>
+    <string name="sk_exim_phase_resume">Resuming account — %1$s</string>
+    <string name="sk_rep_acc_not_ready">Accounts: %1$s could not be established — it was removed rather than left to vanish on restart</string>
 </resources>
