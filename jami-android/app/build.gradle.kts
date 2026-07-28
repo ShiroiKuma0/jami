@@ -18,7 +18,20 @@ android {
     buildToolsVersion = "37.0.0"
     ndkVersion = "29.0.14206865"
     defaultConfig {
-        applicationId = "shiroikuma.jami"
+        // Test twin (-PshiroikumaTwin): a second, fully isolated install for destructive testing.
+        // Its own applicationId means its own uid and its own private data directory, so nothing it
+        // does can reach the real install's accounts or conversations. The FileProvider authority
+        // and the automation actions are ${applicationId}-templated, so both installs coexist.
+        //
+        // The CMake configuration below is deliberately NOT parameterised: JAMI_DATADIR is only the
+        // ringtone-resource fallback (fileutils::get_resource_dir_path), never the account data dir
+        // — that comes from the client's filesDir via the GetAppDataPath signal. So the twin reuses
+        // the cached native library as-is; the only visible cost is that call ringtones fall back in
+        // the twin, since it cannot read the real install's files directory.
+        val shiroikumaTwin = project.hasProperty("shiroikumaTwin")
+        applicationId = "shiroikuma.jami" + (if (shiroikumaTwin) ".test" else "")
+        manifestPlaceholders["appLabel"] =
+            if (shiroikumaTwin) "白い熊 GNU Jami 試験" else "@string/app_name"
         minSdk = 26
         targetSdk = 37
         val shiroikumaBuild = (project.findProperty("shiroikumaBuild") as String?)?.toIntOrNull() ?: 0
