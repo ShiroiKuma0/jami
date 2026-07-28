@@ -18,15 +18,21 @@ package cx.ring.account
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.activityViewModels
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import cx.ring.R
+import cx.ring.utils.EximPanel
 import cx.ring.client.HomeActivity
 import cx.ring.databinding.FragAccHomeCreateBinding
 import cx.ring.fragments.SIPAccountCreationFragment
@@ -47,6 +53,7 @@ class HomeAccountCreationFragment :
     BaseSupportFragment<HomeAccountCreationPresenter, HomeAccountCreationView>(),
     HomeAccountCreationView {
     private var binding: FragAccHomeCreateBinding? = null
+    @javax.inject.Inject lateinit var mAccountService: net.jami.services.AccountService
     private val model: AccountCreationViewModel by activityViewModels()
     private val mCompositeDisposable = CompositeDisposable()
     private val importBackupLauncher: ActivityResultLauncher<Intent> =
@@ -93,8 +100,40 @@ class HomeAccountCreationFragment :
             accountConnectServer.setOnClickListener { presenter.clickOnConnectAccount() }
             ringImportAccount.setOnClickListener { presenter.clickOnBackupAccountLink() }
             sipAddAccount.setOnClickListener { presenter.clickOnCreateSIPAccount() }
+            // shiroikuma fork: a fresh install has no other way in. Without this the wizard is the
+            // only screen, so a backup could be written but never restored.
+            appExportImport.setOnClickListener {
+                EximPanel.show(requireContext(), mAccountService, onImported = {
+                    startActivity(Intent(requireContext(), HomeActivity::class.java))
+                })
+            }
+            themeWizard(root)
             binding = this
         }.root
+
+    /** The fork is yellow-on-black everywhere else; the wizard was still upstream blue-on-white,
+     *  and it is the first screen a restored phone shows (白い熊, 2026-07-28). */
+    private fun themeWizard(root: View) {
+        val yellow = 0xFFFFFF00.toInt()
+        val stroke = (2 * resources.displayMetrics.density).toInt()
+        val tint = ColorStateList.valueOf(yellow)
+        root.setBackgroundColor(Color.BLACK)
+        fun walk(v: View) {
+            when (v) {
+                is MaterialButton -> {
+                    v.backgroundTintList = ColorStateList.valueOf(Color.BLACK)
+                    v.strokeColor = tint
+                    v.strokeWidth = stroke
+                    v.rippleColor = ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000)
+                    v.setTextColor(yellow)
+                    TextViewCompat.setCompoundDrawableTintList(v, tint)
+                }
+                is TextView -> v.setTextColor(yellow)
+            }
+            if (v is ViewGroup) for (i in 0 until v.childCount) walk(v.getChildAt(i))
+        }
+        walk(root)
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
