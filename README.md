@@ -13,10 +13,10 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
 too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
-meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and one-tap **Export / Import** of every setting **and every
-account** as a single backup file.
+meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
+setting, every account, and the **entire chat history with its attachments** to a new phone.
 
-**📥 Latest release: [`20260717-01+102`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+141`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -68,15 +68,28 @@ family, weight and size**, *and* set its **text, fill and border colours**.
 
 Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settings → Appearance**.
 
-## 💾 Export / Import — settings *and* accounts
+## 💾 保存復元 — move to a new phone with your history intact
 
-The first section of the UI page backs up **everything settable in the app — and your Jami accounts
-— into a single timestamped zip**, and restores it category by category. Pick an export directory
-once (the page shows the latest export in it at a glance), tick the categories — **Accounts (Jami
-archives)**, fonts & sizes (your imported font files travel inside the zip), colours, UI behaviour,
-online recovery & connectivity, automation & protected contacts, app settings — and hit Export.
-Import merges key-by-key (it never wipes what it doesn't know), skips accounts already on the
-device so a re-import can't duplicate identities, and offers a one-tap restart to apply everything.
+One file carries **everything**: your settings, your Jami **accounts**, your **entire chat history**,
+and the **attachments** inside it. Stock Jami re-clones each conversation from whoever else still
+holds it — slow, data-hungry, and permanently lossy for a self-chat or a one-to-one whose peer wiped
+their side. Here the history travels with you and the daemon finds it already on disk, fetching only
+what happened since the backup.
+
+Tick the categories — **Accounts**, **chat texts**, **chat files** (off by default, they're the bulk),
+fonts & sizes, colours, UI behaviour, connectivity, automation & protected contacts, app settings —
+and Export. The archive is written to a plain directory you choose, verified entry by entry, and only
+then given its final name; a partial write can never masquerade as a backup. Both directions run in a
+foreground service with a wakelock and live counts, and either can be stopped mid-run.
+
+Restore starts from the **archive**, then shows what's inside it. Accounts come back under their
+original identity — no new device certificate, no re-authorization. Re-importing onto a device that
+already has the account **merges**: existing conversations are left alone (swarm history is
+append-only, so what's on the device is always the superset), missing ones are dropped in, and only
+attachments actually absent are copied back. Nothing duplicates, whatever you import twice.
+
+The panel is reachable from the account wizard too — so a **fresh install can restore before it has
+any account at all**, which is the whole point of a migration tool.
 
 ## 🔗 Home-screen shortcuts
 
