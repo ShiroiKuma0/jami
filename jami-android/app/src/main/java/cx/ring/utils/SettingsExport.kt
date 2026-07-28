@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import androidx.documentfile.provider.DocumentFile
+import cx.ring.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -44,19 +45,9 @@ object SettingsExport {
      *  latest-export scan still matches the older `shiroikuma-jami-export_*` files too. */
     const val EXPORT_PREFIX = "shiroikuma-jami"
 
-    /**
-     * Where a direct-path archive lands when all-files access is granted.
-     *
-     * The test twin gets its own folder. Both installs can read shared storage, so a single folder
-     * would let the twin import the real install's archive by mistake — which would pull the real
-     * accounts onto a second device, the one side effect the twin exists to avoid.
-     */
-    fun defaultDirPath(c: Context): String {
-        // Written out rather than `"…" + if (…)`: that shape crashes lint's UAST converter
-        // ("Bad parent: KtNameReferenceExpression"), which fails lintVital on a release build.
-        val base = "/storage/emulated/0/shiroikuma-jami"
-        return if (c.packageName.endsWith(".test")) "$base-test" else base
-    }
+    /** Where archives live by default (白い熊, 2026-07-28). The test twin shares it deliberately:
+     *  importing the real install's archive into the twin is the migration test. */
+    const val DEFAULT_DIR_PATH = "/storage/emulated/0/tmp"
 
     /** Device-local prefs holding the export location; deliberately never exported. */
     private const val EXIM_PREFS = "shiroikuma_eximport"
@@ -83,16 +74,16 @@ object SettingsExport {
      * automation contract's item id. Declaration order is the order they appear in the panel, so
      * the three migration categories come first.
      */
-    enum class Cat(val id: String, val label: String, val defaultOn: Boolean = true) {
-        ACCOUNTS("accounts", "Accounts (Jami archives)"),
-        CHAT_TEXTS("chat_texts", "Chats — messages & history"),
-        CHAT_FILES("chat_files", "Chats — received & sent files", defaultOn = false),
-        FONTS("fonts", "Fonts & sizes"),
-        COLORS("colors", "Colours"),
-        UI("ui", "UI behaviour"),
-        RECOVERY("recovery", "Online recovery & connectivity"),
-        AUTOMATION("automation", "Automation & protected contacts"),
-        APP("app_settings", "App settings"),
+    enum class Cat(val id: String, val labelRes: Int, val defaultOn: Boolean = true) {
+        ACCOUNTS("accounts", R.string.sk_cat_accounts),
+        CHAT_TEXTS("chat_texts", R.string.sk_cat_chat_texts),
+        CHAT_FILES("chat_files", R.string.sk_cat_chat_files, defaultOn = false),
+        FONTS("fonts", R.string.sk_cat_fonts),
+        COLORS("colors", R.string.sk_cat_colors),
+        UI("ui", R.string.sk_cat_ui),
+        RECOVERY("recovery", R.string.sk_cat_recovery),
+        AUTOMATION("automation", R.string.sk_cat_automation),
+        APP("app_settings", R.string.sk_cat_app),
         ;
 
         val isChat get() = this == CHAT_TEXTS || this == CHAT_FILES
@@ -133,6 +124,7 @@ object SettingsExport {
         accountsMeta: JSONObject? = null,
         chats: List<ChatArchive.AccountChats> = emptyList(),
         progress: ChatArchive.Progress? = null,
+        onCategory: ((Cat) -> Unit)? = null,
     ) {
         ZipOutputStream(out).use { zip ->
             val manifest = JSONObject()
@@ -144,6 +136,7 @@ object SettingsExport {
             writeEntry(zip, "manifest.json", manifest.toString(2).toByteArray())
 
             for (cat in cats) {
+                onCategory?.invoke(cat)
                 when (cat) {
                     Cat.ACCOUNTS -> {
                         writeEntry(zip, "accounts.json",
@@ -172,8 +165,14 @@ object SettingsExport {
                 writeEntry(zip, ChatArchive.INDEX_ENTRY,
                     JSONObject().put("accounts", accounts).toString(2).toByteArray())
                 for (a in chats) {
-                    if (Cat.CHAT_TEXTS in cats) ChatArchive.writeTexts(zip, c, a, progress)
-                    if (Cat.CHAT_FILES in cats) ChatArchive.writeFiles(zip, c, a, progress)
+                    if (Cat.CHAT_TEXTS in cats) {
+                        onCategory?.invoke(Cat.CHAT_TEXTS)
+                        ChatArchive.writeTexts(zip, c, a, progress)
+                    }
+                    if (Cat.CHAT_FILES in cats) {
+                        onCategory?.invoke(Cat.CHAT_FILES)
+                        ChatArchive.writeFiles(zip, c, a, progress)
+                    }
                 }
             }
         }
@@ -279,6 +278,41 @@ object SettingsExport {
         override fun close() {}
     }
 
+    /**
+     * Reads every entry back and returns the names that fail — a full CRC check of what was just
+     * written.
+     *
+     * A backup is only worth having if it restores, and a zip can be structurally perfect while one
+     * entry's deflate stream is garbage: that is exactly what a level-switching bug produced here on
+     * 2026-07-28, undetectable until the restore. One extra read of the archive is cheap next to
+     * discovering the damage on a new phone.
+     */
+    fun verify(file: File, onEntry: ((Long) -> Unit)? = null): List<String> {
+        val bad = ArrayList<String>()
+        ZipFile(file).use { zip ->
+            val buf = ByteArray(64 * 1024)
+            val it = zip.entries()
+            while (it.hasMoreElements()) {
+                val e = it.nextElement()
+                if (e.isDirectory) continue
+                try {
+                    zip.getInputStream(e).use { s ->
+                        var n = 0L
+                        while (true) {
+                            val r = s.read(buf)
+                            if (r < 0) break
+                            n += r
+                        }
+                        onEntry?.invoke(n)
+                    }
+                } catch (ex: Exception) {
+                    bad.add(e.name)
+                }
+            }
+        }
+        return bad
+    }
+
     /** A [ZipSource] for a picked document: a real file when we can reach one, a stream otherwise. */
     fun openSource(c: Context, uri: Uri): ZipSource {
         val path = if (uri.scheme == "file") uri.path else null
@@ -330,7 +364,7 @@ object SettingsExport {
             if (cat == Cat.FONTS) n += importFontFiles(c, src)
             any = true
             if (summary.isNotEmpty()) summary.append('\n')
-            summary.append(cat.label).append(": ").append(n)
+            summary.append(c.getString(cat.labelRes)).append(": ").append(n)
         }
         return if (any) summary.toString() else null
     }
@@ -469,7 +503,7 @@ object SettingsExport {
     fun hasAllFilesAccess(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()
 
-    fun getDirPath(c: Context): String = p(c).getString(KEY_DIR_PATH, null) ?: defaultDirPath(c)
+    fun getDirPath(c: Context): String = p(c).getString(KEY_DIR_PATH, null) ?: DEFAULT_DIR_PATH
 
     fun setDirPath(c: Context, path: String) {
         p(c).edit().putString(KEY_DIR_PATH, path).apply()
@@ -518,12 +552,20 @@ object SettingsExport {
             ?: getExportDir(c)?.name
             ?: getDirUri(c)?.lastPathSegment
 
+    /** Whether ANY archive exists, in either location — the only thing that should read as a
+     *  warning. The old check looked at the SAF directory alone, so a perfectly good direct-path
+     *  export still painted the status line red (白い熊, 2026-07-28). */
+    fun exportExists(c: Context): Boolean =
+        directExports(c).isNotEmpty() || latestExport(c) != null
+
     /** The "last export" status line — call off the main thread (SAF listing can be slow). */
     fun lastExportStatus(c: Context): String {
         directDir(c)?.let { dir ->
             val newest = directExports(c).firstOrNull() ?: return "No exports yet in ${dir.absolutePath}"
+            // The folder goes on every line, not just the empty one: it is the only place the
+            // settings page states it, now that the permission pill no longer does.
             return "Latest export: ${newest.name}  (${stamp(newest.lastModified())}, " +
-                    "${ChatArchive.human(newest.length())})"
+                    "${ChatArchive.human(newest.length())})\n${dir.absolutePath}"
         }
         if (getExportDir(c) == null) return "Export directory not set"
         val newest = latestExport(c) ?: return "No exports yet"

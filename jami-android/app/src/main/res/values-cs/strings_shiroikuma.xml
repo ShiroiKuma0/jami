@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — řetězce funkce zálohování (保存復元), čeština. Výchozí je angličtina ve
+     values/strings_shiroikuma.xml. -->
+<resources>
+    <string name="sk_exim_open">Otevřít zálohování a obnovu  ▸</string>
+    <string name="sk_exim_page_summary">Uložte nebo načtěte veškerá nastavení — účty, konverzace, písma, barvy, obnovu spojení, automatizaci — po jednotlivých kategoriích.</string>
+
+    <string name="sk_exim_title">Zálohování a obnova — 白い熊 GNU Jami</string>
+    <string name="sk_exim_subtitle">Uložte nebo načtěte veškerá nastavení po kategoriích.</string>
+    <string name="sk_exim_perm_label">Přístup ke všem souborům (klepnutím otevřete nastavení)</string>
+    <string name="sk_exim_perm_granted">Povoleno</string>
+    <string name="sk_exim_perm_missing">Nepovoleno — klepnutím povolte</string>
+    <string name="sk_exim_perm_required">Nejprve povolte „Přístup ke všem souborům“</string>
+    <string name="sk_exim_folder_label">Složka pro zálohy (klepnutím změníte)</string>
+    <string name="sk_exim_export_cats">Kategorie k uložení</string>
+    <string name="sk_exim_select_all">Vybrat vše</string>
+    <string name="sk_exim_measuring">Měření konverzací…</string>
+    <string name="sk_exim_preflight">Konverzací: %1$d — text %2$s / soubory %3$d, %4$s</string>
+    <string name="sk_exim_import">Obnovit</string>
+    <string name="sk_exim_export">Uložit</string>
+
+    <string name="sk_cat_accounts">Účty (archivy Jami)</string>
+    <string name="sk_cat_chat_texts">Konverzace — zprávy a historie</string>
+    <string name="sk_cat_chat_files">Konverzace — přijaté a odeslané soubory</string>
+    <string name="sk_cat_fonts">Písma a velikosti</string>
+    <string name="sk_cat_colors">Barvy</string>
+    <string name="sk_cat_ui">Chování rozhraní</string>
+    <string name="sk_cat_recovery">Obnova spojení a připojení</string>
+    <string name="sk_cat_automation">Automatizace a chráněné kontakty</string>
+    <string name="sk_cat_app">Nastavení aplikace</string>
+
+    <string name="sk_exim_loading">Načítání…</string>
+    <string name="sk_exim_pick_backup">Vyberte zálohu</string>
+    <string name="sk_exim_no_backups_title">Žádné zálohy</string>
+    <string name="sk_exim_no_backups_body">Ve složce %1$s nebyl nalezen žádný uložený ZIP.\nZměňte složku, nebo nejprve zálohujte.</string>
+    <string name="sk_exim_cant_restore_title">Nelze obnovit</string>
+    <string name="sk_exim_cant_restore_body">V souboru %1$s nebyla nalezena záloha 白い熊 GNU Jami.</string>
+    <string name="sk_exim_pick_cats_title">Vyberte, co obnovit</string>
+    <string name="sk_exim_pick_cats_hint">Tyto kategorie záloha obsahuje. Co nechcete, odškrtněte.</string>
+    <string name="sk_exim_restore_start">Obnovit</string>
+    <string name="sk_exim_chat_texts_detail">%1$s — konverzací: %2$d, %3$s</string>
+    <string name="sk_exim_chat_files_detail">%1$s — souborů: %2$d, %3$s</string>
+
+    <string name="sk_exim_no_subfolders">(žádné podsložky)</string>
+    <string name="sk_exim_use_folder">✅ Použít tuto složku</string>
+    <string name="sk_exim_folder_set">Složka: %1$s</string>
+
+    <string name="sk_exim_deleted_entry">Obnovit smazané konverzace  ⌫</string>
+    <string name="sk_exim_deleted_hint">Běžná obnova nevrátí konverzace, které jste smazali záměrně. Vyberte je zde.</string>
+    <string name="sk_exim_deleted_title">Obnovit smazané konverzace</string>
+    <string name="sk_exim_deleted_none">Tato záloha neobsahuje žádnou konverzaci smazanou na tomto zařízení.</string>
+    <string name="sk_exim_deleted_pick">Vyberte konverzace k obnovení. Pokud si smazání drží jiné zařízení, může se sesynchronizovat a smazat je znovu.</string>
+
+    <string name="sk_exim_busy">Již běží jiná úloha</string>
+    <string name="sk_exim_no_cats">Není vybrána žádná kategorie</string>
+    <string name="sk_exim_no_target">Cíl se nepodařilo otevřít</string>
+    <string name="sk_exim_nothing_selected">Nic není vybráno</string>
+    <string name="sk_exim_export_done_title">Záloha dokončena</string>
+    <string name="sk_exim_import_done_title">Obnoveno</string>
+    <string name="sk_exim_import_done_body">%1$s\n\nPro plné použití restartujte aplikaci.</string>
+    <string name="sk_exim_restart_now">Restartovat</string>
+    <string name="sk_exim_later">Později</string>
+    <string name="sk_exim_failed">Selhalo: %1$s</string>
+    <string name="sk_exim_no_result">Selhalo: žádný výsledek</string>
+    <string name="sk_exim_done">Hotovo</string>
+    <string name="sk_exim_android11">Pouze Android 11 a novější</string>
+    <string name="sk_exim_settings_failed">Obrazovku nastavení se nepodařilo otevřít</string>
+
+    <string name="sk_exim_notif_channel">Zálohování a obnova</string>
+    <string name="sk_exim_notif_export">Zálohování — 白い熊 GNU Jami</string>
+    <string name="sk_exim_notif_import">Obnova — 白い熊 GNU Jami</string>
+    <string name="sk_exim_notif_deleted">Obnova — smazané konverzace</string>
+    <string name="sk_exim_phase_accounts">Ukládání účtů</string>
+    <string name="sk_exim_phase_index">Procházení konverzací</string>
+    <string name="sk_exim_phase_write">Zápis zálohy</string>
+    <string name="sk_exim_phase_read">Čtení zálohy</string>
+    <string name="sk_exim_phase_unpack">Rozbalování konverzací — %1$s</string>
+    <string name="sk_exim_phase_merge">Slučování konverzací — %1$s</string>
+    <string name="sk_exim_phase_create">Vytváření účtu — %1$s</string>
+    <string name="sk_exim_phase_restore">Obnova smazaných konverzací — %1$s</string>
+    <string name="sk_exim_progress">%1$s — %2$d/%3$d souborů, %4$s/%5$s</string>
+
+    <string name="sk_rep_acc_exported">Účty: uloženo %1$d</string>
+    <string name="sk_rep_chats_exported">Konverzace: %1$d, %2$s</string>
+    <string name="sk_rep_files_exported">Soubory konverzací: %1$d, %2$s</string>
+    <string name="sk_rep_acc_imported">Účty: obnoveno %1$d</string>
+    <string name="sk_rep_acc_present">Účty: obnoveno %1$d, %2$d již existuje</string>
+    <string name="sk_rep_acc_failed">Účty: %1$s se nepodařilo obnovit</string>
+    <string name="sk_rep_orphan">Konverzace pro %1$s: přeskočeno — tento účet v zařízení není (vyberte také Účty).</string>
+    <string name="sk_rep_chats">Konverzace %1$s: obnoveno %2$d</string>
+    <string name="sk_rep_chats_complete">, %1$d již kompletních</string>
+    <string name="sk_rep_chats_deleted">, %1$d přeskočeno jako smazané — použijte „Obnovit smazané konverzace“</string>
+    <string name="sk_rep_files">Soubory %1$s: obnoveno %2$d</string>
+    <string name="sk_rep_files_present">, %1$d již existuje</string>
+    <string name="sk_rep_files_relinked">, %1$d znovu propojeno</string>
+    <string name="sk_rep_deleted_done">%1$s: obnoveno konverzací %2$d, souborů %3$d</string>
+    <string name="sk_rep_not_ours">V tomto souboru nebyla nalezena záloha 白い熊 GNU Jami.</string>
+    <string name="sk_rep_no_space">Nedostatek místa: potřeba %1$s, k dispozici %2$s.</string>
+
+    <string name="sk_wizard_import">Obnovit ze zálohy 白い熊 Jami</string>
+    <string name="sk_exim_phase_verify">Ověřování zálohy</string>
+    <string name="sk_rep_verified">Ověřeno: %1$d položek, bez poškození</string>
+    <string name="sk_rep_corrupt">POŠKOZENO: %1$d položek neprošlo ověřením — na tuto zálohu se nespoléhejte</string>
+    <string name="sk_rep_damaged">Přeskočeno poškozených položek: %1$d</string>
+    <string name="sk_rep_links">Propojení: obnoveno %1$d z %2$d</string>
+</resources>
