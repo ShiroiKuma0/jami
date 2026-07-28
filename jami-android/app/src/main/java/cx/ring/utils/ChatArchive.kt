@@ -9,7 +9,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.InputStream
-import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -78,6 +77,8 @@ object ChatArchive {
     }
 
     class Tally(var files: Int = 0, var bytes: Long = 0) {
+        /** Entries that could not be read — a damaged archive still restores the rest. */
+        var failed: Int = 0
         fun add(n: Long) { files++; bytes += n }
     }
 
@@ -158,15 +159,29 @@ object ChatArchive {
         for (convDir in convData.listFiles().orEmpty()) {
             if (!convDir.isDirectory) continue
             val byIno = HashMap<Long, String>()
+            val byName = HashSet<String>()
             for (f in File(clientFilesDir(c, accountId), convDir.name).listFiles().orEmpty()) {
                 if (!isRegular(f)) continue
+                byName.add(f.name)
                 runCatching { byIno[Os.stat(f.absolutePath).st_ino] = f.name }
             }
             val m = HashMap<String, String>()
             for (f in convDir.listFiles().orEmpty()) {
-                if (!isRegular(f) || isStateEntry(f.name)) continue
-                val ino = runCatching { Os.stat(f.absolutePath).st_ino }.getOrNull()
-                m[f.name] = ino?.let { byIno[it] } ?: ""
+                if (isStateEntry(f.name)) continue
+                val name = when {
+                    // A SYMLINK is the common case: createFileLink() asks for a hard link and falls
+                    // back to a symlink when the filesystem refuses, which is what happens here. Its
+                    // target is an absolute path on the ORIGINAL device, so only the basename can
+                    // mean anything to us — and it has to match a file we are actually packing.
+                    // Missing this case left the map empty and every restored picture looked
+                    // undownloaded (白い熊, 2026-07-28).
+                    isSymlink(f) -> runCatching { Os.readlink(f.absolutePath) }.getOrNull()
+                        ?.substringAfterLast('/')?.takeIf { it in byName } ?: ""
+                    isRegular(f) -> runCatching { Os.stat(f.absolutePath).st_ino }.getOrNull()
+                        ?.let { byIno[it] } ?: ""
+                    else -> continue
+                }
+                m[f.name] = name
             }
             if (m.isNotEmpty()) out[convDir.name] = m
         }
@@ -204,7 +219,9 @@ object ChatArchive {
         for ((conv, m) in links) for ((fileId, name) in m) {
             if (name.isNotEmpty()) continue
             val f = File(File(convData, conv), fileId)
-            if (isRegular(f)) yield(f to "$UNLINKED/$conv/$fileId")
+            // isFile() FOLLOWS symlinks on purpose: an entry with no twin in the client tree still
+            // has bytes worth packing as long as whatever it points at is still there.
+            if (f.isFile) yield(f to "$UNLINKED/$conv/$fileId")
         }
     }
 
@@ -241,20 +258,24 @@ object ChatArchive {
     // --- writing -------------------------------------------------------------------------------
 
     fun writeTexts(zip: ZipOutputStream, c: Context, a: AccountChats, progress: Progress?) {
-        zip.setLevel(Deflater.DEFAULT_COMPRESSION)
         for ((f, rel) in textEntries(c, a.accountId))
             copyIn(zip, f, "$TEXTS/${a.accountId}/$rel", progress)
     }
 
-    /** Payloads go in uncompressed — photos and video do not deflate, they only burn CPU. */
+    /**
+     * Payloads use the same compression as everything else.
+     *
+     * They were written at Deflater.NO_COMPRESSION — media does not deflate, so the level looked
+     * free. It was not: switching the level on the ZipOutputStream's shared Deflater between
+     * entries corrupts the occasional entry, and a corrupt entry in a migration backup is not
+     * discovered until the day you need it. One entry in 3258 came back "invalid block type" from
+     * a real 1.6 GiB archive (白い熊, 2026-07-28). Never call setLevel() on a live
+     * ZipOutputStream — if uncompressed entries are ever wanted, use ZipEntry.STORED with the
+     * size and CRC computed up front.
+     */
     fun writeFiles(zip: ZipOutputStream, c: Context, a: AccountChats, progress: Progress?) {
-        zip.setLevel(Deflater.NO_COMPRESSION)
-        try {
-            for ((f, rel) in payloadEntries(c, a.accountId, a.links))
-                copyIn(zip, f, "$FILES/${a.accountId}/$rel", progress)
-        } finally {
-            zip.setLevel(Deflater.DEFAULT_COMPRESSION)
-        }
+        for ((f, rel) in payloadEntries(c, a.accountId, a.links))
+            copyIn(zip, f, "$FILES/${a.accountId}/$rel", progress)
     }
 
     private fun copyIn(zip: ZipOutputStream, f: File, entryName: String, progress: Progress?) {
@@ -286,9 +307,17 @@ object ChatArchive {
             target.parentFile?.mkdirs()
             // An empty-directory marker exists only to have created that parent.
             if (rel.substringAfterLast('/') == KEEPDIR) return@forEach
-            val n = target.outputStream().use { input.copyTo(it) }
-            t.add(n)
-            progress?.step(n, target.name)
+            // One unreadable entry must not abort a migration: drop that file, keep the rest.
+            // A damaged archive should still give back everything it can.
+            try {
+                val n = target.outputStream().use { input.copyTo(it) }
+                t.add(n)
+                progress?.step(n, target.name)
+            } catch (e: Exception) {
+                Log.w(TAG, "extract: skipping damaged entry $name — ${e.message}")
+                target.delete()
+                t.failed++
+            }
         }
         return t
     }
@@ -302,6 +331,7 @@ object ChatArchive {
         var filesRestored = 0
         var filesPresent = 0
         var relinked = 0
+        var linksWanted = 0
         val deletedIds = ArrayList<String>()
         val notes = ArrayList<String>()
     }
@@ -324,6 +354,16 @@ object ChatArchive {
             target.parentFile?.mkdirs()
             if (!filesStage.renameTo(target)) moveTree(filesStage, target, r)
             r.filesRestored += countFiles(target)
+            // Payloads with no client-tree twin belong in the daemon's own directory; renaming the
+            // whole tree would leave them under the client tree, where nothing ever looks.
+            val unlinked = File(target, UNLINKED)
+            if (unlinked.isDirectory) {
+                val convData = File(daemonDir(c, targetId), "conversation_data")
+                for (convDir in unlinked.listFiles().orEmpty()) {
+                    if (convDir.isDirectory) mergeMissing(convDir, File(convData, convDir.name), r)
+                }
+                unlinked.deleteRecursively()
+            }
         }
     }
 
@@ -411,18 +451,23 @@ object ChatArchive {
      * Recreates the daemon's hard links into the client tree, so the daemon can still serve those
      * files to peers that re-ask for them. A link that already exists is left alone.
      */
-    fun relink(c: Context, accountId: String, links: Map<String, Map<String, String>>, r: InstallResult) {
+    fun relink(
+        c: Context, accountId: String, links: Map<String, Map<String, String>>, r: InstallResult
+    ) {
         val convData = File(daemonDir(c, accountId), "conversation_data")
         for ((conv, m) in links) for ((fileId, name) in m) {
             if (name.isEmpty()) continue
+            r.linksWanted++
             val target = File(File(convData, conv), fileId)
-            if (target.exists()) continue
+            if (target.exists()) { r.relinked++; continue }
+            // A dangling leftover still occupies the name and would block creation.
+            if (isSymlink(target)) target.delete()
             val src = File(File(clientFilesDir(c, accountId), conv), name)
             if (!src.isFile) continue
             target.parentFile?.mkdirs()
-            runCatching { Os.link(src.absolutePath, target.absolutePath) }
-                .onSuccess { r.relinked++ }
-                .onFailure { Log.w(TAG, "relink ${target.name} failed: ${it.message}") }
+            val hard = runCatching { Os.link(src.absolutePath, target.absolutePath) }.isSuccess
+            val ok = hard || runCatching { Os.symlink(src.absolutePath, target.absolutePath) }.isSuccess
+            if (ok) r.relinked++ else Log.w(TAG, "relink failed for ${target.name}")
         }
     }
 
