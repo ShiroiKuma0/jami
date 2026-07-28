@@ -102,4 +102,11 @@
     <string name="sk_rep_corrupt">破損: %1$d 項目が検証に失敗 — このバックアップは信頼できません</string>
     <string name="sk_rep_damaged">破損した %1$d 項目を省略しました</string>
     <string name="sk_rep_links">リンク: %2$d 件中 %1$d 件を再作成</string>
+    <string name="sk_exim_stop">中止</string>
+    <string name="sk_exim_stopping">中止しています…</string>
+    <string name="sk_exim_cancelled">中止しました — 作成中のファイルは削除しました</string>
+    <string name="sk_exim_phase_pause">アカウントを一時停止中 — %1$s</string>
+    <string name="sk_exim_phase_link">ファイルリンクを再作成中 — %1$s</string>
+    <string name="sk_exim_phase_resume">アカウントを再開中 — %1$s</string>
+    <string name="sk_rep_acc_not_ready">アカウント: %1$s を確立できませんでした — 再起動で消えるのを避けるため削除しました</string>
 </resources>

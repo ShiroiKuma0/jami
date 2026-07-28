@@ -54,12 +54,48 @@ class EximRunner(
     class Report {
         val lines = ArrayList<String>()
         var failure: String? = null
+        var cancelled = false
         fun add(s: String) { if (s.isNotBlank()) lines.add(s.trim()) }
         val text: String get() = lines.joinToString("\n")
     }
 
     val progress = Progress(app)
     private var lastTick = 0L
+
+    /** Set by [cancel]; the write loops check it and unwind with a CancelledException. */
+    @Volatile private var cancelled = false
+
+    fun cancel() { cancelled = true }
+
+    // --- diagnostics, TEST TWIN ONLY --------------------------------------------------------------
+    //
+    // This device drops the app's logcat output entirely — 73k lines captured across an import
+    // window contained not one line of ours — so a failure that only reaches a dialog is a failure
+    // nobody can diagnose. The twin writes a plain log next to the archive, on shared storage, where
+    // adb can read it without root. The real app writes NOTHING: 白い熊 does not want log files
+    // appearing beside backups in normal use (白い熊, 2026-07-28).
+
+    private val debugLogging get() = app.packageName.endsWith(".test")
+
+    private var logFile: File? = null
+
+    /** Arms the diagnostic log for this run. A no-op outside the test twin. */
+    fun enableDebugLog(archive: File, kind: String) {
+        if (!debugLogging) return
+        logFile = File(archive.parentFile, "${archive.name}.$kind.log").also { f ->
+            runCatching { f.writeText("") }
+        }
+        logLine("=== $kind ${archive.name} (${app.packageName})")
+    }
+
+    private fun logLine(s: String) {
+        val f = logFile ?: return
+        runCatching {
+            val t = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.ROOT)
+                .format(java.util.Date())
+            f.appendText("$t  $s\n")
+        }
+    }
 
     private fun tick(force: Boolean = false) {
         val now = System.currentTimeMillis()
@@ -113,10 +149,10 @@ class EximRunner(
         }
 
         phase(app.getString(R.string.sk_exim_phase_write))
-        SettingsExport.export(app, cats, out, archives, meta, chats, step) { cat ->
+        SettingsExport.export(app, cats, out, archives, meta, chats, step, { cat ->
             progress.itemId = cat.id
             tick(true)
-        }
+        }) { cancelled }
 
         if (Cat.CHAT_TEXTS in cats) report.add(app.getString(R.string.sk_rep_chats_exported,
             chats.sumOf { it.conversations.size },
@@ -131,9 +167,9 @@ class EximRunner(
             phase(app.getString(R.string.sk_exim_phase_verify))
             progress.files = 0; progress.bytes = 0
             var n = 0
-            val bad = SettingsExport.verify(verifyTarget) { b ->
+            val bad = SettingsExport.verify(verifyTarget, { b ->
                 n++; progress.files = n; progress.bytes += b; tick()
-            }
+            }) { cancelled }
             if (bad.isEmpty()) report.add(app.getString(R.string.sk_rep_verified, n))
             else {
                 report.failure = app.getString(R.string.sk_rep_corrupt, bad.size)
@@ -144,21 +180,67 @@ class EximRunner(
         return report
     }
 
-    /** Where an export will be written. [file] is null when only SAF is available, in which case
-     *  the archive cannot be read back for verification. */
-    class ExportTarget(val label: String, val stream: OutputStream, val file: File?)
-
-    /** Opens the configured destination (direct path first, SAF second). Null = none configured. */
-    fun openExportTarget(): ExportTarget? {
-        val name = SettingsExport.exportFileName()
-        SettingsExport.directDir(app)?.let { dir ->
-            val f = File(dir, name)
-            return ExportTarget(f.absolutePath, f.outputStream(), f)
+    /**
+     * Where an export is being written.
+     *
+     * The bytes go to `<name>.zip.part` and the file takes its real name only once the archive is
+     * closed AND verified. 白い熊 keeps every app's backups in one directory sorted by date, so a
+     * truncated file silently becomes "the latest Jami backup" and is indistinguishable from a real
+     * one until the day it is needed — three such files existed before this (保存復元 hand-off,
+     * 2026-07-28). [file] is null when only SAF is available, where neither verification nor an
+     * atomic rename is possible.
+     */
+    class ExportTarget(
+        val label: String,
+        val stream: OutputStream,
+        val file: File?,
+        private val finalFile: File?,
+    ) {
+        fun commit(): Boolean {
+            val part = file ?: return true
+            val dest = finalFile ?: return true
+            dest.delete()
+            return part.renameTo(dest)
         }
-        val dir = SettingsExport.getExportDir(app) ?: return null
-        val doc = dir.createFile("application/zip", name) ?: return null
+
+        fun abort() {
+            file?.delete()
+        }
+    }
+
+    /** Opens the destination. [overrideDir] is the automation contract's `path` extra. */
+    fun openExportTarget(overrideDir: File? = null): ExportTarget? {
+        val name = SettingsExport.exportFileName()
+        val dir = overrideDir ?: SettingsExport.directDir(app)
+        if (dir != null) {
+            runCatching { dir.mkdirs() }
+            val part = File(dir, "$name.part")
+            val dest = File(dir, name)
+            return runCatching {
+                ExportTarget(dest.absolutePath, part.outputStream(), part, dest)
+            }.getOrNull() ?: return null
+        }
+        val safDir = SettingsExport.getExportDir(app) ?: return null
+        val doc = safDir.createFile("application/zip", name) ?: return null
         val out = app.contentResolver.openOutputStream(doc.uri) ?: return null
-        return ExportTarget(name, out, null)
+        return ExportTarget(name, out, null, null)
+    }
+
+    /**
+     * The whole export, atomically: write, verify, then rename into place — or delete the partial
+     * file. Both the panel and the automation service go through here so neither can get it wrong.
+     */
+    fun exportTo(cats: List<Cat>, target: ExportTarget): Report {
+        var report: Report? = null
+        try {
+            target.stream.use { out -> report = exportInto(cats, out, target.file) }
+            return report!!
+        } finally {
+            // Anything other than a clean run — failure, cancellation, an exception on the way out
+            // — deletes the partial file rather than leaving it to look like a backup.
+            val r = report
+            if (r != null && r.failure == null && !cancelled) target.commit() else target.abort()
+        }
     }
 
     // --- import ---------------------------------------------------------------------------------
@@ -216,61 +298,23 @@ class EximRunner(
         staging.deleteRecursively()
 
         for (srcId in srcIds) {
-            val m = meta.optJSONObject(srcId)
-            val uri = m?.optString("uri").orEmpty()
-            val label = m?.optString("registeredName").orEmpty()
-                .ifBlank { m?.optString("alias").orEmpty() }.ifBlank { srcId.take(8) }
-            val t = Target(srcId, label)
-
-            val existing = accounts.getAccounts()
-                .firstOrNull { uri.isNotEmpty() && it.username == uri }
-            if (existing != null) {
-                t.id = existing.accountId
-                alreadyThere++
-            } else if (Cat.ACCOUNTS in cats && archives[srcId] != null) {
-                t.fresh = ChatArchive.daemonDir(app, srcId).let { !it.exists() } &&
-                        accounts.getAccounts().none { it.accountId == srcId }
-            } else {
-                report.add(app.getString(R.string.sk_rep_orphan, label))
-                continue
-            }
-
-            // Chat data is staged first: for a fresh account it must be on disk *before* the
-            // daemon creates the account, which is what makes the history load with no download.
-            val chats = chatIdx[srcId]
-            val stage = File(staging, srcId)
-            if (chats != null) {
-                phase(app.getString(R.string.sk_exim_phase_unpack, label))
-                var damaged = 0
-                if (wantTexts) damaged += ChatArchive
-                    .extract(src, "${ChatArchive.TEXTS}/$srcId/", File(stage, "daemon"), step).failed
-                if (wantFiles) damaged += ChatArchive
-                    .extract(src, "${ChatArchive.FILES}/$srcId/", File(stage, "files"), step).failed
-                if (damaged > 0) report.add(app.getString(R.string.sk_rep_damaged, damaged))
-            }
-
-            if (t.id == null) {
-                val r = ChatArchive.InstallResult()
-                // Chat data is staged first: for a fresh account it must be on disk *before* the
-                // daemon creates the account, which is what makes the history load with no download.
-                if (t.fresh && chats != null) ChatArchive.installFresh(app, srcId, stage, r)
-                phase(app.getString(R.string.sk_exim_phase_create, label))
-                val newId = createAccount(archives.getValue(srcId), m, if (t.fresh) srcId else null)
-                if (newId == null) {
-                    report.add(app.getString(R.string.sk_rep_acc_failed, label))
-                    continue
+            // One account's failure must not end the restore for the rest — before this, an
+            // exception here ended the loop silently and only the first account survived.
+            try {
+                importOne(src, srcId, meta, archives, chatIdx, cats, wantTexts, wantFiles,
+                    staging, report).let { outcome ->
+                    when (outcome) {
+                        Outcome.CREATED -> created++
+                        Outcome.PRESENT -> alreadyThere++
+                        Outcome.SKIPPED -> Unit
+                    }
                 }
-                created++
-                t.id = newId
-                if (chats != null && (!t.fresh || newId != srcId)) {
-                    // Collided on the id, so the daemon picked its own: merge instead.
-                    mergeInto(newId, stage, chats, label, report, wantFiles)
-                } else if (chats != null) {
-                    ChatArchive.relink(app, newId, chats.links, r)
-                    reportChats(report, label, r, wantFiles)
-                }
-            } else if (chats != null) {
-                mergeInto(t.id!!, stage, chats, label, report, wantFiles)
+            } catch (e: ChatArchive.CancelledException) {
+                throw e
+            } catch (e: Throwable) {
+                Log.e(TAG, "import of $srcId failed", e)
+                logLine("account $srcId FAILED: ${e.javaClass.simpleName}: ${e.message}")
+                report.add(app.getString(R.string.sk_rep_acc_failed, srcId.take(8)))
             }
         }
 
@@ -280,26 +324,190 @@ class EximRunner(
                 app.getString(R.string.sk_rep_acc_present, created, alreadyThere)
             else app.getString(R.string.sk_rep_acc_imported, created))
         }
+        logLine("=== finished: $created created, $alreadyThere already present")
+        logLine(report.text)
+        report.failure?.let { logLine("FAILURE: $it") }
         phase(app.getString(R.string.sk_exim_done))
         return report
     }
 
-    /** Quiesce → move in only what is missing → re-scan. Safe against a live, syncing account. */
+    private enum class Outcome { CREATED, PRESENT, SKIPPED }
+
+    /** One archived account: resolve where it goes, stage its chats, then create it or merge. */
+    private fun importOne(
+        src: SettingsExport.ZipSource,
+        srcId: String,
+        meta: JSONObject,
+        archives: Map<String, ByteArray>,
+        chatIdx: Map<String, ChatArchive.AccountChats>,
+        cats: List<Cat>,
+        wantTexts: Boolean,
+        wantFiles: Boolean,
+        staging: File,
+        report: Report,
+    ): Outcome {
+        val m = meta.optJSONObject(srcId)
+        val uri = m?.optString("uri").orEmpty()
+        val label = m?.optString("registeredName").orEmpty()
+            .ifBlank { m?.optString("alias").orEmpty() }.ifBlank { srcId.take(8) }
+        logLine("account $srcId ($label)")
+
+        val existing = accounts.getAccounts().firstOrNull { uri.isNotEmpty() && it.username == uri }
+        var targetId = existing?.accountId
+        var fresh = false
+        when {
+            existing != null -> logLine("  already here as ${existing.accountId}")
+            Cat.ACCOUNTS in cats && archives[srcId] != null -> {
+                // Reusing the archive's own account id is what lets the daemon adopt the restored
+                // directory as it starts, and it is the path the whole design rests on.
+                //
+                // A directory at that id with NO account owning it is orphaned data — exactly what
+                // the daemon's own cleanupAccountStorage() deletes — usually the husk of an earlier
+                // attempt. Stepping aside for it dropped every retry onto the slower merge path
+                // under a random id, and left the stale directory behind to do it again next time
+                // (白い熊, 2026-07-28). So reclaim it.
+                val dir = ChatArchive.daemonDir(app, srcId)
+                val idTaken = accounts.getAccounts().any { it.accountId == srcId }
+                if (!idTaken && dir.exists()) {
+                    val left = dir.listFiles()?.joinToString(", ") { it.name } ?: ""
+                    logLine("  reclaiming orphaned directory for $srcId [$left]")
+                    dir.deleteRecursively()
+                }
+                fresh = !idTaken && !dir.exists()
+                if (!fresh) logLine("  cannot reuse id: idTaken=$idTaken dirExists=${dir.exists()}")
+                logLine("  new account, fresh=$fresh")
+            }
+            else -> {
+                logLine("  SKIPPED — not on this device and no archive for it")
+                report.add(app.getString(R.string.sk_rep_orphan, label))
+                return Outcome.SKIPPED
+            }
+        }
+
+        val chats = chatIdx[srcId]
+        val stage = File(staging, srcId)
+        if (chats != null) {
+            phase(app.getString(R.string.sk_exim_phase_unpack, label))
+            var damaged = 0
+            if (wantTexts) damaged += ChatArchive.extract(
+                src, "${ChatArchive.TEXTS}/$srcId/", File(stage, "daemon"), step) { cancelled }
+                .failed
+            if (wantFiles) damaged += ChatArchive.extract(
+                src, "${ChatArchive.FILES}/$srcId/", File(stage, "files"), step) { cancelled }
+                .failed
+            logLine("  unpacked (damaged entries: $damaged)")
+            if (damaged > 0) report.add(app.getString(R.string.sk_rep_damaged, damaged))
+        }
+
+        if (targetId == null) {
+            val r = ChatArchive.InstallResult()
+            if (fresh && chats != null) {
+                ChatArchive.installFresh(app, srcId, stage, r)
+                logLine("  installed ${r.restored} conversations, ${r.filesRestored} files")
+            }
+            phase(app.getString(R.string.sk_exim_phase_create, label))
+            val newId = createAccount(archives.getValue(srcId), m, if (fresh) srcId else null)
+            if (newId == null) {
+                logLine("  CREATE FAILED")
+                report.add(app.getString(R.string.sk_rep_acc_failed, label))
+                return Outcome.SKIPPED
+            }
+            logLine("  created as $newId")
+            if (!awaitAccountReady(newId, uri)) {
+                // The daemon deletes an account that is still pending at the next start, wiping its
+                // directory with it. Carrying on would produce a restore that looks complete and
+                // evaporates on restart — so fail this account honestly instead.
+                logLine("  ABORTING this account: it would be deleted on the next restart")
+                runCatching { accounts.removeAccount(newId) }
+                report.add(app.getString(R.string.sk_rep_acc_not_ready, label))
+                return Outcome.SKIPPED
+            }
+            targetId = newId
+            if (chats != null && (!fresh || newId != srcId)) {
+                mergeInto(newId, stage, chats, label, report, wantFiles)
+            } else if (chats != null) {
+                ChatArchive.relink(app, newId, chats.links, r)
+                reportChats(report, label, r, wantFiles)
+                logLine("  relinked ${r.relinked}/${r.linksWanted}")
+            }
+            return Outcome.CREATED
+        }
+
+        if (chats != null) mergeInto(targetId, stage, chats, label, report, wantFiles)
+        return Outcome.PRESENT
+    }
+
+    /**
+     * Waits until a newly created account has actually LOADED ITS IDENTITY — not merely appeared.
+     *
+     * This is the difference between a restore that survives and one that evaporates.
+     * `Manager::addAccount` marks every new Jami account **pending**, and only `markAccountReady`
+     * clears it once `loadAccount` has read the archive. At the next startup the daemon does
+     * `if (isAccountPending(id)) { removeAccount(id, /*flush*/true); cleanupAccountStorage(id); }`
+     * — and `flush = true` wipes the whole account directory, taking every conversation we just
+     * restored with it. Restarting a few seconds after the import destroyed three accounts exactly
+     * that way (白い熊, 2026-07-28).
+     *
+     * The identity landing is observable: `loadAccount` sets `config_->username` from it just
+     * before scheduling the ready callback, so a matching username means the archive was read. The
+     * short settle afterwards lets that posted callback actually run.
+     */
+    private fun awaitAccountReady(id: String, expectedUri: String, timeoutMs: Long = 60_000): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (cancelled) return false
+            val a = accounts.getAccount(id)
+            val user = a?.username.orEmpty()
+            if (user.isNotEmpty() && (expectedUri.isEmpty() || user == expectedUri)) {
+                logLine("  identity loaded (${user.take(12)}…), settling")
+                Thread.sleep(2_000)          // let markAccountReady run on the daemon's main thread
+                logLine("  ready, state=${runCatching { a?.registrationState }.getOrNull()}")
+                return true
+            }
+            Thread.sleep(250)
+        }
+        logLine("  identity did not load within $timeoutMs ms — account is still PENDING")
+        return false
+    }
+
+    /**
+     * Quiesce → move in only what is missing → re-scan. Safe against a live, syncing account.
+     *
+     * Every step announces itself. This phase moves files and talks to the daemon but never touches
+     * the extraction counter, so without these the panel sat frozen on the unpack total for nearly
+     * two minutes and looked hung (白い熊, 2026-07-28).
+     */
     private fun mergeInto(
         targetId: String, stage: File, chats: ChatArchive.AccountChats,
         label: String, report: Report, wantFiles: Boolean,
     ) {
         phase(app.getString(R.string.sk_exim_phase_merge, label))
         val r = ChatArchive.InstallResult()
+        logLine("  merging into $targetId")
+        phase(app.getString(R.string.sk_exim_phase_pause, label))
         runCatching { accounts.pauseAccountForImport(targetId) }
-            .onFailure { Log.w(TAG, "could not pause $targetId: ${it.message}") }
+            .onFailure {
+                Log.w(TAG, "could not pause $targetId: ${it.message}")
+                logLine("  pause timed out or failed: ${it.javaClass.simpleName}")
+            }
         try {
+            phase(app.getString(R.string.sk_exim_phase_merge, label))
             ChatArchive.installMerge(app, targetId, stage, r)
+            logLine("  merged ${r.restored} conversations, ${r.filesRestored} files " +
+                    "(${r.filesPresent} already present)")
+            phase(app.getString(R.string.sk_exim_phase_link, label))
             ChatArchive.relink(app, targetId, chats.links, r)
+            logLine("  relinked ${r.relinked}/${r.linksWanted}")
         } finally {
+            phase(app.getString(R.string.sk_exim_phase_resume, label))
             runCatching { accounts.resumeAccountAfterImport(targetId) }
+                .onFailure { logLine("  resume timed out or failed: ${it.javaClass.simpleName}") }
             runCatching { accounts.reloadConversationsAndRequests(targetId) }
-                .onFailure { Log.w(TAG, "reload failed for $targetId: ${it.message}") }
+                .onFailure {
+                    Log.w(TAG, "reload failed for $targetId: ${it.message}")
+                    logLine("  reload timed out or failed: ${it.javaClass.simpleName}")
+                }
+            logLine("  account resumed")
         }
         reportChats(report, label, r, wantFiles)
     }
@@ -356,6 +564,7 @@ class EximRunner(
             .blockingFirst().accountId
     } catch (e: Exception) {
         Log.e(TAG, "account import failed", e)
+        logLine("  createAccount threw ${e.javaClass.simpleName}: ${e.message}")
         null
     }
 

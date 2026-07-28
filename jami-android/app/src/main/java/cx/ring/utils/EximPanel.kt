@@ -183,6 +183,7 @@ object EximPanel {
             onExport(ctx, app, accounts, ui)
         }
 
+        syncButtons(ctx, ui)
         dialog.setOnDismissListener {
             current = null
             onClosed?.invoke()
@@ -196,6 +197,22 @@ object EximPanel {
         refresh(ctx, app)
         refreshPreflight(ctx, app, accounts, ui)
         observe(ctx, app, onImported)
+    }
+
+    /** While a job runs the left button stops it instead of closing the panel — a dialog that only
+     *  dismisses gave no way to stop a twenty-minute export (白い熊, 2026-07-28). */
+    private fun syncButtons(ctx: Context, ui: Ui) {
+        val b = ui.dialog.getButton(AlertDialog.BUTTON_NEUTRAL) ?: return
+        if (EximJob.running) {
+            b.text = ctx.getString(R.string.sk_exim_stop)
+            b.setOnClickListener {
+                EximJob.cancel()
+                Flash.show(ctx, ctx.getString(R.string.sk_exim_stopping))
+            }
+        } else {
+            b.text = ctx.getString(android.R.string.cancel)
+            b.setOnClickListener { ui.dialog.dismiss() }
+        }
     }
 
     // --- state -----------------------------------------------------------------------------------
@@ -249,9 +266,12 @@ object EximPanel {
             ui.progress.post {
                 ui.progress.text = line
                 ui.progress.visibility = if (done) View.GONE else View.VISIBLE
+                syncButtons(ctx, ui)
                 if (!done) return@post
                 refresh(ctx, app)
                 when {
+                    report?.cancelled == true ->
+                        Flash.show(ctx, ctx.getString(R.string.sk_exim_cancelled), Toast.LENGTH_LONG)
                     error != null ->
                         Flash.show(ctx, ctx.getString(R.string.sk_exim_failed, error), Toast.LENGTH_LONG)
                     report == null ->
@@ -318,7 +338,9 @@ object EximPanel {
         }
         lastWasImport = false
         EximJob.start(app, accounts, app.getString(R.string.sk_exim_notif_export)) { r ->
-            target.stream.use { out -> r.exportInto(cats, out, target.file) }
+            // exportTo(): write to <name>.part, verify, then rename — or delete the partial. A
+            // truncated file must never be left looking like the latest backup.
+            r.exportTo(cats, target)
         }
     }
 
@@ -379,6 +401,7 @@ object EximPanel {
                 }
                 lastWasImport = true
                 EximJob.start(app, accounts, app.getString(R.string.sk_exim_notif_import)) { r ->
+                    r.enableDebugLog(file, "import")
                     SettingsExport.openSource(file).use { src -> r.runImport(src, picked) }
                 }
             }
