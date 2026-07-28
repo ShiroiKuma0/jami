@@ -59,6 +59,19 @@
                 android:drawableLeft="@drawable/baseline_devices_white_36"
                 android:drawableRight="@drawable/baseline_arrow_forward_white_18"/>
 
+            <!-- shiroikuma fork: restore a full app export (accounts + chats). Above the plain
+                 archive link, because on a fresh install this is the one that brings history. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/app_export_import"
+                style="@style/ButtonOutLined"
+                android:layout_width="@dimen/wizard_button_width"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/sk_wizard_import"
+                android:drawableTint="@color/color_primary_dark"
+                android:drawableLeft="@drawable/round_settings_backup_restore_24"
+                android:drawableRight="@drawable/baseline_arrow_forward_black_18" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/ring_import_account"
                 style="@style/ButtonOutLined"

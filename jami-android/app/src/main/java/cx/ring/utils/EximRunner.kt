@@ -2,6 +2,7 @@ package cx.ring.utils
 
 import android.content.Context
 import android.util.Log
+import cx.ring.R
 import cx.ring.utils.SettingsExport.Cat
 import net.jami.model.AccountConfig
 import net.jami.model.ConfigKey
@@ -31,8 +32,13 @@ class EximRunner(
         fun onProgress(p: Progress)
     }
 
-    class Progress {
+    class Progress(private val app: Context? = null) {
         @Volatile var phase: String = ""
+
+        /** The Cat.id currently being written — "chat_texts", "chat_files", … Machine-readable
+         *  companion to [phase], so 自由作業盤 can highlight the right row instead of reading the
+         *  file counter as a row number (保存復元 contract §3). */
+        @Volatile var itemId: String = ""
         @Volatile var files: Int = 0
         @Volatile var totalFiles: Int = 0
         @Volatile var bytes: Long = 0L
@@ -40,8 +46,8 @@ class EximRunner(
 
         fun line(): String {
             if (totalFiles <= 0) return phase
-            return "$phase — $files/$totalFiles files, " +
-                    "${ChatArchive.human(bytes)}/${ChatArchive.human(totalBytes)}"
+            return app?.getString(R.string.sk_exim_progress, phase, files, totalFiles,
+                ChatArchive.human(bytes), ChatArchive.human(totalBytes)) ?: phase
         }
     }
 
@@ -52,7 +58,7 @@ class EximRunner(
         val text: String get() = lines.joinToString("\n")
     }
 
-    val progress = Progress()
+    val progress = Progress(app)
     private var lastTick = 0L
 
     private fun tick(force: Boolean = false) {
@@ -62,8 +68,9 @@ class EximRunner(
         watcher?.onProgress(progress)
     }
 
-    private fun phase(name: String) {
+    private fun phase(name: String, item: String = "") {
         progress.phase = name
+        progress.itemId = item
         tick(true)
     }
 
@@ -82,19 +89,19 @@ class EximRunner(
             .filter { it.isJami }
             .map { it.accountId to (it.username ?: "") })
 
-    fun exportInto(cats: List<Cat>, out: OutputStream): Report {
+    fun exportInto(cats: List<Cat>, out: OutputStream, verifyTarget: File? = null): Report {
         val report = Report()
         var archives = emptyMap<String, ByteArray>()
         var meta: JSONObject? = null
         if (Cat.ACCOUNTS in cats) {
-            phase("Exporting accounts")
+            phase(app.getString(R.string.sk_exim_phase_accounts), Cat.ACCOUNTS.id)
             val (a, m, notes) = SettingsExport.collectAccountArchives(app, accounts)
             archives = a; meta = m
-            report.add("Accounts: ${a.size} exported")
+            report.add(app.getString(R.string.sk_rep_acc_exported, a.size))
             report.add(notes)
         }
 
-        phase("Indexing chats")
+        phase(app.getString(R.string.sk_exim_phase_index))
         val chats = indexChats(cats)
         progress.totalFiles = chats.sumOf {
             (if (Cat.CHAT_TEXTS in cats) it.texts.files else 0) +
@@ -105,27 +112,53 @@ class EximRunner(
                     (if (Cat.CHAT_FILES in cats) it.payload.bytes else 0L)
         }
 
-        phase("Writing archive")
-        SettingsExport.export(app, cats, out, archives, meta, chats, step)
+        phase(app.getString(R.string.sk_exim_phase_write))
+        SettingsExport.export(app, cats, out, archives, meta, chats, step) { cat ->
+            progress.itemId = cat.id
+            tick(true)
+        }
 
-        if (Cat.CHAT_TEXTS in cats) report.add("Chats: ${chats.sumOf { it.conversations.size }} " +
-                "conversations, ${ChatArchive.human(chats.sumOf { it.texts.bytes })}")
-        if (Cat.CHAT_FILES in cats) report.add("Chat files: ${chats.sumOf { it.payload.files }} " +
-                "files, ${ChatArchive.human(chats.sumOf { it.payload.bytes })}")
-        phase("Done")
+        if (Cat.CHAT_TEXTS in cats) report.add(app.getString(R.string.sk_rep_chats_exported,
+            chats.sumOf { it.conversations.size },
+            ChatArchive.human(chats.sumOf { it.texts.bytes })))
+        if (Cat.CHAT_FILES in cats) report.add(app.getString(R.string.sk_rep_files_exported,
+            chats.sumOf { it.payload.files },
+            ChatArchive.human(chats.sumOf { it.payload.bytes })))
+
+        // SettingsExport.export() closed the zip (and with it `out`), so the file on disk is
+        // complete and can be read straight back.
+        if (verifyTarget != null) {
+            phase(app.getString(R.string.sk_exim_phase_verify))
+            progress.files = 0; progress.bytes = 0
+            var n = 0
+            val bad = SettingsExport.verify(verifyTarget) { b ->
+                n++; progress.files = n; progress.bytes += b; tick()
+            }
+            if (bad.isEmpty()) report.add(app.getString(R.string.sk_rep_verified, n))
+            else {
+                report.failure = app.getString(R.string.sk_rep_corrupt, bad.size)
+                for (name in bad.take(5)) report.add(name)
+            }
+        }
+        phase(app.getString(R.string.sk_exim_done))
         return report
     }
 
+    /** Where an export will be written. [file] is null when only SAF is available, in which case
+     *  the archive cannot be read back for verification. */
+    class ExportTarget(val label: String, val stream: OutputStream, val file: File?)
+
     /** Opens the configured destination (direct path first, SAF second). Null = none configured. */
-    fun openExportTarget(): Pair<String, OutputStream>? {
+    fun openExportTarget(): ExportTarget? {
         val name = SettingsExport.exportFileName()
         SettingsExport.directDir(app)?.let { dir ->
-            return File(dir, name).let { it.absolutePath to it.outputStream() }
+            val f = File(dir, name)
+            return ExportTarget(f.absolutePath, f.outputStream(), f)
         }
         val dir = SettingsExport.getExportDir(app) ?: return null
         val doc = dir.createFile("application/zip", name) ?: return null
         val out = app.contentResolver.openOutputStream(doc.uri) ?: return null
-        return name to out
+        return ExportTarget(name, out, null)
     }
 
     // --- import ---------------------------------------------------------------------------------
@@ -140,10 +173,10 @@ class EximRunner(
 
     fun runImport(src: SettingsExport.ZipSource, want: List<Cat>): Report {
         val report = Report()
-        phase("Reading archive")
+        phase(app.getString(R.string.sk_exim_phase_read))
         val present = SettingsExport.categoriesIn(src)
         if (present.isEmpty()) {
-            report.failure = "No 白い熊 GNU Jami export found in that file."
+            report.failure = app.getString(R.string.sk_rep_not_ours)
             return report
         }
         val cats = want.filter { it in present }
@@ -165,8 +198,8 @@ class EximRunner(
         if (need > 0) {
             val free = ChatArchive.freeBytes(app)
             if (free < need + need / 20) {
-                report.failure = "Not enough free space: ${ChatArchive.human(need)} needed, " +
-                        "${ChatArchive.human(free)} available."
+                report.failure = app.getString(R.string.sk_rep_no_space,
+                    ChatArchive.human(need), ChatArchive.human(free))
                 return report
             }
         }
@@ -198,8 +231,7 @@ class EximRunner(
                 t.fresh = ChatArchive.daemonDir(app, srcId).let { !it.exists() } &&
                         accounts.getAccounts().none { it.accountId == srcId }
             } else {
-                report.add("Chats for $label: skipped — that account is not on this device " +
-                        "(select Accounts as well to restore it).")
+                report.add(app.getString(R.string.sk_rep_orphan, label))
                 continue
             }
 
@@ -208,23 +240,24 @@ class EximRunner(
             val chats = chatIdx[srcId]
             val stage = File(staging, srcId)
             if (chats != null) {
-                phase("Unpacking chats — $label")
-                if (wantTexts)
-                    ChatArchive.extract(src, "${ChatArchive.TEXTS}/$srcId/", File(stage, "daemon"), step)
-                if (wantFiles)
-                    ChatArchive.extract(src, "${ChatArchive.FILES}/$srcId/", File(stage, "files"), step)
+                phase(app.getString(R.string.sk_exim_phase_unpack, label))
+                var damaged = 0
+                if (wantTexts) damaged += ChatArchive
+                    .extract(src, "${ChatArchive.TEXTS}/$srcId/", File(stage, "daemon"), step).failed
+                if (wantFiles) damaged += ChatArchive
+                    .extract(src, "${ChatArchive.FILES}/$srcId/", File(stage, "files"), step).failed
+                if (damaged > 0) report.add(app.getString(R.string.sk_rep_damaged, damaged))
             }
 
             if (t.id == null) {
-                if (t.fresh && chats != null) {
-                    val r = ChatArchive.InstallResult()
-                    ChatArchive.installFresh(app, srcId, stage, r)
-                    reportChats(report, label, r, wantFiles)
-                }
-                phase("Creating account — $label")
+                val r = ChatArchive.InstallResult()
+                // Chat data is staged first: for a fresh account it must be on disk *before* the
+                // daemon creates the account, which is what makes the history load with no download.
+                if (t.fresh && chats != null) ChatArchive.installFresh(app, srcId, stage, r)
+                phase(app.getString(R.string.sk_exim_phase_create, label))
                 val newId = createAccount(archives.getValue(srcId), m, if (t.fresh) srcId else null)
                 if (newId == null) {
-                    report.add("Accounts: $label failed to import")
+                    report.add(app.getString(R.string.sk_rep_acc_failed, label))
                     continue
                 }
                 created++
@@ -233,7 +266,8 @@ class EximRunner(
                     // Collided on the id, so the daemon picked its own: merge instead.
                     mergeInto(newId, stage, chats, label, report, wantFiles)
                 } else if (chats != null) {
-                    ChatArchive.relink(app, newId, chats.links, ChatArchive.InstallResult())
+                    ChatArchive.relink(app, newId, chats.links, r)
+                    reportChats(report, label, r, wantFiles)
                 }
             } else if (chats != null) {
                 mergeInto(t.id!!, stage, chats, label, report, wantFiles)
@@ -242,11 +276,11 @@ class EximRunner(
 
         staging.deleteRecursively()
         if (Cat.ACCOUNTS in cats) {
-            val line = StringBuilder("Accounts: $created imported")
-            if (alreadyThere > 0) line.append(", $alreadyThere already present")
-            report.add(line.toString())
+            report.add(if (alreadyThere > 0)
+                app.getString(R.string.sk_rep_acc_present, created, alreadyThere)
+            else app.getString(R.string.sk_rep_acc_imported, created))
         }
-        phase("Done")
+        phase(app.getString(R.string.sk_exim_done))
         return report
     }
 
@@ -255,7 +289,7 @@ class EximRunner(
         targetId: String, stage: File, chats: ChatArchive.AccountChats,
         label: String, report: Report, wantFiles: Boolean,
     ) {
-        phase("Merging chats — $label")
+        phase(app.getString(R.string.sk_exim_phase_merge, label))
         val r = ChatArchive.InstallResult()
         runCatching { accounts.pauseAccountForImport(targetId) }
             .onFailure { Log.w(TAG, "could not pause $targetId: ${it.message}") }
@@ -273,17 +307,20 @@ class EximRunner(
     private fun reportChats(
         report: Report, label: String, r: ChatArchive.InstallResult, wantFiles: Boolean
     ) {
-        val chat = StringBuilder("Chats $label: ${r.restored} restored")
-        if (r.present > 0) chat.append(", ${r.present} already complete")
-        if (r.deleted > 0) chat.append(", ${r.deleted} skipped as deleted " +
-                "(use 削除済み会話の復元 to bring them back)")
+        val chat = StringBuilder(app.getString(R.string.sk_rep_chats, label, r.restored))
+        if (r.present > 0) chat.append(app.getString(R.string.sk_rep_chats_complete, r.present))
+        if (r.deleted > 0) chat.append(app.getString(R.string.sk_rep_chats_deleted, r.deleted))
         report.add(chat.toString())
         if (wantFiles || r.filesRestored > 0) {
-            val files = StringBuilder("Files $label: ${r.filesRestored} restored")
-            if (r.filesPresent > 0) files.append(", ${r.filesPresent} already present")
-            if (r.relinked > 0) files.append(", ${r.relinked} relinked")
+            val files = StringBuilder(app.getString(R.string.sk_rep_files, label, r.filesRestored))
+            if (r.filesPresent > 0)
+                files.append(app.getString(R.string.sk_rep_files_present, r.filesPresent))
             report.add(files.toString())
         }
+        // Always state the link result when the archive carried any: pictures show as
+        // "not downloaded" without them, and a silent 0 is what hid that for a whole round.
+        if (r.linksWanted > 0)
+            report.add(app.getString(R.string.sk_rep_links, r.relinked, r.linksWanted))
         for (n in r.notes) report.add(n)
     }
 
@@ -301,8 +338,11 @@ class EximRunner(
         val details = accounts.getAccountTemplate(AccountConfig.ACCOUNT_TYPE_JAMI).blockingGet()
         // Same shape as the wizard's backup-restore path (initJamiAccountBackup), incl. the fork's
         // connectivity defaults; the archive then carries the account config.
-        details[ConfigKey.ACCOUNT_ALIAS.key] =
-            m?.optString("alias").orEmpty().ifBlank { "Jami account" }
+        // registeredName first: the alias is often empty in an archive, and falling straight to
+        // the literal left every restored account showing "Jami account" (白い熊, 2026-07-28).
+        details[ConfigKey.ACCOUNT_ALIAS.key] = m?.optString("registeredName").orEmpty()
+            .ifBlank { m?.optString("alias").orEmpty() }
+            .ifBlank { "Jami account" }
         details[ConfigKey.VIDEO_ENABLED.key] = true.toString()
         details[ConfigKey.ACCOUNT_DTMF_TYPE.key] = "sipinfo"
         details[ConfigKey.ACCOUNT_UPNP_ENABLE.key] = AccountConfig.TRUE_STR
@@ -355,14 +395,14 @@ class EximRunner(
     fun restoreDeleted(src: SettingsExport.ZipSource, picks: List<Deleted>): Report {
         val report = Report()
         if (picks.isEmpty()) {
-            report.failure = "Nothing selected."
+            report.failure = app.getString(R.string.sk_exim_nothing_selected)
             return report
         }
         val staging = ChatArchive.stagingDir(app)
         staging.deleteRecursively()
         for ((targetId, group) in picks.groupBy { it.targetAccountId }) {
             val label = group.first().accountLabel
-            phase("Restoring deleted conversations — $label")
+            phase(app.getString(R.string.sk_exim_phase_restore, label))
             val stage = File(staging, targetId)
             for (d in group) {
                 ChatArchive.extract(src, "${ChatArchive.TEXTS}/${d.srcAccountId}/conversations/${d.convId}/",
@@ -387,11 +427,11 @@ class EximRunner(
                 runCatching { accounts.resumeAccountAfterImport(targetId) }
                 runCatching { accounts.reloadConversationsAndRequests(targetId) }
             }
-            report.add("$label: ${r.restored} conversation(s) restored, ${r.filesRestored} file(s)")
+            report.add(app.getString(R.string.sk_rep_deleted_done, label, r.restored, r.filesRestored))
             for (n in r.notes) report.add(n)
         }
         staging.deleteRecursively()
-        phase("Done")
+        phase(app.getString(R.string.sk_exim_done))
         return report
     }
 
