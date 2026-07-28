@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — 保存復元機能の文字列（日本語）。既定は values/strings_shiroikuma.xml（英語）。 -->
+<resources>
+    <string name="sk_exim_open">保存・復元をひらく  ▸</string>
+    <string name="sk_exim_page_summary">アカウント・会話・フォント・色・回復・自動化 — すべての設定を区分ごとに保存／復元します。</string>
+
+    <string name="sk_exim_title">保存・復元 — 白い熊 GNU Jami</string>
+    <string name="sk_exim_subtitle">すべての設定を区分ごとに保存／復元します。</string>
+    <string name="sk_exim_perm_label">全ファイルアクセス（タップで設定を開く）</string>
+    <string name="sk_exim_perm_granted">許可済み</string>
+    <string name="sk_exim_perm_missing">未許可 — タップして許可</string>
+    <string name="sk_exim_perm_required">先に「全ファイルアクセス」を許可してください</string>
+    <string name="sk_exim_folder_label">保存先フォルダ（タップで変更）</string>
+    <string name="sk_exim_export_cats">書き出す区分</string>
+    <string name="sk_exim_select_all">すべて選択</string>
+    <string name="sk_exim_measuring">会話を計測中…</string>
+    <string name="sk_exim_preflight">会話 %1$d 件 — 本文 %2$s ／ ファイル %3$d 個 %4$s</string>
+    <string name="sk_exim_import">復元</string>
+    <string name="sk_exim_export">保存</string>
+
+    <string name="sk_cat_accounts">アカウント（Jami アーカイブ）</string>
+    <string name="sk_cat_chat_texts">会話 — メッセージと履歴</string>
+    <string name="sk_cat_chat_files">会話 — 送受信したファイル</string>
+    <string name="sk_cat_fonts">フォントと文字サイズ</string>
+    <string name="sk_cat_colors">色</string>
+    <string name="sk_cat_ui">UI の動作</string>
+    <string name="sk_cat_recovery">オンライン回復と接続</string>
+    <string name="sk_cat_automation">自動化と保護された連絡先</string>
+    <string name="sk_cat_app">アプリ設定</string>
+
+    <string name="sk_exim_loading">読み込み中…</string>
+    <string name="sk_exim_pick_backup">バックアップを選択</string>
+    <string name="sk_exim_no_backups_title">バックアップがありません</string>
+    <string name="sk_exim_no_backups_body">%1$s に書き出し済みの ZIP が見つかりません。\nフォルダを変更するか、先に保存してください。</string>
+    <string name="sk_exim_cant_restore_title">復元できません</string>
+    <string name="sk_exim_cant_restore_body">%1$s に 白い熊 GNU Jami のバックアップが見つかりません。</string>
+    <string name="sk_exim_pick_cats_title">復元する区分を選択</string>
+    <string name="sk_exim_pick_cats_hint">このバックアップに入っている区分です。不要なものは外してください。</string>
+    <string name="sk_exim_restore_start">復元開始</string>
+    <string name="sk_exim_chat_texts_detail">%1$s — 会話 %2$d 件 %3$s</string>
+    <string name="sk_exim_chat_files_detail">%1$s — %2$d 個 %3$s</string>
+
+    <string name="sk_exim_no_subfolders">（サブフォルダはありません）</string>
+    <string name="sk_exim_use_folder">✅ このフォルダを使う</string>
+    <string name="sk_exim_folder_set">保存先: %1$s</string>
+
+    <string name="sk_exim_deleted_entry">削除済み会話の復元  ⌫</string>
+    <string name="sk_exim_deleted_hint">通常の復元は、意図的に削除した会話を元に戻しません。ここから選んで復元します。</string>
+    <string name="sk_exim_deleted_title">削除済み会話の復元</string>
+    <string name="sk_exim_deleted_none">このバックアップには、この端末で削除された会話はありません。</string>
+    <string name="sk_exim_deleted_pick">復元する会話を選んでください。削除を保持している別の端末が同期すると、再び削除されることがあります。</string>
+
+    <string name="sk_exim_busy">別の処理が実行中です</string>
+    <string name="sk_exim_no_cats">区分が選択されていません</string>
+    <string name="sk_exim_no_target">保存先を開けませんでした</string>
+    <string name="sk_exim_nothing_selected">選択されていません</string>
+    <string name="sk_exim_export_done_title">保存しました</string>
+    <string name="sk_exim_import_done_title">復元しました</string>
+    <string name="sk_exim_import_done_body">%1$s\n\n再起動すると全て反映されます。</string>
+    <string name="sk_exim_restart_now">今すぐ再起動</string>
+    <string name="sk_exim_later">後で</string>
+    <string name="sk_exim_failed">失敗: %1$s</string>
+    <string name="sk_exim_no_result">失敗: 結果がありません</string>
+    <string name="sk_exim_done">完了しました</string>
+    <string name="sk_exim_android11">Android 11 以降のみ</string>
+    <string name="sk_exim_settings_failed">設定画面を開けませんでした</string>
+
+    <string name="sk_exim_notif_channel">保存復元</string>
+    <string name="sk_exim_notif_export">保存中 — 白い熊 GNU Jami</string>
+    <string name="sk_exim_notif_import">復元中 — 白い熊 GNU Jami</string>
+    <string name="sk_exim_notif_deleted">復元中 — 削除済み会話</string>
+    <string name="sk_exim_phase_accounts">アカウントを書き出し中</string>
+    <string name="sk_exim_phase_index">会話を集計中</string>
+    <string name="sk_exim_phase_write">書き込み中</string>
+    <string name="sk_exim_phase_read">バックアップを読み込み中</string>
+    <string name="sk_exim_phase_unpack">会話を展開中 — %1$s</string>
+    <string name="sk_exim_phase_merge">会話を統合中 — %1$s</string>
+    <string name="sk_exim_phase_create">アカウントを作成中 — %1$s</string>
+    <string name="sk_exim_phase_restore">削除済み会話を復元中 — %1$s</string>
+    <string name="sk_exim_progress">%1$s — %2$d/%3$d 個、%4$s/%5$s</string>
+
+    <string name="sk_rep_acc_exported">アカウント: %1$d 件を書き出し</string>
+    <string name="sk_rep_chats_exported">会話: %1$d 件、%2$s</string>
+    <string name="sk_rep_files_exported">会話ファイル: %1$d 個、%2$s</string>
+    <string name="sk_rep_acc_imported">アカウント: %1$d 件を復元</string>
+    <string name="sk_rep_acc_present">アカウント: %1$d 件を復元、%2$d 件は既存</string>
+    <string name="sk_rep_acc_failed">アカウント: %1$s の復元に失敗</string>
+    <string name="sk_rep_orphan">%1$s の会話: このアカウントが端末にないため省略しました（アカウントも選択してください）。</string>
+    <string name="sk_rep_chats">会話 %1$s: %2$d 件を復元</string>
+    <string name="sk_rep_chats_complete">、%1$d 件は既に完全</string>
+    <string name="sk_rep_chats_deleted">、%1$d 件は削除済みのため省略 —「削除済み会話の復元」から</string>
+    <string name="sk_rep_files">ファイル %1$s: %2$d 個を復元</string>
+    <string name="sk_rep_files_present">、%1$d 個は既存</string>
+    <string name="sk_rep_files_relinked">、%1$d 個を再リンク</string>
+    <string name="sk_rep_deleted_done">%1$s: 会話 %2$d 件、ファイル %3$d 個を復元</string>
+    <string name="sk_rep_not_ours">このファイルに 白い熊 GNU Jami のバックアップが見つかりません。</string>
+    <string name="sk_rep_no_space">空き容量が足りません: %1$s 必要、%2$s 利用可能。</string>
+
+    <string name="sk_wizard_import">白い熊 Jami のエクスポートから復元</string>
+    <string name="sk_exim_phase_verify">バックアップを検証中</string>
+    <string name="sk_rep_verified">検証済み: %1$d 項目、破損なし</string>
+    <string name="sk_rep_corrupt">破損: %1$d 項目が検証に失敗 — このバックアップは信頼できません</string>
+    <string name="sk_rep_damaged">破損した %1$d 項目を省略しました</string>
+    <string name="sk_rep_links">リンク: %2$d 件中 %1$d 件を再作成</string>
+</resources>
