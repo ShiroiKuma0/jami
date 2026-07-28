@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork — strings for the backup (保存復元) feature.
+
+  Kept in a file of our own so upstream's Transifex-managed strings.xml never collides with it on a
+  rebase. English here is the default and the fallback for every locale we do not ship; values-ja
+  and values-cs carry the other two (白い熊, 2026-07-28).
+
+  The app's own name stays literal in every locale.
+-->
+<resources>
+    <!-- entry point -->
+    <string name="sk_exim_open">Open backup &amp; restore  ▸</string>
+    <string name="sk_exim_page_summary">Save or load every setting — accounts, chats, fonts, colours, recovery, automation — as selectable categories.</string>
+
+    <!-- panel chrome -->
+    <string name="sk_exim_title">Backup &amp; restore — 白い熊 GNU Jami</string>
+    <string name="sk_exim_subtitle">Save or load every setting as selectable categories.</string>
+    <string name="sk_exim_perm_label">All-files access (tap to open settings)</string>
+    <string name="sk_exim_perm_granted">Granted</string>
+    <string name="sk_exim_perm_missing">Not granted — tap to allow</string>
+    <string name="sk_exim_perm_required">Allow “All files access” first</string>
+    <string name="sk_exim_folder_label">Backup folder (tap to change)</string>
+    <string name="sk_exim_export_cats">Categories to export</string>
+    <string name="sk_exim_select_all">Select all</string>
+    <string name="sk_exim_measuring">Measuring chats…</string>
+    <string name="sk_exim_preflight">%1$d conversations — text %2$s / files %3$d, %4$s</string>
+    <string name="sk_exim_import">Import</string>
+    <string name="sk_exim_export">Export</string>
+
+    <!-- categories -->
+    <string name="sk_cat_accounts">Accounts (Jami archives)</string>
+    <string name="sk_cat_chat_texts">Chats — messages &amp; history</string>
+    <string name="sk_cat_chat_files">Chats — received &amp; sent files</string>
+    <string name="sk_cat_fonts">Fonts &amp; sizes</string>
+    <string name="sk_cat_colors">Colours</string>
+    <string name="sk_cat_ui">UI behaviour</string>
+    <string name="sk_cat_recovery">Online recovery &amp; connectivity</string>
+    <string name="sk_cat_automation">Automation &amp; protected contacts</string>
+    <string name="sk_cat_app">App settings</string>
+
+    <!-- picking an archive, then what to restore from it -->
+    <string name="sk_exim_loading">Reading…</string>
+    <string name="sk_exim_pick_backup">Choose a backup</string>
+    <string name="sk_exim_no_backups_title">No backups</string>
+    <string name="sk_exim_no_backups_body">No exported ZIP found in %1$s.\nChange the folder, or export first.</string>
+    <string name="sk_exim_cant_restore_title">Cannot restore</string>
+    <string name="sk_exim_cant_restore_body">No 白い熊 GNU Jami backup found in %1$s.</string>
+    <string name="sk_exim_pick_cats_title">Choose what to restore</string>
+    <string name="sk_exim_pick_cats_hint">These categories are in this backup. Untick anything you do not want.</string>
+    <string name="sk_exim_restore_start">Restore</string>
+    <string name="sk_exim_chat_texts_detail">%1$s — %2$d conversations, %3$s</string>
+    <string name="sk_exim_chat_files_detail">%1$s — %2$d files, %3$s</string>
+
+    <!-- folder browser -->
+    <string name="sk_exim_no_subfolders">(no subfolders)</string>
+    <string name="sk_exim_use_folder">✅ Use this folder</string>
+    <string name="sk_exim_folder_set">Folder: %1$s</string>
+
+    <!-- deleted conversations -->
+    <string name="sk_exim_deleted_entry">Restore deleted conversations  ⌫</string>
+    <string name="sk_exim_deleted_hint">A normal restore does not bring back conversations you deleted on purpose. Pick them here.</string>
+    <string name="sk_exim_deleted_title">Restore deleted conversations</string>
+    <string name="sk_exim_deleted_none">This backup holds no conversation that was deleted on this device.</string>
+    <string name="sk_exim_deleted_pick">Pick the conversations to restore. If another device still holds the deletion, it may sync back and delete them again.</string>
+
+    <!-- outcomes -->
+    <string name="sk_exim_busy">Another job is already running</string>
+    <string name="sk_exim_no_cats">No categories selected</string>
+    <string name="sk_exim_no_target">Could not open the destination</string>
+    <string name="sk_exim_nothing_selected">Nothing selected</string>
+    <string name="sk_exim_export_done_title">Export finished</string>
+    <string name="sk_exim_import_done_title">Restored</string>
+    <string name="sk_exim_import_done_body">%1$s\n\nRestart to apply everything.</string>
+    <string name="sk_exim_restart_now">Restart now</string>
+    <string name="sk_exim_later">Later</string>
+    <string name="sk_exim_failed">Failed: %1$s</string>
+    <string name="sk_exim_no_result">Failed: no result</string>
+    <string name="sk_exim_done">Finished</string>
+    <string name="sk_exim_android11">Android 11 or later only</string>
+    <string name="sk_exim_settings_failed">Could not open the settings screen</string>
+
+    <!-- progress -->
+    <string name="sk_exim_notif_channel">Backup &amp; restore</string>
+    <string name="sk_exim_notif_export">Backing up — 白い熊 GNU Jami</string>
+    <string name="sk_exim_notif_import">Restoring — 白い熊 GNU Jami</string>
+    <string name="sk_exim_notif_deleted">Restoring — deleted conversations</string>
+    <string name="sk_exim_phase_accounts">Exporting accounts</string>
+    <string name="sk_exim_phase_index">Indexing chats</string>
+    <string name="sk_exim_phase_write">Writing archive</string>
+    <string name="sk_exim_phase_read">Reading archive</string>
+    <string name="sk_exim_phase_unpack">Unpacking chats — %1$s</string>
+    <string name="sk_exim_phase_merge">Merging chats — %1$s</string>
+    <string name="sk_exim_phase_create">Creating account — %1$s</string>
+    <string name="sk_exim_phase_restore">Restoring deleted conversations — %1$s</string>
+    <string name="sk_exim_progress">%1$s — %2$d/%3$d files, %4$s/%5$s</string>
+
+    <!-- report lines -->
+    <string name="sk_rep_acc_exported">Accounts: %1$d exported</string>
+    <string name="sk_rep_chats_exported">Chats: %1$d conversations, %2$s</string>
+    <string name="sk_rep_files_exported">Chat files: %1$d files, %2$s</string>
+    <string name="sk_rep_acc_imported">Accounts: %1$d imported</string>
+    <string name="sk_rep_acc_present">Accounts: %1$d imported, %2$d already present</string>
+    <string name="sk_rep_acc_failed">Accounts: %1$s failed to import</string>
+    <string name="sk_rep_orphan">Chats for %1$s: skipped — that account is not on this device (select Accounts as well to restore it).</string>
+    <string name="sk_rep_chats">Chats %1$s: %2$d restored</string>
+    <string name="sk_rep_chats_complete">, %1$d already complete</string>
+    <string name="sk_rep_chats_deleted">, %1$d skipped as deleted — use “Restore deleted conversations”</string>
+    <string name="sk_rep_files">Files %1$s: %2$d restored</string>
+    <string name="sk_rep_files_present">, %1$d already present</string>
+    <string name="sk_rep_files_relinked">, %1$d relinked</string>
+    <string name="sk_rep_deleted_done">%1$s: %2$d conversation(s) restored, %3$d file(s)</string>
+    <string name="sk_rep_not_ours">No 白い熊 GNU Jami backup found in that file.</string>
+    <string name="sk_rep_no_space">Not enough free space: %1$s needed, %2$s available.</string>
+
+    <!-- account wizard -->
+    <string name="sk_wizard_import">Restore from a 白い熊 Jami export</string>
+    <string name="sk_exim_phase_verify">Verifying archive</string>
+    <string name="sk_rep_verified">Verified: %1$d entries, no damage</string>
+    <string name="sk_rep_corrupt">DAMAGED: %1$d entries failed verification — do not rely on this backup</string>
+    <string name="sk_rep_damaged">%1$d damaged entries skipped</string>
+    <string name="sk_rep_links">Links: %1$d of %2$d restored</string>
+</resources>

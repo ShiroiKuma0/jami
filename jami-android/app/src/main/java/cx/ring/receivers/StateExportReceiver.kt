@@ -71,8 +71,12 @@ class StateExportReceiver : BroadcastReceiver() {
                     !AutomationPrefs.isAuthorized(app, token) -> reply("ERROR:bad token")
                     replyAction.isNullOrEmpty() || replyPackage.isNullOrEmpty() || replyId.isNullOrEmpty() ->
                         reply("ERROR:missing reply extras")
-                    kind == Kind.LIST -> reply("OK:" + SettingsExport.Cat.entries
-                        .joinToString("\n") { "${it.id}\t${it.label}" })
+                    // id ⇥ label ⇥ parent ⇥ on|off (保存復元 contract, LIST_CATEGORIES). The parent
+                    // field is empty — this app has no item groups — and the fourth field is the
+                    // app stating whether an item starts ticked, rather than the picker assuming.
+                    kind == Kind.LIST -> reply("OK:" + SettingsExport.Cat.entries.joinToString("\n") {
+                        "${it.id}\t${app.getString(it.labelRes)}\t\t${if (it.defaultOn) "on" else "off"}"
+                    })
                     else -> reply(runExport(app, path, items, progressAction, replyPackage, replyId))
                 }
             } catch (e: Throwable) {
@@ -100,7 +104,13 @@ class StateExportReceiver : BroadcastReceiver() {
         }
 
         var lastProgress = 0L
-        fun progress(cur: Long, total: Long, label: String, unit: String, force: Boolean = false) {
+        // `item` is the Cat.id being written and `bytes`/`bytes_total` the byte pair — both
+        // additive extras of 保存復元 contract §3, so the panel can highlight the right row instead
+        // of reading the file counter as a row number, and draw both counters on one line.
+        fun progress(
+            cur: Long, total: Long, label: String, unit: String,
+            item: String = "", bytes: Long = 0, bytesTotal: Long = 0, force: Boolean = false,
+        ) {
             if (progressAction.isNullOrEmpty()) return
             val now = System.currentTimeMillis()
             if (!force && now - lastProgress < 500) return   // ≥500 ms apart, final always sent
@@ -114,6 +124,9 @@ class StateExportReceiver : BroadcastReceiver() {
                 putExtra("current", cur)
                 putExtra("total", total)
                 putExtra("unit", unit)
+                putExtra("item", item)
+                putExtra("bytes", bytes)
+                putExtra("bytes_total", bytesTotal)
             })
         }
 
@@ -121,7 +134,8 @@ class StateExportReceiver : BroadcastReceiver() {
         val accounts = cx.ring.application.JamiApplication.instance?.mAccountService
             ?: return "ERROR:app not initialized"
         if (SettingsExport.Cat.ACCOUNTS in cats) {
-            progress(0, cats.size.toLong(), "区分", "区分", force = true)
+            progress(0, cats.size.toLong(), "区分", "区分",
+                item = SettingsExport.Cat.ACCOUNTS.id, force = true)
             val deadline = System.currentTimeMillis() + 15_000
             while (accounts.getAccounts().isEmpty() && System.currentTimeMillis() < deadline)
                 Thread.sleep(250)
@@ -129,9 +143,10 @@ class StateExportReceiver : BroadcastReceiver() {
 
         val runner = EximRunner(app, accounts) { p ->
             if (p.totalFiles > 0)
-                progress(p.files.toLong(), p.totalFiles.toLong(), p.phase, "ファイル")
+                progress(p.files.toLong(), p.totalFiles.toLong(), p.phase, "ファイル",
+                    item = p.itemId, bytes = p.bytes, bytesTotal = p.totalBytes)
             else
-                progress(0, cats.size.toLong(), p.phase, "区分")
+                progress(0, cats.size.toLong(), p.phase, "区分", item = p.itemId)
         }
 
         // Destination precedence: path extra → configured direct directory → SAF directory.

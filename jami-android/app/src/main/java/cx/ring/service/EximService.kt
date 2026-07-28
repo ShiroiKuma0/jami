@@ -64,7 +64,8 @@ class EximService : Service() {
     private fun build(title: String, text: String): Notification {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL, "保存復元", NotificationManager.IMPORTANCE_LOW))
+            NotificationChannel(CHANNEL, getString(R.string.sk_exim_notif_channel),
+                NotificationManager.IMPORTANCE_LOW))
         val open = Intent(Intent.ACTION_VIEW)
             .setClass(applicationContext, HomeActivity::class.java)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
