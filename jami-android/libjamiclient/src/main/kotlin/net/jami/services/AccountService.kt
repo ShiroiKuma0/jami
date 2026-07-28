@@ -599,6 +599,31 @@ class AccountService(
         mExecutor.execute { JamiService.sendRegister(accountId, active) }
     }
 
+    // --- backup import (shiroikuma fork) --------------------------------------------------------
+    // The importer has to sequence daemon calls exactly: quiesce the account, move directories on
+    // disk, then have the daemon re-scan. These are therefore blocking, and the pause deliberately
+    // does NOT touch explicitlyDeactivatedAccounts — it lasts seconds and is ours, not a user
+    // intent to disable the account, which the watchdog would otherwise honour indefinitely.
+
+    /** Creates an account under a chosen id, so a restored backup keeps the id its data uses. */
+    fun addAccountWithId(map: Map<String, String>, accountId: String): String =
+        mExecutor.submit<String> {
+            JamiService.addAccount(StringMap.toSwig(map), accountId)
+        }.get()
+
+    fun pauseAccountForImport(accountId: String) {
+        mExecutor.submit { JamiService.setAccountActive(accountId, false, true) }.get()
+    }
+
+    fun resumeAccountAfterImport(accountId: String) {
+        mExecutor.submit { JamiService.setAccountActive(accountId, true) }.get()
+    }
+
+    /** Re-reads conversations and requests from disk — the daemon only scans at account load. */
+    fun reloadConversationsAndRequests(accountId: String) {
+        mExecutor.submit { JamiService.reloadConversationsAndRequests(accountId) }.get()
+    }
+
     /**
      * Sets the activation state of the account in the Daemon
      */
