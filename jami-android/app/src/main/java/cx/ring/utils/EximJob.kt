@@ -28,6 +28,14 @@ object EximJob {
     @Volatile var lastLine = ""
         private set
 
+    @Volatile private var active: EximRunner? = null
+
+    /** Stops the running job. The write loops notice within one file and unwind; the partial
+     *  archive is deleted by the runner's own finally, so nothing half-written survives. */
+    fun cancel() {
+        active?.cancel()
+    }
+
     fun observe(l: Listener?) { listener = l }
 
     /**
@@ -55,12 +63,14 @@ object EximJob {
                     EximService.show(app, title, lastLine)
                     listener?.onUpdate(lastLine, false, null, null)
                 }
+                active = runner
                 report = runner.runCatchingReport(work)
                 error = report.failure
             } catch (e: Throwable) {
                 Log.e(TAG, "$title failed", e)
                 error = e.message ?: e.javaClass.simpleName
             } finally {
+                active = null
                 running = false
                 EximService.hide(app)
                 listener?.onUpdate(lastLine, true, report, error)
@@ -74,6 +84,9 @@ object EximJob {
         work: (EximRunner) -> EximRunner.Report
     ): EximRunner.Report = try {
         work(this)
+    } catch (e: ChatArchive.CancelledException) {
+        // Stopping is a normal outcome, not a failure.
+        EximRunner.Report().apply { cancelled = true }
     } catch (e: Throwable) {
         Log.e(TAG, "job body failed", e)
         EximRunner.Report().apply {

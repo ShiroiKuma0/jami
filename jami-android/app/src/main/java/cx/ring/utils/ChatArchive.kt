@@ -76,6 +76,13 @@ object ChatArchive {
         fun step(bytes: Long, label: String)
     }
 
+    /**
+     * Thrown when the user stops a running job. It unwinds the whole write chain in one go, and the
+     * caller's `finally` deletes the partial archive — so a stopped export leaves nothing behind
+     * rather than a truncated file (白い熊, 2026-07-28).
+     */
+    class CancelledException : RuntimeException("cancelled")
+
     class Tally(var files: Int = 0, var bytes: Long = 0) {
         /** Entries that could not be read — a damaged archive still restores the rest. */
         var failed: Int = 0
@@ -257,9 +264,14 @@ object ChatArchive {
 
     // --- writing -------------------------------------------------------------------------------
 
-    fun writeTexts(zip: ZipOutputStream, c: Context, a: AccountChats, progress: Progress?) {
-        for ((f, rel) in textEntries(c, a.accountId))
+    fun writeTexts(
+        zip: ZipOutputStream, c: Context, a: AccountChats, progress: Progress?,
+        cancelled: () -> Boolean = { false },
+    ) {
+        for ((f, rel) in textEntries(c, a.accountId)) {
+            if (cancelled()) throw CancelledException()
             copyIn(zip, f, "$TEXTS/${a.accountId}/$rel", progress)
+        }
     }
 
     /**
@@ -273,9 +285,14 @@ object ChatArchive {
      * ZipOutputStream — if uncompressed entries are ever wanted, use ZipEntry.STORED with the
      * size and CRC computed up front.
      */
-    fun writeFiles(zip: ZipOutputStream, c: Context, a: AccountChats, progress: Progress?) {
-        for ((f, rel) in payloadEntries(c, a.accountId, a.links))
+    fun writeFiles(
+        zip: ZipOutputStream, c: Context, a: AccountChats, progress: Progress?,
+        cancelled: () -> Boolean = { false },
+    ) {
+        for ((f, rel) in payloadEntries(c, a.accountId, a.links)) {
+            if (cancelled()) throw CancelledException()
             copyIn(zip, f, "$FILES/${a.accountId}/$rel", progress)
+        }
     }
 
     private fun copyIn(zip: ZipOutputStream, f: File, entryName: String, progress: Progress?) {
@@ -297,10 +314,14 @@ object ChatArchive {
      * Entry CRCs are checked by the inflater, so a truncated archive fails here rather than later.
      */
     fun extract(
-        source: SettingsExport.ZipSource, prefix: String, dest: File, progress: Progress?
+        source: SettingsExport.ZipSource, prefix: String, dest: File, progress: Progress?,
+        cancelled: () -> Boolean = { false },
     ): Tally {
         val t = Tally()
         source.forEach(prefix) { name, _, input ->
+            // Only the staging phase is stoppable: once files start moving into a live account
+            // there is no clean half-way point to stop at.
+            if (cancelled()) throw CancelledException()
             val rel = name.removePrefix(prefix)
             if (rel.isEmpty() || rel.contains("..")) return@forEach
             val target = File(dest, rel)
@@ -346,14 +367,24 @@ object ChatArchive {
         if (daemonStage.isDirectory) {
             val target = daemonDir(c, targetId)
             target.parentFile?.mkdirs()
-            if (!daemonStage.renameTo(target)) moveTree(daemonStage, target, r)
+            // The daemon tree's own files are repositories and state, not attachments — keep them
+            // out of the attachment counters.
+            val keepRestored = r.filesRestored
+            val keepPresent = r.filesPresent
+            install(daemonStage, target, r)
+            r.filesRestored = keepRestored
+            r.filesPresent = keepPresent
             r.restored += File(target, "conversations").listFiles()?.count { it.isDirectory } ?: 0
         }
         if (filesStage.isDirectory) {
             val target = clientFilesDir(c, targetId)
             target.parentFile?.mkdirs()
-            if (!filesStage.renameTo(target)) moveTree(filesStage, target, r)
-            r.filesRestored += countFiles(target)
+            if (!target.exists() && filesStage.renameTo(target)) {
+                r.filesRestored += countFiles(target)
+            } else {
+                // Merging, so the per-file counters are authoritative here.
+                mergeMissing(filesStage, target, r)
+            }
             // Payloads with no client-tree twin belong in the daemon's own directory; renaming the
             // whole tree would leave them under the client tree, where nothing ever looks.
             val unlinked = File(target, UNLINKED)
@@ -365,6 +396,23 @@ object ChatArchive {
                 unlinked.deleteRecursively()
             }
         }
+    }
+
+    /**
+     * Moves a staged tree into place, merging when something is already there.
+     *
+     * The fast rename is only correct on an empty destination: a rename cannot merge, and the
+     * recursive copy it used to fall back to aborts on the FIRST existing file — leaving the rest
+     * of the tree behind while the report still claims success. A destination can legitimately
+     * exist: the client attachment tree lives outside the account directory and survives the
+     * daemon wiping a pending account (白い熊, 2026-07-28).
+     */
+    private fun install(src: File, dst: File, r: InstallResult): Boolean {
+        if (!src.isDirectory) return false
+        dst.parentFile?.mkdirs()
+        if (!dst.exists() && src.renameTo(dst)) return true
+        mergeMissing(src, dst, r)
+        return dst.isDirectory
     }
 
     /**
@@ -388,7 +436,13 @@ object ChatArchive {
                 repo.name in removed -> { r.deleted++; r.deletedIds.add(repo.name) }
                 else -> {
                     live.parentFile?.mkdirs()
-                    if (repo.renameTo(live) || moveTree(repo, live, r)) r.restored++
+                    // A repository's own files are not attachments — keep them out of those counters.
+                    val keepRestored = r.filesRestored
+                    val keepPresent = r.filesPresent
+                    val moved = install(repo, live, r)
+                    r.filesRestored = keepRestored
+                    r.filesPresent = keepPresent
+                    if (moved) r.restored++
                     // The state files only make sense alongside a repository we actually restored.
                     val stateSrc = File(File(File(staging, "daemon"), "conversation_data"), repo.name)
                     if (stateSrc.isDirectory)
@@ -435,16 +489,6 @@ object ChatArchive {
                 }
             }
         }
-    }
-
-    /** Rename across directories can fail; fall back to a recursive copy so nothing is lost. */
-    private fun moveTree(src: File, dst: File, r: InstallResult): Boolean = try {
-        src.copyRecursively(dst, overwrite = false)
-        src.deleteRecursively()
-        true
-    } catch (e: Exception) {
-        r.notes.add("could not move ${src.name}: ${e.message}")
-        false
     }
 
     /**
