@@ -1,0 +1,25 @@
+diff --git a/bin/jni/configurationmanager.i b/bin/jni/configurationmanager.i
+index 63c3cb69a..32f09065c 100644
+--- a/bin/jni/configurationmanager.i
++++ b/bin/jni/configurationmanager.i
+@@ -89,7 +89,7 @@ std::map<std::string, std::string> getAccountTemplate(const std::string& account
+ void monitor(bool continuous);
+ std::vector<std::map<std::string, std::string>> getConnectionList(const std::string& accountId, const std::string& conversationId);
+ std::vector<std::map<std::string, std::string>> getChannelList(const std::string& accountId, const std::string& connectionId);
+-std::string addAccount(const std::map<std::string, std::string>& details);
++std::string addAccount(const std::map<std::string, std::string>& details, const std::string& accountId = "");
+ void removeAccount(const std::string& accountId);
+ void updateProfile(const std::string& accountId, const std::string& displayName, const std::string& avatar, const std::string& fileType, const std::string& botOwner, int32_t flag);
+ std::vector<std::string> getAccountList();
+diff --git a/bin/jni/conversation.i b/bin/jni/conversation.i
+index 8a6753013..210551d64 100644
+--- a/bin/jni/conversation.i
++++ b/bin/jni/conversation.i
+@@ -79,6 +79,7 @@ struct SwarmMessage
+   uint32_t loadSwarmUntil(const std::string& accountId, const std::string& conversationId, const std::string& fromMessage, const std::string& toMessage);
+   uint32_t countInteractions(const std::string& accountId, const std::string& conversationId, const std::string& toId, const std::string& fromId, const std::string& authorUri);
+   void clearCache(const std::string& accountId, const std::string& conversationId);
++  void reloadConversationsAndRequests(const std::string& accountId);
+   uint32_t searchConversation(const std::string& accountId,
+            const std::string& conversationId,
+            const std::string& author,
