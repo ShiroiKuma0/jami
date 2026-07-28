@@ -606,23 +606,32 @@ class AccountService(
     // does NOT touch explicitlyDeactivatedAccounts — it lasts seconds and is ours, not a user
     // intent to disable the account, which the watchdog would otherwise honour indefinitely.
 
-    /** Creates an account under a chosen id, so a restored backup keeps the id its data uses. */
-    fun addAccountWithId(map: Map<String, String>, accountId: String): String =
+    /** Creates an account under a chosen id, so a restored backup keeps the id its data uses.
+     *  Bounded: a creation that never returns must not stall the rest of a multi-account restore
+     *  (the unbounded version left an import with nothing to show for itself). */
+    fun addAccountWithId(map: Map<String, String>, accountId: String, timeoutSec: Long = 60): String =
         mExecutor.submit<String> {
             JamiService.addAccount(StringMap.toSwig(map), accountId)
-        }.get()
+        }.get(timeoutSec, java.util.concurrent.TimeUnit.SECONDS)
 
-    fun pauseAccountForImport(accountId: String) {
-        mExecutor.submit { JamiService.setAccountActive(accountId, false, true) }.get()
+    // All three are bounded. setAccountActive(shutdownConnections=true) on a live account can take
+    // a long time, and an unbounded wait here is indistinguishable from a hang to anyone watching
+    // (白い熊, 2026-07-28). A timeout leaves the task running; it does not abandon the account.
+
+    fun pauseAccountForImport(accountId: String, timeoutSec: Long = 30) {
+        mExecutor.submit { JamiService.setAccountActive(accountId, false, true) }
+            .get(timeoutSec, java.util.concurrent.TimeUnit.SECONDS)
     }
 
-    fun resumeAccountAfterImport(accountId: String) {
-        mExecutor.submit { JamiService.setAccountActive(accountId, true) }.get()
+    fun resumeAccountAfterImport(accountId: String, timeoutSec: Long = 30) {
+        mExecutor.submit { JamiService.setAccountActive(accountId, true) }
+            .get(timeoutSec, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     /** Re-reads conversations and requests from disk — the daemon only scans at account load. */
-    fun reloadConversationsAndRequests(accountId: String) {
-        mExecutor.submit { JamiService.reloadConversationsAndRequests(accountId) }.get()
+    fun reloadConversationsAndRequests(accountId: String, timeoutSec: Long = 30) {
+        mExecutor.submit { JamiService.reloadConversationsAndRequests(accountId) }
+            .get(timeoutSec, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     /**
