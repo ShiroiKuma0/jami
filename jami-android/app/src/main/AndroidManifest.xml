@@ -260,6 +260,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <intent-filter>
                 <action android:name="${applicationId}.action.EXPORT_STATE" />
                 <action android:name="${applicationId}.action.LIST_CATEGORIES" />
+                <!-- shiroikuma fork: the stop path is only reachable through here — the service
+                     that owns it is not exported, and must not be. -->
+                <action android:name="${applicationId}.action.CANCEL_EXPORT" />
             </intent-filter>
         </receiver>
 
@@ -289,6 +292,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <!-- shiroikuma fork: keeps a chat backup alive while it runs; it can take minutes. -->
         <service
             android:name=".service.EximService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+        <!-- shiroikuma fork: the automation export runs HERE, not in the broadcast receiver — a
+             manifest receiver has a ~10-60 s deadline that a multi-GB export cannot meet. -->
+        <service
+            android:name=".receivers.StateExportService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
