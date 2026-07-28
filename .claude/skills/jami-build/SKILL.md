@@ -135,6 +135,41 @@ Two committed `jami-android/app/build.gradle.kts` tweaks (localized to that file
 - **Migration caveat for rebases:** built-in Kotlin fights upstream's deliberate `builtInKotlin=false` (blame `90da59f`, chosen for the Hilt+KSP+protobuf+kapt+native-CMake build). It can't be statically verified in the sandbox. If a future rebase/upstream bump breaks the build on this, suspect the `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }` block / `tasks.withType<KotlinCompile>()` / the `JvmTarget`/`KotlinCompile` imports in `:app`; fallback is to restore `builtInKotlin=false` + the `kotlin.android` plugin alias in `:app`+root and re-mute via the self-included suppress line.
 - All these `gradle.properties` / `build.gradle.kts` edits sit on upstream's flags, so they are clobbered every rebase and replay with the rest of the `custom` stack.
 
+### Backup export/import — accounts, chats, chat files (2026-07-28)
+
+The Export/Import panel is a real phone-migration tool, not just a settings backup. Three categories
+sit at the top of the list: **Accounts** (on), **Chats — messages & history** (on), **Chats —
+received & sent files** (off, because it is the only gigabyte-scale one).
+
+Facts that shape it, all verified in the daemon source — do not re-derive them from guesswork:
+
+- `ConversationModule::loadConversations()` scans `filesDir/<accountId>/conversations/` and builds a
+  `Conversation` per git repository it finds. **History on disk at account-load time never gets
+  downloaded.** At load the daemon also writes `convInfos_[repository] = sconv->info` *from the
+  repository*, so a restored conversation repairs its own metadata entry.
+- Attachment bytes live in the CLIENT tree `filesDir/conversation_data/<accountId>/<convId>/<name>`
+  (`ConversationFacade.sendFile` **moves** outgoing files there; downloads land there too). The
+  daemon's `<accountId>/conversation_data/<convId>/<fileId>` entries are **hard links** to those same
+  inodes — `createFileLink(..., hard=true)`, same filesystem. Pack the client tree only and rebuild
+  the links from the recorded `fileId → filename` map, or every photo is stored twice. They are NOT
+  symlinks into `/storage/emulated/0`: deleting the original there cannot break a chat.
+- A conversation still on disk is **provably** a superset of the same conversation in a backup taken
+  from this device: swarm history is append-only and the client cannot truncate a repository
+  (`clearHistory` touches only the client model + legacy DB; `removeConversation` deletes it whole).
+  So merge skips existing conversations by design, not as a shortcut — and there is no git library in
+  the app to splice commits with anyway.
+- Deliberately deleted conversations are flagged in `convInfo`; at load the daemon calls
+  `setRemovingFlag()` and deletes them again. Normal import therefore reports and skips them; the
+  separate 「削除済み会話の復元」 entry restores picked ones by dropping their `convInfo` entry
+  (`MsgPackLite`, no dependency) so the daemon rebuilds it from the restored repository.
+
+Import reuses the archive's own account id via `addAccount(details, accountId)` — hence the SWIG
+patch below. Order matters and is the whole trick: **unpack first, create the account second.** When
+the account already exists, the flow inverts to quiesce → merge only what is missing → 
+`reloadConversationsAndRequests`. Files: `ChatArchive.kt`, `EximRunner.kt`, `EximJob.kt`,
+`MsgPackLite.kt`, `service/EximService.kt`, plus the rewritten `SettingsExport.kt` (format version 2,
+fully streaming — the old `ByteArray` engine would OOM on a chat corpus).
+
 ## The daemon-contrib fix (NOT committed — re-applied each build)
 
 This lives in the `daemon` submodule, so it is applied as an **idempotent sed in the build block** rather than committed, and re-applies itself on every pull:
@@ -211,6 +246,9 @@ The refreshed pjproject headers make CMake rebuild jami-core (~90 objects) — e
   ```
   Bulletproof fallback if a non-text config can't be rewritten: `rm -rf daemon/contrib/aarch64-linux-android daemon/contrib/build-aarch64-linux-android` and rebuild (slow, tens of minutes).
 - **Conversation-item ConstraintLayout edits can't be previewed in the sandbox — change ONE constraint at a time and verify on-device.** Stacking several constraint changes at once cost two regressions on the outgoing file card (`item_conv_file_me.xml`): a multi-change patch that moved the status tick beside the card + re-anchored both ends first overflowed the card off the **left**, then a follow-up blanked the whole conversation (a render failure RecyclerView couldn't recover from). The shipped fix is a **single** line and nothing else. Banked facts about these layouts: outgoing **text bubble** (`message_content`) and **image** already constrain `End_toStartOf="@id/status_icon"` (they reserve the tick column); the **file card** historically did not. The **download button is `GONE` on a sent (outgoing) file**, so anchoring the card's `Start` to it (`Start_toStartOf="@id/file_download_button"`, upstream) left `constrainedWidth` with no firm left bound and a long filename overflowed. **Shipped fix (commit `dddd66a`): `fileInfoLayout` → `Start_toStartOf="parent"`; status tick and right edge left exactly as upstream (tick stays *below* the card).** The "tick beside / right-anchored" idea is NOT in the tree — do not reintroduce it without on-device iteration. The **incoming** file card (`item_conv_file_peer.xml`) was deliberately left untouched: it's bounded by the download button in the normal case, with the same button-`GONE` edge case latent but lower-risk — only revisit if incoming cards are actually seen to overflow.
+
+- **`lintVital` can die on a lint/UAST bug, not on a lint rule — read the message before hunting your code.** 2026-07-28, cost one build: `lintVitalAnalyzeWithUnifiedPushRelease FAILED` with *"Unexpected failure during lint analysis of SettingsExport.kt (this is a bug in lint or one of the libraries it depends on) … Bad parent: class org.jetbrains.kotlin.psi.KtNameReferenceExpression"* in `LightClassUtil.getWrappingClass`. No rule was violated; lint's Kotlin→UAST converter crashed. The trigger was a one-line function body of the shape **`"literal" + if (cond) "a" else ""`** — an unparenthesised `if` expression as the right operand of `+`. Writing it out (`val base = …; return if (cond) "$base-x" else base`) clears it. Distinguishing feature: the failure names a *file* and says "this is a bug in lint", never a lint issue id. Do not go looking for the applicationId/namespace trap — that one reports real issues (`MissingClass` etc.), with line numbers.
+- **The test twin (`-PshiroikumaTwin`).** A second, isolated install for destructive testing: `applicationId = shiroikuma.jami.test`, label 「白い熊 GNU Jami 試験」 via the `${appLabel}` manifest placeholder, its own uid and private data dir. It installs alongside because the FileProvider authority (`${applicationId}.file_provider`) and the automation actions are templated, and there is no `sharedUserId`. It **reuses the cached native library** — `JAMI_DATADIR` in the CMake args is only the ringtone-resource fallback (`fileutils::get_resource_dir_path`), never the account data dir (that comes from the client's `filesDir` via `GetAppDataPath`), so the CMake configuration is deliberately left unparameterised and no daemon rebuild is triggered. Only visible cost: call ringtones fall back in the twin, since it cannot read the real install's files directory. Its backup folder defaults to `…/shiroikuma-jami-test` so it cannot accidentally import the real install's archive. Build with `TWIN=1` in the build script; the APK is named `shiroikuma-jami-test_<vn>_arm64-v8a.apk` and still consumes a build number, so none is ever reused.
 
 ## One-time toolchain preflight
 
@@ -306,6 +344,9 @@ fi'
 # current-CRL-only (idempotent; daemon's OWN source — no rules.mak, no contrib rebuild)
 r bash -c 'grep -q SK-CRL-CURRENT daemon/src/jamidht/account_manager.cpp || (cd daemon && patch -flp1) < patches/jami-publish-current-crl-only.patch'
 r bash -c 'find jami-android/app/build/intermediates/cxx -name libjami-core-jni.so -delete 2>/dev/null; true'
+
+# SWIG import APIs (idempotent; daemon's OWN .i files — MUST precede make-swig.sh, it feeds it)
+r bash -c 'grep -q "const std::string& accountId" <(grep "^std::string addAccount" daemon/bin/jni/configurationmanager.i) || (cd daemon && patch -flp1) < patches/jami-swig-import-apis.patch'
 
 # SWIG JNI bindings (compile.sh's prerequisite step)
 ( cd daemon/bin/jni && PACKAGEDIR="$HOME/git/shiroikuma-jami/jami-android/libjamiclient/src/main/java" ./make-swig.sh )
