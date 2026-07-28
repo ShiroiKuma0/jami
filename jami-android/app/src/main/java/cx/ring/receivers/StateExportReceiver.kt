@@ -20,6 +20,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import cx.ring.utils.AutomationPrefs
+import cx.ring.utils.EximRunner
 import cx.ring.utils.SettingsExport
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -86,9 +87,11 @@ class StateExportReceiver : BroadcastReceiver() {
         app: Context, path: String?, items: String?,
         progressAction: String?, replyPackage: String, replyId: String,
     ): String {
-        // Category selection — absent/empty items = everything; any unknown id is a hard error.
+        // Category selection — absent/empty items = everything EXCEPT the chat corpus. Chats and
+        // chat files are gigabyte-scale; a caller that wants them in a headless backup names them
+        // explicitly, so an existing automation's behaviour does not change under it.
         val cats: List<SettingsExport.Cat> = if (items.isNullOrBlank()) {
-            SettingsExport.Cat.entries.toList()
+            SettingsExport.defaultHeadlessCats()
         } else {
             val byId = SettingsExport.Cat.entries.associateBy { it.id }
             val ids = items.split(',').map { it.trim() }.filter { it.isNotEmpty() }
@@ -97,7 +100,7 @@ class StateExportReceiver : BroadcastReceiver() {
         }
 
         var lastProgress = 0L
-        fun progress(cur: Int, total: Int, label: String, force: Boolean = false) {
+        fun progress(cur: Long, total: Long, label: String, unit: String, force: Boolean = false) {
             if (progressAction.isNullOrEmpty()) return
             val now = System.currentTimeMillis()
             if (!force && now - lastProgress < 500) return   // ≥500 ms apart, final always sent
@@ -107,72 +110,73 @@ class StateExportReceiver : BroadcastReceiver() {
                 addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
                 putExtra("reply_id", replyId)
                 putExtra("app", "白い熊 GNU Jami")
-                putExtra("text", "区分 $cur/$total — $label")
-                putExtra("current", cur.toLong())
-                putExtra("total", total.toLong())
-                putExtra("unit", "区分")
+                putExtra("text", "$label $cur/$total")
+                putExtra("current", cur)
+                putExtra("total", total)
+                putExtra("unit", unit)
             })
         }
 
         // Account archives need the daemon; a cold-started process may still be loading accounts.
-        var archives = emptyMap<String, ByteArray>()
-        var meta: org.json.JSONObject? = null
+        val accounts = cx.ring.application.JamiApplication.instance?.mAccountService
+            ?: return "ERROR:app not initialized"
         if (SettingsExport.Cat.ACCOUNTS in cats) {
-            progress(0, cats.size, "Accounts (daemon)", force = true)
-            val accounts = cx.ring.application.JamiApplication.instance?.mAccountService
-                ?: return "ERROR:app not initialized"
+            progress(0, cats.size.toLong(), "区分", "区分", force = true)
             val deadline = System.currentTimeMillis() + 15_000
             while (accounts.getAccounts().isEmpty() && System.currentTimeMillis() < deadline)
                 Thread.sleep(250)
-            val (a, m, _) = SettingsExport.collectAccountArchives(app, accounts)
-            archives = a; meta = m
         }
 
-        // Build the ZIP with per-category progress (the engine is the panel's — one implementation).
-        var done = 0
-        for (cat in cats) { progress(done, cats.size, cat.label); done++ }
-        val bytes = SettingsExport.export(app, cats, archives, meta)
-        progress(cats.size, cats.size, "書き込み", force = true)
+        val runner = EximRunner(app, accounts) { p ->
+            if (p.totalFiles > 0)
+                progress(p.files.toLong(), p.totalFiles.toLong(), p.phase, "ファイル")
+            else
+                progress(0, cats.size.toLong(), p.phase, "区分")
+        }
 
-        // Directory precedence: path extra → configured SAF export directory → ERROR:no-directory.
-        // No All-Files-Access in this app: a plain-File write to the override path is ATTEMPTED
-        // (EMUI sometimes allows /sdcard/tmp); if it fails, the contract's fallback applies —
-        // configured SAF directory, else ERROR:no-storage-access.
+        // Destination precedence: path extra → configured direct directory → SAF directory.
+        // A plain-File write is ATTEMPTED even without all-files access (EMUI sometimes allows
+        // /sdcard/tmp); the SAF directory is the fallback when it is refused.
         val name = SettingsExport.exportFileName()
-        val written: String = if (!path.isNullOrEmpty()) {
-            writeToAbsoluteDir(path, name, bytes)
-                ?: writeToSafDir(app, name, bytes)
-                ?: return "ERROR:no-storage-access"
-        } else {
-            writeToSafDir(app, name, bytes)
-                ?: return "ERROR:no-directory"
+        val direct = if (!path.isNullOrEmpty()) File(path) else SettingsExport.directDir(app)
+        var written: String? = null
+        var size = 0L
+        if (direct != null) {
+            runCatching {
+                direct.mkdirs()
+                val f = File(direct, name)
+                val counter = CountingStream(f.outputStream())
+                counter.use { runner.exportInto(cats, it) }
+                size = counter.count
+                written = f.absolutePath
+            }.onFailure { Log.e(TAG, "direct write to $direct failed: $it") }
         }
-        return "OK:$written|${bytes.size}|${human(bytes.size.toLong())}|${cats.size} categories"
+        if (written == null) {
+            runCatching {
+                val dir = SettingsExport.getExportDir(app) ?: return@runCatching
+                val doc = dir.createFile("application/zip", name) ?: return@runCatching
+                val stream = app.contentResolver.openOutputStream(doc.uri) ?: return@runCatching
+                val counter = CountingStream(stream)
+                counter.use { runner.exportInto(cats, it) }
+                size = counter.count
+                written = safDisplayPath(doc.uri.toString()) ?: doc.uri.toString()
+            }.onFailure { Log.e(TAG, "SAF write failed: $it") }
+        }
+        progress(1, 1, "書き込み", "区分", force = true)
+        val target = written ?: return if (SettingsExport.getExportDir(app) == null)
+            "ERROR:no-directory" else "ERROR:no-storage-access"
+        return "OK:$target|$size|${human(size)}|${cats.size} categories"
     }
 
-    /** Plain-File write into an absolute directory; null when storage access is refused. */
-    private fun writeToAbsoluteDir(dir: String, name: String, bytes: ByteArray): String? = try {
-        val d = File(dir)
-        d.mkdirs()
-        val f = File(d, name)
-        f.writeBytes(bytes)
-        if (f.length() == bytes.size.toLong()) f.absolutePath else { f.delete(); null }
-    } catch (e: Exception) {
-        Log.e(TAG, "absolute-path write to $dir failed: $e")
-        null
-    }
+    /** Counts bytes on the way out, so the reply can state the size without re-reading the file. */
+    private class CountingStream(private val out: java.io.OutputStream) : java.io.OutputStream() {
+        var count = 0L
+            private set
 
-    /** SAF write into the panel's configured export directory; null when none/unwritable. */
-    private fun writeToSafDir(app: Context, name: String, bytes: ByteArray): String? {
-        try {
-            val dir = SettingsExport.getExportDir(app) ?: return null
-            val file = dir.createFile("application/zip", name) ?: return null
-            app.contentResolver.openOutputStream(file.uri)?.use { it.write(bytes) } ?: return null
-            return safDisplayPath(file.uri.toString()) ?: file.uri.toString()
-        } catch (e: Exception) {
-            Log.e(TAG, "SAF write failed: $e")
-            return null
-        }
+        override fun write(b: Int) { out.write(b); count++ }
+        override fun write(b: ByteArray, off: Int, len: Int) { out.write(b, off, len); count += len }
+        override fun flush() = out.flush()
+        override fun close() = out.close()
     }
 
     /** Best-effort absolute path for a primary-storage SAF document URI (for the reply line). */

@@ -24,8 +24,11 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.utils.AutomationPrefs
+import cx.ring.utils.ChatArchive
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.DataMeter
+import cx.ring.utils.EximJob
+import cx.ring.utils.EximRunner
 import cx.ring.utils.FontPrefs
 import cx.ring.utils.SettingsExport
 import cx.ring.utils.FontUtil
@@ -174,12 +177,22 @@ class FontsSettingsFragment : Fragment() {
         return root
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Coming back from the system all-files screen must show the new state immediately.
+        refreshEximPermission()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         recoveryDisposable.clear()
+        EximJob.observe(null)
         eximDialog?.dismiss()
         eximDialog = null
         eximPageStatusTv = null
+        eximPermTv = null
+        eximPreflightTv = null
+        eximProgressTv = null
         (activity as? cx.ring.client.HomeActivity)?.refreshThemedViews()
     }
 
@@ -597,6 +610,11 @@ class FontsSettingsFragment : Fragment() {
     private var eximChecks: List<Pair<SettingsExport.Cat, android.widget.CheckBox>> = emptyList()
     private var pendingExportCats: List<SettingsExport.Cat>? = null
     private var pendingImportCats: List<SettingsExport.Cat>? = null
+    private var eximPermTv: TextView? = null
+    private var eximPreflightTv: TextView? = null
+    private var eximProgressTv: TextView? = null
+    /** The next picked archive feeds the deleted-conversation flow rather than a normal import. */
+    private var pendingDeletedRestore = false
 
     private val pickExportDir = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri ?: return@registerForActivityResult
@@ -610,7 +628,12 @@ class FontsSettingsFragment : Fragment() {
         refreshEximStatus()
     }
     private val pickImportFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) runEximImport(uri)
+        val deleted = pendingDeletedRestore
+        pendingDeletedRestore = false
+        if (uri == null) return@registerForActivityResult
+        val ctx = context ?: return@registerForActivityResult
+        val source = { SettingsExport.openSource(ctx.applicationContext, uri) }
+        if (deleted) openDeletedRestore(source) else runEximImport(source)
     }
     private val exportSaveAs = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")) { uri ->
@@ -643,6 +666,18 @@ class FontsSettingsFragment : Fragment() {
         row.addView(status)
         eximPageStatusTv = status
         c.addView(row)
+        // ---- All-files access. The archive lives on shared storage; with this granted we write to
+        //      a plain path, which also lets import seek past categories you did not select
+        //      instead of reading through them. Without it everything still works over SAF.
+        val perm = TextView(ctx).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(72f), 0, dp(16f), dp(8f))
+            isClickable = true
+            setOnClickListener { openAllFilesSettings() }
+        }
+        eximPermTv = perm
+        c.addView(perm)
+        refreshEximPermission()
         // ---- Automation (moved here from its standalone settings row, 白い熊 2026-07-25):
         //      the master switch + token live next to Export/Import because the 保存復元 batch
         //      backup is token-gated automation of exactly this export. ----
@@ -691,6 +726,33 @@ class FontsSettingsFragment : Fragment() {
         }.start()
     }
 
+    private fun refreshEximPermission() {
+        val tv = eximPermTv ?: return
+        val ctx = context ?: return
+        val ok = SettingsExport.hasAllFilesAccess()
+        tv.text = if (ok) "全ファイルアクセス: 許可済み — ${SettingsExport.getDirPath(ctx)}"
+        else "全ファイルアクセス: 未許可 — タップして許可（未許可でもフォルダ選択で動作します）"
+        tv.setTextColor(if (ok) dim else warnRed)
+    }
+
+    private fun openAllFilesSettings() {
+        val ctx = context ?: return
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
+            Flash.show(ctx, "Android 11 以降のみ")
+            return
+        }
+        val direct = android.content.Intent(
+            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            Uri.parse("package:${ctx.packageName}"))
+        runCatching { startActivity(direct) }.onFailure {
+            // Some EMUI builds refuse the per-app deep link; the全体 list always exists.
+            runCatching {
+                startActivity(android.content.Intent(
+                    android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            }.onFailure { Flash.show(ctx, "設定画面を開けませんでした", Toast.LENGTH_LONG) }
+        }
+    }
+
     /** The Export/Import panel: directory box, latest-export line, category checkboxes,
      *  and the ArcaneChat pill row (Cancel left; Import + Export right). */
     private fun showExportImportPanel() {
@@ -731,15 +793,51 @@ class FontsSettingsFragment : Fragment() {
         root.addView(eximDivider())
 
         val checks = ArrayList<Pair<SettingsExport.Cat, android.widget.CheckBox>>()
-        val selectAll = eximCheckbox("Select all", bold = true).apply { isChecked = true }
+        val selectAll = eximCheckbox("Select all", bold = true)
         root.addView(selectAll)
         for (cat in SettingsExport.Cat.entries) {
-            val cb = eximCheckbox(cat.label).apply { isChecked = true }
+            // Files are off by default: everything else is kilobytes, that one can be gigabytes.
+            val cb = eximCheckbox(cat.label).apply { isChecked = cat.defaultOn }
             checks.add(cat to cb)
             root.addView(cb)
         }
         selectAll.setOnCheckedChangeListener { _, on -> checks.forEach { it.second.isChecked = on } }
         eximChecks = checks
+
+        // What the chat categories actually cost, measured before anything is written.
+        eximPreflightTv = TextView(ctx).apply {
+            text = "会話を計測中…"
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(8f), dp(6f), 0, 0)
+        }
+        root.addView(eximPreflightTv)
+        refreshEximPreflight()
+
+        eximProgressTv = TextView(ctx).apply {
+            text = EximJob.lastLine
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(8f), dp(6f), 0, 0)
+            visibility = if (EximJob.running) View.VISIBLE else View.GONE
+        }
+        root.addView(eximProgressTv)
+
+        root.addView(eximDivider(topGap = 8))
+        root.addView(TextView(ctx).apply {
+            text = "削除済み会話の復元  ⌫"
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setPadding(dp(8f), dp(10f), 0, dp(6f))
+            isClickable = true
+            setOnClickListener { startDeletedRestore() }
+        })
+        root.addView(TextView(ctx).apply {
+            text = "通常のインポートは、意図的に削除した会話を元に戻しません。ここから選んで復元します。"
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(dp(8f), 0, 0, dp(4f))
+        })
         root.addView(eximDivider(topGap = 8))
 
         val buttons = LinearLayout(ctx).apply {
@@ -762,9 +860,11 @@ class FontsSettingsFragment : Fragment() {
             .setView(scroll)
             .setOnDismissListener {
                 eximFolderTv = null; eximStatusTv = null; eximChecks = emptyList(); eximDialog = null
+                eximPreflightTv = null; eximProgressTv = null
             }
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
         refreshEximStatus()
+        observeEximJob()
     }
 
     private fun eximDivider(topGap: Int = 0): View = View(requireContext()).apply {
@@ -805,7 +905,7 @@ class FontsSettingsFragment : Fragment() {
 
     private fun refreshEximStatus() {
         val ctx = context ?: return
-        val dirName = SettingsExport.getExportDir(ctx)?.name ?: SettingsExport.getDirUri(ctx)?.lastPathSegment
+        val dirName = SettingsExport.locationLabel(ctx)
         eximFolderTv?.let {
             it.text = dirName ?: "Not set — tap to choose a directory"
             it.setTextColor(if (dirName == null) warnRed else yellow)
@@ -826,115 +926,82 @@ class FontsSettingsFragment : Fragment() {
 
     private fun postToUi(r: () -> Unit) { activity?.runOnUiThread(r) }
 
+    private var eximLastWasImport = false
+    private var eximLastName = ""
+
+    /** Chat pre-flight. Indexing walks every conversation directory, so never on the UI thread. */
+    private fun refreshEximPreflight() {
+        val app = context?.applicationContext ?: return
+        val tv = eximPreflightTv ?: return
+        Thread {
+            val idx = runCatching {
+                EximRunner(app, mAccountService).indexChats(
+                    listOf(SettingsExport.Cat.CHAT_TEXTS, SettingsExport.Cat.CHAT_FILES))
+            }.getOrDefault(emptyList())
+            val text = "会話 ${idx.sumOf { it.conversations.size }} 件 — " +
+                    "本文 ${ChatArchive.human(idx.sumOf { it.texts.bytes })} / " +
+                    "ファイル ${idx.sumOf { it.payload.files }} 個 " +
+                    ChatArchive.human(idx.sumOf { it.payload.bytes })
+            tv.post { eximPreflightTv?.text = text }
+        }.start()
+    }
+
+    /** Mirrors a running job into the panel, and reports the outcome once it finishes. */
+    private fun observeEximJob() {
+        EximJob.observe { line, done, report, error ->
+            postToUi {
+                eximProgressTv?.let {
+                    it.text = line
+                    it.visibility = if (done) View.GONE else View.VISIBLE
+                }
+                if (!done) return@postToUi
+                refreshEximStatus()
+                val ctx = context ?: return@postToUi
+                when {
+                    error != null -> Flash.show(ctx, "失敗: $error", Toast.LENGTH_LONG)
+                    report == null -> Flash.show(ctx, "失敗: 結果がありません", Toast.LENGTH_LONG)
+                    eximLastWasImport -> showImportDone(report.text)
+                    else -> showExportDone(eximLastName, report.text)
+                }
+            }
+        }
+    }
+
     private fun onEximExport() {
         val ctx = context ?: return
         val cats = selectedCats()
         if (cats.isEmpty()) { Flash.show(ctx, "No categories selected."); return }
+        if (EximJob.running) { Flash.show(ctx, "別の処理が実行中です"); return }
         val app = ctx.applicationContext
-        if (SettingsExport.getExportDir(app) != null) {
-            Flash.show(ctx, "Exporting…")
-            Thread {
-                try {
-                    val (bytes, notes) = buildExportBytes(app, cats)
-                    val dir = SettingsExport.getExportDir(app)
-                        ?: throw IllegalStateException("directory unavailable")
-                    val name = SettingsExport.exportFileName()
-                    val file = dir.createFile("application/zip", name)
-                        ?: throw IllegalStateException("could not create $name")
-                    app.contentResolver.openOutputStream(file.uri)?.use { it.write(bytes) }
-                        ?: throw IllegalStateException("no stream")
-                    postToUi { showExportDone(name, notes) }
-                } catch (e: Exception) {
-                    postToUi { context?.let { Flash.show(it, "Export failed: ${e.message}", Toast.LENGTH_LONG) } }
-                }
-            }.start()
-        } else {
-            // no directory configured — fall back to a save-as picker
+        // Ask for the destination only once we know the job can start — otherwise a busy job
+        // leaves an opened output stream behind.
+        val target = runCatching { EximRunner(app, mAccountService).openExportTarget() }.getOrNull()
+        if (target == null) {
+            // Neither all-files access nor a configured directory — fall back to a save-as picker.
             pendingExportCats = cats
             exportSaveAs.launch(SettingsExport.exportFileName())
+            return
         }
+        eximLastWasImport = false
+        eximLastName = target.first
+        observeEximJob()
+        val started = EximJob.start(app, mAccountService, "保存中 — 白い熊 GNU Jami") { r ->
+            target.second.use { out -> r.exportInto(cats, out) }
+        }
+        if (!started) Flash.show(ctx, "別の処理が実行中です")
     }
 
     private fun writeExportTo(uri: Uri, cats: List<SettingsExport.Cat>) {
         val ctx = context ?: return
         val app = ctx.applicationContext
-        Flash.show(ctx, "Exporting…")
-        Thread {
-            try {
-                val (bytes, notes) = buildExportBytes(app, cats)
-                app.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
-                    ?: throw IllegalStateException("no stream")
-                val name = uri.lastPathSegment?.substringAfterLast('/') ?: "export.zip"
-                postToUi { showExportDone(name, notes) }
-            } catch (e: Exception) {
-                postToUi { context?.let { Flash.show(it, "Export failed: ${e.message}", Toast.LENGTH_LONG) } }
-            }
-        }.start()
-    }
-
-    /** Builds the export zip on the calling (background) thread; collects the daemon account
-     *  archives first when the Accounts category is selected. Returns bytes + account notes. */
-    private fun buildExportBytes(
-        app: android.content.Context, cats: List<SettingsExport.Cat>
-    ): Pair<ByteArray, String> {
-        var archives = emptyMap<String, ByteArray>()
-        var meta: org.json.JSONObject? = null
-        var notes = ""
-        if (SettingsExport.Cat.ACCOUNTS in cats) {
-            val (a, m, n) = SettingsExport.collectAccountArchives(app, mAccountService)
-            archives = a; meta = m; notes = n
+        eximLastWasImport = false
+        eximLastName = uri.lastPathSegment?.substringAfterLast('/') ?: "export.zip"
+        observeEximJob()
+        val started = EximJob.start(app, mAccountService, "保存中 — 白い熊 GNU Jami") { r ->
+            (app.contentResolver.openOutputStream(uri)
+                ?: throw IllegalStateException("no stream")).use { r.exportInto(cats, it) }
         }
-        return SettingsExport.export(app, cats, archives, meta) to notes
-    }
-
-    /** Restores accounts/<id>.gz archives via the daemon; identities already on this device are
-     *  skipped. Blocking — call on a background thread. Returns the summary line. */
-    private fun importAccounts(app: android.content.Context, bytes: ByteArray): String {
-        val archives = SettingsExport.accountArchivesIn(bytes)
-        if (archives.isEmpty()) return "Accounts: none in this export"
-        val meta = SettingsExport.accountsMetaIn(bytes)
-        val existing = mAccountService.getAccounts().mapNotNull { it.username }.toSet()
-        var imported = 0
-        var skipped = 0
-        val errors = StringBuilder()
-        val cacheDir = java.io.File(app.cacheDir, "eximport").apply { mkdirs() }
-        for ((id, data) in archives) {
-            val m = meta.optJSONObject(id)
-            val uri = m?.optString("uri").orEmpty()
-            val label = m?.optString("registeredName").orEmpty()
-                .ifBlank { m?.optString("alias").orEmpty() }.ifBlank { id.take(8) }
-            if (uri.isNotEmpty() && uri in existing) { skipped++; continue }
-            try {
-                // The daemon may read the archive asynchronously after addAccount — leave the
-                // temp file for the cache auto-cleanup rather than deleting it immediately.
-                val f = java.io.File(cacheDir, "import_$id.gz")
-                f.writeBytes(data)
-                val details = mAccountService
-                    .getAccountTemplate(net.jami.model.AccountConfig.ACCOUNT_TYPE_JAMI)
-                    .blockingGet()
-                // Same shape as the wizard's backup-restore path (initJamiAccountBackup), incl.
-                // the fork's connectivity defaults; the archive then carries the account config.
-                details[net.jami.model.ConfigKey.ACCOUNT_ALIAS.key] =
-                    m?.optString("alias").orEmpty().ifBlank { "Jami account" }
-                details[net.jami.model.ConfigKey.VIDEO_ENABLED.key] = true.toString()
-                details[net.jami.model.ConfigKey.ACCOUNT_DTMF_TYPE.key] = "sipinfo"
-                details[net.jami.model.ConfigKey.ACCOUNT_UPNP_ENABLE.key] = net.jami.model.AccountConfig.TRUE_STR
-                details[net.jami.model.ConfigKey.TURN_ENABLE.key] = net.jami.model.AccountConfig.TRUE_STR
-                details[net.jami.model.ConfigKey.ACCOUNT_PEER_DISCOVERY.key] = net.jami.model.AccountConfig.FALSE_STR
-                details[net.jami.model.ConfigKey.PROXY_ENABLED.key] = net.jami.model.AccountConfig.FALSE_STR
-                details[net.jami.model.ConfigKey.ARCHIVE_PATH.key] = f.absolutePath
-                mAccountService.addAccount(details)
-                    .timeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .blockingFirst()
-                imported++
-            } catch (e: Exception) {
-                errors.append("\n  $label: ${e.message}")
-            }
-        }
-        val line = StringBuilder("Accounts: $imported imported")
-        if (skipped > 0) line.append(", $skipped already present")
-        if (errors.isNotEmpty()) line.append(errors)
-        return line.toString()
+        if (!started) Flash.show(ctx, "別の処理が実行中です")
     }
 
     private fun onEximImport() {
@@ -942,41 +1009,114 @@ class FontsSettingsFragment : Fragment() {
         val cats = selectedCats()
         if (cats.isEmpty()) { Flash.show(ctx, "No categories selected."); return }
         pendingImportCats = cats
-        pickImportFile.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+        pickArchive(ctx, forDeleted = false)
     }
 
-    private fun runEximImport(uri: Uri) {
+    /**
+     * Picks an archive. With all-files access the backup directory is listed here and the importer
+     * gets a real File — which is what lets it seek past categories you did not tick, instead of
+     * reading through gigabytes of attachments to reach the end.
+     */
+    private fun pickArchive(ctx: android.content.Context, forDeleted: Boolean) {
+        pendingDeletedRestore = forDeleted
+        val local = SettingsExport.directExports(ctx)
+        val mime = arrayOf("application/zip", "application/octet-stream", "*/*")
+        if (local.isEmpty()) {
+            pickImportFile.launch(mime)
+            return
+        }
+        val labels = local.map { "${it.name}  (${ChatArchive.human(it.length())})" }
+            .toMutableList().apply { add("他の場所から選ぶ…") }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("バックアップを選択")
+            .setItems(labels.toTypedArray()) { _, which ->
+                if (which >= local.size) {
+                    pickImportFile.launch(mime)
+                } else {
+                    pendingDeletedRestore = false
+                    val f = local[which]
+                    val source = { SettingsExport.openSource(f) }
+                    if (forDeleted) openDeletedRestore(source) else runEximImport(source)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    private fun runEximImport(source: () -> SettingsExport.ZipSource) {
         val ctx = context ?: return
         val cats = pendingImportCats ?: return
         pendingImportCats = null
+        eximLastWasImport = true
+        observeEximJob()
+        val started = EximJob.start(
+            ctx.applicationContext, mAccountService, "復元中 — 白い熊 GNU Jami"
+        ) { r -> source().use { src -> r.runImport(src, cats) } }
+        if (!started) Flash.show(ctx, "別の処理が実行中です")
+    }
+
+    // ---- 削除済み会話の復元: opt-in, because the deletion was deliberate ----------------------
+
+    private fun startDeletedRestore() {
+        val ctx = context ?: return
+        pickArchive(ctx, forDeleted = true)
+    }
+
+    private fun openDeletedRestore(source: () -> SettingsExport.ZipSource) {
+        val ctx = context ?: return
         val app = ctx.applicationContext
-        Flash.show(ctx, "Importing…")
+        Flash.show(ctx, "読み込み中…")
         Thread {
-            var summary: String? = null
-            var error: String? = null
-            try {
-                val bytes = app.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IllegalStateException("no stream")
-                val present = SettingsExport.categoriesIn(bytes)
-                if (present.isEmpty()) {
-                    error = "No 白い熊 GNU Jami export found in that file."
-                } else {
-                    val parts = ArrayList<String>()
-                    SettingsExport.importData(app, bytes, cats)?.let { parts.add(it) }
-                    if (SettingsExport.Cat.ACCOUNTS in cats && SettingsExport.Cat.ACCOUNTS in present)
-                        parts.add(importAccounts(app, bytes))
-                    if (parts.isEmpty()) error = "No 白い熊 GNU Jami export found in that file."
-                    else summary = parts.joinToString("\n")
-                }
-            } catch (e: Exception) {
-                error = e.message ?: e.toString()
-            }
-            val s = summary
-            postToUi {
-                if (s != null) showImportDone(s)
-                else context?.let { Flash.show(it, "Import failed: $error", Toast.LENGTH_LONG) }
-            }
+            val found = runCatching {
+                source().use { EximRunner(app, mAccountService).deletedCandidates(it) }
+            }.getOrElse { emptyList() }
+            postToUi { showDeletedRestoreDialog(source, found) }
         }.start()
+    }
+
+    private fun showDeletedRestoreDialog(
+        source: () -> SettingsExport.ZipSource, found: List<EximRunner.Deleted>
+    ) {
+        val ctx = context ?: return
+        if (found.isEmpty()) {
+            cx.ring.utils.DialogTheme.builder(ctx)
+                .setTitle("削除済み会話の復元")
+                .setMessage("このバックアップには、この端末で削除された会話はありません。")
+                .setPositiveButton(android.R.string.ok, null)
+                .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+            return
+        }
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20f), dp(12f), dp(20f), dp(8f))
+        }
+        box.addView(TextView(ctx).apply {
+            text = "復元する会話を選んでください。削除を保持している別の端末が同期すると、" +
+                    "再び削除されることがあります。"
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        })
+        val boxes = found.map { d ->
+            eximCheckbox("${d.accountLabel} — ${d.convId.take(12)}…").also { box.addView(it) }
+        }
+        cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle("削除済み会話の復元")
+            .setView(android.widget.ScrollView(ctx).apply { addView(box) })
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton("復元") { _, _ ->
+                val picks = found.filterIndexed { i, _ -> boxes[i].isChecked }
+                if (picks.isEmpty()) {
+                    Flash.show(ctx, "選択されていません")
+                    return@setPositiveButton
+                }
+                eximLastWasImport = true
+                observeEximJob()
+                val started = EximJob.start(
+                    ctx.applicationContext, mAccountService, "復元中 — 削除済み会話"
+                ) { r -> source().use { src -> r.restoreDeleted(src, picks) } }
+                if (!started) Flash.show(ctx, "別の処理が実行中です")
+            }
+            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
     /** Export-finished info dialog (yellow border); OK closes the whole chain: dialog → panel → page. */
