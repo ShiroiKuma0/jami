@@ -170,6 +170,42 @@ the account already exists, the flow inverts to quiesce → merge only what is m
 `MsgPackLite.kt`, `service/EximService.kt`, plus the rewritten `SettingsExport.kt` (format version 2,
 fully streaming — the old `ByteArray` engine would OOM on a chat corpus).
 
+**Restore traps — every one of these cost a failed on-device run on 2026-07-28. Do not relearn them.**
+
+- **The daemon DELETES a still-pending account at the next start, directory and all.**
+  `Manager::addAccount` marks every new Jami account pending; only `markAccountReady` clears it, and
+  that fires when `loadAccount` has actually read the archive. At startup both `loadAccountFromNode`
+  and the account-directory scan do
+  `if (isAccountPending(id)) { removeAccount(id, /*flush*/true); cleanupAccountStorage(id); }` —
+  and `flush=true` runs `JamiAccount::flush()`, which is `removeAll(idPath_)`. So an account created
+  by an import and restarted-on too soon loses **the account and every conversation restored into
+  it**. Measured load times after `addAccount`: 3.5 s, 12 s, **22.5 s**, and one run that never
+  finished inside 60 s. The importer therefore waits for the identity (the account's `username`
+  matching the archive's `uri` — `loadAccount` sets it just before scheduling the ready callback),
+  settles 2 s, and on timeout REMOVES the account and reports a failure rather than leaving
+  something that evaporates on restart.
+- **Deleting an account leaves `CustomPeerProfiles` and `profiles` behind** in `filesDir/<accountId>`.
+  Treating a non-empty directory as "id occupied" made every retry fall onto the merge path under a
+  fresh random id — the archive's own id could never be reused, which is the whole basis of the
+  design. If no account owns the id, the leftovers are orphaned data (the daemon's own
+  `cleanupAccountStorage` deletes exactly this) → reclaim the id.
+- **`AccountService.removeAccount` does NOT delete the client attachment tree.** The daemon flushes
+  `filesDir/<accountId>`; `filesDir/conversation_data/<accountId>` survives. That is why a restore
+  onto a deleted account meets an existing destination — and why `installFresh` must MERGE, never
+  rename-or-copy: the old `copyRecursively(overwrite=false)` aborted on the first conflict and left
+  the rest of the tree behind while reporting success.
+- **Never call `setLevel()` on a live `ZipOutputStream`.** Switching the shared `Deflater` between
+  entries corrupted 1 entry in 3258 of a real 1.6 GiB archive — structurally perfect zip, one entry
+  that inflates to "invalid block type", invisible until a restore. Export now verifies every entry's
+  CRC before renaming the `.part` into place.
+- **The automation export cannot run in the broadcast receiver.** `goAsync()` does not extend the
+  ~10 s/~60 s window; a multi-GB export was ANR-killed mid-write every time, leaving truncated
+  archives indistinguishable from real ones. It runs in `StateExportService` (foreground + wakelock);
+  the receiver only validates and hands off.
+- **EMUI drops this package's logcat output.** 73k lines captured across an import window contained
+  not one line of ours. That is why the test twin writes `<archive>.zip.import.log` to shared storage
+  (gated on `packageName.endsWith(".test")` — 白い熊 does not want log files beside real backups).
+
 ## The daemon-contrib fix (NOT committed — re-applied each build)
 
 This lives in the `daemon` submodule, so it is applied as an **idempotent sed in the build block** rather than committed, and re-applies itself on every pull:

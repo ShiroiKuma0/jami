@@ -125,6 +125,7 @@ object SettingsExport {
         chats: List<ChatArchive.AccountChats> = emptyList(),
         progress: ChatArchive.Progress? = null,
         onCategory: ((Cat) -> Unit)? = null,
+        cancelled: () -> Boolean = { false },
     ) {
         ZipOutputStream(out).use { zip ->
             val manifest = JSONObject()
@@ -136,6 +137,7 @@ object SettingsExport {
             writeEntry(zip, "manifest.json", manifest.toString(2).toByteArray())
 
             for (cat in cats) {
+                if (cancelled()) throw ChatArchive.CancelledException()
                 onCategory?.invoke(cat)
                 when (cat) {
                     Cat.ACCOUNTS -> {
@@ -167,11 +169,11 @@ object SettingsExport {
                 for (a in chats) {
                     if (Cat.CHAT_TEXTS in cats) {
                         onCategory?.invoke(Cat.CHAT_TEXTS)
-                        ChatArchive.writeTexts(zip, c, a, progress)
+                        ChatArchive.writeTexts(zip, c, a, progress, cancelled)
                     }
                     if (Cat.CHAT_FILES in cats) {
                         onCategory?.invoke(Cat.CHAT_FILES)
-                        ChatArchive.writeFiles(zip, c, a, progress)
+                        ChatArchive.writeFiles(zip, c, a, progress, cancelled)
                     }
                 }
             }
@@ -287,13 +289,16 @@ object SettingsExport {
      * 2026-07-28, undetectable until the restore. One extra read of the archive is cheap next to
      * discovering the damage on a new phone.
      */
-    fun verify(file: File, onEntry: ((Long) -> Unit)? = null): List<String> {
+    fun verify(
+        file: File, onEntry: ((Long) -> Unit)? = null, cancelled: () -> Boolean = { false }
+    ): List<String> {
         val bad = ArrayList<String>()
         ZipFile(file).use { zip ->
             val buf = ByteArray(64 * 1024)
             val it = zip.entries()
             while (it.hasMoreElements()) {
                 val e = it.nextElement()
+                if (cancelled()) throw ChatArchive.CancelledException()
                 if (e.isDirectory) continue
                 try {
                     zip.getInputStream(e).use { s ->
