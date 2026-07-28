@@ -30,6 +30,7 @@ class EximService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_CANCEL -> cx.ring.utils.EximJob.cancel()   // the job hides the service itself
             ACTION_STOP -> stop()
             else -> {
                 val title = intent?.getStringExtra(EXTRA_TITLE) ?: "白い熊 GNU Jami"
@@ -82,6 +83,11 @@ class EximService : Service() {
             .setAutoCancel(false)
             .setContentIntent(PendingIntent.getActivity(
                 applicationContext, 0, open, ContentUri.immutable()))
+            // Stoppable from the shade, without opening the app.
+            .addAction(0, getString(R.string.sk_exim_stop), PendingIntent.getService(
+                applicationContext, 1,
+                Intent(applicationContext, EximService::class.java).setAction(ACTION_CANCEL),
+                ContentUri.immutable()))
             .build()
     }
 
@@ -91,6 +97,7 @@ class EximService : Service() {
         private const val NOTIF_ID = 1071
         const val ACTION_START = "cx.ring.exim.START"
         const val ACTION_STOP = "cx.ring.exim.STOP"
+        const val ACTION_CANCEL = "cx.ring.exim.CANCEL"
         const val EXTRA_TITLE = "title"
         const val EXTRA_TEXT = "text"
 

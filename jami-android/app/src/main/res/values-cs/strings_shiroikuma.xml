@@ -103,4 +103,11 @@
     <string name="sk_rep_corrupt">POŠKOZENO: %1$d položek neprošlo ověřením — na tuto zálohu se nespoléhejte</string>
     <string name="sk_rep_damaged">Přeskočeno poškozených položek: %1$d</string>
     <string name="sk_rep_links">Propojení: obnoveno %1$d z %2$d</string>
+    <string name="sk_exim_stop">Zastavit</string>
+    <string name="sk_exim_stopping">Zastavuji…</string>
+    <string name="sk_exim_cancelled">Zastaveno — nedokončený soubor byl smazán</string>
+    <string name="sk_exim_phase_pause">Pozastavování účtu — %1$s</string>
+    <string name="sk_exim_phase_link">Obnova propojení souborů — %1$s</string>
+    <string name="sk_exim_phase_resume">Obnovování účtu — %1$s</string>
+    <string name="sk_rep_acc_not_ready">Účty: %1$s se nepodařilo zprovoznit — byl odstraněn, aby nezmizel až po restartu</string>
 </resources>
