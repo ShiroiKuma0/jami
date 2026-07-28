@@ -24,11 +24,9 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.utils.AutomationPrefs
-import cx.ring.utils.ChatArchive
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.DataMeter
-import cx.ring.utils.EximJob
-import cx.ring.utils.EximRunner
+import cx.ring.utils.EximPanel
 import cx.ring.utils.FontPrefs
 import cx.ring.utils.SettingsExport
 import cx.ring.utils.FontUtil
@@ -186,13 +184,9 @@ class FontsSettingsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         recoveryDisposable.clear()
-        EximJob.observe(null)
-        eximDialog?.dismiss()
-        eximDialog = null
         eximPageStatusTv = null
         eximPermTv = null
-        eximPreflightTv = null
-        eximProgressTv = null
+        eximPermBox = null
         (activity as? cx.ring.client.HomeActivity)?.refreshThemedViews()
     }
 
@@ -602,81 +596,92 @@ class FontsSettingsFragment : Fragment() {
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
-    // ---- Export / Import (top of the page — Kōjiki flow, kxkb look) -------------------------
-    private var eximDialog: androidx.appcompat.app.AlertDialog? = null
-    private var eximFolderTv: TextView? = null
-    private var eximStatusTv: TextView? = null
+    // ---- Export / Import. The panel itself lives in EximPanel so the account wizard can open the
+    //      same dialog on a fresh install; this page keeps only its summary row. ----------------
     private var eximPageStatusTv: TextView? = null
-    private var eximChecks: List<Pair<SettingsExport.Cat, android.widget.CheckBox>> = emptyList()
-    private var pendingExportCats: List<SettingsExport.Cat>? = null
-    private var pendingImportCats: List<SettingsExport.Cat>? = null
     private var eximPermTv: TextView? = null
-    private var eximPreflightTv: TextView? = null
-    private var eximProgressTv: TextView? = null
-    /** The next picked archive feeds the deleted-conversation flow rather than a normal import. */
-    private var pendingDeletedRestore = false
-
-    private val pickExportDir = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri ?: return@registerForActivityResult
-        val ctx = context ?: return@registerForActivityResult
-        runCatching {
-            ctx.contentResolver.takePersistableUriPermission(uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        }
-        SettingsExport.setDirUri(ctx, uri)
-        refreshEximStatus()
-    }
-    private val pickImportFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        val deleted = pendingDeletedRestore
-        pendingDeletedRestore = false
-        if (uri == null) return@registerForActivityResult
-        val ctx = context ?: return@registerForActivityResult
-        val source = { SettingsExport.openSource(ctx.applicationContext, uri) }
-        if (deleted) openDeletedRestore(source) else runEximImport(source)
-    }
-    private val exportSaveAs = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        val cats = pendingExportCats
-        pendingExportCats = null
-        if (uri != null && cats != null) writeExportTo(uri, cats)
-    }
+    private var eximPermBox: View? = null
 
     /** First section of the page: heading + a tappable summary row that opens the panel. */
     private fun addExportImportSection(c: LinearLayout) {
         val ctx = requireContext()
         c.addView(groupHeader("Export / Import", first = true))
+        // The way in. It used to be plain text, which gave no hint that it opened anything, so it
+        // is now the loudest thing in the section: a bordered pill with an explicit chevron
+        // (白い熊, 2026-07-28).
         val row = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = matchWrap()
-            setPadding(dp(72f), dp(6f), dp(16f), dp(6f))
+            setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
+            minimumHeight = dp(64f)
+            background = android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
+                GradientDrawable().apply {
+                    setColor(Color.BLACK)
+                    cornerRadius = dp(12f).toFloat()
+                    setStroke(dp(2f), yellow)
+                }, null)
             isClickable = true
-            setOnClickListener { showExportImportPanel() }
+            setOnClickListener {
+                // onClosed, not onImported: the folder and the permission can both change inside
+                // the panel, and cancelling out of it must still leave this page truthful.
+                EximPanel.show(ctx, mAccountService, onClosed = {
+                    refreshEximPageStatus()
+                    refreshEximPermission()
+                })
+            }
         }
         row.addView(TextView(ctx).apply {
-            text = "Save or load every setting — accounts, fonts, colours, recovery, automation — as selectable categories."
+            text = getString(R.string.sk_exim_open)
             setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setTypeface(typeface, Typeface.BOLD)
+        })
+        row.addView(TextView(ctx).apply {
+            text = getString(R.string.sk_exim_page_summary)
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, dp(3f), 0, 0)
         })
         val status = TextView(ctx).apply {
             setTextColor(dim)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(2f), 0, 0)
+            setPadding(0, dp(4f), 0, 0)
         }
         row.addView(status)
         eximPageStatusTv = status
-        c.addView(row)
-        // ---- All-files access. The archive lives on shared storage; with this granted we write to
-        //      a plain path, which also lets import seek past categories you did not select
-        //      instead of reading through them. Without it everything still works over SAF.
-        val perm = TextView(ctx).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(dp(72f), 0, dp(16f), dp(8f))
+        c.addView(row, matchWrap().apply {
+            leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(10f)
+        })
+        // ---- All-files access. Nothing in the panel can run without it, so it gets a proper
+        //      two-line bordered target rather than a line of small print — the thin version was
+        //      very hard to hit (白い熊, 2026-07-28).
+        val permBox = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
+            minimumHeight = dp(56f)
+            background = GradientDrawable().apply {
+                setColor(Color.BLACK)
+                cornerRadius = dp(10f).toFloat()
+                setStroke(dp(2f), yellow)
+            }
             isClickable = true
-            setOnClickListener { openAllFilesSettings() }
+            setOnClickListener { EximPanel.openAllFilesSettings(ctx) }
+            addView(TextView(ctx).apply {
+                text = getString(R.string.sk_exim_perm_label)
+                setTextColor(dim)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            })
         }
+        val perm = TextView(ctx).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTypeface(typeface, Typeface.BOLD)
+        }
+        permBox.addView(perm)
         eximPermTv = perm
-        c.addView(perm)
+        eximPermBox = permBox
+        c.addView(permBox, matchWrap().apply {
+            leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(8f)
+        })
         refreshEximPermission()
         // ---- Automation (moved here from its standalone settings row, 白い熊 2026-07-25):
         //      the master switch + token live next to Export/Import because the 保存復元 batch
@@ -719,9 +724,11 @@ class FontsSettingsFragment : Fragment() {
         val app = context?.applicationContext ?: return
         Thread {
             val status = SettingsExport.lastExportStatus(app)
-            val warn = SettingsExport.latestExport(app) == null
+            // Red means "there is no backup", nothing else. Checking only the SAF directory made a
+            // perfectly good direct-path export read as a warning (白い熊, 2026-07-28).
+            val warn = !SettingsExport.exportExists(app)
             eximPageStatusTv?.post {
-                eximPageStatusTv?.let { it.text = status; it.setTextColor(if (warn) warnRed else dim) }
+                eximPageStatusTv?.let { it.text = status; it.setTextColor(if (warn) warnRed else yellow) }
             }
         }.start()
     }
@@ -730,436 +737,16 @@ class FontsSettingsFragment : Fragment() {
         val tv = eximPermTv ?: return
         val ctx = context ?: return
         val ok = SettingsExport.hasAllFilesAccess()
-        tv.text = if (ok) "全ファイルアクセス: 許可済み — ${SettingsExport.getDirPath(ctx)}"
-        else "全ファイルアクセス: 未許可 — タップして許可（未許可でもフォルダ選択で動作します）"
+        // State only — NO directory here. Showing the path made the pill read as "tap to change
+        // the folder", and tapping it opens the system permission screen instead (白い熊,
+        // 2026-07-28). The folder belongs to the status line and to the panel's own folder box.
+        tv.text = getString(if (ok) R.string.sk_exim_perm_granted else R.string.sk_exim_perm_missing)
         tv.setTextColor(if (ok) dim else warnRed)
+        // Once granted this is settled business: fade it back so it stops competing with the
+        // control that actually does something. It shouts only while it still needs attention.
+        eximPermBox?.alpha = if (ok) 0.35f else 1f
     }
 
-    private fun openAllFilesSettings() {
-        val ctx = context ?: return
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
-            Flash.show(ctx, "Android 11 以降のみ")
-            return
-        }
-        val direct = android.content.Intent(
-            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-            Uri.parse("package:${ctx.packageName}"))
-        runCatching { startActivity(direct) }.onFailure {
-            // Some EMUI builds refuse the per-app deep link; the全体 list always exists.
-            runCatching {
-                startActivity(android.content.Intent(
-                    android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-            }.onFailure { Flash.show(ctx, "設定画面を開けませんでした", Toast.LENGTH_LONG) }
-        }
-    }
-
-    /** The Export/Import panel: directory box, latest-export line, category checkboxes,
-     *  and the ArcaneChat pill row (Cancel left; Import + Export right). */
-    private fun showExportImportPanel() {
-        val ctx = context ?: return
-        val root = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20f), dp(12f), dp(20f), dp(8f))
-        }
-        root.addView(TextView(ctx).apply {
-            text = "Save or load every setting as selectable categories."
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        })
-        val dirBox = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12f), dp(10f), dp(12f), dp(10f))
-            background = GradientDrawable().apply {
-                setColor(Color.BLACK)
-                cornerRadius = dp(10f).toFloat()
-                setStroke(dp(2f), yellow)
-            }
-            isClickable = true
-            setOnClickListener { pickExportDir.launch(SettingsExport.getDirUri(ctx)) }
-        }
-        dirBox.addView(TextView(ctx).apply {
-            text = "Export directory (tap to choose)"
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        })
-        eximFolderTv = TextView(ctx).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTypeface(typeface, Typeface.BOLD)
-        }
-        dirBox.addView(eximFolderTv)
-        root.addView(dirBox, matchWrap().apply { topMargin = dp(10f) })
-        eximStatusTv = TextView(ctx).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f) }
-        root.addView(eximStatusTv, matchWrap().apply { topMargin = dp(8f); bottomMargin = dp(8f) })
-        root.addView(eximDivider())
-
-        val checks = ArrayList<Pair<SettingsExport.Cat, android.widget.CheckBox>>()
-        val selectAll = eximCheckbox("Select all", bold = true)
-        root.addView(selectAll)
-        for (cat in SettingsExport.Cat.entries) {
-            // Files are off by default: everything else is kilobytes, that one can be gigabytes.
-            val cb = eximCheckbox(cat.label).apply { isChecked = cat.defaultOn }
-            checks.add(cat to cb)
-            root.addView(cb)
-        }
-        selectAll.setOnCheckedChangeListener { _, on -> checks.forEach { it.second.isChecked = on } }
-        eximChecks = checks
-
-        // What the chat categories actually cost, measured before anything is written.
-        eximPreflightTv = TextView(ctx).apply {
-            text = "会話を計測中…"
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(dp(8f), dp(6f), 0, 0)
-        }
-        root.addView(eximPreflightTv)
-        refreshEximPreflight()
-
-        eximProgressTv = TextView(ctx).apply {
-            text = EximJob.lastLine
-            setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(dp(8f), dp(6f), 0, 0)
-            visibility = if (EximJob.running) View.VISIBLE else View.GONE
-        }
-        root.addView(eximProgressTv)
-
-        root.addView(eximDivider(topGap = 8))
-        root.addView(TextView(ctx).apply {
-            text = "削除済み会話の復元  ⌫"
-            setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setPadding(dp(8f), dp(10f), 0, dp(6f))
-            isClickable = true
-            setOnClickListener { startDeletedRestore() }
-        })
-        root.addView(TextView(ctx).apply {
-            text = "通常のインポートは、意図的に削除した会話を元に戻しません。ここから選んで復元します。"
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(dp(8f), 0, 0, dp(4f))
-        })
-        root.addView(eximDivider(topGap = 8))
-
-        val buttons = LinearLayout(ctx).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(14f), 0, 0)
-        }
-        buttons.addView(pillButton("Cancel") { eximDialog?.dismiss() })
-        buttons.addView(View(ctx), LinearLayout.LayoutParams(0, 0, 1f))
-        buttons.addView(pillButton("Import") { onEximImport() }.also {
-            it.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                .apply { marginEnd = dp(8f) }
-        })
-        buttons.addView(pillButton("Export") { onEximExport() })
-        root.addView(buttons)
-
-        val scroll = android.widget.ScrollView(ctx).apply { addView(root) }
-        eximDialog = cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Export / Import — 白い熊 GNU Jami")
-            .setView(scroll)
-            .setOnDismissListener {
-                eximFolderTv = null; eximStatusTv = null; eximChecks = emptyList(); eximDialog = null
-                eximPreflightTv = null; eximProgressTv = null
-            }
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
-        refreshEximStatus()
-        observeEximJob()
-    }
-
-    private fun eximDivider(topGap: Int = 0): View = View(requireContext()).apply {
-        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1f))
-            .apply { topMargin = dp(topGap.toFloat()) }
-        setBackgroundColor(yellow)
-        alpha = 0.4f
-    }
-
-    private fun eximCheckbox(label: String, bold: Boolean = false): android.widget.CheckBox =
-        android.widget.CheckBox(requireContext()).apply {
-            text = label
-            setTextColor(yellow)
-            if (bold) setTypeface(typeface, Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            buttonTintList = android.content.res.ColorStateList.valueOf(yellow)
-            setPadding(dp(8f), dp(7f), 0, dp(7f))
-        }
-
-    /** ArcaneChat pill: black fill, 1.5dp yellow stroke, full-round corners, yellow ripple. */
-    private fun pillButton(label: String, onClick: () -> Unit): android.widget.Button =
-        android.widget.Button(requireContext()).apply {
-            text = label
-            isAllCaps = false
-            setTextColor(yellow)
-            background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
-                GradientDrawable().apply {
-                    setColor(Color.BLACK)
-                    cornerRadius = dp(50f).toFloat()
-                    setStroke(dp(1.5f), yellow)
-                }, null)
-            minHeight = 0; minimumHeight = 0; minWidth = 0; minimumWidth = 0
-            setPadding(dp(20f), dp(6f), dp(20f), dp(6f))
-            stateListAnimator = null
-            setOnClickListener { onClick() }
-        }
-
-    private fun refreshEximStatus() {
-        val ctx = context ?: return
-        val dirName = SettingsExport.locationLabel(ctx)
-        eximFolderTv?.let {
-            it.text = dirName ?: "Not set — tap to choose a directory"
-            it.setTextColor(if (dirName == null) warnRed else yellow)
-        }
-        val app = ctx.applicationContext
-        Thread {
-            val status = SettingsExport.lastExportStatus(app)
-            val warn = SettingsExport.latestExport(app) == null
-            eximStatusTv?.post {
-                eximStatusTv?.let { it.text = status; it.setTextColor(if (warn) warnRed else dim) }
-            }
-        }.start()
-        refreshEximPageStatus()
-    }
-
-    private fun selectedCats(): List<SettingsExport.Cat> =
-        eximChecks.filter { it.second.isChecked }.map { it.first }
-
-    private fun postToUi(r: () -> Unit) { activity?.runOnUiThread(r) }
-
-    private var eximLastWasImport = false
-    private var eximLastName = ""
-
-    /** Chat pre-flight. Indexing walks every conversation directory, so never on the UI thread. */
-    private fun refreshEximPreflight() {
-        val app = context?.applicationContext ?: return
-        val tv = eximPreflightTv ?: return
-        Thread {
-            val idx = runCatching {
-                EximRunner(app, mAccountService).indexChats(
-                    listOf(SettingsExport.Cat.CHAT_TEXTS, SettingsExport.Cat.CHAT_FILES))
-            }.getOrDefault(emptyList())
-            val text = "会話 ${idx.sumOf { it.conversations.size }} 件 — " +
-                    "本文 ${ChatArchive.human(idx.sumOf { it.texts.bytes })} / " +
-                    "ファイル ${idx.sumOf { it.payload.files }} 個 " +
-                    ChatArchive.human(idx.sumOf { it.payload.bytes })
-            tv.post { eximPreflightTv?.text = text }
-        }.start()
-    }
-
-    /** Mirrors a running job into the panel, and reports the outcome once it finishes. */
-    private fun observeEximJob() {
-        EximJob.observe { line, done, report, error ->
-            postToUi {
-                eximProgressTv?.let {
-                    it.text = line
-                    it.visibility = if (done) View.GONE else View.VISIBLE
-                }
-                if (!done) return@postToUi
-                refreshEximStatus()
-                val ctx = context ?: return@postToUi
-                when {
-                    error != null -> Flash.show(ctx, "失敗: $error", Toast.LENGTH_LONG)
-                    report == null -> Flash.show(ctx, "失敗: 結果がありません", Toast.LENGTH_LONG)
-                    eximLastWasImport -> showImportDone(report.text)
-                    else -> showExportDone(eximLastName, report.text)
-                }
-            }
-        }
-    }
-
-    private fun onEximExport() {
-        val ctx = context ?: return
-        val cats = selectedCats()
-        if (cats.isEmpty()) { Flash.show(ctx, "No categories selected."); return }
-        if (EximJob.running) { Flash.show(ctx, "別の処理が実行中です"); return }
-        val app = ctx.applicationContext
-        // Ask for the destination only once we know the job can start — otherwise a busy job
-        // leaves an opened output stream behind.
-        val target = runCatching { EximRunner(app, mAccountService).openExportTarget() }.getOrNull()
-        if (target == null) {
-            // Neither all-files access nor a configured directory — fall back to a save-as picker.
-            pendingExportCats = cats
-            exportSaveAs.launch(SettingsExport.exportFileName())
-            return
-        }
-        eximLastWasImport = false
-        eximLastName = target.first
-        observeEximJob()
-        val started = EximJob.start(app, mAccountService, "保存中 — 白い熊 GNU Jami") { r ->
-            target.second.use { out -> r.exportInto(cats, out) }
-        }
-        if (!started) Flash.show(ctx, "別の処理が実行中です")
-    }
-
-    private fun writeExportTo(uri: Uri, cats: List<SettingsExport.Cat>) {
-        val ctx = context ?: return
-        val app = ctx.applicationContext
-        eximLastWasImport = false
-        eximLastName = uri.lastPathSegment?.substringAfterLast('/') ?: "export.zip"
-        observeEximJob()
-        val started = EximJob.start(app, mAccountService, "保存中 — 白い熊 GNU Jami") { r ->
-            (app.contentResolver.openOutputStream(uri)
-                ?: throw IllegalStateException("no stream")).use { r.exportInto(cats, it) }
-        }
-        if (!started) Flash.show(ctx, "別の処理が実行中です")
-    }
-
-    private fun onEximImport() {
-        val ctx = context ?: return
-        val cats = selectedCats()
-        if (cats.isEmpty()) { Flash.show(ctx, "No categories selected."); return }
-        pendingImportCats = cats
-        pickArchive(ctx, forDeleted = false)
-    }
-
-    /**
-     * Picks an archive. With all-files access the backup directory is listed here and the importer
-     * gets a real File — which is what lets it seek past categories you did not tick, instead of
-     * reading through gigabytes of attachments to reach the end.
-     */
-    private fun pickArchive(ctx: android.content.Context, forDeleted: Boolean) {
-        pendingDeletedRestore = forDeleted
-        val local = SettingsExport.directExports(ctx)
-        val mime = arrayOf("application/zip", "application/octet-stream", "*/*")
-        if (local.isEmpty()) {
-            pickImportFile.launch(mime)
-            return
-        }
-        val labels = local.map { "${it.name}  (${ChatArchive.human(it.length())})" }
-            .toMutableList().apply { add("他の場所から選ぶ…") }
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("バックアップを選択")
-            .setItems(labels.toTypedArray()) { _, which ->
-                if (which >= local.size) {
-                    pickImportFile.launch(mime)
-                } else {
-                    pendingDeletedRestore = false
-                    val f = local[which]
-                    val source = { SettingsExport.openSource(f) }
-                    if (forDeleted) openDeletedRestore(source) else runEximImport(source)
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
-    }
-
-    private fun runEximImport(source: () -> SettingsExport.ZipSource) {
-        val ctx = context ?: return
-        val cats = pendingImportCats ?: return
-        pendingImportCats = null
-        eximLastWasImport = true
-        observeEximJob()
-        val started = EximJob.start(
-            ctx.applicationContext, mAccountService, "復元中 — 白い熊 GNU Jami"
-        ) { r -> source().use { src -> r.runImport(src, cats) } }
-        if (!started) Flash.show(ctx, "別の処理が実行中です")
-    }
-
-    // ---- 削除済み会話の復元: opt-in, because the deletion was deliberate ----------------------
-
-    private fun startDeletedRestore() {
-        val ctx = context ?: return
-        pickArchive(ctx, forDeleted = true)
-    }
-
-    private fun openDeletedRestore(source: () -> SettingsExport.ZipSource) {
-        val ctx = context ?: return
-        val app = ctx.applicationContext
-        Flash.show(ctx, "読み込み中…")
-        Thread {
-            val found = runCatching {
-                source().use { EximRunner(app, mAccountService).deletedCandidates(it) }
-            }.getOrElse { emptyList() }
-            postToUi { showDeletedRestoreDialog(source, found) }
-        }.start()
-    }
-
-    private fun showDeletedRestoreDialog(
-        source: () -> SettingsExport.ZipSource, found: List<EximRunner.Deleted>
-    ) {
-        val ctx = context ?: return
-        if (found.isEmpty()) {
-            cx.ring.utils.DialogTheme.builder(ctx)
-                .setTitle("削除済み会話の復元")
-                .setMessage("このバックアップには、この端末で削除された会話はありません。")
-                .setPositiveButton(android.R.string.ok, null)
-                .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
-            return
-        }
-        val box = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20f), dp(12f), dp(20f), dp(8f))
-        }
-        box.addView(TextView(ctx).apply {
-            text = "復元する会話を選んでください。削除を保持している別の端末が同期すると、" +
-                    "再び削除されることがあります。"
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        })
-        val boxes = found.map { d ->
-            eximCheckbox("${d.accountLabel} — ${d.convId.take(12)}…").also { box.addView(it) }
-        }
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("削除済み会話の復元")
-            .setView(android.widget.ScrollView(ctx).apply { addView(box) })
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("復元") { _, _ ->
-                val picks = found.filterIndexed { i, _ -> boxes[i].isChecked }
-                if (picks.isEmpty()) {
-                    Flash.show(ctx, "選択されていません")
-                    return@setPositiveButton
-                }
-                eximLastWasImport = true
-                observeEximJob()
-                val started = EximJob.start(
-                    ctx.applicationContext, mAccountService, "復元中 — 削除済み会話"
-                ) { r -> source().use { src -> r.restoreDeleted(src, picks) } }
-                if (!started) Flash.show(ctx, "別の処理が実行中です")
-            }
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
-    }
-
-    /** Export-finished info dialog (yellow border); OK closes the whole chain: dialog → panel → page. */
-    private fun showExportDone(name: String, notes: String = "") {
-        val ctx = context ?: return
-        refreshEximStatus()
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Export finished")
-            .setMessage("Exported: $name" + if (notes.isEmpty()) "" else "\n$notes")
-            .setCancelable(false)
-            .setPositiveButton(android.R.string.ok) { _, _ -> closeEximChain() }
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
-    }
-
-    /** Import-finished info dialog (yellow border). "Restart now" restarts the app;
-     *  "Later" closes the whole chain: dialog → panel → page. */
-    private fun showImportDone(summary: String) {
-        val ctx = context ?: return
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Import finished")
-            .setMessage("Restored:\n\n$summary\n\nRestart to apply everything.")
-            .setCancelable(false)
-            .setPositiveButton("Restart now") { _, _ -> restartApp() }
-            .setNegativeButton("Later") { _, _ -> closeEximChain() }
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
-    }
-
-    private fun closeEximChain() {
-        eximDialog?.dismiss()
-        eximDialog = null
-        activity?.onBackPressedDispatcher?.onBackPressed()
-    }
-
-    private fun restartApp() {
-        val app = context?.applicationContext ?: return
-        val launch = app.packageManager.getLaunchIntentForPackage(app.packageName) ?: return
-        launch.component?.let { app.startActivity(android.content.Intent.makeRestartActivityTask(it)) }
-        Runtime.getRuntime().exit(0)
-    }
-
-    /** kxkb-style section header: a full-width 1px hairline above (skipped on the first section),
-     *  then a bold 20sp yellow title with a TEXT-WIDE 2.5dp underline. The underline is a
-     *  match_parent View inside a wrap_content wrapper, so it collapses to the text width. */
     private fun groupHeader(title: String, first: Boolean = false): View {
         val ctx = requireContext()
         return LinearLayout(ctx).apply {
