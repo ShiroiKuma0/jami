@@ -1237,8 +1237,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             addView(logScroll)
         }
 
-        // Snapshot the log so only lines from test-start onward are echoed.
-        val baseline = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).size
+        // Snapshot the log so only lines from test-start onward are echoed. The cursor is the
+        // monotonic APPEND COUNTER, not the log's size: the log is a 200-line ring, so once it has
+        // filled its size never changes and a size-based drop() yields nothing for ever (the reason
+        // this window was permanently blank until 2026-07-29).
+        val baseline = cx.ring.utils.UiPrefs.getRecoveryLogSeq(ctx)
         val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
             .setView(body)
             .setNeutralButton(ctx.getString(R.string.conn_dash_recover_now), null)  // shown only after a failed verdict
@@ -1248,7 +1251,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         val poller = object : Runnable {
             override fun run() {
-                val lines = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).drop(baseline)
+                val lines = cx.ring.utils.UiPrefs.getRecoveryLogSince(ctx, baseline)
                 logView.text = if (lines.isEmpty()) "…" else lines.joinToString("\n")
                 logScroll.post { logScroll.fullScroll(android.view.View.FOCUS_DOWN) }
                 mFgWatchdogHandler.postDelayed(this, 1_000L)
@@ -1259,7 +1262,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             // Verdict (main looper). Stop polling, one last render, show the bold result.
             mFgWatchdogHandler.removeCallbacks(poller)
             if (!isAdded) return@startManualProbe
-            val lines = cx.ring.utils.UiPrefs.getRecoveryLog(ctx).drop(baseline)
+            val lines = cx.ring.utils.UiPrefs.getRecoveryLogSince(ctx, baseline)
             logView.text = if (lines.isEmpty()) "…" else lines.joinToString("\n")
             logScroll.post { logScroll.fullScroll(android.view.View.FOCUS_DOWN) }
             if (answered) {
