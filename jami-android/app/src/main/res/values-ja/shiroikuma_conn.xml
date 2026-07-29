@@ -61,9 +61,9 @@
     <!-- Manual inbound test (dashboard) -->
     <string name="conn_dash_probe">受信テスト</string>
     <string name="tip_probe">受信テスト：全アカウントの在席情報を静かに再要求し、ネットワークからの実応答を60秒待ちます。相手には何も表示されません。応答なし＝受信詰まりの疑い。</string>
-    <string name="probe_running">受信テスト中 — 実応答を最大 %d 秒待っています…</string>
-    <string name="probe_ok">✓ 受信OK — 実応答あり（%s）</string>
-    <string name="probe_fail">%1$d 秒間応答がありません。相手がオンラインのはずなら受信が詰まっている疑いがあります——「今すぐ回復」を実行してください。（全員オフラインなら無応答は正常です。）</string>
+    <string name="probe_running">受信テスト中 — 最大 %d 秒、何か届くのを待っています…</string>
+    <string name="probe_ok">✓ 受信あり（%s）— 受信経路は動作しています</string>
+    <string name="probe_fail">%1$d 秒間、何も届きませんでした。これは障害の証明ではありません——その1分間にメッセージ・通話・プッシュのいずれも届かなかった、というだけです。相手が活動しているはずなら受信が詰まっている可能性があります——「今すぐ回復」を実行してください。（静かな時間帯なら無音は正常です。）</string>
     <string name="probe_already_running">受信テストは実行中です。</string>
 
     <!-- Auto-recovery notifications -->

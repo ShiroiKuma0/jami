@@ -1122,13 +1122,33 @@ object ConnectionWatchdog {
         if (manualProbeInFlight) return false
         manualProbeInFlight = true
         val baseline = InboundEvidence.lastMs
-        log(c, "manual inbound test — presence re-arm, verdict in ${PROBE_VERDICT_MS / 1000}s")
+        // Say what this actually measures (2026-07-29). It presented itself as a presence probe,
+        // but in proxy mode the presence re-arm cannot be answered at all — trackBuddy only listens
+        // on refCount 0→1, so re-arming an already-tracked contact is a no-op on the wire. What the
+        // verdict really tests is InboundEvidence, which a real PUSH also advances. So this is a
+        // "did anything reach us in 60 s" test, and on a phone taking a push every 60–180 s it will
+        // usually pass on push timing rather than on anything the button did. Useful — a silent
+        // minute IS worth knowing about — but not the thing the old wording claimed.
+        val proxy = !UiPrefs.isFullDhtMode(c)
+        // Concatenation is written out into plain vals on purpose: `"literal" + if (…) … else ""`
+        // crashes lint's Kotlin→UAST converter, and this file is in the built variant's lintVital
+        // scope (the same trap already documented in JamiApplication).
+        val secs = PROBE_VERDICT_MS / 1000
+        val what = if (proxy) "any inbound (push counts; presence re-arm is a no-op on proxy)"
+            else "presence re-arm"
+        log(c, "manual inbound test — $what, verdict in ${secs}s")
         resubscribeAllPresence(accounts)
         handler.postDelayed({
             manualProbeInFlight = false
             val answered = InboundEvidence.lastMs > baseline
-            log(c, if (answered) "manual inbound test: answered (${InboundEvidence.lastKind})"
-                else "manual inbound test: NO answer in ${PROBE_VERDICT_MS / 1000}s — receive path suspect")
+            val verdict = if (answered) {
+                "manual inbound test: inbound arrived (${InboundEvidence.lastKind})"
+            } else if (proxy) {
+                "manual inbound test: nothing inbound in ${secs}s — quiet, NOT proof of a wedge (check the proxy subscription counts in Data)"
+            } else {
+                "manual inbound test: nothing inbound in ${secs}s — receive path suspect"
+            }
+            log(c, verdict)
             onVerdict(answered, InboundEvidence.lastKind)
         }, PROBE_VERDICT_MS)
         return true
@@ -1482,6 +1502,22 @@ object ConnectionWatchdog {
                 // unconditional recover below, so every existing stand-down still applies first.
                 // The verdict continues asynchronously in askProxyBeforeRecovering.
                 askProxyBeforeRecovering(c, accounts, silent, regd.size)
+            } else if (!UiPrefs.isFullDhtMode(c)) {
+                // PARTIAL silence in proxy mode — some account answered, so the shared leg is up and
+                // this is not a global fault. fullRecover() is a global hammer: it re-registers all
+                // four accounts and re-arms all presence, and firing it here is what produced
+                // incident #2 on 2026-07-29 (3/4 silent → "strong recover", immediately followed by
+                // "the proxy leg delivers (real push 51s ago)", and 47 s later all three of the
+                // accused logged "probe answered — quiet but receiving").
+                //
+                // The uniform veto above was scoped to all-silent on the reasoning that a push might
+                // belong to whichever account answered — sound for the PUSH evidence, but it left
+                // the partial case recovering on presence silence, which in proxy mode is not
+                // evidence of anything. A genuinely per-account wedge is perAccountTick's job: it is
+                // built for exactly this shape ("some receiving, one silent past the limit"), it has
+                // its own strike counter and backoff, and it recovers only the implicated account
+                // instead of all of them.
+                log(c, "probe: ${silent.size}/${regd.size} silent but $answered answered — not a global fault; leaving it to the per-account detector")
             } else {
                 uniformProbeFails++
                 uniformWedgeSeq++
