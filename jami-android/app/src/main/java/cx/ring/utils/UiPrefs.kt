@@ -189,14 +189,41 @@ object UiPrefs {
 
     // ---- Watchdog event log (rolling, capped) ----------------------------------------------
     private const val LOG_KEY = "recovery_log"
+    private const val LOG_SEQ_KEY = "recovery_log_seq"
     private const val LOG_MAX = 200
 
     /** Append one timestamped line to the rolling watchdog log (newest last). */
     fun appendRecoveryLog(c: Context, line: String) {
         val cur = p(c).getString(LOG_KEY, "")?.takeIf { it.isNotEmpty() }?.split('\n') ?: emptyList()
         val next = (cur + line).takeLast(LOG_MAX)
-        p(c).edit().putString(LOG_KEY, next.joinToString("\n")).apply()
+        p(c).edit()
+            .putString(LOG_KEY, next.joinToString("\n"))
+            // Monotonic append counter — see getRecoveryLogSince. Never trimmed, unlike the log.
+            .putLong(LOG_SEQ_KEY, p(c).getLong(LOG_SEQ_KEY, 0L) + 1L)
+            .apply()
         mirrorToFile(c, line)
+    }
+
+    /** Total lines ever appended. Take this as a cursor, then read back with
+     *  [getRecoveryLogSince] — never the log's `.size`, which is capped (see below). */
+    fun getRecoveryLogSeq(c: Context): Long = p(c).getLong(LOG_SEQ_KEY, 0L)
+
+    /**
+     * Lines appended since [seq].
+     *
+     * The obvious version of this — snapshot `getRecoveryLog().size`, later `drop(baseline)` — is
+     * WRONG and silently so, because the log is a ring: `appendRecoveryLog` keeps the last [LOG_MAX]
+     * lines, so once it is full its size never changes again and `drop(size)` returns an empty list
+     * forever. The Inbound test dialog did exactly that and had therefore shown an empty body on
+     * every device whose log had filled once — permanently, since prefs survive app updates
+     * (白い熊 caught it 2026-07-29). A count is only a valid cursor into a buffer that never
+     * discards; this one discards from the front, so the cursor has to be the append counter.
+     */
+    fun getRecoveryLogSince(c: Context, seq: Long): List<String> {
+        val added = (getRecoveryLogSeq(c) - seq).coerceAtLeast(0L)
+        if (added == 0L) return emptyList()
+        val log = getRecoveryLog(c)
+        return if (added >= log.size) log else log.takeLast(added.toInt())
     }
 
     // ---- External-file mirror --------------------------------------------------------------------
