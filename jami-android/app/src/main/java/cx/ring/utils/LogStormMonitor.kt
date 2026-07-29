@@ -72,6 +72,10 @@ object LogStormMonitor {
     private fun handle(line: String) {
         ring.addLast(line)
         if (ring.size > RING_MAX) ring.removeFirst()
+        // The daemon's SK-PROXYDIAG tick lines ride this same ERROR-level stream. Harvest the
+        // proxy-subscription counts on the way past — they set the idle data floor, and the ring
+        // they would otherwise be read from is flushed by any storm (see ProxySubs).
+        ProxySubs.note(line)
         if (!isLinkFatal(line)) return
         val t = System.currentTimeMillis()
         stamps.addLast(t)
