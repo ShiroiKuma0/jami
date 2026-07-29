@@ -942,19 +942,71 @@ class AccountService(
     /** Re-arm DHT presence listens for one account's contacts. A re-register brings the account
      *  back but does NOT re-subscribe buddy presence, so the presence dots (and the watchdog's
      *  presence-based triage) stay dead after a recovery until this runs. */
+    // ---- Bounded presence tracking (2026-07-29) ----------------------------------------------
+    //
+    // This used to subscribe EVERY contact of EVERY conversation, on every recovery and every
+    // presence re-arm, and never release any of them. Measured that evening on +149: 68 permanent
+    // proxy listeners across four accounts (18/24/17/9), flat — and in proxy mode each listener is
+    // re-subscribed by our own SK-SUBREFRESH patch every 3 minutes, so ~1360 requests an hour. That
+    // is the ~21 MiB/h floor that remained after the background-teardown churn was removed; the
+    // cost is directly proportional to this set's size.
+    //
+    // Two changes:
+    //  · Bound the set to what is actually watched — contacts of conversations with activity inside
+    //    PRESENCE_RECENT_MS, always at least the PRESENCE_MIN_CONVERSATIONS most recent so a quiet
+    //    account still tracks something, and never more than PRESENCE_MAX_PER_ACCOUNT.
+    //  · Release what falls out of the set, which the old code never did.
+    //
+    // Repeat subscribeBuddy(…, true) on a buddy we already hold is deliberately skipped. It does
+    // nothing on the wire — the daemon only starts listening on refCount 0→1 — while still
+    // incrementing that refCount, so the old re-arm inflated the count without re-arming anything
+    // and made a later release impossible with a single call. We now track our own count per uri
+    // and release exactly as many times as we added.
+    //
+    // Behavioural consequence, accepted deliberately (白い熊, 2026-07-29): presence dots for
+    // contacts in long-idle conversations go STALE rather than wrong while backgrounded. Anything
+    // on screen is unaffected — the UI has its own refCounted subscribe path in ContactService.
+    private val presenceHeld: MutableMap<String, MutableMap<String, Int>> = ConcurrentHashMap()
+
+    private fun boundedPresenceUris(a: Account): Set<String> {
+        val convs = a.getConversations()
+            .filter { it.contacts.any { c -> !c.isUser } }
+            .sortedByDescending { it.lastEvent?.timestamp ?: 0L }
+        val cutoff = System.currentTimeMillis() - PRESENCE_RECENT_MS
+        val wanted = LinkedHashSet<String>()
+        for ((i, conv) in convs.withIndex()) {
+            val recent = (conv.lastEvent?.timestamp ?: 0L) >= cutoff
+            // Keep the N most recent regardless of age, so an account whose conversations are all
+            // old is still watched rather than going completely dark.
+            if (!recent && i >= PRESENCE_MIN_CONVERSATIONS) continue
+            for (c in conv.contacts) {
+                if (c.isUser) continue
+                wanted.add(c.uri.uri)
+                if (wanted.size >= PRESENCE_MAX_PER_ACCOUNT) return wanted
+            }
+        }
+        return wanted
+    }
+
     fun resubscribeAccountPresence(accountId: String) {
         mExecutor.execute {
             val a = mAccountList.firstOrNull { it.accountId == accountId } ?: return@execute
             if (!a.isJami) return@execute
             net.jami.utils.InboundEvidence.noteSubscribe()   // suppress the cached-presence echoes this batch triggers
-            val seen = HashSet<String>()
-            for (conv in a.getConversations()) {
-                for (c in conv.contacts) {
-                    if (c.isUser) continue
-                    val uri = c.uri.uri
-                    if (seen.add(uri)) JamiService.subscribeBuddy(accountId, uri, true)
-                }
+            val wanted = boundedPresenceUris(a)
+            val held = presenceHeld.getOrPut(accountId) { ConcurrentHashMap() }
+            for (uri in wanted) {
+                if (held.containsKey(uri)) continue          // already listening; a repeat is a no-op + a refCount leak
+                JamiService.subscribeBuddy(accountId, uri, true)
+                held[uri] = 1
             }
+            // Release what we hold and no longer want, exactly as many times as we added it.
+            val stale = held.keys.filter { it !in wanted }
+            for (uri in stale) {
+                repeat(held.remove(uri) ?: 0) { JamiService.subscribeBuddy(accountId, uri, false) }
+            }
+            if (stale.isNotEmpty())
+                Log.d(TAG, "presence: account ${accountId.take(6)} tracking ${held.size} (released ${stale.size})")
         }
     }
 
@@ -2299,6 +2351,13 @@ class AccountService(
         // Full-DHT settle window: long enough for the distributed DHT to establish connections and
         // flush the stranded swarm commits (in + out) before proxy is restored. 3 s was too short.
         private const val SYNC_SETTLE_MS: Long = 15000
+
+        // Bounded presence tracking (see resubscribeAccountPresence). Each tracked contact is a
+        // permanent proxy subscription that SK-SUBREFRESH re-subscribes every 3 min, so this set's
+        // size sets the idle data floor: 68 listeners measured ≈ 21 MiB/h on 2026-07-29.
+        private const val PRESENCE_RECENT_MS: Long = 7L * 24 * 60 * 60 * 1000  // "recently active"
+        private const val PRESENCE_MIN_CONVERSATIONS = 8   // always watch this many, however old
+        private const val PRESENCE_MAX_PER_ACCOUNT = 24    // hard ceiling per account
 
         const val ACCOUNT_SCHEME_NONE = ""
         const val ACCOUNT_SCHEME_PASSWORD = "password"
