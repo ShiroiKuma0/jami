@@ -109,4 +109,62 @@
     <string name="sk_exim_phase_link">ファイルリンクを再作成中 — %1$s</string>
     <string name="sk_exim_phase_resume">アカウントを再開中 — %1$s</string>
     <string name="sk_rep_acc_not_ready">アカウント: %1$s を確立できませんでした — 再起動で消えるのを避けるため削除しました</string>
+
+    <!-- chat files panel -->
+    <string name="sk_files_open">チャットのファイルと容量  ▸</string>
+    <string name="sk_files_open_summary">すべてのチャットのファイルを大きい順に — 確認・保存・削除。</string>
+    <string name="sk_files_title">チャットのファイル — 白い熊 GNU Jami</string>
+    <string name="sk_files_scanning">計測中…</string>
+    <plurals name="sk_files_totals_all">
+        <item quantity="other">全アカウント: %1$d 件 · %2$s</item>
+    </plurals>
+    <plurals name="sk_files_totals">
+        <item quantity="other">%1$d 件 · %2$s</item>
+    </plurals>
+    <string name="sk_files_selected">選択 %2$d 件中 %1$d 件 · %4$s 中 %3$s</string>
+    <string name="sk_files_none">この端末にチャットのファイルはありません。</string>
+    <string name="sk_files_unnamed_conv">会話 %1$s…</string>
+    <string name="sk_files_sent">自分が送信</string>
+    <string name="sk_files_received">受信</string>
+    <string name="sk_files_no_message">メッセージなし</string>
+    <string name="sk_files_reading">チャットを読み込み中…</string>
+    <string name="sk_files_delete">削除</string>
+    <string name="sk_files_delete_n">%1$d 件を削除</string>
+    <string name="sk_files_nothing_selected">選択されていません</string>
+    <string name="sk_files_indexing">チャットを読み込んでいます…</string>
+    <string name="sk_files_saved">保存しました</string>
+    <string name="sk_files_save_failed">ファイルを保存できませんでした</string>
+    <string name="sk_files_gone">そのファイルはこの端末にもうありません</string>
+    <string name="sk_files_preparing">準備中…</string>
+    <string name="sk_files_view_failed">そのファイルを開けませんでした</string>
+    <string name="sk_files_dir_sent">↑ 自分が送信</string>
+    <string name="sk_files_dir_received">↓ 受信</string>
+    <string name="sk_files_dir_unknown">· メッセージなし</string>
+    <string name="sk_files_confirm_title">この端末から削除しますか？</string>
+    <string name="sk_files_confirm_title_own">容量だけ空けますか、メッセージも削除しますか？</string>
+    <string name="sk_files_free_space">容量だけ</string>
+    <string name="sk_files_delete_messages">メッセージも削除</string>
+    <plurals name="sk_files_confirm_head">
+        <item quantity="other">%1$d 件 · %2$s をこの端末から削除します。</item>
+    </plurals>
+    <plurals name="sk_files_confirm_own">
+        <item quantity="other">うち %1$d 件は自分が送信したものです。\n\n「容量だけ」はメッセージをそのまま残します。相手の複製はそのままで、会話の誰かが保持している限り、ここから再ダウンロードできます。\n\n「メッセージも削除」はファイルと一緒にメッセージも削除し、全メンバーと自分の全端末から永久に消えます。</item>
+    </plurals>
+    <plurals name="sk_files_confirm_local">
+        <item quantity="other">うち %1$d 件は受信したものです。どちらを選んでも消えるのはこの端末の複製だけで、チャットのメッセージは残り、送信者が保持していれば再ダウンロードできます。</item>
+    </plurals>
+    <string name="sk_files_confirm_delete">削除する</string>
+    <string name="sk_files_deleting">削除中…</string>
+    <string name="sk_files_deleting_n">削除中… %1$d / %2$d</string>
+    <string name="sk_files_deleted_title">削除しました</string>
+    <plurals name="sk_files_deleted">
+        <item quantity="other">%1$d 件 · %2$s を解放しました</item>
+    </plurals>
+    <plurals name="sk_files_deleted_messages">
+        <item quantity="other">チャットのメッセージ %1$d 件を削除</item>
+    </plurals>
+    <plurals name="sk_files_deleted_kept">
+        <item quantity="other">自分のメッセージ %1$d 件は保持 — 再ダウンロードできます</item>
+    </plurals>
+    <string name="sk_files_deleted_failed">%1$d 件は削除できませんでした</string>
 </resources>
