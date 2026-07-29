@@ -90,6 +90,39 @@ abstract class JamiApplication : Application() {
         // Recheck cadence while the watchdog says the push leg is not proven — long enough that a
         // standing outage costs nothing, short enough to sleep soon after the leg comes back.
         private const val SLEEP_UNSAFE_RECHECK_MS = 60_000L
+
+        /**
+         * Background deactivation is OFF — it cannot pay for itself on the DHT proxy (measured
+         * 2026-07-29, four accounts, 4 h 41 m on battery).
+         *
+         * [AccountService.deactivateProxyAccountsForBackground] tears each account down with
+         * `setAccountActive(id, false, shutdownConnections=true)`, so every restore rebuilds its
+         * proxy listen subscriptions from scratch — and re-establishing a proxy subscription
+         * re-downloads the full value set of every key. Measured cost: **~13 MiB per sleep/wake
+         * round**. Pushes arrive every 60–180 s, well inside [PUSH_GRACE_MS], so the cycle ran about
+         * ten times an hour and burned **133 MiB/h — no better than the full DHT it replaced**, plus
+         * 285 MB of metered cellular in one afternoon.
+         *
+         * Registered and idle on the proxy costs **1.33 MiB/h** (measured over the 1 h 33 m the
+         * watchdog happened to hold the accounts awake). A sleep episode would therefore have to run
+         * ~10 hours to break even on one teardown, and nothing like that can happen while push
+         * traffic keeps waking us. There is no cadence at which this wins, so it is not a tuning
+         * problem — the optimization is simply inapplicable to proxy mode, which is now the resting
+         * mode. It was written in the withFirebase flavor against full-DHT costs and hoisted into
+         * `main` in `+143` on the assumption that it would transfer; the measurement says it does
+         * not.
+         *
+         * Kept rather than deleted: the guards it needs ([ConnectionWatchdog.backgroundSleepSafe],
+         * the detector stand-down, the restore ledger) are all still correct, and flipping this back
+         * to `true` is the whole of the rollback. Note `hardwareService.connectivityChanged(true)`
+         * on message pushes is NOT implicated and stays — it fired ~17×/h through the cheap stretch
+         * and cost nothing measurable, which retires the leading suspect from the earlier analysis.
+         *
+         * Deliberately a plain `val`, not a `const val`: a compile-time constant would fold the
+         * guards below into dead code and draw "condition is always false" warnings on a file that
+         * is in the built variant's lintVital scope.
+         */
+        private val BACKGROUND_DEACTIVATION_ENABLED = false
     }
 
     @Inject
@@ -186,6 +219,9 @@ abstract class JamiApplication : Application() {
     private val lastBackgroundDeactivation = AtomicLong(0L)
 
     private val deactivateRunnable = Runnable {
+        // Belt to scheduleBackgroundDeactivation's braces: guard the act itself, not only the
+        // scheduling, so no caller can reach a teardown by posting this runnable directly.
+        if (!BACKGROUND_DEACTIVATION_ENABLED) return@Runnable
         if (isAppVisible()) return@Runnable
         // Push no longer usable: restore accounts and fall back to always-connected behavior.
         if (!mPreferencesService.settings.enablePushNotifications || pushToken == null) {
@@ -269,7 +305,8 @@ abstract class JamiApplication : Application() {
                 if (isCallPush || isMessagePush) hardwareService.connectivityChanged(true)
             }
             backgroundHandler.removeCallbacks(deactivateRunnable)
-            backgroundHandler.postDelayed(deactivateRunnable, BACKGROUND_DEACTIVATION_DELAY_MS)
+            if (BACKGROUND_DEACTIVATION_ENABLED)
+                backgroundHandler.postDelayed(deactivateRunnable, BACKGROUND_DEACTIVATION_DELAY_MS)
         }
     }
 
@@ -279,6 +316,10 @@ abstract class JamiApplication : Application() {
      * a call is active or a push grace window is open.
      */
     fun scheduleBackgroundDeactivation(delayMs: Long = BACKGROUND_DEACTIVATION_DELAY_MS) {
+        // Off by measurement — see BACKGROUND_DEACTIVATION_ENABLED. Returning here (rather than
+        // letting the runnable fire and decline) also keeps the main looper free of a wake-up per
+        // push that could only ever decide to do nothing.
+        if (!BACKGROUND_DEACTIVATION_ENABLED) return
         backgroundHandler.post {
             backgroundHandler.removeCallbacks(deactivateRunnable)
             backgroundHandler.postDelayed(deactivateRunnable, delayMs)
