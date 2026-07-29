@@ -26,6 +26,7 @@ import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import net.jami.model.Account
 import net.jami.model.Contact
 import net.jami.model.Uri
 import net.jami.model.interaction.Interaction
@@ -68,7 +69,7 @@ object ConnectionWatchdog {
     private const val PROBE_VERDICT_MS = 60_000L           // silent presence probe must be answered within this
     private const val UNIFORM_PROBE_VERDICT_MS = 75_000L   // uniform (0-healthy) probe window: the 60 s gate + echo-suppression slack
     private const val UNIFORM_PROBE_FAIL_CAP = 2           // consecutive unanswered-probe recovers before standing down (dead-quiet night ≠ churn)
-    private const val PROBE_PUSH_GRACE_MS = 60_000L        // …a real push this close to the probe window refutes a UNIFORM wedge
+    private const val PROBE_PUSH_GRACE_MS = 60_000L        // …a real push this close to the probe window refutes a UNIFORM wedge (full DHT only; proxy mode uses PROXY_ALIVE_MS — see startUniformProbe)
     const val REASON_CHARGING = "charging"                 // why the proxy is being held off — keys, localised by the UI
     const val REASON_WEDGE = "wedge"
     private const val MODE_SWITCH_PROBE_DELAY_MS = 10_000L // let a just-switched DHT mode register before its verification probe
@@ -82,6 +83,9 @@ object ConnectionWatchdog {
     // self-certification kept resetting the last-resort fuse).
     @Volatile private var uniformProbePending = false
     @Volatile private var uniformProbeFails = 0
+    // A proxy reachability probe is in flight (it blocks on DNS + connect, so it outlives the
+    // verdict that started it — without this a second uniform probe could stack another round).
+    @Volatile private var proxyProbeInFlight = false
     // Did the last wedge implicate the proxy leg? Scopes both the teardown and the 10-min linger.
     @Volatile private var wedgeProxyImplicated = false
     // Why the proxy was last forced off — reported when it comes back, and shown in Account
@@ -991,7 +995,10 @@ object ConnectionWatchdog {
 
     /** Full recover: drop to the full DHT, re-register so the stuck backlog flushes, and linger off (window
      *  grows on repeats). For a real proxy wedge or the hard reset. */
-    private fun fullRecover(c: Context, accounts: AccountService) {
+    /** [proxySuspect] overrides the [proxyImplicated] verdict when the caller has better evidence
+     *  than a push timestamp — ProxyProbe actually asked the proxy (2026-07-29). Null = decide as
+     *  before. */
+    private fun fullRecover(c: Context, accounts: AccountService, proxySuspect: Boolean? = null) {
         val t = now()
         wedgeStrikes = if (recentWedge(t)) (wedgeStrikes + 1).coerceAtMost(5) else 0
         lastWedgeMs = t
@@ -1020,7 +1027,7 @@ object ConnectionWatchdog {
         // stuck receive path, none of the full-value-set re-download that made every recovery cost
         // megabytes. wedgeProxyImplicated also scopes applyProxyState's 10-min linger, so a
         // non-proxy wedge no longer drags the daemon onto full DHT behind the user's chosen mode.
-        wedgeProxyImplicated = proxyImplicated(accounts, t)
+        wedgeProxyImplicated = proxySuspect ?: proxyImplicated(accounts, t)
         if (!wedgeProxyImplicated) {
             val ago = if (PushEvidence.lastRealPushMs == 0L) "n/a" else "${(t - PushEvidence.lastRealPushMs) / 1000}s"
             log(c, "→ recovering WITHOUT touching the proxy (real push $ago ago — the proxy leg delivers); re-registering + presence re-arm")
@@ -1455,9 +1462,9 @@ object ConnectionWatchdog {
                 uniformProbeFails = 0
                 log(c, "probe: all ${regd.size} answered on their own inbound — receiving fine")
             } else if (silent.size == regd.size && PushEvidence.lastRealPushMs != 0L &&
-                t - PushEvidence.lastRealPushMs <= UNIFORM_PROBE_VERDICT_MS + PROBE_PUSH_GRACE_MS) {
-                // A push landed inside the probe window, so the shared proxy→app leg is demonstrably
-                // delivering and a UNIFORM accusation ("every account is deaf") cannot be true — the
+                t - PushEvidence.lastRealPushMs <= uniformPushAliveWindow(c)) {
+                // A push landed recently enough that the shared proxy→app leg is demonstrably
+                // delivering, so a UNIFORM accusation ("every account is deaf") cannot be true — the
                 // presence re-arm simply cannot answer in proxy mode (trackBuddy only listens on
                 // refCount 0→1, and SK-SUBREFRESH's re-arm is suppressed while the client is busy).
                 // Scoped to the uniform case on purpose: with only some accounts silent the push may
@@ -1468,6 +1475,13 @@ object ConnectionWatchdog {
                 log(c, "probe: ${silent.size}/${regd.size} still silent (${silent.joinToString { it.accountId.take(6) }}) but inside the wedge linger — standing by")
             } else if (uniformProbeFails >= UNIFORM_PROBE_FAIL_CAP) {
                 log(c, "probe: ${silent.size}/${regd.size} still silent — recovered ${uniformProbeFails}× without effect, standing down until real inbound returns")
+            } else if (silent.size == regd.size && !UiPrefs.isFullDhtMode(c)) {
+                // Uniform silence in proxy mode with no recent push. The presence re-arm has told us
+                // nothing (it structurally cannot — see ProxyProbe), so before hammering, ask the
+                // proxy itself: the one question that HAS an answer here. Last gate before the
+                // unconditional recover below, so every existing stand-down still applies first.
+                // The verdict continues asynchronously in askProxyBeforeRecovering.
+                askProxyBeforeRecovering(c, accounts, silent, regd.size)
             } else {
                 uniformProbeFails++
                 uniformWedgeSeq++
@@ -1481,6 +1495,85 @@ object ConnectionWatchdog {
                 fullRecover(c, accounts)
             }
         }, UNIFORM_PROBE_VERDICT_MS)
+    }
+
+    /**
+     * How recent a real push must be to refute a UNIFORM ("every account is deaf") wedge.
+     *
+     * In proxy mode this is [PROXY_ALIVE_MS] — the SAME window [proxyImplicated] already uses to
+     * decide the proxy leg is delivering. The two disagreeing is what produced the false wedges of
+     * 2026-07-29: the verdict below fired on a 135 s window while `fullRecover` then declared, on a
+     * 10-minute window, "recovering WITHOUT touching the proxy (real push 469s ago — the proxy leg
+     * delivers)". Every uniform-wedge incident that afternoon logged exactly that pair, one second
+     * apart — the watchdog convicting and acquitting on the same evidence. Observed real push gaps
+     * ran to 480 s on an entirely healthy link, so the short window could not hold.
+     *
+     * Full DHT keeps the original narrow window: there is no push leg to vouch for anything there,
+     * so a stale push timestamp must not excuse silence.
+     */
+    private fun uniformPushAliveWindow(c: Context): Long =
+        if (UiPrefs.isFullDhtMode(c)) UNIFORM_PROBE_VERDICT_MS + PROBE_PUSH_GRACE_MS else PROXY_ALIVE_MS
+
+    /**
+     * Proxy mode, every account silent through the probe, and no push recent enough to vouch for the
+     * leg. Before recovering, ask the proxy whether it is even there — the presence re-arm cannot
+     * answer in this mode, so recovering on its silence is recovering on no evidence at all.
+     *
+     * Three outcomes, deliberately graduated (a false escalation to full DHT costs ~110 MiB/h and a
+     * radio that never sleeps, so it must be earned):
+     *  · proxy UNREACHABLE  → real evidence, and the proxy is the suspect → recover + escalate.
+     *  · proxy reachable, first strike → the proxy is up and merely quiet. Re-register and re-arm
+     *    presence with the subscriptions standing (no full-value-set re-download, no mode flip).
+     *  · proxy reachable, repeat strike → the cheap remedy did not restore inbound → escalate.
+     */
+    private fun askProxyBeforeRecovering(
+        c: Context, accounts: AccountService, silent: List<Account>, reg: Int,
+    ) {
+        if (proxyProbeInFlight) return
+        proxyProbeInFlight = true
+        val servers = accounts.getAccounts()
+            .filter { it.isJami && it.isDhtProxyEnabled }
+            .map { it.dhtProxyUsed.ifBlank { it.dhtProxy } }
+            .filter { it.isNotBlank() }
+        val who = silent.joinToString { it.accountId.take(8) }
+        val pushAgo = if (PushEvidence.lastRealPushMs == 0L) "n/a"
+            else "${(now() - PushEvidence.lastRealPushMs) / 1000}s"
+        log(c, "probe: $reg/$reg silent and no push for $pushAgo — asking the proxy directly before recovering")
+        ProxyProbe.probeAsync(servers, post = { handler.post(it) }) { v ->
+            proxyProbeInFlight = false
+            if (networkDown()) {
+                log(c, "proxy probe moot — network egress DOWN, genuine outage, not recovering")
+                return@probeAsync
+            }
+            // Strike either way — a reachable-but-silent proxy still costs a strike, so a persistent
+            // condition escalates on the next round instead of re-probing forever. uniformWedgeSeq
+            // counts DECLARED wedges only, so it advances in the two incident branches, not here.
+            uniformProbeFails++
+            if (!v.reachable) {
+                uniformWedgeSeq++
+                writeIncident(c, "proxy-unreachable",
+                    "$reg/$reg silent and the DHT proxy does not answer (${v.detail}) — proxy leg down ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)",
+                    LogStormMonitor.recentLines())
+                notifyUser(c, c.getString(cx.ring.R.string.notif_uniform_wedge, stamp()), NOTIF_ID_BASE - 1)
+                log(c, "proxy probe: UNREACHABLE (${v.detail}) — the proxy leg IS the fault → recover + escalate")
+                maybeProbePush(c, accounts, "proxy unreachable")
+                fullRecover(c, accounts, proxySuspect = true)
+            } else if (uniformProbeFails < UNIFORM_PROBE_FAIL_CAP) {
+                log(c, "proxy probe: reachable (${v.detail}) — the proxy is up and quiet, not wedged; re-registering only (strike $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP), proxy kept")
+                fullRecover(c, accounts, proxySuspect = false)
+            } else {
+                uniformWedgeSeq++
+                writeIncident(c, "uniform-wedge",
+                    "$reg/$reg silent through a ${UNIFORM_PROBE_VERDICT_MS / 1000}s probe, proxy reachable (${v.detail}) but delivering nothing for $pushAgo — subscriptions presumed dead ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)",
+                    LogStormMonitor.recentLines())
+                val n = c.getString(cx.ring.R.string.notif_uniform_wedge, stamp())
+                notifyUser(c, if (uniformWedgeSeq > 1) "×$uniformWedgeSeq · $n" else n, NOTIF_ID_BASE - 1)
+                log(c, "proxy probe: reachable but still nothing delivered after ${uniformProbeFails} strikes → escalate")
+                maybeEnterAdaptiveOnStarvation(c, accounts, "proxy reachable but silent")
+                maybeProbePush(c, accounts, "proxy reachable but silent")
+                fullRecover(c, accounts, proxySuspect = true)
+            }
+        }
     }
 
     /** Recover on wedge evidence — but only once per distinct evidence set: same fingerprint
