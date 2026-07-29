@@ -337,7 +337,7 @@ class FontsSettingsFragment : Fragment() {
             })
             box.addView(orMini("One line per window. Windows land on the ${UiPrefs.getRecoveryTickMinutes(ctx)}-min check tick, so they are approximate."))
         }
-        box.addView(orTapRow("Data usage log") { showDataHistory(DataMeter.hourlyFile(ctx), "Data usage log") })
+        box.addView(orTapRow("Data usage log") { showDataHistory(DataMeter.hourlyFile(ctx), "Data usage log", clearable = false) })
         if (DataMeter.isActive(ctx)) startMeterLive()
         c.addView(box)
     }
@@ -372,11 +372,13 @@ class FontsSettingsFragment : Fragment() {
     }
 
     /** Shared renderer for both data logs — the manual session history and the unattended hourly
-     *  log. Same themed scroll dialog, same newest-first order, same Clear. */
-    private fun showDataHistory(f: java.io.File, title: String) {
+     *  log. Same themed scroll dialog, same newest-first order. Clear is offered only where it is
+     *  safe: the hourly log is the unattended record every measurement is read from, so it is
+     *  read-only here as well as in the "Data" dialog (白い熊, 2026-07-29). */
+    private fun showDataHistory(f: java.io.File, title: String, clearable: Boolean = true) {
         // Shared with the Connection monitor's "Data" dialog (2026-07-26) so the two pages can
         // never render the same log differently.
-        context?.let { cx.ring.utils.DataMeterUi.showHistory(it, f, title) }
+        context?.let { cx.ring.utils.DataMeterUi.showHistory(it, f, title, clearable) }
     }
 
     private fun orTapRow(text: String, onClick: () -> Unit): View = TextView(requireContext()).apply {
