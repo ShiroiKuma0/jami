@@ -13,4 +13,10 @@
     <string name="data_meter_close">Zavřít</string>
     <string name="data_meter_clear">Vymazat</string>
     <string name="data_meter_tip">Živé měření dat a záznamy spotřeby</string>
+    <string name="data_meter_subs_waiting">Odběry proxy: čeká se na první tik démona (~3 min)</string>
+    <string name="data_meter_subs_head">Odběry proxy: %1$d na %2$d proxy · před %3$d s</string>
+    <string name="data_meter_subs_row">  %1$s — %2$d odběrů, %3$d pushů, poslední rx %4$s</string>
+    <string name="data_meter_subs_settling">Odběry proxy: zatím žádné navázané (%1$d proxy · před %2$d s)</string>
+    <string name="data_meter_subs_never">nikdy</string>
+    <string name="data_meter_subs_secs">%1$d s</string>
 </resources>
