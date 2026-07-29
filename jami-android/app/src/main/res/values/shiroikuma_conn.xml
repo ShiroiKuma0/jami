@@ -63,9 +63,9 @@
     <!-- Manual inbound test (dashboard) -->
     <string name="conn_dash_probe">Inbound test</string>
     <string name="tip_probe">Inbound test: silently re-requests presence on every account and waits 60 s for any real answer from the network — your contacts see nothing. No answer = reception is likely wedged.</string>
-    <string name="probe_running">Inbound test running — waiting up to %d s for a live answer…</string>
-    <string name="probe_ok">✓ Inbound OK — live answer received (%s)</string>
-    <string name="probe_fail">No live answer in %1$d s. If your contacts should be online, reception is likely wedged — run Recover. (If everyone is offline, silence is normal.)</string>
+    <string name="probe_running">Inbound test running — waiting up to %d s for anything to arrive…</string>
+    <string name="probe_ok">✓ Something arrived (%s) — the receive path is working</string>
+    <string name="probe_fail">Nothing arrived in %1$d s. That is not proof of a fault: it means only that no message, call or push reached this phone in that minute. If your contacts should be active, reception may be wedged — run Recover. (On a quiet evening, silence is normal.)</string>
     <string name="probe_already_running">Inbound test already running.</string>
 
     <!-- Auto-recovery notifications -->

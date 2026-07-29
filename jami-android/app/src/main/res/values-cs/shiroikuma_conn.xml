@@ -61,9 +61,9 @@
     <!-- Manual inbound test (dashboard) -->
     <string name="conn_dash_probe">Test příjmu</string>
     <string name="tip_probe">Test příjmu: tiše si znovu vyžádá presence u všech účtů a čeká 60 s na skutečnou odpověď ze sítě — kontaktům se nic nezobrazí. Bez odpovědi = příjem je nejspíš zaseknutý.</string>
-    <string name="probe_running">Test příjmu běží — čekám na živou odpověď až %d s…</string>
-    <string name="probe_ok">✓ Příjem OK — živá odpověď přijata (%s)</string>
-    <string name="probe_fail">Žádná živá odpověď po %1$d s. Pokud by kontakty měly být online, příjem je nejspíš zaseknutý — spusťte Obnovit. (Pokud jsou všichni offline, ticho je normální.)</string>
+    <string name="probe_running">Test příjmu běží — čekám až %d s, zda něco dorazí…</string>
+    <string name="probe_ok">✓ Něco dorazilo (%s) — příjem funguje</string>
+    <string name="probe_fail">Za %1$d s nedorazilo nic. To není důkaz závady: znamená to jen, že za tu minutu do telefonu nedorazila žádná zpráva, hovor ani push. Pokud by kontakty měly být aktivní, příjem může být zaseknutý — spusťte Obnovit. (V klidnou dobu je ticho normální.)</string>
     <string name="probe_already_running">Test příjmu už běží.</string>
 
     <!-- Auto-recovery notifications -->
