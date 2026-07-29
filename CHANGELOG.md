@@ -1,6 +1,84 @@
-# 白い熊 GNU Jami — `20260717-01+99`
+# 白い熊 GNU Jami — `20260717-01+148`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+## Chat-files panel, and resting on push instead of the full DHT (new in +142–+148)
+
+### 🗂 A panel for what the chats are actually storing
+
+- **Three folded levels — accounts → conversations → files**, biggest first at every level, each with
+  its own file count and byte total, and the grand total pinned at the top. Reached from a **new row
+  in the Export / Import section**, beside the backup panel rather than in place of it.
+- **Sizes come from the filesystem, never from the commit's `totalSize`.** A file that was never
+  downloaded occupies nothing, and a page about disk usage has to say so. Both trees are counted: the
+  client payloads under `conversation_data/<account>/<conv>/`, plus any daemon-side entry with no
+  client twin — the only case where those bytes exist nowhere else.
+- **Deleting removes both copies**, the payload and the daemon's link. A hard link left behind keeps
+  the inode, and the freed space would never appear.
+- **Sent / received / orphaned sub-folds** inside each conversation, each with its own tally and
+  checkbox, so a whole direction is one tick. Fixed order rather than biggest-first: a
+  classification, not a ranking.
+- **Tap a thumbnail or the underlined file name to open it** — pictures and videos in the app's own
+  `MediaViewerActivity`, anything else via the system chooser — so a photo can be recognised before it
+  is thrown away. Tapping anywhere else in the row still ticks it; the targets hug their content, so
+  the space beside a short filename is still row whitespace. A payload living only in the daemon's
+  directory is outside every path `file_paths.xml` declares, so it is staged into the declared cache
+  path first rather than failing.
+- **Per-file save to disk** via the system document picker, and a per-row delete.
+
+### 🪶 Soft delete — free your space without touching their chat
+
+- `ConversationModule::Impl::editMessage` refuses any commit it did not author
+  (`commit->authorId == username_`), so a **received** file's message can never be retracted. The
+  panel never pretends otherwise: every row says which it is, and the warning splits the counts.
+- For **your own** files that limit becomes a choice worth having. **Free space** removes the local
+  copies and leaves every message standing — the peer keeps its copy, nothing changes in their chat,
+  and the file stays downloadable here for as long as somebody in the conversation still has it.
+  **Delete messages** is the old behaviour: gone for every member and every one of your devices.
+- It works because every layer below is direction-agnostic — `Conversation::downloadFile` never asks
+  who authored the commit, `askForFileChannel` with no device id walks every device of every member,
+  the serving side just streams `dt->path(fileId)`, and the commit's `sha3sum` verifies whatever comes
+  back. If the peer is offline the request persists (`waitForTransfer` → `saveWaiting`) and replays on
+  the next sync.
+- **Cancel keeps the positive slot**, "Delete messages" is the only red button and sits furthest from
+  the thumb, and when nothing in the selection is yours no false choice is offered at all.
+- **Nothing is deleted before the affected conversations have been read**: until then our own files
+  cannot be told from received ones and the warning would be a guess. Reading is the daemon's own
+  message search filtered to file commits — the same call the media gallery makes — run when a
+  conversation is unfolded and never for the whole device up front, because that is a git log walk per
+  chat. The search is bounded: searching a conversation the daemon has not loaded emits nothing at
+  all, not even the finished signal.
+
+### 🔋 The resting mode moves to DHT proxy + push
+
+- Measured on-device over 1 h 59 m with four accounts backgrounded: the full local DHT node moved
+  **502 011 rx + 533 929 tx WiFi packets — 145 pkt/s, 83 % of every packet the device moved**, 94 MB/h
+  at a ~180 B mean datagram, 19 % of one core with kernel CPU exceeding user CPU, and a **WiFi radio
+  that slept 289 ms** out of the whole window. Not a wakelock problem (2.57 s of partial wakelocks in
+  that span) — a packet-rate one: one opendht UDP node per account, every listen re-sent to four peers
+  every 30 s, which is also the CGNAT keepalive and so cannot simply be lengthened.
+- Full DHT **bypasses push entirely**, so a working FCM leg bought nothing and the phone could never
+  sleep. `full_dht_mode` and `full_dht_while_charging` now default off, with a one-shot migration for
+  installs that already wrote them; both switches stay in Settings, and full DHT remains the
+  escalation path a proxy-implicated wedge triggers.
+- **The background account-deactivation system existed only in the `withFirebase` flavour** — grace
+  windows, call and foreground-service exemptions, episode cap, process lifecycle observer — while the
+  shipped flavour is `withUnifiedPush`, so accounts stayed fully active for the life of the process.
+  Hoisted into the abstract application class so every flavour inherits it.
+- **Push payload classification is shared**, so a UnifiedPush arrival earns the same call and message
+  grace windows as an FCM one instead of being treated as noise, consuming a per-value-id dedupe cache
+  so it runs exactly once per push.
+
+### 💾 保存復元 hardening (in +103–+141, released as `20260717-01+141`)
+
+The Export/Import panel became a real phone migration: the chat corpus and its attachments travel
+inside the backup and the daemon finds them already on disk. Restore reuses the archive's own account
+id — no new device certificate — unpacking **before** creating the account; re-importing on the same
+device merges instead of duplicating. Hardened against four failure modes found on-device: the daemon
+wiping a still-pending account at the next start, account-id reuse blocked by leftover husks, a
+rename-or-copy install that aborted on the first conflict while reporting success, and a
+`ZipOutputStream.setLevel()` call that corrupted one entry in 3258 of a 1.6 GiB archive. Full detail
+in the [`20260717-01+141` release notes](https://github.com/ShiroiKuma0/jami/releases/tag/20260717-01%2B141).
 
 ## Home-screen shortcuts, and the end of the proxy-mode data burn (new in +92–+99)
 

@@ -14,9 +14,11 @@ with **probe-verified** health, and a live **connection monitor** (per-contact t
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
 too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
-setting, every account, and the **entire chat history with its attachments** to a new phone.
+setting, every account, and the **entire chat history with its attachments** to a new phone — and a
+**chat-files panel** that shows what those chats are actually storing, down to the individual
+picture, with a **soft delete** that frees your space without touching anybody else's chat.
 
-**📥 Latest release: [`20260717-01+141`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+148`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -90,6 +92,34 @@ attachments actually absent are copied back. Nothing duplicates, whatever you im
 
 The panel is reachable from the account wizard too — so a **fresh install can restore before it has
 any account at all**, which is the whole point of a migration tool.
+
+## 🗂 Chat files — see what the chats are storing, and put it down
+
+The backup made the shape of the problem plain: gigabytes, almost all of it old attachments nobody
+will open again. This panel is where they can be put down. Three folded levels — **accounts →
+conversations → files**, biggest first at every level, each with its own file count and byte total,
+and the grand total pinned at the top. Sizes come from the filesystem, never from what a message
+claims: a file that was never downloaded occupies nothing, and a page about disk usage should say so.
+
+Tap a thumbnail or the file's name to **open it** — pictures and videos in the app's own viewer,
+anything else in whatever app claims the type — because you should be able to recognise a photo
+before throwing it away. Tap anywhere else in the row to tick it. Inside a conversation the files sit
+under **↑ Sent by you** and **↓ Received** headings, each with its own tally and checkbox, so a whole
+direction is one tick.
+
+Deleting is a real delete, not a swept-away file that syncs straight back. Both copies of the bytes
+go — the payload and the daemon's link — and for **your own** files there is a choice the swarm
+actually supports:
+
+- **Free space** — the local copies go, every message stays exactly where it is. The other side keeps
+  its copy, nothing changes in their chat, and the file remains downloadable here for as long as
+  anybody in the conversation still has it.
+- **Delete messages** — the message goes with the file, for every member and every one of your
+  devices, permanently.
+
+Received files can only ever lose their local copy — the daemon refuses to edit a commit it did not
+author — so for those no false choice is offered, and the warning splits the counts instead of
+promising something that would be refused.
 
 ## 🔗 Home-screen shortcuts
 
@@ -195,6 +225,19 @@ accounts: **661 values / 611 KB → 9 values / 7.4 KB**, with idle CPU roughly h
 upstream report ships in the repo.
 
 ---
+
+## 🔋 Resting on push, escalating to full DHT only on trouble
+
+Measured on-device over two hours with four accounts backgrounded, the full local DHT node moved
+**145 packets a second — 83 % of every packet the device sent or received** — and left the WiFi radio
+asleep for 289 ms of the entire window. Not a wakelock problem: a packet-rate one, and it bypasses
+push entirely, so the phone could never sleep. The standing mode is now **DHT proxy + push**, with
+full DHT kept as the escalation path a wedge triggers. Both switches remain yours in Settings.
+
+The background account-deactivation machinery that makes resting actually cheap — grace windows, call
+and foreground-service exemptions, an episode cap — existed only in the Firebase flavour and never ran
+in the shipped one; it now lives in the shared application class, so every flavour inherits it, and a
+UnifiedPush arrival earns the same wake grace as an FCM one.
 
 ## 🧭 Transport check — when DHT proxy is actually worth it
 
