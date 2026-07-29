@@ -21,6 +21,8 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
+import cx.ring.services.PushWakeup
+import cx.ring.services.PushWakeupClassifier
 import cx.ring.utils.PushEvidence
 import cx.ring.utils.UiPrefs
 import dagger.hilt.android.HiltAndroidApp
@@ -64,8 +66,13 @@ class JamiApplicationUnifiedPush : JamiApplication() {
         val token = pushToken
         if (mPreferencesService.settings.enablePushNotifications && token != null && token.first.isNotEmpty()) {
             mAccountService.setPushNotificationConfig(token.first, token.second, pushPlatform)
+            // Keep the accounts online long enough to re-announce the new token before the
+            // background optimization puts them back to sleep.
+            onPushTokenRegistered()
         } else {
             mAccountService.setPushNotificationToken("")
+            // No usable token: never leave accounts deactivated with nothing able to wake them.
+            onPushTokenLost()
         }
     }
 
@@ -151,6 +158,7 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     fun onMessage(remoteMessage: Map<String, String>) {
         if (PushEvidence.noteIfProbe(remoteMessage)) return   // self-test echo — not for the daemon
         PushEvidence.noteRealPush()
+        handleBackgroundWakeup(remoteMessage)
         mAccountService.pushNotificationReceived("", remoteMessage)
         mNotificationService.processPush()
     }
@@ -158,8 +166,21 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     /** FCM message arrival (JamiFirebaseMessagingService.onMessageReceived). */
     fun onMessageReceived(remoteMessage: RemoteMessage) {
         PushEvidence.noteRealPush()
+        handleBackgroundWakeup(remoteMessage.data)
         mAccountService.pushNotificationReceived(remoteMessage.from ?: "", remoteMessage.data)
         mNotificationService.processPush()
+    }
+
+    /** Both transports converge here (2026-07-29): a push that arrives while backgrounded must
+     *  restore the deactivated accounts BEFORE the daemon is handed the payload, or the fetch it
+     *  triggers runs against inactive accounts. Payload classification is shared with the
+     *  Firebase-only flavor, so a UnifiedPush arrival gets the same call/message grace windows
+     *  instead of being treated as noise. */
+    private fun handleBackgroundWakeup(data: Map<String, String>) {
+        if (isForeground) return
+        val expired = PushWakeupClassifier.isExpiration(data)
+        val wakeup = if (expired) PushWakeup(false, false) else PushWakeupClassifier.classify(data)
+        onBackgroundPushReceived(wakeup.isCall, wakeup.isMessage, expired)
     }
 
     companion object {
