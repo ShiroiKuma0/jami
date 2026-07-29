@@ -110,4 +110,76 @@
     <string name="sk_exim_phase_link">Obnova propojení souborů — %1$s</string>
     <string name="sk_exim_phase_resume">Obnovování účtu — %1$s</string>
     <string name="sk_rep_acc_not_ready">Účty: %1$s se nepodařilo zprovoznit — byl odstraněn, aby nezmizel až po restartu</string>
+
+    <!-- chat files panel -->
+    <string name="sk_files_open">Soubory a místo v chatech  ▸</string>
+    <string name="sk_files_open_summary">Všechny soubory ze všech chatů, od největších — prohlédnout, uložit, smazat.</string>
+    <string name="sk_files_title">Soubory z chatů — 白い熊 GNU Jami</string>
+    <string name="sk_files_scanning">Měřím…</string>
+    <plurals name="sk_files_totals_all">
+        <item quantity="one">Všechny účty: %1$d soubor · %2$s</item>
+        <item quantity="few">Všechny účty: %1$d soubory · %2$s</item>
+        <item quantity="other">Všechny účty: %1$d souborů · %2$s</item>
+    </plurals>
+    <plurals name="sk_files_totals">
+        <item quantity="one">%1$d soubor · %2$s</item>
+        <item quantity="few">%1$d soubory · %2$s</item>
+        <item quantity="other">%1$d souborů · %2$s</item>
+    </plurals>
+    <string name="sk_files_selected">Vybráno %1$d z %2$d · %3$s z %4$s</string>
+    <string name="sk_files_none">V tomto zařízení nejsou žádné soubory z chatů.</string>
+    <string name="sk_files_unnamed_conv">Konverzace %1$s…</string>
+    <string name="sk_files_sent">odeslal jsi ty</string>
+    <string name="sk_files_received">přijato</string>
+    <string name="sk_files_no_message">bez zprávy</string>
+    <string name="sk_files_reading">načítám chat…</string>
+    <string name="sk_files_delete">Smazat</string>
+    <string name="sk_files_delete_n">Smazat %1$d</string>
+    <string name="sk_files_nothing_selected">Nic není vybráno</string>
+    <string name="sk_files_indexing">Načítám chaty…</string>
+    <string name="sk_files_saved">Uloženo</string>
+    <string name="sk_files_save_failed">Soubor se nepodařilo uložit</string>
+    <string name="sk_files_gone">Tento soubor už v zařízení není</string>
+    <string name="sk_files_preparing">Připravuji…</string>
+    <string name="sk_files_view_failed">Tento soubor se nepodařilo otevřít</string>
+    <string name="sk_files_dir_sent">↑ Odeslané tebou</string>
+    <string name="sk_files_dir_received">↓ Přijaté</string>
+    <string name="sk_files_dir_unknown">· Bez zprávy</string>
+    <string name="sk_files_confirm_title">Odstranit z tohoto zařízení?</string>
+    <string name="sk_files_confirm_title_own">Uvolnit místo, nebo smazat i zprávy?</string>
+    <string name="sk_files_free_space">Uvolnit místo</string>
+    <string name="sk_files_delete_messages">Smazat i zprávy</string>
+    <plurals name="sk_files_confirm_head">
+        <item quantity="one">%1$d soubor · %2$s bude smazán z tohoto zařízení.</item>
+        <item quantity="few">%1$d soubory · %2$s budou smazány z tohoto zařízení.</item>
+        <item quantity="other">%1$d souborů · %2$s bude smazáno z tohoto zařízení.</item>
+    </plurals>
+    <plurals name="sk_files_confirm_own">
+        <item quantity="one">Jeden z nich jsi poslal ty.\n\n„Uvolnit místo“ nechá všechny zprávy přesně tam, kde jsou — druhá strana si kopii ponechá a soubor půjde stáhnout znovu, dokud ho někdo v konverzaci má.\n\n„Smazat i zprávy“ odstraní se souborem i zprávu, všem členům i na všech tvých zařízeních, natrvalo.</item>
+        <item quantity="other">%1$d z nich jsi poslal ty.\n\n„Uvolnit místo“ nechá všechny zprávy přesně tam, kde jsou — druhá strana si kopie ponechá a soubory půjde stáhnout znovu, dokud je někdo v konverzaci má.\n\n„Smazat i zprávy“ odstraní se soubory i zprávy, všem členům i na všech tvých zařízeních, natrvalo.</item>
+    </plurals>
+    <plurals name="sk_files_confirm_local">
+        <item quantity="one">Jeden jsi přijal: tak či tak zmizí jen kopie v tomto zařízení. Zpráva v chatu zůstane a dokud ji odesílatel má, jde soubor stáhnout znovu.</item>
+        <item quantity="other">%1$d jsi přijal: tak či tak zmizí jen kopie v tomto zařízení. Zprávy v chatu zůstanou a dokud je odesílatelé mají, jdou soubory stáhnout znovu.</item>
+    </plurals>
+    <string name="sk_files_confirm_delete">Smazat</string>
+    <string name="sk_files_deleting">Mažu…</string>
+    <string name="sk_files_deleting_n">Mažu… %1$d / %2$d</string>
+    <string name="sk_files_deleted_title">Smazáno</string>
+    <plurals name="sk_files_deleted">
+        <item quantity="one">%1$d soubor · %2$s uvolněno</item>
+        <item quantity="few">%1$d soubory · %2$s uvolněno</item>
+        <item quantity="other">%1$d souborů · %2$s uvolněno</item>
+    </plurals>
+    <plurals name="sk_files_deleted_messages">
+        <item quantity="one">Smazána %1$d zpráva v chatu</item>
+        <item quantity="few">Smazány %1$d zprávy v chatu</item>
+        <item quantity="other">Smazáno zpráv v chatu: %1$d</item>
+    </plurals>
+    <plurals name="sk_files_deleted_kept">
+        <item quantity="one">%1$d tvá zpráva zachována — soubor jde stáhnout znovu</item>
+        <item quantity="few">%1$d tvé zprávy zachovány — soubory jdou stáhnout znovu</item>
+        <item quantity="other">Tvých zpráv zachováno: %1$d — soubory jdou stáhnout znovu</item>
+    </plurals>
+    <string name="sk_files_deleted_failed">%1$d se nepodařilo smazat</string>
 </resources>
