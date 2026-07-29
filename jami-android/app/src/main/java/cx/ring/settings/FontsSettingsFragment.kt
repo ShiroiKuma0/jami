@@ -652,6 +652,40 @@ class FontsSettingsFragment : Fragment() {
         c.addView(row, matchWrap().apply {
             leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(10f)
         })
+        // ---- Chat files. A second, separate way in — it does NOT replace the backup panel above.
+        //      It belongs in this section because the export made the shape of the problem plain:
+        //      almost all of the weight is old chat attachments (白い熊, 2026-07-29).
+        val filesRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
+            minimumHeight = dp(64f)
+            background = android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
+                GradientDrawable().apply {
+                    setColor(Color.BLACK)
+                    cornerRadius = dp(12f).toFloat()
+                    setStroke(dp(2f), yellow)
+                }, null)
+            isClickable = true
+            setOnClickListener {
+                startActivity(cx.ring.client.ChatFilesActivity.intent(ctx))
+            }
+        }
+        filesRow.addView(TextView(ctx).apply {
+            text = getString(R.string.sk_files_open)
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setTypeface(typeface, Typeface.BOLD)
+        })
+        filesRow.addView(TextView(ctx).apply {
+            text = getString(R.string.sk_files_open_summary)
+            setTextColor(dim)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, dp(3f), 0, 0)
+        })
+        c.addView(filesRow, matchWrap().apply {
+            leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(10f)
+        })
         // ---- All-files access. Nothing in the panel can run without it, so it gets a proper
         //      two-line bordered target rather than a line of small print — the thin version was
         //      very hard to hit (白い熊, 2026-07-28).
