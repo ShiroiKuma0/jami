@@ -646,6 +646,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:theme="@style/AppTheme.Dialog"
             android:windowSoftInputMode="adjustResize"/>
 
+        <!-- shiroikuma: the chat-files panel, opened from the Export / Import section. Its own
+             activity rather than a fragment so it can be reached from anywhere with a Context,
+             exactly like the backup panel it sits next to. -->
+        <activity
+            android:name=".client.ChatFilesActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="false"
+            android:label="@string/sk_files_title"
+            android:theme="@style/AppTheme" />
+
         <activity android:name=".linkdevice.view.LinkDeviceExportSideActivity"
             android:theme="@style/AppThemeBase"
             android:exported="false"/>
