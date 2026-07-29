@@ -27,7 +27,6 @@ import cx.ring.application.JamiApplication
 import cx.ring.application.JamiApplicationFirebase
 import cx.ring.service.PushForegroundService
 import kotlinx.coroutines.*
-import java.util.Locale
 
 class JamiFirebaseMessagingService : FirebaseMessagingService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -48,8 +47,8 @@ class JamiFirebaseMessagingService : FirebaseMessagingService() {
 
         // Expired-value notification ("exp"): the value already left the DHT. Classified
         // first, since a stale call value keeps its audioCall/videoCall pt on expiration.
-        val isExpiration = remoteMessage.data.containsKey("exp")
-        val wakeup = if (isExpiration) PushWakeup(false, false) else classifyWakeup(remoteMessage)
+        val isExpiration = PushWakeupClassifier.isExpiration(remoteMessage.data)
+        val wakeup = if (isExpiration) PushWakeup(false, false) else PushWakeupClassifier.classify(remoteMessage.data)
         val isCallWakeup = wakeup.isCall
         val isMessageWakeup = wakeup.isMessage
         val app = JamiApplication.instance as? JamiApplicationFirebase
@@ -109,52 +108,6 @@ class JamiFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    /**
-     * Classifies a DHT proxy wakeup from the "pt" field (the connection request type the
-     * proxy copies in): audioCall/videoCall for calls, application/im-gitmessage-id or
-     * application/invite for swarm messages and invitations, and sync for multi-device
-     * account sync. FCM priority is never used, as regular DHT values are also high
-     * priority. Only value ids never seen by this process count, dropping the catch-up
-     * re-deliveries the proxy emits on every fresh listener; the dedupe caches are
-     * in-memory, so after a restart a stale id classifies once.
-     */
-    private fun classifyWakeup(remoteMessage: RemoteMessage): PushWakeup {
-        val pushTypes = remoteMessage.data["pt"] ?: return PushWakeup(false, false)
-        val ids = remoteMessage.data["ids"]?.split(',') ?: emptyList()
-        // Scope the dedupe key by destination client id and DHT key: value ids are random
-        // 64-bit values, unique in practice but not across keys. Missing fields degrade to
-        // coarser scoping, never to dropping a wakeup.
-        val scope = "${remoteMessage.data["to"] ?: ""}:${remoteMessage.data["key"] ?: ""}"
-        var newCall = false
-        var newMessage = false
-        pushTypes.splitToSequence(',').forEachIndexed { i, rawType ->
-            val type = rawType.trim().lowercase(Locale.ROOT)
-            val isCall = type == "audiocall" || type == "videocall"
-            // Exact type or explicit separator only, so unrelated future types cannot match.
-            val isMessage = type == "application/im-gitmessage-id"
-                    || type.startsWith("application/im-gitmessage-id/")
-                    || type == "application/invite"
-                    || type.startsWith("application/invite+")
-                    || type == "sync"
-            if (!isCall && !isMessage) return@forEachIndexed
-            val id = ids.getOrNull(i)?.trim()
-            val isNew = if (id.isNullOrEmpty()) {
-                true // No id to deduplicate on: fail open, a missed call is worse than a redundant restore.
-            } else {
-                // Per-kind caches so message volume cannot evict call dedupe state.
-                val seen = if (isCall) seenCallIds else seenMessageIds
-                synchronized(seen) { seen.put("$scope:$id", Unit) == null }
-            }
-            if (isNew) {
-                if (isCall) newCall = true
-                if (isMessage) newMessage = true
-            }
-        }
-        return PushWakeup(newCall, newMessage)
-    }
-
-    private data class PushWakeup(val isCall: Boolean, val isMessage: Boolean)
-
     override fun onNewToken(refreshedToken: String) {
         Log.w(TAG, "onNewToken $refreshedToken")
         val app = JamiApplication.instance as? JamiApplicationFirebase
@@ -163,18 +116,5 @@ class JamiFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "JamiFirebaseMessaging"
-
-        // Value ids already handled by this process, to drop proxy catch-up re-deliveries.
-        // Two bounded LRU caches so frequent message ids cannot evict call dedupe state.
-        private const val SEEN_CALL_IDS_MAX = 256
-        private const val SEEN_MESSAGE_IDS_MAX = 2048
-        private val seenCallIds = object : LinkedHashMap<String, Unit>(64, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Unit>) =
-                size > SEEN_CALL_IDS_MAX
-        }
-        private val seenMessageIds = object : LinkedHashMap<String, Unit>(256, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Unit>) =
-                size > SEEN_MESSAGE_IDS_MAX
-        }
     }
 }
