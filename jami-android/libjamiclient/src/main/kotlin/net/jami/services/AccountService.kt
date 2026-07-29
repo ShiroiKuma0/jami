@@ -708,6 +708,33 @@ class AccountService(
         mExecutor.execute { restoreProxyAccountsOnExecutor() }
     }
 
+    /** Is this account currently asleep because of the background battery optimization, rather
+     *  than because anything is wrong with it? A deactivated account receives nothing by design —
+     *  the push leg is what wakes it — so the connection watchdog must not read its silence as
+     *  deafness, probe it, or "recover" it (which would reactivate everything it just put to
+     *  sleep, on every maintenance window). See [deactivateProxyAccountsForBackground].
+     *
+     *  Deliberately verified against the account's ACTUAL state, not just the restore ledger:
+     *  [setAccountsActive] runs on every connectivity change and reactivates proxy accounts
+     *  unconditionally (`active || a.isDhtProxyEnabled`), which would otherwise leave the ledger
+     *  claiming an account is asleep while it is wide awake — and the watchdog blind to a real
+     *  wedge on it. Requiring both means we only ever stand down for a genuinely inactive account. */
+    fun isBackgroundDeactivated(accountId: String): Boolean =
+        accountId in backgroundDeactivatedAccounts &&
+            mAccountList.firstOrNull { it.accountId == accountId }?.isActive == false
+
+    /** Snapshot of the accounts the background optimization currently has asleep. */
+    fun backgroundDeactivatedIds(): Set<String> =
+        backgroundDeactivatedAccounts.filterTo(HashSet()) { isBackgroundDeactivated(it) }
+
+    /** True while every enabled Jami account is asleep for the background optimization — the
+     *  whole-daemon quiet state, in which the watchdog's detectors must stand down entirely
+     *  instead of reading a designed silence as a network-wide wedge. */
+    fun allJamiAccountsBackgroundDeactivated(): Boolean {
+        val jami = mAccountList.filter { it.isJami && it.isEnabled }
+        return jami.isNotEmpty() && jami.all { isBackgroundDeactivated(it.accountId) }
+    }
+
     // Runs on mExecutor only.
     private fun restoreProxyAccountsOnExecutor() {
         Log.i(TAG, "restoreProxyAccountsAfterBackground() running… (${backgroundDeactivatedAccounts.size} accounts)")
