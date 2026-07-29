@@ -13,4 +13,10 @@
     <string name="data_meter_close">閉じる</string>
     <string name="data_meter_clear">消去</string>
     <string name="data_meter_tip">データ使用量の計測と記録</string>
+    <string name="data_meter_subs_waiting">プロキシ購読: デーモンの最初のティック待ち（約3分）</string>
+    <string name="data_meter_subs_head">プロキシ購読: %2$d 台のプロキシに %1$d 件・%3$d 秒前</string>
+    <string name="data_meter_subs_row">  %1$s — 購読 %2$d 件、プッシュ %3$d 回、最終受信 %4$s</string>
+    <string name="data_meter_subs_settling">プロキシ購読: まだ確立していません（プロキシ %1$d 台・%2$d 秒前）</string>
+    <string name="data_meter_subs_never">未受信</string>
+    <string name="data_meter_subs_secs">%1$d 秒</string>
 </resources>
