@@ -126,13 +126,34 @@ object UiPrefs {
         p(c).edit().putBoolean("restricted_net", on).apply()
     }
 
-    /** DHT mode. Full DHT (proxy OFF) is the robust DEFAULT — no single proxy link to wedge (proxy-ON once
-     *  stranded delivery for days on the Mate XT). When off, the proxy is battery-managed by the watchdog
-     *  (charging / wedge-linger). Restricted-network still pins the proxy ON regardless (full DHT is UDP;
-     *  blocked UDP → the TURN/relay path is the only one that works). See [ConnectionWatchdog.applyProxyState]. */
-    fun isFullDhtMode(c: Context): Boolean = p(c).getBoolean("full_dht_mode", true)
+    /** DHT mode. The DHT proxy + push is the RESTING state (default since 2026-07-29); full DHT is the
+     *  ESCALATION path, entered by the watchdog on a proxy-implicated wedge and left again once the
+     *  linger expires. Full DHT is wedge-proof but runs a real opendht UDP node per account: measured on
+     *  this phone with four accounts, 145 pkt/s of ~180-byte datagrams, 94 MB/h, 19 % of a core, and a
+     *  WiFi radio that slept 289 ms in two hours — deep Doze never engaged. Push is bypassed entirely in
+     *  that mode ([ConnectionWatchdog] returns early), so the proxy is the only state in which the device
+     *  can sleep. Restricted-network pins the proxy ON regardless (full DHT is UDP; blocked UDP → the
+     *  TURN/relay path is the only one that works). See [ConnectionWatchdog.applyProxyState]. */
+    fun isFullDhtMode(c: Context): Boolean = p(c).getBoolean("full_dht_mode", false)
     fun setFullDhtMode(c: Context, on: Boolean) {
         p(c).edit().putBoolean("full_dht_mode", on).apply()
+    }
+
+    /** One-shot move to the proxy resting state (2026-07-29). Flipping the [isFullDhtMode] /
+     *  [isFullDhtWhileCharging] defaults is not enough on an install that already wrote those prefs —
+     *  this migrates the stored values exactly once, leaving every later deliberate switch alone. Both
+     *  switches remain in Settings. Returns true when it actually changed something, so the caller can
+     *  log it. */
+    fun migrateToProxyRestingState(c: Context): Boolean {
+        val pref = p(c)
+        if (pref.getBoolean("proxy_default_20260729", false)) return false
+        val changed = pref.getBoolean("full_dht_mode", false) || pref.getBoolean("full_dht_while_charging", false)
+        pref.edit()
+            .putBoolean("proxy_default_20260729", true)
+            .putBoolean("full_dht_mode", false)
+            .putBoolean("full_dht_while_charging", false)
+            .apply()
+        return changed
     }
 
     /** One-shot push-token rotation after the 2026-07-25 update: weeks of churn left generations of
@@ -144,10 +165,12 @@ object UiPrefs {
         p(c).edit().putBoolean("token_rotated_20260725", true).apply()
     }
 
-    /** Full DHT while charging (default ON — battery is free, so charging switches to the robust
-     *  full DHT). Off = keep the DHT proxy even on the charger (the low-data profile). Only
-     *  meaningful in proxy mode; see [ConnectionWatchdog.applyProxyState]. */
-    fun isFullDhtWhileCharging(c: Context): Boolean = p(c).getBoolean("full_dht_while_charging", true)
+    /** Full DHT while charging (default OFF since 2026-07-29). Battery is free on the charger, but the
+     *  full DHT is not: 94 MB/h of tiny datagrams and a WiFi radio pinned awake all night, for a mode
+     *  the watchdog would otherwise only enter on a real wedge. Turning it back ON restores the old
+     *  "charging ⇒ robust full DHT" behaviour. Only meaningful in proxy mode; see
+     *  [ConnectionWatchdog.applyProxyState]. */
+    fun isFullDhtWhileCharging(c: Context): Boolean = p(c).getBoolean("full_dht_while_charging", false)
     fun setFullDhtWhileCharging(c: Context, on: Boolean) {
         p(c).edit().putBoolean("full_dht_while_charging", on).apply()
     }
