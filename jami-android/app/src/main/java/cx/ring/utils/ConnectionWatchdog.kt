@@ -167,6 +167,7 @@ object ConnectionWatchdog {
     @Volatile private var lastBackfillMs = 0L              // when a post-recovery backfill was last scheduled (debounce)
     @Volatile private var canaryInFlight = false
     @Volatile private var recovering = false
+    @Volatile private var detectorsStoodDown = false   // logged once per transition, not per tick
 
     private fun now() = System.currentTimeMillis()
     private fun stamp() = hms.format(Date())
@@ -240,6 +241,13 @@ object ConnectionWatchdog {
         if (!ledgerWired) {
             ledgerWired = true
             val app = c.applicationContext
+            // One-shot move to the proxy resting state (2026-07-29). Full DHT stops being the standing
+            // mode and becomes the escalation path: it ran a real opendht UDP node per account —
+            // measured 145 pkt/s, 94 MB/h, 19 % of a core, WiFi asleep 289 ms in two hours — and push
+            // is bypassed entirely there, so the device could never sleep. applyProxyState at the end
+            // of this tick brings the proxy up (behind its startup hold).
+            if (UiPrefs.migrateToProxyRestingState(c))
+                log(c, "migrated to the proxy resting state — full DHT is now the escalation path only")
             accounts.reregisterMarker = { id, inFlight -> UiPrefs.setReregisterInFlight(app, id, inFlight) }
             // One-shot after the 2026-07-25 update: rotate the FCM token to orphan the accumulated
             // stale server-side subscription generations (2–3 pushes/s were burning CPU + microG
@@ -271,9 +279,22 @@ object ConnectionWatchdog {
             }
         }
         healInterruptedReregisters(c, accounts)
+        // Asleep BY DESIGN (2026-07-29). The background battery optimization deactivates every
+        // proxy account while the app is backgrounded and the push leg is proven; a deactivated
+        // account is unregistered and receives nothing until a push or a foreground return wakes
+        // it. Judging that silence would read as a total outage — the cold-start-stall branch of
+        // heuristicTick (0 registered ⇒ full-DHT re-register) would fire once a minute and undo
+        // the optimization on every maintenance window. Stand the detectors down; the proxy state
+        // machine below still runs, so charging and wedge-linger transitions are unaffected.
+        val asleep = accounts.allJamiAccountsBackgroundDeactivated()
+        if (asleep != detectorsStoodDown) {
+            detectorsStoodDown = asleep
+            log(c, if (asleep) "all accounts asleep (background battery optimization) — detectors stood down until a push or foreground wakes them"
+                else "accounts awake again — detectors resumed")
+        }
         val active = UiPrefs.isRecoveryBaseEnabled(c) || UiPrefs.isRecoveryPingEnabled(c)
         if (!active) return   // recovery fully off → leave the proxy alone
-        if (active) {
+        if (active && !asleep) {
             if (UiPrefs.isRecoveryPingEnabled(c) && UiPrefs.isCanaryConfigured(c)) canaryTick(c, accounts)
             else heuristicTick(c, accounts)
             perAccountTick(c, accounts)
@@ -362,7 +383,9 @@ object ConnectionWatchdog {
             .filter { it.isJami && it.isRegistered }
             .mapNotNull { it.uri?.removePrefix("jami:")?.removePrefix("ring:")?.takeIf(String::isNotEmpty) }
             .toSet()
-        accounts.getAccounts().filter { it.isJami }.forEach { acc -> runCatching {
+        // A sleeping account cannot deliver, so its outbox naturally goes stuck — scanning it would
+        // paint every one of its contacts unreachable (red dots) for a silence we asked for.
+        accounts.getAccounts().filter { it.isJami && !accounts.isBackgroundDeactivated(it.accountId) }.forEach { acc -> runCatching {
             val stuck = ConnectionHealth.accountStuckMessages(acc, t)
                 .filter { it.presence != Contact.PresenceStatus.CONNECTED &&
                     it.memberUri.removePrefix("jami:").removePrefix("ring:") !in sameDeviceUris }
@@ -430,7 +453,11 @@ object ConnectionWatchdog {
         val t = now()
         val cm = c.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val netUp = cm?.activeNetwork != null
-        val regd = accounts.getAccounts().filter { it.isJami && it.isRegistered }
+        // Accounts the background optimization has asleep are excluded even in the partial case
+        // (some awake, some not): their silence is designed, not deaf. Dropping them from
+        // acctStates too means they wake with a clean strike count rather than a stale one.
+        val regd = accounts.getAccounts()
+            .filter { it.isJami && it.isRegistered && !accounts.isBackgroundDeactivated(it.accountId) }
         acctStates.keys.retainAll(regd.map { it.accountId }.toSet())
         // Proxy mode is the fragile mode (the only place the subscription wedge lives) — suspect at
         // half the limit there, so a wedged proxy is probed in ~2.5 min instead of 5 (2026-07-23).
@@ -1173,6 +1200,27 @@ object ConnectionWatchdog {
      *  (2026-07-23: exactly that race put the accounts back on the dead push leg minutes after
      *  adaptive mode had escaped it). */
     fun isNoPushAdaptive(): Boolean = noPushAdaptive
+
+    /** May the app let the daemon's accounts be background-deactivated (2026-07-29)? Deactivating
+     *  hands the entire wake responsibility to the push leg, so this must be a POSITIVE proof that
+     *  the leg delivers — never a mere absence of complaints. Sleeping into a dead push leg is
+     *  total deafness, which is a reliability failure, not a battery saving.
+     *
+     *  Refuses while: the leg is verified down; adaptive no-push has already given up on it and
+     *  moved the proxy clients to streaming LISTENs (deactivating there would silence the only
+     *  path left); the network is restricted (proxy pinned, nothing is normal); or a recovery is
+     *  still settling. Otherwise it requires proof — a real push seen by THIS process, or a passed
+     *  end-to-end self-test. On the FCM backend the self-test does not exist (the phone cannot POST
+     *  to its own token — only the dhtproxy servers can), so a real push arrival is the only proof
+     *  available there, and the accounts simply stay awake until one lands. */
+    fun backgroundSleepSafe(c: Context): Boolean {
+        if (noPushAdaptive) return false
+        if (pushLegDown == true) return false
+        if (UiPrefs.isRestrictedNet(c)) return false
+        if (recovering) return false
+        if (lastRecoverMs != 0L && now() - lastRecoverMs < RECOVER_SETTLE_MS) return false
+        return PushEvidence.lastRealPushMs != 0L || pushLegDown == false
+    }
 
     /** Probe-VERIFIED deafness for one account: a 60-s presence-re-arm probe went unanswered (the
      *  strike count survives until real inbound clears it). This — never the bare quiet clock — is

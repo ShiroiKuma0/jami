@@ -32,12 +32,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * FCM receiver for the dual-backend flavor. Slimmed from the withFirebase flavor's service: it
- * keeps the wake lock and the high-priority foreground-service escalation (call/message delivery
- * reliability while backgrounded) but drops the background account-deactivation machinery, which
- * the UnifiedPush-based flavor has never carried and which would interact with the watchdog's
- * adaptive streaming. Messages forward to the shared Application, which registers push-arrival
- * evidence regardless of transport.
+ * FCM receiver for the dual-backend flavor. It owns the wake lock and the high-priority
+ * foreground-service escalation (call/message delivery reliability while backgrounded); messages
+ * forward to the shared Application, which registers push-arrival evidence regardless of transport
+ * and — since 2026-07-29 — performs the authoritative payload classification and the background
+ * account restore. Classification is deliberately NOT done here: [PushWakeupClassifier] consumes a
+ * per-value-id dedupe cache, so it must be called exactly once per push. The coarse `pt` substring
+ * test below only decides whether this push deserves a foreground service and the longer wake lock.
  */
 class JamiFirebaseMessagingService : FirebaseMessagingService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -60,9 +61,10 @@ class JamiFirebaseMessagingService : FirebaseMessagingService() {
             pt.contains("invite") || pt.contains("sync")
         val app = JamiApplication.instance as? JamiApplicationUnifiedPush
 
-        // Foreground-service escalation for high-priority call/message pushes: gives the daemon
-        // fetch (proxy reconnect + DHT/swarm pull) a protected window.
-        if (isHighPriority && isCallOrMessage) {
+        // Foreground-service escalation for high-priority call/message pushes that land while
+        // backgrounded: gives the daemon fetch (proxy reconnect + DHT/swarm pull, now also an
+        // account restore) a protected window. Pointless when an activity is already visible.
+        if (isHighPriority && isCallOrMessage && app?.isForeground != true) {
             Handler(Looper.getMainLooper()).post {
                 try {
                     startForegroundService(Intent(this, PushForegroundService::class.java))
