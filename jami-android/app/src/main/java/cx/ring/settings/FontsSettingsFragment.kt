@@ -278,16 +278,16 @@ class FontsSettingsFragment : Fragment() {
             layoutParams = matchWrap()
             setPadding(dp(72f), dp(6f), dp(16f), dp(4f))
         }
-        box.addView(orSwitchRow("Full DHT — proxy off, robustness-first (default: off, proxy + push)", UiPrefs.isFullDhtMode(ctx)) {
-            UiPrefs.setFullDhtMode(ctx, it)
-            mAccountService.setProxyEnabled(!it)   // authoritative + immediate: full DHT → all accounts proxy off; off → proxy on
-            // Same log + verification probe as the ⬡ tap — this silent write is what made the
-            // recovery log untrustworthy about the active mode (2026-07-23 retraction).
-            cx.ring.utils.ConnectionWatchdog.onDhtModeSwitched(ctx, mAccountService)
-        })
-        box.addView(orSwitchRow("Full DHT on while charging (default off — it still costs data + radio)", UiPrefs.isFullDhtWhileCharging(ctx)) {
-            UiPrefs.setFullDhtWhileCharging(ctx, it)
-        })
+        // The two Full DHT switches are gone (白い熊, 2026-07-30) — measurement settled the question,
+        // so there is nothing left to choose here. Full DHT was 110–130 MiB/h with the radio never
+        // sleeping; proxy + push rests at ~5 MiB/h. "Full DHT while charging" additionally paid a
+        // ~50 MB re-subscription every time the charger went in or out.
+        //
+        // The MODE ITSELF is untouched: full DHT remains the watchdog's escalation path
+        // (applyProxyState / fullRecover / restricted-network pinning), and the ⬡ control in the
+        // search bar remains as the one manual override. Only these two settings rows are removed —
+        // UiPrefs.isFullDhtMode / isFullDhtWhileCharging still exist and still read false by default,
+        // so the charging branch is simply never armed.
         box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
             UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping
         })
