@@ -355,9 +355,13 @@ abstract class JamiApplication : Application() {
             // Unconditional restore: only touches the recorded set, a no-op otherwise.
             Log.d(TAG, "App came to foreground — reactivating accounts")
             mAccountService.restoreProxyAccountsAfterBackground()
+            // Two-second connection polling is only worth paying for while something is on screen
+            // (2026-07-30) — backgrounded, the only consumer is the dead-link alarm.
+            mAccountService.setConnectionPollFast(true)
         }
         override fun onStop(owner: LifecycleOwner) {
             isForeground = false
+            mAccountService.setConnectionPollFast(false)
             backgroundActiveSince.compareAndSet(0L, SystemClock.elapsedRealtime())
             scheduleBackgroundDeactivation()
         }
