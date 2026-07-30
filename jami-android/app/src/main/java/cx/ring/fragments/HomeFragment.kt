@@ -650,17 +650,21 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         mFgWatchdogHandler.postDelayed({ updateLightningIcon() }, 31_000L)
     }
 
-    /** DHT-mode icon (2026-07-24 redesign): the SHAPE encodes the mode — filled hub = full DHT
-     *  (the heavy local node), hollow thick-outline hub = DHT proxy (the light mode). The COLOUR
-     *  encodes only state quality, matching the app-wide ideology: yellow = the chosen mode is
-     *  verified working, blue = transitional (recovering, mode-switch verification, or the adaptive
-     *  streaming fallback riding out a dead push leg), red = the current mode is verifiably broken.
-     *  Settable roles reused: yellow from DHT_FULL, blue from DHT_PROXY, red from MONITOR_PROBLEM. */
+    /** DHT-mode icon. The SHAPE encodes the mode; the COLOUR encodes only state quality, matching
+     *  the app-wide ideology: yellow = the chosen mode is verified working, blue = transitional
+     *  (recovering, mode-switch verification, or the adaptive streaming fallback riding out a dead
+     *  push leg), red = the current mode is verifiably broken. Settable roles reused: yellow from
+     *  DHT_FULL, blue from DHT_PROXY, red from MONITOR_PROBLEM.
+     *
+     *  Shape INVERTED 2026-07-30 (白い熊): filled hub = DHT proxy ON, hollow hub = full DHT. The
+     *  2026-07-24 mapping read the shape as "how heavy is the node", which made the resting mode the
+     *  hollow one. Proxy is now the normal state, so the filled shape belongs to it and the hollow
+     *  outline marks the exceptional escalation — the icon reads as "on" when things are as intended. */
     private fun updateDhtModeIcon() {
         val iv = mBinding?.searchBar?.menu?.findItem(R.id.menu_dht_mode)?.actionView as? ImageView ?: return
         val ctx = context ?: return
         val full = cx.ring.utils.UiPrefs.isFullDhtMode(ctx)
-        iv.setImageResource(if (full) R.drawable.connectivity_mode_dht_filled_24 else R.drawable.connectivity_mode_dht_hollow_24)
+        iv.setImageResource(if (full) R.drawable.connectivity_mode_dht_hollow_24 else R.drawable.connectivity_mode_dht_filled_24)
         val problem = cx.ring.utils.ConnectionWatchdog.networkDown() ||
             cx.ring.utils.ConnectionWatchdog.anyDeaf(mAccountService)
         val transitional = cx.ring.utils.ConnectionWatchdog.hubTransitional()
@@ -803,8 +807,11 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             item(box, ctx.getString(R.string.info_b_main_dot))
             sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
             // Shape = mode (both shown healthy-yellow); colour on the hub is state quality now.
-            iconRow(box, R.drawable.connectivity_mode_dht_filled_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
-            iconRow(box, R.drawable.connectivity_mode_dht_hollow_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_proxy))
+            // Order follows the INVERTED shape mapping of updateDhtModeIcon (2026-07-30): filled =
+            // proxy (the resting mode), hollow = full DHT (the escalation). This legend and that
+            // function are the only two places the mapping is stated — they must be changed together.
+            iconRow(box, R.drawable.connectivity_mode_dht_filled_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_proxy))
+            iconRow(box, R.drawable.connectivity_mode_dht_hollow_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
             item(box, ctx.getString(R.string.info_b_main_dht))
             sub(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_header))
             iconRow(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_ready))
