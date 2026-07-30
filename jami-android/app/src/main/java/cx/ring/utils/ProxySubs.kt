@@ -59,6 +59,30 @@ object ProxySubs {
      *  fresh process shows nothing for a few minutes — the UI must say so rather than imply zero. */
     fun lastTickMs(): Long = latest.values.maxOfOrNull { it.atMs } ?: 0L
 
+    /**
+     * How long ago the given proxy last delivered anything, in ms — or null when we cannot say.
+     *
+     * This is the per-account wedge detector's only answerable question. Each account rides its OWN
+     * proxy (dhtproxy3:81, 3:83, 4:93, 5:92 for the four accounts here), so "did MY proxy deliver
+     * recently" is exactly the per-account signal that the presence re-arm probe cannot supply.
+     *
+     * Null means no information — no tick seen for that proxy, or a tick that has never received
+     * anything. Callers must treat null as "don't know", never as "dead": the diag patch may not be
+     * applied, and a freshly started process legitimately has neither.
+     *
+     * The reported age is extrapolated: lastRxSec was the age when the tick was printed, so the age
+     * now is that plus however long ago the tick arrived.
+     */
+    fun rxAgeMs(proxy: String?): Long? {
+        val key = proxy?.trim()?.removePrefix("http://")?.removePrefix("https://")?.substringBefore('/')
+        if (key.isNullOrEmpty()) return null
+        val e = latest[key]
+            ?: latest.entries.firstOrNull { it.key.contains(key) || key.contains(it.key) }?.value
+            ?: return null
+        if (e.lastRxSec < 0) return null          // the daemon's "never received" sentinel
+        return e.lastRxSec * 1000L + (System.currentTimeMillis() - e.atMs).coerceAtLeast(0L)
+    }
+
     /** Dropped on a daemon restart: the counts belong to the process that printed them. */
     fun reset() = latest.clear()
 }
