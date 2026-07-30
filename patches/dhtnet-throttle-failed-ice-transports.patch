@@ -1,0 +1,66 @@
+--- a/src/ice_transport.cpp
++++ b/src/ice_transport.cpp
+@@ -72,6 +72,11 @@
+ static constexpr int MAX_CANDIDATES {32};
+ static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
+ static constexpr int HANDLE_EVENT_DURATION {500};
++// SK-ICEREAP: poll interval for a transport whose ICE session has FAILED, and how long to wait
++// before applying it. 250 ms is a 25x cut against pjnath's 10 ms unhandled-event backoff while
++// still servicing every event; the 5 s grace keeps failure handling itself at full speed.
++static constexpr int SK_ICE_FAILED_POLL_MS {250};
++static constexpr int SK_ICE_FAILED_GRACE_MS {5000};
+ static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
+ 
+ /* Circuit breaker for the UPnP port-mapping path.
+@@ -330,6 +335,8 @@
+     unsigned skId_ {0};
+     std::chrono::steady_clock::time_point skBorn_ {};
+     unsigned long long skSpins_ {0};
++    // SK-ICEREAP: when this transport was first seen in ICE state FAILED (zero = not failed).
++    std::chrono::steady_clock::time_point skFailedSince_ {};
+ };
+ 
+ //==============================================================================
+@@ -661,6 +668,42 @@
+             // NOTE: handleEvents can return false in this case
+             // but here we don't care if there is event or not.
+             handleEvents(HANDLE_EVENT_DURATION);
++
++            // SK-ICEREAP (2026-07-30): stop burning a core on sessions that have already lost.
++            //
++            // A healthy transport blocks up to HANDLE_EVENT_DURATION inside pj_ioqueue_poll, so it
++            // costs almost nothing. The expensive case is pjnath's "epoll reported events but
++            // dispatched none" path, whose anti-busy-loop backoff is clamped to 10 ms — ~100 Hz,
++            // for ever, per transport. Measured on a CGNAT cellular link where direct ICE cannot
++            // succeed at all: ~10 transports created per minute, 32-43 alive, and of 418 sampled
++            // spin observations 410 were in state FAILED against 8 RUNNING — 174% of one core with
++            // the screen off. On WiFi the same build sat at 12%, which is why this hid for so long.
++            //
++            // PJ_ICE_STRANS_STATE_FAILED is terminal for the session, so there is nothing left that
++            // needs 100 Hz service; its remaining timers are retransmissions that cannot matter.
++            // Throttle to SK_ICE_FAILED_POLL_MS, after a grace window so that whatever handles the
++            // failure itself is not slowed down.
++            //
++            // Deliberately a THROTTLE, not a thread exit: stopping the loop would leave nothing
++            // servicing this transport's ioqueue and timer heap, and any caller still blocked on it
++            // would never be released. Throttling cannot strand anyone — every event is still
++            // serviced, just less often — and it captures essentially all of the CPU win. Actually
++            // destroying the transport is its owner's job and a separate change.
++            if (_isFailed()) {
++                const auto skNow = std::chrono::steady_clock::now();
++                if (skFailedSince_ == std::chrono::steady_clock::time_point {}) {
++                    skFailedSince_ = skNow;
++                    SK_ICE("failed #%u — throttling poll to %d ms after %d ms grace",
++                           skId_, SK_ICE_FAILED_POLL_MS, SK_ICE_FAILED_GRACE_MS);
++                } else if (skNow - skFailedSince_
++                           > std::chrono::milliseconds(SK_ICE_FAILED_GRACE_MS)) {
++                    std::this_thread::sleep_for(
++                        std::chrono::milliseconds(SK_ICE_FAILED_POLL_MS));
++                }
++            } else if (skFailedSince_ != std::chrono::steady_clock::time_point {}) {
++                // Recovered (or re-negotiated) — back to full rate.
++                skFailedSince_ = {};
++            }
+         }
+     });
+ }
