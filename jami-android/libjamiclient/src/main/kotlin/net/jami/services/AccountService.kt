@@ -880,6 +880,40 @@ class AccountService(
     /** Current account list snapshot (for the online-recovery watchdog's per-account heuristic). */
     fun getAccounts(): List<Account> = mAccountList
 
+    // ---- All-accounts connection poll: DECLARED HERE ON PURPOSE ------------------------------
+    //
+    // These two MUST stay above connectionStatusMap, immediately below, because that property's own
+    // initializer calls monitorAllConnections(true) — and Kotlin runs property initializers in
+    // DECLARATION order. Declared after it (where they naturally belonged, next to
+    // monitorAllConnections ~1350 lines down) the field is still null when connectionStatusMap runs,
+    // and AccountService's constructor throws inside Dagger: the whole application fails to create
+    // and the app crashes on every launch. That happened twice — +157 with an eager initializer
+    // (NPE calling switchMap on null) and +158 with `by lazy` (NPE on Lazy.getValue(), because the
+    // DELEGATE field is itself initialized in declaration order). `by lazy` is kept as a second
+    // belt, but position is what actually fixes it.
+    //
+    // Why the poll changed at all: it was a COLD Observable.interval at 2 s, so each of its five
+    // subscribers span up its own timer, and one is the background dead-link alarm — four accounts
+    // walked over JNI every two seconds with nothing on screen. Profiled idle: 58% of samples under
+    // ArtMethod::Invoke, 31% under ObservableInterval$IntervalObserver, plus the malloc/ICU/GC churn
+    // of rebuilding a Map<String,String> per connection each round. Now one shared stream
+    // (replay(1).refCount() — the timer stops when the last subscriber leaves, and a new subscriber
+    // paints from the cached value instead of waiting for the next tick) at a cadence that follows
+    // whether anything is actually being looked at.
+    private val connectionPollPeriodMs: BehaviorSubject<Long> by lazy {
+        BehaviorSubject.createDefault(MONITOR_POLL_SLOW_MS)
+    }
+
+    // Every current caller asks for includeFailing = true, so that is the variant worth sharing;
+    // a false caller falls back to its own stream rather than silently getting the wrong data.
+    private val allConnectionsShared: Observable<List<AccountConnections>> by lazy {
+        connectionPollPeriodMs.distinctUntilChanged()
+            .switchMap { period -> Observable.interval(0, period, TimeUnit.MILLISECONDS, scheduler) }
+            .map { allConnectionsSnapshot(true) }
+            .replay(1)
+            .refCount()
+    }
+
     /** Shared peer → live-connection-status map for the presence dot's "best status" union (one poll,
      *  replay + refCount, so it costs nothing when nothing observes it — i.e. chat list not foreground).
      *  CONNECTED if any connection to the peer is Connected, AVAILABLE if any is attempting; peers absent
@@ -2219,20 +2253,45 @@ class AccountService(
             .map { Pair(it.key, it.value) }
             .sortedBy { it.first }
 
+    // ---- All-accounts connection poll (2026-07-30) ---------------------------------------------
+    //
+    // Profiled idle on battery: this poll was a large share of the app's ~13.6% of a core. It was a
+    // COLD Observable.interval at 2 s, so each of its five subscribers span up its own timer, and one
+    // of them is the background dead-link alarm — so four accounts were being walked over JNI every
+    // two seconds with no UI on screen. The profile showed it plainly: 58% of samples under
+    // ArtMethod::Invoke/InvokeWithArgArray, 31% under ObservableInterval$IntervalObserver, plus the
+    // malloc/ICU/GC churn from rebuilding a Map<String,String> per connection each round.
+    //
+    // Now: ONE shared stream (replay(1).refCount() — the timer stops when the last subscriber
+    // leaves, and a new subscriber paints immediately from the cached value instead of waiting for
+    // the next tick), at a cadence that follows whether anything is actually being looked at.
+    // [setConnectionPollFast] is driven from the app's process lifecycle observer.
+
+    /** Foreground → poll at [MONITOR_POLL_FAST_MS]; background → [MONITOR_POLL_SLOW_MS]. */
+    fun setConnectionPollFast(fast: Boolean) {
+        val want = if (fast) MONITOR_POLL_FAST_MS else MONITOR_POLL_SLOW_MS
+        if (connectionPollPeriodMs.value != want) connectionPollPeriodMs.onNext(want)
+    }
+
+    private fun allConnectionsSnapshot(includeFailing: Boolean): List<AccountConnections> =
+        mAccountList.filter { it.isJami }.map { acc ->
+            AccountConnections(
+                accountId = acc.accountId,
+                name = acc.registeredName.ifBlank { acc.alias.orEmpty() }.ifBlank { acc.accountId },
+                uri = acc.uri ?: "",
+                registered = acc.isRegistered,
+                peers = connectionListFor(acc.accountId, includeFailing)
+            )
+        }
+
+
     /** Every Jami account's connections, polled together — for the multi-account connection monitor,
      *  the dot dialog, and the dead-link alarm (so they reflect ALL accounts, not just the current one). */
     fun monitorAllConnections(includeFailing: Boolean = false): Observable<List<AccountConnections>> =
-        Observable.interval(0, 2, TimeUnit.SECONDS, scheduler).map { _ ->
-            mAccountList.filter { it.isJami }.map { acc ->
-                AccountConnections(
-                    accountId = acc.accountId,
-                    name = acc.registeredName.ifBlank { acc.alias.orEmpty() }.ifBlank { acc.accountId },
-                    uri = acc.uri ?: "",
-                    registered = acc.isRegistered,
-                    peers = connectionListFor(acc.accountId, includeFailing)
-                )
-            }
-        }
+        if (includeFailing) allConnectionsShared
+        else connectionPollPeriodMs.distinctUntilChanged()
+            .switchMap { period -> Observable.interval(0, period, TimeUnit.MILLISECONDS, scheduler) }
+            .map { allConnectionsSnapshot(false) }
 
     enum class AuthState(val value: Int) {
         INIT(0),
@@ -2358,6 +2417,12 @@ class AccountService(
         private const val PRESENCE_RECENT_MS: Long = 7L * 24 * 60 * 60 * 1000  // "recently active"
         private const val PRESENCE_MIN_CONVERSATIONS = 8   // always watch this many, however old
         private const val PRESENCE_MAX_PER_ACCOUNT = 24    // hard ceiling per account
+
+        // All-accounts connection poll cadence (see monitorAllConnections). Fast only while a UI
+        // surface is actually on screen; the background consumer is the dead-link alarm, which does
+        // not need two-second resolution and was the reason this ran flat out with nothing visible.
+        private const val MONITOR_POLL_FAST_MS = 2_000L
+        private const val MONITOR_POLL_SLOW_MS = 180_000L
 
         const val ACCOUNT_SCHEME_NONE = ""
         const val ACCOUNT_SCHEME_PASSWORD = "password"
