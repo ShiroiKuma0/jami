@@ -373,7 +373,20 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # dhtnet throttle for terminally-FAILED IceTransports (SK-ICEREAP). Guard: SK_ICE_FAILED_POLL_MS.
 r bash -c 'cp patches/dhtnet-throttle-failed-ice-transports.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-throttle-failed-ice-transports.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-throttle-failed-ice-transports.patch|" daemon/contrib/src/dhtnet/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK_ICE_FAILED_POLL_MS "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-throttle-failed-ice-transports.patch && rm -f "$d/.dhtnet"; fi'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if ! [ "$d/.dhtnet" -nt "$d/dhtnet/src/ice_transport.cpp" ] || ! [ "$d/.dhtnet" -nt "$d/dhtnet/src/ip_utils.cpp" ]; then rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
+
+# dhtnet SK-ICEDIAG family — apply IN THIS ORDER, each one's diff context includes the previous.
+# Guards: SK_CM / SK_CM("request / mxshutdown / SK_CM("established
+for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag; do
+  r bash -c "cp patches/$p.patch daemon/contrib/src/dhtnet/"
+done
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "SK_CM" "$d/dhtnet/src/connectionmanager.cpp"                || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-churn-diag.patch; rm -f "$d/.dhtnet"; }'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "SK_CM(\"request" "$d/dhtnet/src/connectionmanager.cpp"      || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-reason-diag.patch; rm -f "$d/.dhtnet"; }'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "mxshutdown" "$d/dhtnet/src/multiplexed_socket.cpp"          || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-shutdown-reason-diag.patch; rm -f "$d/.dhtnet"; }'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "SK_CM(\"established" "$d/dhtnet/src/connectionmanager.cpp" || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-peer-account-diag.patch; rm -f "$d/.dhtnet"; }'
+# Rebuild dhtnet if ANY of its sources is newer than the stamp. The old form named ice_transport.cpp
+# and ip_utils.cpp explicitly, so a change to connectionmanager.cpp alone was SILENTLY SKIPPED and
+# +163 shipped a stale libdhtnet with the new diagnostics simply absent from the APK (2026-07-30).
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" ] || [ -n "$(find "$d/dhtnet/src" -name "*.cpp" -o -name "*.h" -newer "$d/.dhtnet" 2>/dev/null | head -1)" ]; then echo ">>> dhtnet sources changed — rebuilding"; rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
 
 # pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
