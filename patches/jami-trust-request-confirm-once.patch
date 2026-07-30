@@ -1,0 +1,47 @@
+--- a/src/jamidht/contact_list.h
++++ b/src/jamidht/contact_list.h
+@@ -23,6 +23,7 @@
+ #include <opendht/crypto.h>
+ 
+ #include <map>
++#include <set>
+ #include <mutex>
+ #include <chrono>
+ 
+@@ -143,6 +144,9 @@
+     mutable std::mutex mutex_;
+     std::map<dht::InfoHash, Contact> contacts_;
+     std::map<dht::InfoHash, TrustRequest> trustRequests_;
++    // SK-TRUSTCONFIRM: peers we have already answered with a trust-request confirmation during THIS
++    // process run. Not persisted on purpose — see onTrustRequest.
++    std::set<dht::InfoHash> confirmSentThisRun_;
+     std::map<dht::InfoHash, KnownDevice> knownDevicesLegacy_;
+ 
+     std::map<dht::PkId, KnownDevice> knownDevices_;
+--- a/src/jamidht/contact_list.cpp
++++ b/src/jamidht/contact_list.cpp
+@@ -388,8 +388,22 @@
+ 
+         if (contact->second.isActive()) {
+             active = true;
+-            // Send confirmation
+-            if (not confirm)
++            // SK-TRUSTCONFIRM (2026-07-30): answer a re-delivered request ONCE per process run.
++            //
++            // This branch used to set accept unconditionally, so every re-delivery of an old
++            // TrustRequest for an ALREADY-ACTIVE contact sent a fresh confirmation — and each
++            // confirmation is a putEncrypted per device of that contact, i.e. an RSA signature plus
++            // an RSA encryption with the account key. Trust requests are PERMANENT DHT puts, so they
++            // live indefinitely and every fresh SUBSCRIBE returns them again with the key's full
++            // value set. Profiled on 2026-07-30: 49% of all CPU samples in GMP/nettle, one stack
++            // (putEncrypted -> Value::encrypt -> PrivateKey::sign -> nettle RSA) carrying 27% of the
++            // whole profile, with the device otherwise idle.
++            //
++            // Deliberately NOT gated on contact.confirmed alone: if our single confirmation were
++            // lost in flight, that would strand the peer as "pending" for ever with nothing to retry
++            // it. An in-memory set instead — suppress the storm within a run, and let every app start
++            // re-answer once. Bounded by the contact count, cleared with the process.
++            if (not confirm && confirmSentThisRun_.insert(peer_account).second)
+                 accept = true;
+             if (not contact->second.confirmed) {
+                 contact->second.confirmed = true;
