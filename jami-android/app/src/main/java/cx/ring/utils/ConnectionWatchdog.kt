@@ -70,6 +70,12 @@ object ConnectionWatchdog {
     private const val UNIFORM_PROBE_VERDICT_MS = 75_000L   // uniform (0-healthy) probe window: the 60 s gate + echo-suppression slack
     private const val UNIFORM_PROBE_FAIL_CAP = 2           // consecutive unanswered-probe recovers before standing down (dead-quiet night ≠ churn)
     private const val PROBE_PUSH_GRACE_MS = 60_000L        // …a real push this close to the probe window refutes a UNIFORM wedge (full DHT only; proxy mode uses PROXY_ALIVE_MS — see startUniformProbe)
+    // A proxy that delivered within this window is working, so an account riding it is quiet rather
+    // than wedged. Set well clear of how long a HEALTHY proxy legitimately stays silent: SK-PROXYDIAG
+    // logged "listen rx RESUMED after" 603 s, 690 s and 752 s on 2026-07-29, and healthy lastRx values
+    // of 238–642 s the next morning. 20 min leaves room above the worst observed and still catches a
+    // genuinely dead subscription within one deafness cycle.
+    private const val PROXY_RX_ALIVE_MS = 20 * 60_000L
     const val REASON_CHARGING = "charging"                 // why the proxy is being held off — keys, localised by the UI
     const val REASON_WEDGE = "wedge"
     private const val MODE_SWITCH_PROBE_DELAY_MS = 10_000L // let a just-switched DHT mode register before its verification probe
@@ -538,7 +544,38 @@ object ConnectionWatchdog {
                                         .any { m -> m.presence == net.jami.model.Contact.PresenceStatus.CONNECTED }
                                 } ?: false
                             }.getOrDefault(false)
-                            if (st.strikes < 2 && !stuckToConnected) {
+                            // Does this account's OWN proxy still deliver? (2026-07-30.) The two-strike
+                            // rule above was meant to be the corroboration, but two unanswered probes
+                            // are not twice the evidence of one when the probe CANNOT be answered — and
+                            // in proxy mode it cannot (trackBuddy listens only on refCount 0→1). The
+                            // result, measured overnight 2026-07-29→30: six "verified WEDGE" recoveries
+                            // on the two quietest accounts between 23:51 and 01:46, each costing ~20 MiB
+                            // because a resubscribe re-downloads the full value set of every key —
+                            // 120 MiB, two thirds of the night's traffic, while 15 real pushes were
+                            // arriving and the accounts then sat healthy for five hours untouched.
+                            //
+                            // The per-account deafness clock is fed only by peer-originated callbacks
+                            // for THAT account (a push advances the global clock alone, by design), so a
+                            // genuinely quiet account reads "deaf 54m" for ever and the probe can never
+                            // clear it. Quiet and wedged were indistinguishable — which is precisely the
+                            // distinction this detector claims to draw.
+                            //
+                            // ProxySubs answers it properly, per account, because each account rides its
+                            // own proxy. Null = no information (diag patch absent, or a fresh process):
+                            // fall through to the old behaviour rather than veto on ignorance.
+                            val proxyRxAge = if (UiPrefs.isFullDhtMode(c)) null else runCatching {
+                                accounts.getAccount(id)?.let { acct ->
+                                    ProxySubs.rxAgeMs(acct.dhtProxyUsed.ifBlank { acct.dhtProxy })
+                                }
+                            }.getOrNull()
+                            val proxyDelivering = proxyRxAge != null && proxyRxAge < PROXY_RX_ALIVE_MS
+                            if (!stuckToConnected && proxyDelivering) {
+                                // Positive evidence that the receive path for THIS account is alive.
+                                // Not a strike: a strike implies suspicion, and there is none.
+                                st.strikes = 0
+                                st.nextCheckMs = t3 + IDLE_REARM_MS
+                                log(c, "acct ${id.take(6)}: probe unanswered, but its proxy delivered ${proxyRxAge!! / 1000}s ago — quiet, NOT wedged; no recovery")
+                            } else if (st.strikes < 2 && !stuckToConnected) {
                                 log(c, "acct ${id.take(6)}: probe unanswered but nothing stuck to a reachable peer — SUSPECT (strike ${st.strikes}), re-probe in ${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
                             } else {
                                 recovering = true; lastRecoverMs = t3
