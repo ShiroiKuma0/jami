@@ -1,0 +1,39 @@
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -1742,6 +1742,18 @@
+                                                         deviceId,
+                                                         std::move(info->tls_),
+                                                         config_->logger);
++    // SK-ICEDIAG: 83% of peer connections die with why=peer-eof — the REMOTE side hangs up. This
++    // names the account behind each device so we can tell whether those peers are other people's
++    // phones (in which case remote closes are normal and we should tolerate them cheaply) or this
++    // same daemon's OTHER ACCOUNTS talking to each other, which would be self-inflicted. A Jami
++    // device certificate's issuer UID is its account id.
++    {
++        auto skCert = info->socket_ ? info->socket_->peerCertificate() : nullptr;
++        SK_CM("established device=%s account=%s vid=%llu",
++              std::string(deviceId.to_view()).c_str(),
++              skCert ? skCert->getIssuerUID().c_str() : "?",
++              (unsigned long long) vid);
++    }
+     info->socket_->setOnReady(
+         [w = weak_from_this()](const DeviceId& deviceId, const std::shared_ptr<ChannelSocket>& socket) {
+             if (auto sthis = w.lock())
+@@ -1759,8 +1771,15 @@
+     info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid](const std::error_code& ec) {
+         // SK-ICEDIAG: why did an ESTABLISHED connection end? ec=0 is a clean local/remote close
+         // (someone decided to); anything else is a transport error. This is the 45 s median.
+-        SK_CM("shutdown vid=%llu ec=%d (%s)", (unsigned long long) vid, ec.value(),
+-              ec ? ec.message().c_str() : "clean");
++        // `dinfo` is the weak DeviceInfo captured above; the handler locks it further down, so
++        // lock it here too rather than reaching for a name that is not in scope yet.
++        if (auto skDi = dinfo.lock())
++            SK_CM("shutdown vid=%llu device=%s ec=%d (%s)", (unsigned long long) vid,
++                  std::string(skDi->deviceId.to_view()).c_str(), ec.value(),
++                  ec ? ec.message().c_str() : "clean");
++        else
++            SK_CM("shutdown vid=%llu device=? ec=%d (%s)", (unsigned long long) vid, ec.value(),
++                  ec ? ec.message().c_str() : "clean");
+         // Cancel current outgoing connections
+         dht::ThreadPool::io().run([w, dinfo, wi, vid] {
+             if (auto info = wi.lock()) {
