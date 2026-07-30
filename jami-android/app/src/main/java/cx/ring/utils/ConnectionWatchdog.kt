@@ -1054,7 +1054,7 @@ object ConnectionWatchdog {
         if (UiPrefs.isRestrictedNet(c)) {
             // UDP is blocked here — the full DHT would be deaf. Keep the proxy pinned ON and
             // only re-register; TURN relays carry what they can.
-            log(c, "→ restricted network: proxy stays ON; re-registering only")
+            log(c, "→ restricted network: proxy stays ON; RE-REGISTERING (drops every peer socket)")
             accounts.forceReconnectAllAccounts()
             scheduleBackfill(c, accounts, "full recover, restricted")
             return
@@ -1064,10 +1064,17 @@ object ConnectionWatchdog {
         // stuck receive path, none of the full-value-set re-download that made every recovery cost
         // megabytes. wedgeProxyImplicated also scopes applyProxyState's 10-min linger, so a
         // non-proxy wedge no longer drags the daemon onto full DHT behind the user's chosen mode.
+        //
+        // "WITHOUT touching the proxy" is NOT a light action, and reading it that way cost a day
+        // (2026-07-30). forceReconnectAllAccounts() -> sendRegister(id, false) makes the daemon take
+        // the `not isEnabled()` branch of doUnregister and call shutdownConnections(), destroying
+        // EVERY peer TLS socket on EVERY account. The peer records it as "peer-eof". What this
+        // branch spares is the DHT proxy client and its value re-download — not the peer
+        // connections. Every caller should treat reaching fullRecover at all as expensive.
         wedgeProxyImplicated = proxySuspect ?: proxyImplicated(accounts, t)
         if (!wedgeProxyImplicated) {
             val ago = if (PushEvidence.lastRealPushMs == 0L) "n/a" else "${(t - PushEvidence.lastRealPushMs) / 1000}s"
-            log(c, "→ recovering WITHOUT touching the proxy (real push $ago ago — the proxy leg delivers); re-registering + presence re-arm")
+            log(c, "→ recovering, proxy client kept (real push $ago ago); RE-REGISTERING — drops every peer socket on every account")
             accounts.forceReconnectAllAccounts()
             resubscribeAllPresence(accounts)
             scheduleBackfill(c, accounts, "full recover, proxy kept")
@@ -1632,8 +1639,27 @@ object ConnectionWatchdog {
                 maybeProbePush(c, accounts, "proxy unreachable")
                 fullRecover(c, accounts, proxySuspect = true)
             } else if (uniformProbeFails < UNIFORM_PROBE_FAIL_CAP) {
-                log(c, "proxy probe: reachable (${v.detail}) — the proxy is up and quiet, not wedged; re-registering only (strike $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP), proxy kept")
-                fullRecover(c, accounts, proxySuspect = false)
+                // DO NOTHING. This branch has POSITIVE evidence of health — the proxy answered — so
+                // the only correct action is none (2026-07-30).
+                //
+                // It previously called fullRecover(proxySuspect = false) and described that as
+                // "re-registering only", as though it were the gentle option. It is not:
+                // fullRecover -> forceReconnectAllAccounts -> sendRegister(id, false) -> the daemon
+                // takes the `not isEnabled()` branch in doUnregister and runs shutdownConnections(),
+                // which DESTROYS EVERY PEER TLS SOCKET ON EVERY ACCOUNT. The peer's read() then
+                // returns 0 and it records exactly the "peer-eof" we spent a day chasing — so the
+                // fix written to stop false-positive recoveries was itself performing a global
+                // teardown on proof that nothing was wrong.
+                //
+                // Worse, it phase-locks two devices running this build: our teardown makes the peer
+                // re-announce presence, which resets OUR per-account deafness clock, so we fall
+                // quiet from that instant and repeat ~2.5 min later. Each side's "recovery" is the
+                // other side's silence.
+                //
+                // The strike still counts, so a genuinely dead subscription escalates on the next
+                // round through the branch below. Nothing is lost by waiting; a great deal is lost
+                // by re-registering.
+                log(c, "proxy probe: reachable (${v.detail}) — the proxy is up and quiet, NOT wedged; no action (strike $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)")
             } else {
                 uniformWedgeSeq++
                 writeIncident(c, "uniform-wedge",
