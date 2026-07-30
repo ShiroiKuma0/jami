@@ -1,0 +1,25 @@
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -907,6 +907,11 @@
+                                        ConnectCallback cb,
+                                        const ConnectDeviceOptions& options)
+ {
++    // SK-ICEDIAG: the channel NAME is the reason this connection is wanted (Jami uses "sip",
++    // "git://…", "sync://…", "file://…" and so on). 784 outbound sessions in 170 min against 6
++    // devices, over half of which connect and are then closed with a 45 s median life — this says
++    // which subsystem is asking, and whether it is one of them or all of them.
++    SK_CM("request device=%s channel=%s", std::string(deviceId.to_view()).c_str(), name.c_str());
+     if (!dht()) {
+         cb(nullptr, deviceId);
+         return;
+@@ -1748,6 +1753,10 @@
+         return false;
+     });
+     info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid](const std::error_code& ec) {
++        // SK-ICEDIAG: why did an ESTABLISHED connection end? ec=0 is a clean local/remote close
++        // (someone decided to); anything else is a transport error. This is the 45 s median.
++        SK_CM("shutdown vid=%llu ec=%d (%s)", (unsigned long long) vid, ec.value(),
++              ec ? ec.message().c_str() : "clean");
+         // Cancel current outgoing connections
+         dht::ThreadPool::io().run([w, dinfo, wi, vid] {
+             if (auto info = wi.lock()) {

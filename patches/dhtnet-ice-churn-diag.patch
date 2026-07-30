@@ -1,0 +1,64 @@
+--- a/src/ice_transport.cpp
++++ b/src/ice_transport.cpp
+@@ -429,15 +429,21 @@
+         logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
+     skId_ = skIceCreated.fetch_add(1, std::memory_order_relaxed) + 1;
+     skBorn_ = std::chrono::steady_clock::now();
+-    SK_ICE("create #%u alive=%d (created=%u destroyed=%u)",
+-           skId_, skIceAlive.fetch_add(1, std::memory_order_relaxed) + 1,
++    // name is "Device <id>" from IceTransportFactory's callers, i.e. the peer this session is for.
++    // Safe to read here: the initializer list only std::move()s it when a logger exists, and the
++    // daemon leaves opendht's logger null in release.
++    SK_ICE("create #%u peer=%s alive=%d (created=%u destroyed=%u)",
++           skId_, name.c_str(), skIceAlive.fetch_add(1, std::memory_order_relaxed) + 1,
+            skIceCreated.load(), skIceDestroyed.load());
+ }
+ 
+ IceTransport::Impl::~Impl()
+ {
+-    SK_ICE("destroy #%u alive=%d lifetime=%llds (created=%u destroyed=%u)",
+-           skId_, skIceAlive.fetch_sub(1, std::memory_order_relaxed) - 1,
++    // Final ICE state on the way out: of everything created, how much ever actually connected?
++    // 4=RUNNING means it succeeded; 5=FAILED lost; 1/2/3 means it was torn down mid-negotiation.
++    SK_ICE("destroy #%u state=%d alive=%d lifetime=%llds (created=%u destroyed=%u)",
++           skId_, icest_ ? (int) pj_ice_strans_get_state(icest_) : -1,
++           skIceAlive.fetch_sub(1, std::memory_order_relaxed) - 1,
+            (long long) std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - skBorn_).count(),
+            skIceCreated.load(), skIceDestroyed.fetch_add(1, std::memory_order_relaxed) + 1);
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -34,6 +34,17 @@
+ #include <random>
+ #include <set>
+ 
++// SK-ICEDIAG (2026-07-30): which side initiates an ICE session. The transport census showed ~5.4
++// creations a minute sustained (bursting to 15) with almost all sessions failing on a CGNAT
++// cellular link; this says whether WE are retrying outbound or peers are retrying at US, which
++// are opposite problems with opposite fixes.
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_CM(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++#else
++#define SK_CM(...) do {} while (0)
++#endif
++
+ namespace dhtnet {
+ static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
+ static constexpr dht::Value::Id ID_MAX_VAL = 9007199254740992;
+@@ -1129,6 +1140,7 @@
+         ice_config.master = false;
+         ice_config.streamsCount = 1;
+         ice_config.compCountPerStream = 1;
++        SK_CM("initiate %s device=%s", "connect-out", std::string(deviceId.to_view()).c_str());
+         info->ice_ = sthis->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
+                                                                sthis->config_->logger);
+         if (!info->ice_) {
+@@ -1689,6 +1701,7 @@
+         if (shared->config_->logger)
+             shared->config_->logger->debug("[device {}] Accepting connection", deviceId);
+         std::unique_lock lk {info->mutex_};
++        SK_CM("initiate %s device=%s", "answer-in", std::string(deviceId.to_view()).c_str());
+         info->ice_ = shared->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
+                                                                 shared->config_->logger);
+         if (not info->ice_) {
