@@ -1,0 +1,94 @@
+--- a/src/ice_transport.cpp
++++ b/src/ice_transport.cpp
+@@ -33,6 +33,7 @@
+ 
+ extern "C" {
+ #include <pjlib.h>
++#include <unistd.h>
+ }
+ 
+ #include <map>
+@@ -93,6 +94,28 @@
+ static constexpr unsigned UPNP_BREAKER_THRESHOLD {6};
+ static constexpr std::chrono::minutes UPNP_BREAKER_COOLDOWN {5};
+ static std::atomic<unsigned> upnpBreakerFails {0};
++
++// SK-ICEDIAG (2026-07-30): IceTransport lifecycle census.
++//
++// Each IceTransport spawns one std::thread running handleEvents(), and profiling an idle phone put
++// 96% of the app's CPU inclusive in that loop — ~1% of a core per thread, across 9 threads whose
++// ages showed NONE had ever been destroyed. That is either a leak (transports outliving their ICE
++// session) or the honest price of nine live connections, and the two call for opposite fixes. This
++// only logs; it changes no behaviour.
++//
++// Direct __android_log_print, not logger_: the daemon leaves opendht's logger null unless
++// dhtLogLevel > 0, so logger_->debug() is silent in a release build (same reason SK-PROXYDIAG
++// exists). ERROR level so LogStormMonitor's own-pid *:E tail picks it up.
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_ICE(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++#else
++#define SK_ICE(...) do {} while (0)
++#endif
++static std::atomic<unsigned> skIceCreated {0};
++static std::atomic<unsigned> skIceDestroyed {0};
++static std::atomic<int> skIceAlive {0};
++
+ static std::atomic<int64_t> upnpBreakerOpenUntilMs {0};
+ 
+ static int64_t
+@@ -301,6 +324,12 @@
+             p->cv.notify_all();
+         }
+     }
++
++    // SK-ICEDIAG: identity + wall clock for the lifecycle census, and a spin counter so a
++    // long-lived transport reports its ICE state periodically rather than every iteration.
++    unsigned skId_ {0};
++    std::chrono::steady_clock::time_point skBorn_ {};
++    unsigned long long skSpins_ {0};
+ };
+ 
+ //==============================================================================
+@@ -391,10 +420,20 @@
+ {
+     if (logger_)
+         logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
++    skId_ = skIceCreated.fetch_add(1, std::memory_order_relaxed) + 1;
++    skBorn_ = std::chrono::steady_clock::now();
++    SK_ICE("create #%u alive=%d (created=%u destroyed=%u)",
++           skId_, skIceAlive.fetch_add(1, std::memory_order_relaxed) + 1,
++           skIceCreated.load(), skIceDestroyed.load());
+ }
+ 
+ IceTransport::Impl::~Impl()
+ {
++    SK_ICE("destroy #%u alive=%d lifetime=%llds (created=%u destroyed=%u)",
++           skId_, skIceAlive.fetch_sub(1, std::memory_order_relaxed) - 1,
++           (long long) std::chrono::duration_cast<std::chrono::seconds>(
++               std::chrono::steady_clock::now() - skBorn_).count(),
++           skIceCreated.load(), skIceDestroyed.fetch_add(1, std::memory_order_relaxed) + 1);
+     threadTerminateFlags_ = true;
+ 
+     if (thread_.joinable()) {
+@@ -670,6 +709,20 @@
+     // By tests, never seen more than two events per 500ms
+     static constexpr auto MAX_NET_EVENTS = 2;
+ 
++    // SK-ICEDIAG: one line per transport per ~2000 iterations. At the ioqueue's 10 ms unhandled-event
++    // backoff that is roughly a minute, so it is low volume — and it answers the question the thread
++    // ages could not: is a thread that keeps spinning attached to a LIVE ice_strans, or to a session
++    // that has already failed/finished? pj_ice_strans_get_state: 1=INIT 2=SESS_READY 3=NEGO 4=RUNNING
++    // 5=FAILED. A spinning transport reporting FAILED (or a null strans) is a zombie; RUNNING is the
++    // honest cost of a live connection.
++    if ((++skSpins_ % 2000ULL) == 0ULL) {
++        auto* st = icest_;
++        SK_ICE("spin #%u tid=%d spins=%llu state=%d alive=%d",
++               skId_, (int) gettid(), skSpins_,
++               st ? (int) pj_ice_strans_get_state(st) : -1,
++               skIceAlive.load(std::memory_order_relaxed));
++    }
++
+     pj_time_val max_timeout = {0, static_cast<long>(max_msec)};
+     pj_time_val timeout = {0, 0};
+     unsigned net_event_count = 0;

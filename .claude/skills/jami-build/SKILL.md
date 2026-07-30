@@ -364,6 +364,15 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # dhtnet UPnP circuit breaker (idempotent; submodule, not committed — canonical patch at patches/)
 r bash -c 'cp patches/dhtnet-upnp-circuit-breaker.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-upnp-circuit-breaker.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-upnp-circuit-breaker.patch|" daemon/contrib/src/dhtnet/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q upnpBreakerFails "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-upnp-circuit-breaker.patch && rm -f "$d/.dhtnet"; fi'
+
+# dhtnet IceTransport lifecycle census (SK-ICEDIAG) — MUST be applied before the throttle patch,
+# whose diff context includes these lines. Guard: skIceCreated.
+r bash -c 'cp patches/dhtnet-ice-transport-diag.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-ice-transport-diag.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-upnp-circuit-breaker.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-upnp-circuit-breaker.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch|" daemon/contrib/src/dhtnet/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q skIceCreated "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-transport-diag.patch && rm -f "$d/.dhtnet"; fi'
+
+# dhtnet throttle for terminally-FAILED IceTransports (SK-ICEREAP). Guard: SK_ICE_FAILED_POLL_MS.
+r bash -c 'cp patches/dhtnet-throttle-failed-ice-transports.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-throttle-failed-ice-transports.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-throttle-failed-ice-transports.patch|" daemon/contrib/src/dhtnet/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK_ICE_FAILED_POLL_MS "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-throttle-failed-ice-transports.patch && rm -f "$d/.dhtnet"; fi'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if ! [ "$d/.dhtnet" -nt "$d/dhtnet/src/ice_transport.cpp" ] || ! [ "$d/.dhtnet" -nt "$d/dhtnet/src/ip_utils.cpp" ]; then rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
 
 # pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
