@@ -199,12 +199,14 @@ DHT proxy client and its value re-download — **not** the peer connections. The
 
 ### Still open
 
-1. **`JamiApplication.kt:305`** — `connectivityChanged(true)` on every message push. Fires a beacon
-   with a **3 s kill deadline** on every socket across all four accounts, and re-maintains every
-   conversation's buckets. Fork-local to the shipped flavor since `+143`. Its premise (rebuild
-   sockets torn down in doze) expired when background deactivation was disabled. NOT YET CHANGED.
+1. ~~**`JamiApplication.kt:305`** — `connectivityChanged(true)` on every message push.~~ **REMOVED
+   2026-07-30.** Its premise (rebuild sockets torn down in doze) expired when background
+   deactivation was disabled; what remained was a beacon with a 3 s kill deadline on every socket of
+   every account, ~17×/h, against sockets that were already up. Re-enabling deactivation means
+   restoring it.
 2. **No backoff on the swarm reconnect path** — one teardown fans out to ~8 immediate `tryConnect`
-   calls. The git-clone path beside it has proper exponential backoff to 12 h.
+   calls. The git-clone path beside it has proper exponential backoff to 12 h. See §10 for why the
+   apparently cheaper "repair upstream's own damper" fix is NOT safe.
 3. **The corrupt opendht build tree** — `connectDeadlineFired` applied SIX times, with `.rej`/`.orig`
    leftovers; it cannot compile. Invisible only because the `.opendht` stamp predates the damage.
    The build guard greps for that same marker, so it will keep reporting "already applied". Fix:
@@ -220,3 +222,61 @@ Upgrade the peer device to a build with the proxy-liveness veto, then re-run a 1
 `SK-ICEDIAG` window. Prediction on the record: `peer-eof` falls sharply, connection lifetimes rise
 well above the 45 s median, CPU follows the transport count down. If it does not, the
 bilateral-watchdog theory is wrong.
+
+---
+
+## 10. What stock does about redialling phones — read before touching the swarm (2026-07-30)
+
+Established by reading `daemon/src/jamidht/swarm/` and `conversation.cpp` directly. `src/jamidht/swarm/`
+is pristine upstream, so all of this is stock behaviour.
+
+### There is no backoff anywhere in the swarm layer
+
+`grep -rnE "backoff|retry|BACKOFF|RETRY|seconds\(|minutes\(" src/jamidht/swarm/*` returns **nothing**.
+`FIND_PERIOD` (10 min) exists but is never armed. A dial that fails is retried on the next event with
+no memory of the last attempt.
+
+### Stock's actual damper is a classification, and it works — until it is defeated
+
+Peers advertise `is_mobile` in the swarm protocol (`swarm_protocol.h:58`);
+`isMobile() = proxyEnabled && !deviceKey.empty()` (`jamiaccount.h:562`), i.e. "I am a phone on proxy
++ push". On receipt, `changeMobility` stamps `NodeInfo::isMobile_` (`swarm_manager.cpp:250`). When the
+connection drops, `Bucket::removeNode` files the peer into **`mobile_nodes`** instead of
+`known_nodes` (`routing_table.cpp:~68`). `maintainBuckets` dials only `getKnownNodesRandom`, which
+draws from `known_nodes` alone — so **a phone that dropped off is deliberately not chased.**
+
+The defeat: **`Bucket::addKnownNode` checks only `hasNode` (already connected), never `mobile_nodes`**
+(`routing_table.cpp:91-100`). Any promotion path puts the phone straight back into the dial pool.
+`addConnectingNode` then erases it from `mobile_nodes` entirely, so the mobility knowledge is
+destroyed and a failed dial re-arms itself via `addKnownNode` at `swarm_manager.cpp:322`.
+
+### Why the one-line "fix" is NOT safe
+
+Making `addKnownNode` respect `mobile_nodes` looks like a pure repair of upstream's intent. It is not,
+because of who calls it:
+
+- `Conversation::addKnownDevices` → `setKnownNodes` (`conversation.cpp:2896`) is **the sole
+  candidate-injection path for the DRT.** Upstream's own comment at `conversation.cpp:2855-2861` says
+  bootstrap deliberately passes no device list: "candidates are injected as members get online,
+  through addKnownDevices() with devices reported by the PresenceManager".
+- `setKnownNodes` also carries the FIND-response `nodes` list, which `closestNodes` builds from the
+  responder's **connected** peers — so every FIND answer re-promotes every mobile peer currently
+  online with anyone else.
+
+So a mobile-node veto in `addKnownNode` would not merely stop speculative re-dials — it would stop
+the DRT ever receiving candidates for a mobile peer. In a conversation whose members are all phones,
+our buckets would stay permanently empty. That trades churn for possible sync loss, which is the one
+outcome ruled out.
+
+### Therefore: backoff, with mobility as a multiplier
+
+The defect is not *that* we dial phones, it is that **every presence announce re-triggers a dial with
+no memory of the previous attempt**. The fix belongs in `tryConnect`'s speculative path
+(`noNewSocket == false`; `swarm_manager.cpp:187` from `maintainBuckets`), never on the event-driven
+`connectNode` → `tryConnect(nodeId, true)` path (`:353`), which must stay immediate.
+
+Sizing, from §2's data: dead offers are reaped at **exactly 30 s** (373 samples, min 30 / median 30 /
+max 60). A base below that retries while the previous offer is still outstanding, stacking two live
+offers on the same peer — so **30 s is a hard floor, and the base must clear it with margin.**
+Mobility should scale the base rather than veto the dial: a peer that says it is a phone is expected
+to be absent, so it earns a longer window, not a permanent one.
