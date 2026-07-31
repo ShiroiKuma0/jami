@@ -1,5 +1,3 @@
-diff --git a/src/jamidht/account_manager.cpp b/src/jamidht/account_manager.cpp
-index 5dada427a..21743c4aa 100644
 --- a/src/jamidht/account_manager.cpp
 +++ b/src/jamidht/account_manager.cpp
 @@ -29,9 +29,11 @@
@@ -14,7 +12,7 @@ index 5dada427a..21743c4aa 100644
  #include <gnutls/ocsp.h>
  
  namespace jami {
-@@ -281,6 +283,97 @@ AccountManager::reloadContacts()
+@@ -281,6 +283,96 @@ AccountManager::reloadContacts()
      }
  }
  
@@ -93,8 +91,7 @@ index 5dada427a..21743c4aa 100644
 +        // Re-publishing the SAME list (equal id) always proceeds, so a re-registration can restore
 +        // the permanent put after the DhtRunner has been restarted.
 +        const bool newer = updateTime > publishedCrlTime_
-+                           or (updateTime == publishedCrlTime_
-+                               and crlNumberLess(publishedCrlNumber_, number));
++                           or (updateTime == publishedCrlTime_ and crlNumberLess(publishedCrlNumber_, number));
 +        if (not newer)
 +            return;
 +        dht_->cancelPut(h, publishedCrlId_);
@@ -112,7 +109,7 @@ index 5dada427a..21743c4aa 100644
  void
  AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dcb, bool publishPresence)
  {
-@@ -288,6 +381,19 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
+@@ -288,6 +380,24 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
      if (info_->announce) {
          auto h = dht::InfoHash(info_->accountId);
          if (publishPresence) {
@@ -125,14 +122,19 @@ index 5dada427a..21743c4aa 100644
 +            // Safe for this SIGNED value: the id is not part of getToSign(), the blob
 +            // checkSignature() verifies, so a stable id cannot invalidate the signature. Re-putting
 +            // identical bytes under the same id takes opendht's storageRefresh() path (dht.cpp:
-+            // "if (*lv == *vc) storageRefresh(...)", and Value::operator== ignores the id), so it
-+            // refreshes the existing value instead of adding a copy, and never reaches the
-+            // edit policy.
++            // "if (*lv == *vc) storageRefresh(...)"), so it refreshes the existing value instead of
++            // adding a copy, and never reaches the edit policy.
++            //
++            // CORRECTION (2026-07-31): this used to add "and Value::operator== ignores the id".
++            // It does not — in 4.2.0 operator== is `id == o.id and contentEquals(o)` (value.h).
++            // The conclusion is unaffected, and in fact only holds BECAUSE of that: with a stable
++            // id AND identical bytes both halves of the comparison are true, which is precisely
++            // what selects the refresh branch.
 +            info_->announce->id = dhtValueId(*info_->announce);
              dht_->put(
                  h,
                  info_->announce,
-@@ -302,10 +408,25 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
+@@ -302,10 +412,25 @@ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dc
                  {},
                  true);
          }
@@ -162,8 +164,6 @@ index 5dada427a..21743c4aa 100644
          }
          dht_->listen<DeviceAnnouncement>(h, [this, cb = std::move(cb)](DeviceAnnouncement&& dev) {
              if (dev.pk) {
-diff --git a/src/jamidht/account_manager.h b/src/jamidht/account_manager.h
-index 5134fec28..59649fd0f 100644
 --- a/src/jamidht/account_manager.h
 +++ b/src/jamidht/account_manager.h
 @@ -25,6 +25,8 @@
@@ -249,8 +249,6 @@ index 5134fec28..59649fd0f 100644
  };
  
  } // namespace jami
-diff --git a/src/jamidht/archive_account_manager.cpp b/src/jamidht/archive_account_manager.cpp
-index 42c9e089f..9692bdb94 100644
 --- a/src/jamidht/archive_account_manager.cpp
 +++ b/src/jamidht/archive_account_manager.cpp
 @@ -1454,9 +1454,12 @@ ArchiveAccountManager::revokeDevice(const std::string& device,

@@ -1,0 +1,29 @@
+diff --git a/src/jamidht/jamiaccount.cpp b/src/jamidht/jamiaccount.cpp
+index 1a4854147..5c833cfca 100644
+--- a/src/jamidht/jamiaccount.cpp
++++ b/src/jamidht/jamiaccount.cpp
+@@ -2054,6 +2054,24 @@ JamiAccount::initDhtConfig(const JamiAccountConfig& conf)
+     dht::DhtRunner::Config config {};
+     config.dht_config.node_config.network = 0;
+     config.dht_config.node_config.maintain_storage = false;
++    /* SK-CLIENTMODE: advertise msgpack key "s" on every DHT message so peers skip onNewNode() for
++     * us (opendht network_engine.cpp:644, node_cache.cpp:65) and never place us in a routing table
++     * or hand our address out. Purely a wire flag: no non-packing read of it exists, so our own
++     * searches, listens, puts and refreshes are untouched, and reachability is unaffected — peers
++     * reach us by the VALUES we listen for, not by our node address.
++     *
++     * What it removes, and only during full-DHT windows: inbound bucket-maintenance pings, and
++     * find_node/get/listen/put requests that exist solely because someone holds our address —
++     * `listen` worst of all, since one inbound request obliges us to push refreshes to that peer
++     * indefinitely. It also prevents the ~10-20 min tail (NODE_EXPIRE_TIME) of peers still probing
++     * a UDP socket that no longer exists after we drop back to proxy.
++     *
++     * INERT AT REST: in proxy mode DhtRunner takes the enableProxy branch and DhtProxyClient
++     * receives no dht::Config at all, so this only applies on the wedge-escalation path and on
++     * "Full DHT while charging". Its effect on the resting data rate is zero by construction —
++     * it is the correct permanent setting for a client that never intends to serve the DHT, not
++     * a fix for anything measured. */
++    config.dht_config.node_config.client_mode = true;
+     config.dht_config.node_config.persist_path = (cachePath_ / "dhtstate").string();
+     config.dht_config.id = id_;
+     config.dht_config.cert_cache_all = true;
