@@ -35,7 +35,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/abc_ic_ab_back_material"
-            app:title="@string/menu_item_about" />
+            app:navigationIconTint="#FFFF00"
+            app:title="@string/menu_item_about"
+            android:theme="@style/ShiroikumaToolbar" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -53,12 +55,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <ImageView
                 android:id="@+id/logo"
                 android:layout_width="wrap_content"
-                android:layout_height="80dp"
+                android:layout_height="120dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="5dp"
                 android:contentDescription="@string/app_name"
                 android:scaleType="fitCenter"
-                app:srcCompat="@drawable/ic_jami" />
+                app:srcCompat="@drawable/ic_launcher_foreground" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -91,7 +93,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_marginEnd="32dp"
                     android:contentDescription="@string/version_section"
                     app:srcCompat="@drawable/ic_ring_logo_white"
-                    app:tint="?attr/colorControlNormal" />
+                    app:tint="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/version_title"
@@ -103,7 +105,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:maxLines="3"
                     android:singleLine="false"
                     android:text="@string/version_section"
-                    android:textColor="?attr/colorPrimary" />
+                    android:textColor="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/release"
@@ -135,7 +137,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_gravity="start"
                     android:layout_marginEnd="32dp"
                     android:contentDescription="@string/contribute_section"
-                    app:srcCompat="@drawable/baseline_person_add_24" />
+                    app:srcCompat="@drawable/baseline_person_add_24"
+                    app:tint="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/contribute_title"
@@ -144,7 +147,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_height="wrap_content"
                     android:layout_toEndOf="@id/contribute_image"
                     android:text="@string/contribute_section"
-                    android:textColor="?attr/colorPrimary" />
+                    android:textColor="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/web_site"
@@ -171,7 +174,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_gravity="start"
                     android:layout_marginEnd="32dp"
                     android:contentDescription="@string/copyright_section"
-                    app:srcCompat="@drawable/baseline_copyright_24" />
+                    app:srcCompat="@drawable/baseline_copyright_24"
+                    app:tint="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/copyright_title"
@@ -180,7 +184,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_height="wrap_content"
                     android:layout_toEndOf="@id/copyright_image"
                     android:text="@string/copyright_section"
-                    android:textColor="?attr/colorPrimary" />
+                    android:textColor="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/copyright"
@@ -212,7 +216,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_gravity="start"
                     android:layout_marginEnd="32dp"
                     android:contentDescription="@string/copyright_section"
-                    app:srcCompat="@drawable/baseline_insert_drive_file_24" />
+                    app:srcCompat="@drawable/baseline_insert_drive_file_24"
+                    app:tint="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/license_title"
@@ -221,7 +226,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_height="wrap_content"
                     android:layout_toEndOf="@id/license_image"
                     android:text="@string/section_license"
-                    android:textColor="?attr/colorPrimary" />
+                    android:textColor="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/license"
@@ -252,7 +257,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_gravity="start"
                     android:layout_marginEnd="32dp"
                     android:contentDescription="@null"
-                    app:srcCompat="@drawable/baseline_feedback_24" />
+                    app:srcCompat="@drawable/baseline_feedback_24"
+                    app:tint="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/submit_issue_title"
@@ -262,7 +268,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_toEndOf="@id/submit_issue_image"
                     android:clickable="false"
                     android:text="@string/submit_issue_title"
-                    android:textColor="?attr/colorPrimary" />
+                    android:textColor="@color/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/submit_issue_link"
@@ -288,7 +294,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/sponsor_section"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="@color/colorOnSurface"
                     android:textSize="15sp" />
 
                 <ImageView
