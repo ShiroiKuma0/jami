@@ -167,4 +167,10 @@
         <item quantity="other">自分のメッセージ %1$d 件は保持 — 再ダウンロードできます</item>
     </plurals>
     <string name="sk_files_deleted_failed">%1$d 件は削除できませんでした</string>
+
+    <!-- in-call recording (shiroikuma: upstream has no recording control on phones) -->
+    <string name="shiroikuma_call_record">録音</string>
+    <string name="sk_call_record_started">この通話を録音しています</string>
+    <string name="sk_call_record_stopped">録音を保存しました: %1$s</string>
+    <string name="sk_call_record_no_call">録音できる通話がありません</string>
 </resources>
