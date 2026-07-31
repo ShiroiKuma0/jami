@@ -44,6 +44,11 @@ object ConnectionHealth {
         val memberUri: String,
         val presence: Contact.PresenceStatus,
         val fingerprint: String,
+        /** Which account observed it. Without this the watchdog flattened stuck messages from all
+         *  accounts into one list and could not tell WHICH was wedged, so a single stuck message on
+         *  one account escalated ALL of them to full DHT for 10-30 min — with three healthy
+         *  accounts unable to stop it, because the evidence no longer said where it came from. */
+        val accountId: String,
     )
 
     /** All conversations (1:1 and swarm) whose NEWEST outgoing deliverable interaction (TEXT or
@@ -67,7 +72,8 @@ object ConnectionHealth {
                 conv.uri.uri,
                 best.uri.uri,
                 raw ?: best.lastPresence,
-                "${conv.uri.uri}:${e.timestamp}"))
+                "${conv.uri.uri}:${e.timestamp}",
+                account.accountId))
         }
         return out
     }
