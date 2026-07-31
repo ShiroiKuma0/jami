@@ -1,0 +1,242 @@
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -487,9 +487,38 @@
+     std::map<DeviceId, std::shared_ptr<DeviceInfo>> infos_ {};
+ };
+ 
++// SK-LOCALRDV: process-local rendezvous for co-resident accounts.
++//
++// Several Jami accounts can live in ONE daemon (this fork runs four). Each is a separate
++// DhtRunner + ConnectionManager with its own device key, so to each other they are strangers:
++// the only identity check on the connect path is `deviceId == identity().second->getLongId()`,
++// which catches an account's OWN device and nothing else. Two accounts on the SAME PHONE
++// therefore rendezvous by putting an encrypted PeerConnectionRequest onto a DHT key — via a
++// public proxy — that is being listened to by a sibling object a few bytes away in the same
++// process. Measured 2026-07-31: 997 of 2861 device-id occurrences in an ICE census, i.e. ~35%
++// of all transports, were this phone talking to itself. Worse, each of those puts lands on a
++// `peer:` key with a 10-minute TTL that cannot be withdrawn, and every push about a new value
++// makes the owner re-download the WHOLE key (measured 148 KiB).
++//
++// This registry short-circuits ONLY the rendezvous. ICE, TLS, certificate verification and the
++// trust gate all still run exactly as before — nothing above dhtnet can tell the difference.
++// A miss falls through to the normal DHT put, so it is fail-safe by construction.
+ class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionManager::Impl>
+ {
+ public:
++    // SK-LOCALRDV: the registry lives INSIDE Impl — at namespace scope `ConnectionManager::Impl`
++    // is private and cannot be named. weak_ptr to an incomplete type is well-formed here.
++    struct LocalRendezvous
++    {
++        std::mutex mtx;
++        std::map<DeviceId, std::weak_ptr<Impl>> byDevice;
++        static LocalRendezvous& instance()
++        {
++            static LocalRendezvous r;
++            return r;
++        }
++    };
++
+     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
+         : treatedMessages_ {config_->cachePath / "treatedMessages"}
+         , config_ {createConfig(config_)}
+@@ -510,6 +539,12 @@
+     }
+     ~Impl()
+     {
++        {   // SK-LOCALRDV: leave the registry before anything else tears down.
++            auto& reg = Impl::LocalRendezvous::instance();
++            std::lock_guard lk(reg.mtx);
++            for (auto it = reg.byDevice.begin(); it != reg.byDevice.end();)
++                it = it->second.expired() ? reg.byDevice.erase(it) : std::next(it);
++        }
+         if (ioContextRunner_) {
+             if (config_->logger)
+                 config_->logger->debug("ConnectionManager: Stopping io_context thread");
+@@ -545,6 +580,14 @@
+             dht::ThreadPool::io().run([infos = std::move(unused)]() mutable { infos.clear(); });
+     }
+ 
++    /**
++     * SK-LOCALRDV: the body of the peer_request listen callback, factored out so that a request
++     * delivered process-locally takes the IDENTICAL path as one arriving over the DHT — same
++     * isMessageTreated dedup, same answer/request split, same async findCertificate and the same
++     * foundPeerDevice trust gate. Nothing is skipped for a sibling except the DHT round trip.
++     */
++    void handleIncomingRequest(PeerConnectionRequest&& req);
++
+     void connectDeviceStartIce(const std::shared_ptr<ConnectionInfo>& info,
+                                const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
+                                const dht::Value::Id& vid,
+@@ -768,6 +811,23 @@
+     val.ice_msg = icemsg.str();
+     val.connType = connType;
+ 
++    // SK-LOCALRDV: is the target a co-resident account? Look up BEFORE `val` is moved.
++    std::shared_ptr<Impl> localPeer;
++    {
++        auto& reg = Impl::LocalRendezvous::instance();
++        std::lock_guard lk(reg.mtx);
++        auto it = reg.byDevice.find(devicePk->getLongId());
++        if (it != reg.byDevice.end())
++            localPeer = it->second.lock();
++    }
++    PeerConnectionRequest localReq;
++    if (localPeer) {
++        localReq = val;
++        // Over the DHT the owner is filled in by the encryption layer; on the local path we set
++        // it ourselves, because the receiver's trust gate resolves the certificate from it.
++        localReq.owner = config_->id.first->getSharedPublicKey();
++    }
++
+     auto value = std::make_shared<dht::Value>(std::move(val));
+     value->user_type = "peer_request";
+     value->pushType = connType;
+@@ -781,6 +841,20 @@
+     info->waitForAnswer_->async_wait(
+         std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
+ 
++    // SK-LOCALRDV: deliver in-process and skip the DHT entirely. Posted onto the SIBLING's own
++    // io_context so its handler runs on the thread a DHT callback would have used, and so we are
++    // never inside its locks while holding ours. The timer above is already armed, so the answer
++    // is matched exactly as usual.
++    if (localPeer) {
++        if (config_->logger)
++            config_->logger->debug("[device {}] Sending connection request (process-local)", deviceId);
++        asio::post(*localPeer->config_->ioContext,
++                   [localPeer, req = std::move(localReq)]() mutable {
++                       localPeer->handleIncomingRequest(std::move(req));
++                   });
++        return;
++    }
++
+     // Send connection request through DHT
+     if (config_->logger)
+         config_->logger->debug("[device {}] Sending connection request", deviceId);
+@@ -1340,49 +1414,56 @@
+             auto shared = w.lock();
+             if (!shared)
+                 return false;
+-            if (!req.owner)
+-                return true;
+-            if (shared->isMessageTreated(req.id)) {
+-                // Message already treated. Just ignore
+-                return true;
+-            }
+-            auto from = req.owner->getLongId();
+-            if (req.isAnswer) {
+-                if (shared->config_->logger)
+-                    shared->config_->logger->debug("[device {}] Received request answer", from);
+-            } else {
+-                if (shared->config_->logger)
+-                    shared->config_->logger->debug("[device {}] Received request", from);
+-            }
+-            if (req.isAnswer) {
+-                shared->onPeerResponse(std::move(req));
+-            } else {
+-                // Async certificate checking
+-                shared->findCertificate(from,
+-                                        [w, req = std::move(req)](
+-                                            const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
+-                                            auto shared = w.lock();
+-                                            if (!shared)
+-                                                return;
+-                                            dht::InfoHash peer_h;
+-                                            if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
+-#if TARGET_OS_IOS
+-                                                if (shared->iOSConnectedCb_(req.connType, peer_h))
+-                                                    return;
+-#endif
+-                                                shared->onDhtPeerRequest(req, false, cert);
+-                                            } else {
+-                                                if (shared->config_->logger)
+-                                                    shared->config_->logger
+-                                                        ->warn("[device {}] Received request from untrusted peer",
+-                                                               req.owner->getLongId());
+-                                            }
+-                                        });
+-            }
+-
++            shared->handleIncomingRequest(std::move(req));   // SK-LOCALRDV: shared with the local path
+             return true;
+         },
+         dht::Value::UserTypeFilter("peer_request"));
++
++    // SK-LOCALRDV: publish this device so a co-resident account can reach us without the DHT.
++    {
++        auto& reg = Impl::LocalRendezvous::instance();
++        std::lock_guard lk(reg.mtx);
++        reg.byDevice[devicePk.getLongId()] = weak_from_this();
++    }
++}
++
++void
++ConnectionManager::Impl::handleIncomingRequest(PeerConnectionRequest&& req)
++{
++    if (!req.owner)
++        return;
++    if (isMessageTreated(req.id))
++        return;   // already treated — just ignore
++    auto from = req.owner->getLongId();
++    if (req.isAnswer) {
++        if (config_->logger)
++            config_->logger->debug("[device {}] Received request answer", from);
++        onPeerResponse(std::move(req));
++        return;
++    }
++    if (config_->logger)
++        config_->logger->debug("[device {}] Received request", from);
++    // Async certificate checking
++    findCertificate(from,
++                    [w = weak_from_this(), req = std::move(req)](
++                        const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
++                        auto shared = w.lock();
++                        if (!shared)
++                            return;
++                        dht::InfoHash peer_h;
++                        if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
++#if TARGET_OS_IOS
++                            if (shared->iOSConnectedCb_(req.connType, peer_h))
++                                return;
++#endif
++                            shared->onDhtPeerRequest(req, false, cert);
++                        } else {
++                            if (shared->config_->logger)
++                                shared->config_->logger->warn(
++                                    "[device {}] Received request from untrusted peer",
++                                    req.owner->getLongId());
++                        }
++                    });
+ }
+ 
+ void
+@@ -1493,6 +1574,30 @@
+     val.id = id;
+     val.ice_msg = icemsg.str();
+     val.isAnswer = true;
++
++    // SK-LOCALRDV: same bypass on the answer leg — otherwise we would remove one put and keep the
++    // other, and the sibling's own peer key would stay just as fat.
++    std::shared_ptr<Impl> localPeer;
++    {
++        auto& reg = Impl::LocalRendezvous::instance();
++        std::lock_guard lk(reg.mtx);
++        auto it = reg.byDevice.find(from->getLongId());
++        if (it != reg.byDevice.end())
++            localPeer = it->second.lock();
++    }
++    if (localPeer) {
++        PeerConnectionRequest localReq = val;
++        localReq.owner = config_->id.first->getSharedPublicKey();
++        if (config_->logger)
++            config_->logger->debug("[device {}] Connection accepted, process-local reply",
++                                   from->getLongId());
++        asio::post(*localPeer->config_->ioContext,
++                   [localPeer, req = std::move(localReq)]() mutable {
++                       localPeer->handleIncomingRequest(std::move(req));
++                   });
++        return;
++    }
++
+     auto value = std::make_shared<dht::Value>(std::move(val));
+     value->user_type = "peer_request";
+ 
