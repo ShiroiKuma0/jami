@@ -718,10 +718,39 @@ abstract class CallService(
         }
     }
 
+    /**
+     * The daemon announces the file a recording is being written to. Note it does this for BOTH the
+     * start and the stop of a recording, with the same path each time (manager.cpp emits
+     * RecordPlaybackFilepath right after every toggleRecording), so this says nothing about whether
+     * the recording has finished — only that the path exists and which call it belongs to. Upstream's
+     * handler logged it and dropped it, which is why a recording could be made but never found again.
+     */
     fun recordPlaybackFilepath(id: String, filename: String) {
         Log.d(TAG, "recordPlaybackFilepath: $id, $filename")
-        // todo needs more explanations on that
+        recordingPathSubject.onNext(Pair(id, filename))
     }
+
+    /**
+     * A recording has stopped. This is the only signal that means it, and it carries no call id — so
+     * whoever consumes it has to have remembered the call from [recordingPath], which is emitted while
+     * the call is still alive. That matters: hanging up mid-recording stops the recorder during call
+     * teardown, by which point the call is already gone from this service.
+     */
+    fun recordPlaybackStopped(path: String) {
+        Log.d(TAG, "recordPlaybackStopped: $path")
+        recordingStoppedSubject.onNext(path)
+    }
+
+    private val recordingPathSubject = PublishSubject.create<Pair<String, String>>()
+    private val recordingStoppedSubject = PublishSubject.create<String>()
+
+    /** (callId, absolute path) each time the daemon names a recording file — at start and at stop. */
+    val recordingPath: Observable<Pair<String, String>>
+        get() = recordingPathSubject
+
+    /** Absolute path of a recording that has just stopped. */
+    val recordingStopped: Observable<String>
+        get() = recordingStoppedSubject
 
     fun onRtcpReportReceived(callId: String) {
         Log.i(TAG, "onRtcpReportReceived: $callId")
@@ -764,6 +793,9 @@ abstract class CallService(
     private fun getConference(call: Call): Conference = addConference(call)
 
     fun getConference(id: String): Conference? = conferences[id]
+
+    /** shiroikuma: the live Call for an id, so a daemon signal carrying only a callId can be resolved. */
+    fun getCallById(callId: String): Call? = calls[callId]
 
     fun conferenceCreated(accountId: String, conversationId: String, confId: String) {
         Log.d(TAG, "conference created: $confId $conversationId")
