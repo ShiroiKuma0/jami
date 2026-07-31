@@ -906,30 +906,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
             </androidx.constraintlayout.widget.ConstraintLayout>
-            <!-- shiroikuma: running call duration.
-
-         Upstream computes it every second (CallPresenter.updateTime) and writes it into
-         call_status_txt, which lives inside contact_bubble_layout — and initNormalStateDisplay()
-         hides that whole container the moment the call is answered. So the duration was never visible
-         during a call at all. This is a NEW view, a direct child of the root FrameLayout so it needs
-         no constraints and cannot be clipped by the layouts that get swapped around it. -->
-    <TextView
-        android:id="@+id/call_duration_txt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="72dp"
-        android:background="@drawable/call_duration_bg"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="6dp"
-        android:textColor="@color/shiroikuma_call_yellow"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:visibility="gone"
-        tools:text="1:07"
-        tools:visibility="visible" />
-
-</FrameLayout>
+        </FrameLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <com.google.android.material.button.MaterialButtonGroup
@@ -971,5 +948,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             app:rippleColor="@color/call_button_ripple" />
 
     </com.google.android.material.button.MaterialButtonGroup>
+
+    <!-- shiroikuma: running call duration.
+
+         Upstream computes it every second (CallPresenter.updateTime) and writes it into
+         call_status_txt, which lives inside contact_bubble_layout — and initNormalStateDisplay()
+         hides that whole container the moment the call is answered. So the duration was never visible
+         during a call at all. This is a NEW view, a direct child of the root FrameLayout so it needs
+         no constraints and cannot be clipped by the layouts that get swapped around it. -->
+    <TextView
+        android:id="@+id/call_duration_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="72dp"
+        android:background="@drawable/call_duration_bg"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
+        android:textColor="@color/shiroikuma_call_yellow"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="1:07"
+        tools:visibility="visible" />
 
 </FrameLayout>
