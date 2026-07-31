@@ -1,0 +1,48 @@
+--- a/src/dht.cpp
++++ b/src/dht.cpp
+@@ -16,6 +16,19 @@
+ 
+ #include <inttypes.h>
+ 
++// SK-DHTSTATS: opendht already counts every DHT message by kind and direction
++// (NetworkEngine in_stats/out_stats -> getNodeMessageStats), and counts routing-table entries
++// learned PASSIVELY from inbound requests (NodeStats::incoming_nodes). Jami exposes neither, so
++// "how much of our DHT traffic is us serving other people?" has only ever been estimated. Log it.
++// Only reachable in FULL-DHT mode — proxy mode constructs no Dht at all — which is exactly the
++// mode the question is about (and the one SK-CLIENTMODE is meant to make cheaper).
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_DHTSTATS(...) __android_log_print(ANDROID_LOG_ERROR, "SK-DHTSTATS", __VA_ARGS__)
++#else
++#define SK_DHTSTATS(...) do {} while (0)
++#endif
++
+ namespace dht {
+ 
+ using namespace std::placeholders;
+@@ -2320,6 +2333,25 @@
+     bool soon = false;
+     const auto& now = scheduler.time();
+ 
++    // SK-DHTSTATS: one line per confirmNodes tick (60-180 s idle). getNodeMessageStats RESETS the
++    // counters as it reads them, so each line is the delta since the previous one — a rate, not a
++    // running total. `in` is work done FOR OTHERS (their pings, find_node, get, listen, put landing
++    // on us); `out` is our own traffic. incoming= counts nodes that entered our routing table
++    // passively, i.e. purely because someone contacted us — that is the population SK-CLIENTMODE
++    // prevents from ever forming.
++    {
++        auto in = network_engine.getNodeMessageStats(true);
++        auto out = network_engine.getNodeMessageStats(false);
++        auto s4 = getNodesStats(AF_INET);
++        auto s6 = getNodesStats(AF_INET6);
++        if (in.size() >= 5 and out.size() >= 5)
++            SK_DHTSTATS("in ping=%u find=%u get=%u listen=%u put=%u | out ping=%u find=%u get=%u "
++                        "listen=%u put=%u | incoming=%u/%u good=%u/%u",
++                        in[0], in[1], in[2], in[3], in[4],
++                        out[0], out[1], out[2], out[3], out[4],
++                        s4.incoming_nodes, s6.incoming_nodes, s4.good_nodes, s6.good_nodes);
++    }
++
+     if (dht4.searches.empty() and dht4.status == NodeStatus::Connected) {
+         if (logger_)
+             logger_->debug("[confirm nodes] Initial IPv4 'get' for my id ({})", myid.to_view());
