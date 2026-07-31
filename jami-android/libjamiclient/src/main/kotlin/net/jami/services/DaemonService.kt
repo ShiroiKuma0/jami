@@ -296,6 +296,13 @@ class DaemonService(
             mCallService.recordPlaybackFilepath(id, filename)
         }
 
+        // shiroikuma: emitted by MediaRecorder::stopRecording, the only signal that means a recording
+        // has ENDED. RecordPlaybackFilepath alone cannot say: the daemon emits it for both the start
+        // and the stop of a recording, with the same path both times.
+        override fun recordPlaybackStopped(path: String) {
+            mCallService.recordPlaybackStopped(path)
+        }
+
         override fun onRtcpReportReceived(callId: String, stats: IntegerMap) {
             mCallService.onRtcpReportReceived(callId)
         }
