@@ -728,7 +728,7 @@ class ConnectionMonitorFragment: Fragment() {
         val name = cvm.displayName
         val conv = service.getAccount(accountId)?.getByUri(cvm.contact.uri)
         if (conv != null) showContactConnectionDialog(ctx, service, conversationFacade, conv)
-        else { service.subscribeBuddy(accountId, cvm.contact.uri.uri, true); Flash.show(ctx, "Refreshed $name") }
+        else { service.refreshBuddyPresence(accountId, cvm.contact.uri.uri); Flash.show(ctx, "Refreshed $name") }
     }
 
     override fun onStart() {
