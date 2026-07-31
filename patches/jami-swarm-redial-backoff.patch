@@ -1,0 +1,153 @@
+diff --git a/src/jamidht/swarm/swarm_manager.cpp b/src/jamidht/swarm/swarm_manager.cpp
+index 8569a19cc..d2bd2a209 100644
+--- a/src/jamidht/swarm/swarm_manager.cpp
++++ b/src/jamidht/swarm/swarm_manager.cpp
+@@ -176,10 +176,15 @@ SwarmManager::maintainBuckets(const std::set<NodeId>& toConnect)
+                                          : bucket.getConnectingNodesSize() + bucket.getNodesSize();
+         if (connecting_nodes < Bucket::BUCKET_MAX_SIZE) {
+             auto nodesToTry = bucket.getKnownNodesRandom(Bucket::BUCKET_MAX_SIZE - connecting_nodes, rd);
+-            for (auto& node : nodesToTry)
++            for (auto& node : nodesToTry) {
++                // SK-SWARMBACKOFF: skip a node still inside its backoff window. Only the
++                // speculative path is gated; `toConnect` (nodes that already have a transport)
++                // and connectNode()'s reuse-only dial are untouched.
++                if (!redialAllowed(node))
++                    continue;
+                 routing_table.addConnectingNode(node);
+-
+-            nodes.insert(nodesToTry.begin(), nodesToTry.end());
++                nodes.insert(node);
++            }
+         }
+     }
+     lock.unlock();
+@@ -302,21 +307,89 @@ SwarmManager::resetNodeExpiry(const asio::error_code& ec,
+     }
+ }
+ 
++// SK-SWARMBACKOFF: upstream has NO backoff anywhere in the swarm layer — grep the whole directory
++// for backoff/retry constants and nothing comes back. A speculative dial that fails is retried on
++// the very next event with no memory of the attempt. Upstream's actual damper is a classification:
++// a peer that advertises is_mobile is filed into Bucket::mobile_nodes on disconnect, and
++// maintainBuckets only draws from known_nodes. But Bucket::addKnownNode never consults
++// mobile_nodes, and Conversation::addKnownDevices() -> setKnownNodes() feeds the DRT a candidate on
++// EVERY presence announce (it is the sole candidate-injection path), so the phone is re-promoted and
++// redialled every time it is mentioned. Repairing addKnownNode instead would starve the routing
++// table of candidates entirely for an all-mobile conversation, so the damper belongs here.
++//
++// Gate the SPECULATIVE path only. connectNode() -> tryConnect(id, /*noNewSocket=*/true) is
++// event-driven and reuse-only; it never passes through here and stays immediate.
++//
++// 60 s base, doubling, 30 min cap. The base has to clear 30 s: a dead ICE offer is reaped at
++// exactly 30 s (measured 2026-07-30, 373 samples, min 30 / median 30 / max 60), so a 10 s or even
++// 30 s base would fire the retry while the previous offer is still outstanding and stack two live
++// offers — each paying its own candidate gathering and DHT put — on the same peer.
++bool
++SwarmManager::redialAllowed(const NodeId& nodeId) const
++{
++    auto it = redialBackoff_.find(nodeId);
++    if (it == redialBackoff_.end())
++        return true;
++    return std::chrono::steady_clock::now() >= it->second.nextAllowed;
++}
++
++void
++SwarmManager::noteRedialFailure(const NodeId& nodeId)
++{
++    auto now = std::chrono::steady_clock::now();
++    // Keep the map bounded: device ids churn over a long-running daemon, and an entry whose window
++    // has already elapsed carries no information.
++    if (redialBackoff_.size() > 256) {
++        for (auto it = redialBackoff_.begin(); it != redialBackoff_.end();) {
++            if (it->second.nextAllowed <= now)
++                it = redialBackoff_.erase(it);
++            else
++                ++it;
++        }
++    }
++    auto& st = redialBackoff_[nodeId];
++    unsigned shift = st.failures > 5 ? 5 : st.failures;
++    auto delay = SK_REDIAL_BASE * (1LL << shift);
++    if (delay > SK_REDIAL_CAP)
++        delay = SK_REDIAL_CAP;
++    if (st.failures < 32)
++        st.failures++;
++    st.nextAllowed = now + delay;
++}
++
++void
++SwarmManager::noteRedialSuccess(const NodeId& nodeId)
++{
++    std::lock_guard lock(mutex);
++    redialBackoff_.erase(nodeId);
++}
++
+ void
+ SwarmManager::tryConnect(const NodeId& nodeId, bool noNewSocket)
+ {
+     if (needSocketCb_)
+         needSocketCb_(
+             nodeId.toString(),
+-            [w = weak(), nodeId](const std::shared_ptr<dhtnet::ChannelSocketInterface>& socket) {
++            [w = weak(), nodeId, noNewSocket](const std::shared_ptr<dhtnet::ChannelSocketInterface>& socket) {
+                 auto shared = w.lock();
+                 if (!shared || shared->isShutdown_)
+                     return true;
+                 if (socket) {
++                    shared->noteRedialSuccess(nodeId);  // SK-SWARMBACKOFF (takes mutex itself)
+                     shared->addChannel(socket);
+                     return true;
+                 }
+                 std::unique_lock lk(shared->mutex);
++                // SK-SWARMBACKOFF: count a failure ONLY for the speculative path. This callback is
++                // shared with connectNode() -> tryConnect(id, /*noNewSocket=*/true), and dhtnet's
++                // connectDevice answers that immediately with cb(nullptr) whenever no socket exists
++                // (connectionmanager.cpp: `if (options.noNewSocket) { executePendingOperations(...,
++                // nullptr); return; }`) — not a failed dial, just "nothing to reuse". connectNode
++                // fires on EVERY presence announce, so counting those drove the window to the
++                // 30-minute cap on pure noise and suppressed the speculative dials this patch
++                // exists to preserve. Shipped that way in +168; found by audit 2026-07-31.
++                if (!noNewSocket)
++                    shared->noteRedialFailure(nodeId);
+                 auto bucket = shared->routing_table.findBucket(nodeId);
+                 bucket->removeConnectingNode(nodeId);
+                 bucket->addKnownNode(nodeId);
+diff --git a/src/jamidht/swarm/swarm_manager.h b/src/jamidht/swarm/swarm_manager.h
+index 4c16da6ab..00e17b19b 100644
+--- a/src/jamidht/swarm/swarm_manager.h
++++ b/src/jamidht/swarm/swarm_manager.h
+@@ -20,6 +20,8 @@
+ #include "swarm_protocol.h"
+ 
+ #include <memory>
++#include <chrono>
++#include <map>
+ 
+ namespace jami {
+ 
+@@ -239,6 +241,25 @@ private:
+      */
+     void tryConnect(const NodeId& nodeId, bool noNewSocket = false);
+ 
++    // SK-SWARMBACKOFF: per-node redial damper for the SPECULATIVE dial path only.
++    // 60 s base, doubling, 30 min cap. See the .cpp for why 60 s and not 10 s or 30 s.
++    struct RedialState
++    {
++        std::chrono::steady_clock::time_point nextAllowed {};
++        unsigned failures {0};
++    };
++    static constexpr std::chrono::seconds SK_REDIAL_BASE {60};
++    static constexpr std::chrono::seconds SK_REDIAL_CAP {1800};
++
++    /** True if a speculative dial to this node is due. Call with `mutex` HELD. */
++    bool redialAllowed(const NodeId& nodeId) const;
++    /** Record a failed dial and extend this node's backoff. Call with `mutex` HELD. */
++    void noteRedialFailure(const NodeId& nodeId);
++    /** Clear a node's backoff after a successful connect. Takes `mutex` itself. */
++    void noteRedialSuccess(const NodeId& nodeId);
++
++    std::map<NodeId, RedialState> redialBackoff_;  // guarded by `mutex`
++
+     /**
+      * Remove node from routing table
+      * @param nodeId
