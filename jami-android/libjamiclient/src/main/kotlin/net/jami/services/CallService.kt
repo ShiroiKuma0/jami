@@ -455,6 +455,9 @@ abstract class CallService(
     val isCaptureMuted: Boolean
         get() = JamiService.isCaptureMuted()
 
+    fun isCallRecording(accountId: String, callId: String): Boolean =
+        JamiService.getIsRecording(accountId, callId)
+
     fun transfer(accountId:String, callId: String, to: String) {
         mExecutor.execute {
             Log.i(TAG, "transfer() thread running…")
@@ -491,8 +494,12 @@ abstract class CallService(
         }
 
     fun toggleRecordingCall(accountId:String, callId: String): Boolean {
-        mExecutor.execute { JamiService.toggleRecording(accountId, callId) }
-        return false
+        // The daemon returns the recording state AFTER the toggle and the UI has to show it, so this
+        // runs on the caller's thread instead of posting to mExecutor. It used to post and then
+        // return a constant false, which no caller could distinguish from "recording did not start".
+        val recording = JamiService.toggleRecording(accountId, callId)
+        Log.i(TAG, "toggleRecordingCall($callId) -> $recording")
+        return recording
     }
 
     fun startRecordedFilePlayback(filepath: String): Boolean {
