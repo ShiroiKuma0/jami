@@ -1,0 +1,534 @@
+diff --git a/src/media/audio/audio_receive_thread.cpp b/src/media/audio/audio_receive_thread.cpp
+index 4d2c82b3d..8e3cd41f7 100644
+--- a/src/media/audio/audio_receive_thread.cpp
++++ b/src/media/audio/audio_receive_thread.cpp
+@@ -22,6 +22,7 @@
+ #include "media_decoder.h"
+ #include "media_io_handle.h"
+ #include "ringbufferpool.h"
++#include "sk_audio_diag.h" // SK-AUDIODIAG
+ 
+ #include <memory>
+ 
+@@ -52,7 +53,18 @@ AudioReceiveThread::setup()
+     std::lock_guard lk(mutex_);
+     audioDecoder_.reset(new MediaDecoder([this](std::shared_ptr<MediaFrame>&& frame) mutable {
+         notify(frame);
+-        ringbuffer_->put(std::static_pointer_cast<AudioFrame>(frame));
++        auto audioFrame = std::static_pointer_cast<AudioFrame>(frame);
++        // SK-AUDIODIAG: the peer's audio as we are about to play it. A frame count that climbs with
++        // an RMS of zero is the signature of a capture side that is running but silent — mute, an
++        // echo canceller nulling the uplink, or a HAL handing the peer's daemon zero-filled buffers.
++        // calcRMS() logs an ERROR on formats it cannot read, so measure only the ones it handles.
++        if (skDiag_) {
++            auto fmt = audioFrame->pointer() ? audioFrame->pointer()->format : -1;
++            bool measurable = fmt == AV_SAMPLE_FMT_S16 or fmt == AV_SAMPLE_FMT_S16P
++                              or fmt == AV_SAMPLE_FMT_FLT or fmt == AV_SAMPLE_FMT_FLTP;
++            skDiag_->noteDecoded(measurable ? audioFrame->calcRMS() : 0.f);
++        }
++        ringbuffer_->put(std::move(audioFrame));
+     }));
+     audioDecoder_->setContextCallback([this]() {
+         if (recorderCallback_)
+diff --git a/src/media/audio/audio_receive_thread.h b/src/media/audio/audio_receive_thread.h
+index 3cc824698..33b81f83e 100644
+--- a/src/media/audio/audio_receive_thread.h
++++ b/src/media/audio/audio_receive_thread.h
+@@ -34,6 +34,7 @@ class MediaDecoder;
+ class MediaIOHandle;
+ struct MediaStream;
+ class RingBuffer;
++class SkAudioDiag; // SK-AUDIODIAG
+ 
+ class AudioReceiveThread : public Observable<std::shared_ptr<MediaFrame>>
+ {
+@@ -54,6 +55,10 @@ public:
+ 
+     void setRecorderCallback(const std::function<void(const MediaStream& ms)>& cb);
+ 
++    // SK-AUDIODIAG: set once by AudioRtpSession right after construction, before startReceiver
++    // creates the thread that reads it.
++    void setSkAudioDiag(std::shared_ptr<SkAudioDiag> diag) { skDiag_ = std::move(diag); }
++
+ private:
+     NON_COPYABLE(AudioReceiveThread);
+ 
+@@ -77,6 +82,7 @@ private:
+     std::unique_ptr<MediaIOHandle> demuxContext_;
+ 
+     std::shared_ptr<RingBuffer> ringbuffer_;
++    std::shared_ptr<SkAudioDiag> skDiag_; // SK-AUDIODIAG
+ 
+     uint16_t mtu_;
+ 
+diff --git a/src/media/audio/audio_rtp_session.cpp b/src/media/audio/audio_rtp_session.cpp
+index f49638e1d..a90427ae5 100644
+--- a/src/media/audio/audio_rtp_session.cpp
++++ b/src/media/audio/audio_rtp_session.cpp
+@@ -31,6 +31,7 @@
+ 
+ #include "audio/audio_input.h"
+ #include "audio/ringbufferpool.h"
++#include "audio/sk_audio_diag.h" // SK-AUDIODIAG
+ #include "client/videomanager.h"
+ #include "manager.h"
+ 
+@@ -49,6 +50,9 @@ AudioRtpSession::AudioRtpSession(const std::string& callId,
+     recorder_ = rec;
+     JAMI_DEBUG("Created Audio RTP session: {} - stream id {}", fmt::ptr(this), streamId_);
+ 
++    // SK-AUDIODIAG
++    skDiag_ = std::make_shared<SkAudioDiag>(callId + ":" + streamId);
++
+     // don't move this into the initializer list or Cthulus will emerge
+     ringbuffer_ = Manager::instance().getRingBufferPool().createRingBuffer(streamId_);
+ }
+@@ -137,6 +141,9 @@ AudioRtpSession::startSender()
+         send_.enabled = false;
+     }
+ 
++    if (sender_)
++        sender_->setSkAudioDiag(skDiag_); // SK-AUDIODIAG, before the input is attached below
++
+     if (voiceCallback_)
+         sender_->setVoiceCallback(voiceCallback_);
+ 
+@@ -180,6 +187,8 @@ AudioRtpSession::startReceiver()
+     receiveThread_.reset(
+         new AudioReceiveThread(streamId_, accountAudioCodec->audioformat, receive_.receiving_sdp, mtu_));
+ 
++    receiveThread_->setSkAudioDiag(skDiag_); // SK-AUDIODIAG, before startReceiver spawns the thread
++
+     receiveThread_->setRecorderCallback([w = weak_from_this()](const MediaStream& ms) {
+         asio::post(*Manager::instance().ioContext(), [w = std::move(w), ms]() {
+             if (auto shared = w.lock())
+@@ -220,6 +229,9 @@ AudioRtpSession::start(std::unique_ptr<dhtnet::IceSocket> rtp_sock, std::unique_
+             socketPair_.reset(new SocketPair(getRemoteRtpUri().c_str(), receive_.addr.getPort()));
+         }
+ 
++        // SK-AUDIODIAG: published before startReceiver creates the thread that reads it.
++        socketPair_->setSkAudioDiag(skDiag_);
++
+         if (send_.crypto and receive_.crypto) {
+             socketPair_->createSRTP(receive_.crypto.getCryptoSuite().c_str(),
+                                     receive_.crypto.getSrtpKeyInfo().c_str(),
+@@ -233,6 +245,18 @@ AudioRtpSession::start(std::unique_ptr<dhtnet::IceSocket> rtp_sock, std::unique_
+ 
+     startSender();
+     startReceiver();
++
++    // SK-AUDIODIAG: one line recording what was actually negotiated, so the periodic counters can be
++    // read against the direction and codec they belong to. The mutex is held, so this is race-free.
++    if (skDiag_)
++        skDiag_->logSetup(send_.codec ? std::string_view(send_.codec->name) : std::string_view {},
++                          send_.enabled,
++                          send_.hold,
++                          receive_.enabled,
++                          receive_.hold,
++                          muteState_,
++                          static_cast<bool>(send_.crypto and receive_.crypto),
++                          getRemoteRtpUri());
+ }
+ 
+ void
+diff --git a/src/media/audio/audio_rtp_session.h b/src/media/audio/audio_rtp_session.h
+index fd89eda91..6d2744e9c 100644
+--- a/src/media/audio/audio_rtp_session.h
++++ b/src/media/audio/audio_rtp_session.h
+@@ -33,6 +33,7 @@ class AudioSender;
+ class IceSocket;
+ class MediaRecorder;
+ class RingBuffer;
++class SkAudioDiag; // SK-AUDIODIAG
+ 
+ struct RTCPInfo
+ {
+@@ -70,6 +71,10 @@ private:
+     void setNewPacketLoss(unsigned int newPL);
+     float getPonderateLoss(float lastLoss);
+ 
++    // SK-AUDIODIAG: created with the session and shared with the sender, the receive thread and the
++    // socket pair, so the counters survive every re-INVITE that resets those three.
++    std::shared_ptr<SkAudioDiag> skDiag_;
++
+     std::unique_ptr<AudioSender> sender_;
+     std::unique_ptr<AudioReceiveThread> receiveThread_;
+     std::shared_ptr<AudioInput> audioInput_;
+diff --git a/src/media/audio/audio_sender.cpp b/src/media/audio/audio_sender.cpp
+index 84e74a2aa..899d473dc 100644
+--- a/src/media/audio/audio_sender.cpp
++++ b/src/media/audio/audio_sender.cpp
+@@ -22,6 +22,7 @@
+ #include "media_io_handle.h"
+ #include "media_stream.h"
+ #include "resampler.h"
++#include "sk_audio_diag.h" // SK-AUDIODIAG
+ 
+ #include <memory>
+ 
+@@ -94,6 +95,17 @@ AudioSender::update(Observable<std::shared_ptr<jami::MediaFrame>>* /*obs*/,
+         }
+     }
+ 
++    // SK-AUDIODIAG: our own captured audio, measured after the audio processor and after any mute
++    // zero-fill, on the 20 ms capture cadence. This is also what drives the periodic line, so the
++    // log keeps arriving while nothing at all is being received.
++    if (skDiag_) {
++        auto audioFrame = std::static_pointer_cast<AudioFrame>(framePtr);
++        auto fmt = frame ? frame->format : -1;
++        bool measurable = fmt == AV_SAMPLE_FMT_S16 or fmt == AV_SAMPLE_FMT_S16P
++                          or fmt == AV_SAMPLE_FMT_FLT or fmt == AV_SAMPLE_FMT_FLTP;
++        skDiag_->noteSent(measurable ? audioFrame->calcRMS() : 0.f, hasVoice);
++    }
++
+     if (audioEncoder_->encodeAudio(*std::static_pointer_cast<AudioFrame>(framePtr)) < 0)
+         JAMI_ERROR("encoding failed");
+ }
+diff --git a/src/media/audio/audio_sender.h b/src/media/audio/audio_sender.h
+index 348d1a1ee..e72d4310b 100644
+--- a/src/media/audio/audio_sender.h
++++ b/src/media/audio/audio_sender.h
+@@ -28,6 +28,7 @@ class AudioInput;
+ class MediaEncoder;
+ class MediaIOHandle;
+ class Resampler;
++class SkAudioDiag; // SK-AUDIODIAG
+ 
+ class AudioSender : public Observer<std::shared_ptr<MediaFrame>>
+ {
+@@ -44,6 +45,10 @@ public:
+ 
+     void setVoiceCallback(std::function<void(bool)> cb);
+ 
++    // SK-AUDIODIAG: set once by AudioRtpSession right after construction, before the sender is
++    // attached to the audio input that drives update().
++    void setSkAudioDiag(std::shared_ptr<SkAudioDiag> diag) { skDiag_ = std::move(diag); }
++
+     void update(Observable<std::shared_ptr<jami::MediaFrame>>*, const std::shared_ptr<jami::MediaFrame>&) override;
+ 
+ private:
+@@ -64,6 +69,7 @@ private:
+     // last voice activity state
+     bool voice_ {false};
+     std::function<void(bool)> voiceCallback_;
++    std::shared_ptr<SkAudioDiag> skDiag_; // SK-AUDIODIAG
+ };
+ 
+ } // namespace jami
+diff --git a/src/media/audio/sk_audio_diag.h b/src/media/audio/sk_audio_diag.h
+new file mode 100644
+index 000000000..5e00f8de1
+--- /dev/null
++++ b/src/media/audio/sk_audio_diag.h
+@@ -0,0 +1,221 @@
++/*
++ *  SK-AUDIODIAG — per-call audio-path instrumentation (2026-07-31)
++ *
++ *  Diagnostic only: nothing here changes media behaviour. It exists to answer, from OUR phone
++ *  alone, where a peer's audio dies when the call connects and only one direction carries sound.
++ *
++ *  The question this settles is a three-way fork that is otherwise indistinguishable on the
++ *  receiving end, because every one of the three looks identical to the user (a connected call
++ *  with silence) and identical to the daemon (no error anywhere):
++ *
++ *    1. no inbound RTP at all              -> the peer's sender never ran, or transport is broken
++ *                                             (one-way ICE pair, stale relay permission)
++ *    2. inbound RTP whose samples are zero -> the peer's CAPTURE CONTENT is silence: muted, the
++ *                                             device's echo canceller nulling the uplink, capture
++ *                                             routed to a dead device, or the HAL feeding the
++ *                                             daemon zero-filled buffers
++ *    3. inbound RTP with real samples      -> the fault is on our side, at playback
++ *
++ *  Counters are grouped by where they sit in the path, so a single log line separates transport
++ *  from content:
++ *
++ *    rx*   SocketPair::readCallback  — raw RTP as it comes off the socket, BEFORE decrypt/decode.
++ *          Non-zero here with zero dec* means the packets arrive and die in SRTP or the decoder.
++ *    dec*  the MediaDecoder callback in AudioReceiveThread — the peer's audio AFTER decode, i.e.
++ *          exactly the samples we are about to play. RMS 0 here is case 2.
++ *    tx*   AudioSender::update — our own captured frames. Present so the log proves the leg that
++ *          works is healthy and the instrumentation itself is sound; a diagnostic that only ever
++ *          reports zeros cannot tell a dead path from a dead probe.
++ *
++ *  Ownership: one object per AudioRtpSession, handed as a shared_ptr to the sender, the receive
++ *  thread and the socket pair. That indirection is deliberate — sender_/receiveThread_/socketPair_
++ *  are reset on every re-INVITE while the RTCP checker thread is live, so a diagnostic reading
++ *  through those pointers would race. Each holder gets its own reference and the counters outlive
++ *  any of them. Setters are called immediately after construction, before the object is handed to
++ *  any thread, so no lock is needed to publish the pointer.
++ *
++ *  Emission is driven from AudioSender::update (a 20 ms cadence, so the line lands even while
++ *  nothing at all is arriving) and from the decoder callback (so it still lands if we are
++ *  receive-only), rate-limited to one line per second by whichever thread wins the CAS.
++ */
++
++#pragma once
++
++#include "logger.h"
++
++#include <atomic>
++#include <chrono>
++#include <cstdint>
++#include <mutex>
++#include <string>
++#include <string_view>
++
++namespace jami {
++
++class SkAudioDiag
++{
++public:
++    explicit SkAudioDiag(std::string label)
++        : label_(std::move(label))
++    {}
++
++    // Raw RTP off the socket, before decrypt. Called on the receive thread.
++    void noteRxPacket(int bytes)
++    {
++        rxPackets_.fetch_add(1, std::memory_order_relaxed);
++        rxBytes_.fetch_add(bytes > 0 ? static_cast<uint64_t>(bytes) : 0, std::memory_order_relaxed);
++        lastRxMs_.store(nowMs(), std::memory_order_relaxed);
++    }
++
++    void noteRxDecryptError() { rxDecryptErr_.fetch_add(1, std::memory_order_relaxed); }
++
++    // The peer's audio after decode — the samples we are about to play.
++    void noteDecoded(float rms)
++    {
++        accumulate(decFrames_, decRmsSum_, decRmsPeak_, rms);
++        maybeEmit();
++    }
++
++    // Our own captured audio, after the audio processor and after any mute zero-fill.
++    void noteSent(float rms, bool hasVoice)
++    {
++        accumulate(txFrames_, txRmsSum_, txRmsPeak_, rms);
++        if (hasVoice)
++            txVoice_.fetch_add(1, std::memory_order_relaxed);
++        maybeEmit();
++    }
++
++    // One-shot line describing what was negotiated, logged once the session has started. Race-free:
++    // called from AudioRtpSession::start() with the session mutex held.
++    void logSetup(std::string_view codec,
++                  bool sendEnabled,
++                  bool sendHold,
++                  bool recvEnabled,
++                  bool recvHold,
++                  bool muteTx,
++                  bool srtp,
++                  std::string_view remote)
++    {
++        JAMI_WARNING("SK-AUDIODIAG [{}] setup codec={} send={}{} recv={}{} muteTx={} srtp={} remote={}",
++                     label_,
++                     codec.empty() ? std::string_view("none") : codec,
++                     sendEnabled ? "on" : "OFF",
++                     sendHold ? "+hold" : "",
++                     recvEnabled ? "on" : "OFF",
++                     recvHold ? "+hold" : "",
++                     muteTx ? "YES" : "no",
++                     srtp ? "yes" : "no",
++                     remote);
++    }
++
++private:
++    static int64_t nowMs()
++    {
++        return std::chrono::duration_cast<std::chrono::milliseconds>(
++                   std::chrono::steady_clock::now().time_since_epoch())
++            .count();
++    }
++
++    // RMS is normalized 0..1 (AudioFrame::calcRMS); kept as fixed point x10000 so the accumulators
++    // can stay integral atomics.
++    static void accumulate(std::atomic<uint64_t>& frames,
++                           std::atomic<uint64_t>& sum,
++                           std::atomic<uint64_t>& peak,
++                           float rms)
++    {
++        auto v = static_cast<uint64_t>(rms * 10000.f + 0.5f);
++        frames.fetch_add(1, std::memory_order_relaxed);
++        sum.fetch_add(v, std::memory_order_relaxed);
++        auto seen = peak.load(std::memory_order_relaxed);
++        while (v > seen && not peak.compare_exchange_weak(seen, v, std::memory_order_relaxed)) {
++        }
++    }
++
++    void maybeEmit()
++    {
++        auto now = nowMs();
++        auto last = lastEmitMs_.load(std::memory_order_relaxed);
++        if (last != 0 and now - last < 1000)
++            return;
++        // Only one thread emits per interval; the loser simply returns.
++        if (not lastEmitMs_.compare_exchange_strong(last, now, std::memory_order_relaxed))
++            return;
++        if (last == 0)
++            return; // first call only arms the clock
++
++        std::lock_guard lk(emitMutex_);
++        auto rxP = rxPackets_.load(std::memory_order_relaxed);
++        auto rxB = rxBytes_.load(std::memory_order_relaxed);
++        auto rxE = rxDecryptErr_.load(std::memory_order_relaxed);
++        auto decF = decFrames_.load(std::memory_order_relaxed);
++        auto decS = decRmsSum_.load(std::memory_order_relaxed);
++        auto decPk = decRmsPeak_.exchange(0, std::memory_order_relaxed);
++        auto txF = txFrames_.load(std::memory_order_relaxed);
++        auto txS = txRmsSum_.load(std::memory_order_relaxed);
++        auto txPk = txRmsPeak_.exchange(0, std::memory_order_relaxed);
++        auto txV = txVoice_.load(std::memory_order_relaxed);
++        auto lastRx = lastRxMs_.load(std::memory_order_relaxed);
++
++        auto dRxP = rxP - prevRxPackets_;
++        auto dRxB = rxB - prevRxBytes_;
++        auto dDecF = decF - prevDecFrames_;
++        auto dDecS = decS - prevDecRmsSum_;
++        auto dTxF = txF - prevTxFrames_;
++        auto dTxS = txS - prevTxRmsSum_;
++        auto dTxV = txV - prevTxVoice_;
++        prevRxPackets_ = rxP;
++        prevRxBytes_ = rxB;
++        prevDecFrames_ = decF;
++        prevDecRmsSum_ = decS;
++        prevTxFrames_ = txF;
++        prevTxRmsSum_ = txS;
++        prevTxVoice_ = txV;
++
++        auto mean = [](uint64_t sum, uint64_t frames) {
++            return frames ? static_cast<double>(sum) / static_cast<double>(frames) / 10000.0 : 0.0;
++        };
++
++        JAMI_WARNING("SK-AUDIODIAG [{}] rx pkt+{} B+{} srtpErr={} idle={}ms | dec frm+{} rms={:.4f} "
++                     "peak={:.4f} tot={} | tx frm+{} rms={:.4f} peak={:.4f} voice={}/{}",
++                     label_,
++                     dRxP,
++                     dRxB,
++                     rxE,
++                     lastRx ? now - lastRx : -1,
++                     dDecF,
++                     mean(dDecS, dDecF),
++                     decPk / 10000.0,
++                     decF,
++                     dTxF,
++                     mean(dTxS, dTxF),
++                     txPk / 10000.0,
++                     dTxV,
++                     dTxF);
++    }
++
++    const std::string label_;
++
++    std::atomic<uint64_t> rxPackets_ {0};
++    std::atomic<uint64_t> rxBytes_ {0};
++    std::atomic<uint64_t> rxDecryptErr_ {0};
++    std::atomic<uint64_t> decFrames_ {0};
++    std::atomic<uint64_t> decRmsSum_ {0};
++    std::atomic<uint64_t> decRmsPeak_ {0};
++    std::atomic<uint64_t> txFrames_ {0};
++    std::atomic<uint64_t> txRmsSum_ {0};
++    std::atomic<uint64_t> txRmsPeak_ {0};
++    std::atomic<uint64_t> txVoice_ {0};
++    std::atomic<int64_t> lastRxMs_ {0};
++    std::atomic<int64_t> lastEmitMs_ {0};
++
++    std::mutex emitMutex_;
++    uint64_t prevRxPackets_ {0};
++    uint64_t prevRxBytes_ {0};
++    uint64_t prevDecFrames_ {0};
++    uint64_t prevDecRmsSum_ {0};
++    uint64_t prevTxFrames_ {0};
++    uint64_t prevTxRmsSum_ {0};
++    uint64_t prevTxVoice_ {0};
++};
++
++} // namespace jami
+diff --git a/src/media/socket_pair.cpp b/src/media/socket_pair.cpp
+index fd469903f..f6bcc2cd7 100644
+--- a/src/media/socket_pair.cpp
++++ b/src/media/socket_pair.cpp
+@@ -21,6 +21,7 @@
+ #include "libav_deps.h" // THEN THIS ONE AFTER
+ 
+ #include "socket_pair.h"
++#include "audio/sk_audio_diag.h" // SK-AUDIODIAG
+ #include "logger.h"
+ #include "connectivity/security/memory.h"
+ 
+@@ -517,6 +518,10 @@ SocketPair::readCallback(uint8_t* buf, int buf_size)
+     if (!len and (datatype & static_cast<int>(DataType::RTP))) {
+         len = readRtpData(buf, buf_size);
+         fromRTCP = false;
++        // SK-AUDIODIAG: the earliest point at which the peer's media is observable — raw bytes off
++        // the socket, before SRTP and before the decoder. Zero here proves nothing arrived.
++        if (skDiag_ and len > 0)
++            skDiag_->noteRxPacket(len);
+     }
+ 
+     if (len <= 0)
+@@ -547,8 +552,13 @@ SocketPair::readCallback(uint8_t* buf, int buf_size)
+         if (packetLossCallback_ and (buf[2] << 8 | buf[3]) != lastSeqNumIn_ + 1)
+             packetLossCallback_();
+         lastSeqNumIn_ = buf[2] << 8 | buf[3];
+-        if (err < 0)
++        if (err < 0) {
+             JAMI_WARNING("decrypt error {}", err);
++            // SK-AUDIODIAG: packets arriving but failing to decrypt is its own diagnosis — a
++            // crypto-attribute mismatch loses every frame while the transport looks perfect.
++            if (skDiag_)
++                skDiag_->noteRxDecryptError();
++        }
+     }
+ 
+     if (len != 0)
+diff --git a/src/media/socket_pair.h b/src/media/socket_pair.h
+index 330cb95e9..923470c4d 100644
+--- a/src/media/socket_pair.h
++++ b/src/media/socket_pair.h
+@@ -48,6 +48,7 @@ using socklen_t = int;
+ namespace jami {
+ 
+ class SRTPProtoContext;
++class SkAudioDiag; // SK-AUDIODIAG
+ 
+ typedef struct
+ {
+@@ -135,6 +136,11 @@ public:
+ 
+     void interrupt();
+ 
++    // SK-AUDIODIAG: count raw inbound RTP here, before decrypt and decode, so a silent call can be
++    // told apart from a call whose packets never arrive. Published right after construction and
++    // before the receive thread exists, hence no lock.
++    void setSkAudioDiag(std::shared_ptr<SkAudioDiag> diag) { skDiag_ = std::move(diag); }
++
+     // Set the read blocking mode.
+     // By default, the read operation will block until data is available
+     // on the socket. This method allows to switch to unblocking mode
+@@ -211,6 +217,7 @@ private:
+     std::atomic_bool readBlockingMode_ {false};
+     std::atomic_bool noWrite_ {false};
+     std::unique_ptr<SRTPProtoContext> srtpContext_;
++    std::shared_ptr<SkAudioDiag> skDiag_; // SK-AUDIODIAG, null for video and for unmeasured streams
+     std::function<void(void)> packetLossCallback_;
+     std::function<void(int, int)> rtpDelayCallback_;
+     bool getOneWayDelayGradient(float sendTS, bool marker, int32_t* gradient, int32_t* deltaR);
+diff --git a/src/sip/sipcall.cpp b/src/sip/sipcall.cpp
+index 9e358222a..6c3827e7b 100644
+--- a/src/sip/sipcall.cpp
++++ b/src/sip/sipcall.cpp
+@@ -3621,6 +3621,15 @@ SIPCall::peerMuted(bool muted, int streamIdx)
+ void
+ SIPCall::peerVoice(bool voice)
+ {
++    // SK-AUDIODIAG: the peer's own voice-activity detector, transmitted to us as a media_control
++    // SIP INFO and — in a one-to-one call — parsed here and then dropped on the floor. It is the
++    // only view we get of the far side's capture without touching that phone: a voice=1 while our
++    // decoded RMS stays at zero puts the fault downstream of the peer's microphone, and a stream
++    // that never leaves voice=0 puts it at the microphone. Edge-triggered by the sender, so this
++    // logs only on change. Absence proves nothing: the VAD needs an audio processor, and the
++    // sender's callback fires only when the state flips.
++    JAMI_WARNING("SK-AUDIODIAG [call:{}] peer voice_activity={}", getCallId(), voice ? 1 : 0);
++
+     peerVoice_ = voice;
+ 
+     if (auto conference = conf_.lock()) {
