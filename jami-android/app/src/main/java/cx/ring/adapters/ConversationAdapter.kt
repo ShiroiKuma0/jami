@@ -1136,6 +1136,7 @@ class ConversationAdapter(
 
             convActionFileDelete.setOnClickListener {
                 presenter.deleteConversationFile(interaction)
+                popupWindow.dismiss() // shiroikuma: every other action dismisses; this one did not
             }
 
             // Manage Edit and Delete actions
