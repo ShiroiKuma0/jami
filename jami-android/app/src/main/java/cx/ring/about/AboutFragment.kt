@@ -17,6 +17,8 @@
 package cx.ring.about
 
 import android.content.Intent
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -43,6 +45,14 @@ class AboutFragment : Fragment() {
              submitIssueContainer
                  .setOnClickListener { visitWebpage(getString(R.string.submit_issue_link)) }
              credits.setOnClickListener { creditsClicked() }
+             // shiroikuma: the row labels are bold and underlined here rather than in the layout —
+             // there is no attribute for an underline, and the alternative (wrapping each label in
+             // <u> markup) would mean editing upstream's Transifex-managed strings, which conflict on
+             // every rebase. Colour comes from the layout with the rest of the screen.
+             for (label in listOf(versionTitle, contributeTitle, copyrightTitle, licenseTitle, submitIssueTitle)) {
+                 label.setTypeface(label.typeface, Typeface.BOLD)
+                 label.paintFlags = label.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+             }
              toolbar.setNavigationOnClickListener { activity?.onBackPressedDispatcher?.onBackPressed() }
              binding = this
         }.root
