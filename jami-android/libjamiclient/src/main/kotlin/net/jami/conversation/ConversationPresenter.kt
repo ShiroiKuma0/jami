@@ -108,6 +108,9 @@ class ConversationPresenter @Inject constructor(
         if (mConversation == conversation) return
         Log.w(TAG, "setConversation ${conversation.uri}")
         mConversation = conversation
+        // shiroikuma: local call recordings are not part of the history the daemon rebuilds, so put
+        // them back each time the conversation is shown (idempotent, deduped by file path).
+        conversationFacade.injectLocalRecordings(conversation)
         mConversationSubject.onNext(conversation)
         view?.let { initView(account, conversation, it) }
     }
