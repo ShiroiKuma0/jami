@@ -193,4 +193,10 @@
         <item quantity="other">%1$d of your messages kept — those files can be downloaded again</item>
     </plurals>
     <string name="sk_files_deleted_failed">%1$d could not be deleted</string>
+
+    <!-- in-call recording (shiroikuma: upstream has no recording control on phones) -->
+    <string name="shiroikuma_call_record">Record</string>
+    <string name="sk_call_record_started">Recording this call</string>
+    <string name="sk_call_record_stopped">Recording saved: %1$s</string>
+    <string name="sk_call_record_no_call">No call to record</string>
 </resources>
