@@ -182,4 +182,10 @@
         <item quantity="other">Tvých zpráv zachováno: %1$d — soubory jdou stáhnout znovu</item>
     </plurals>
     <string name="sk_files_deleted_failed">%1$d se nepodařilo smazat</string>
+
+    <!-- in-call recording (shiroikuma: upstream has no recording control on phones) -->
+    <string name="shiroikuma_call_record">Nahrávat</string>
+    <string name="sk_call_record_started">Nahrávám tento hovor</string>
+    <string name="sk_call_record_stopped">Nahrávka uložena: %1$s</string>
+    <string name="sk_call_record_no_call">Není co nahrávat</string>
 </resources>

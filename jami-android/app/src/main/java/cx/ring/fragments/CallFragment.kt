@@ -201,6 +201,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 b.callAudioMuteBtn.setOnClickListener { audioMuteClicked() }   // shiroikuma
                 b.callAudioBtBtn.setOnClickListener { audioBluetoothClicked() }   // shiroikuma
                 b.callMicBtn.setOnClickListener { micClicked() }
+                b.callRecordBtn.setOnClickListener { recordClicked() }   // shiroikuma
                 b.callVideocamBtn.setOnClickListener { switchCamera() }
                 b.callSharescreenBtn.setOnClickListener { shareScreenClicked() }
                 b.addParticipantBtn.setOnClickListener { addParticipantClicked() }
@@ -1074,6 +1075,9 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
             }
             callSharescreenBtn.isChecked = hasActiveScreenShare
             callMicBtn.isChecked = isMicrophoneMuted
+            // shiroikuma: read the record state back from the daemon, so a sheet rebind mid-call
+            // cannot leave the button showing "not recording" while a recording is still running.
+            callRecordBtn.isChecked = presenter.isCallRecording
         }
     }
 
@@ -1599,6 +1603,32 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
             presenter.muteMicrophoneToggled(micButton.isChecked)
             //micButton.setImageResource(if (micButton.isChecked) R.drawable.baseline_mic_off_24 else R.drawable.baseline_mic_24)
         }
+    }
+
+    /**
+     * shiroikuma: start/stop recording the current call.
+     *
+     * The record directory has to be set before the first toggle — the daemon otherwise falls back
+     * to its own home directory, which on Android is app-private storage the user cannot reach
+     * (`Recordable::toggleRecording` → `fileutils::get_home_dir()`). It goes next to the app's other
+     * user-visible outputs, and the exact file is named in the confirmation when recording stops so
+     * there is never any doubt where it landed.
+     */
+    fun recordClicked() {
+        val button = binding?.callRecordBtn ?: return
+        val ctx = context ?: return
+        val dir = presenter.prepareRecordPath()
+        val recording = presenter.toggleCallRecording()
+        if (recording == null) {
+            Flash.show(ctx, R.string.sk_call_record_no_call)
+            button.isChecked = false
+            return
+        }
+        button.isChecked = recording
+        if (recording)
+            Flash.show(ctx, R.string.sk_call_record_started)
+        else
+            Flash.show(ctx, getString(R.string.sk_call_record_stopped, dir.absolutePath), Toast.LENGTH_LONG)
     }
 
     fun raiseHandClicked() {

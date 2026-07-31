@@ -44,6 +44,13 @@ abstract class DeviceRuntimeService : SystemInfoCallbacks {
         return destPath
     }
 
+    /**
+     * shiroikuma: directory the daemon writes call recordings into, and where their index lives. On
+     * Android this must be user-visible storage — the daemon's own fallback is its home directory,
+     * which is app-private and unreachable (Recordable::toggleRecording -> get_home_dir()).
+     */
+    abstract val callRecordingsDir: File
+
     abstract fun getTemporaryPath(conversationId: String, name: String): File
     abstract fun getConversationDir(conversationId: String): File?
     abstract val pushToken: Pair<String, String>?
