@@ -463,6 +463,18 @@ r bash -c 'grep -q SK-TRUSTCONFIRM daemon/src/jamidht/contact_list.cpp || (cd da
 # only on the full-DHT escalation path. Honoured by every opendht since 1.4.0 (2017).
 r bash -c 'grep -q SK-CLIENTMODE daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-dht-client-mode.patch'
 
+# audio-path diagnostics (SK-AUDIODIAG; idempotent; daemon's OWN source — no rules.mak, no contrib
+# rebuild). Counts raw inbound RTP before decrypt, the peer's decoded RMS, our own captured RMS, and
+# logs the peer's voice_activity INFO, which upstream parses and drops. Diagnostic only.
+r bash -c 'grep -q SK-AUDIODIAG daemon/src/media/audio/audio_rtp_session.cpp || (cd daemon && patch -flp1) < patches/jami-audio-rtp-diag.patch'
+
+# honour the granted capture format (SK-CAPTUREFMT; idempotent; daemon's OWN source; TWO files).
+# audiolayer.cpp: hardwareInputFormatAvailable() logged the format and discarded it, so the audio
+# processor is sized from playback alone. aaudiolayer.cpp: the data callback cast the AAudio buffer to
+# float* unconditionally while getStreamFormat() already admits an I16 grant — a 2x over-read, a heap
+# overflow on capture, and audio that reads as digital silence on any device granted I16.
+r bash -c 'grep -q SK-CAPTUREFMT daemon/src/media/audio/audiolayer.cpp || (cd daemon && patch -flp1) < patches/jami-honour-capture-format.patch'
+
 # current-CRL-only (idempotent; daemon's OWN source — no rules.mak, no contrib rebuild)
 r bash -c 'grep -q SK-CRL-CURRENT daemon/src/jamidht/account_manager.cpp || (cd daemon && patch -flp1) < patches/jami-publish-current-crl-only.patch'
 r bash -c 'find jami-android/app/build/intermediates/cxx -name libjami-core-jni.so -delete 2>/dev/null; true'
