@@ -440,6 +440,23 @@ class AccountService(
         mExecutor.execute { JamiService.subscribeBuddy(accountID, uri, flag) }
     }
 
+    /** One-off presence refresh that RELEASES itself again.
+     *
+     *  A bare `subscribeBuddy(…, true)` is a permanent +1 on the daemon's per-URI presence
+     *  refcount (presence_manager.cpp starts a DHT listen on 0→1 and only cancels on ≤0), so an
+     *  unbalanced call pins a listener for the life of the process. Worse, it prevents
+     *  [resubscribeAccountPresence]'s own release from ever reaching 0 for that contact, which is
+     *  exactly how the 68-listener set of +149 became permanent. Any caller wanting a momentary
+     *  presence refresh must use this instead of calling subscribeBuddy directly.
+     *
+     *  The +1/−1 pair is invisible to [presenceHeld], which does its own counting — so this cannot
+     *  desynchronise the bounded set. */
+    fun refreshBuddyPresence(accountId: String, uri: String) {
+        subscribeBuddy(accountId, uri, true)
+        scheduler.scheduleDirect({ subscribeBuddy(accountId, uri, false) },
+            PRESENCE_REFRESH_HOLD_MS, TimeUnit.MILLISECONDS)
+    }
+
     fun setMessageDisplayed(accountId: String?, conversationUri: Uri, messageId: String) {
         mExecutor.execute { JamiService.setMessageDisplayed(accountId, conversationUri.uri, messageId, 3) }
     }
@@ -980,10 +997,18 @@ class AccountService(
     //
     // This used to subscribe EVERY contact of EVERY conversation, on every recovery and every
     // presence re-arm, and never release any of them. Measured that evening on +149: 68 permanent
-    // proxy listeners across four accounts (18/24/17/9), flat — and in proxy mode each listener is
-    // re-subscribed by our own SK-SUBREFRESH patch every 3 minutes, so ~1360 requests an hour. That
-    // is the ~21 MiB/h floor that remained after the background-teardown churn was removed; the
-    // cost is directly proportional to this set's size.
+    // proxy listeners across four accounts (18/24/17/9), flat.
+    //
+    // CORRECTION (2026-07-31, code audit): this comment used to continue "each listener is
+    // re-subscribed by our own SK-SUBREFRESH patch every 3 minutes, so ~1360 requests an hour …
+    // the ~21 MiB/h floor". That was true of the pre-2026-07-25 unconditional patch and is NOT
+    // true of the shipped one: the blanket resubscribe is gated on SK_SUBREFRESH_QUIET_MS (10 min
+    // of no inbound), and every listen response body — including the server's bare "{}" — stamps
+    // the rx clock, so the gate is shut whenever anything at all is arriving. The real ceiling is
+    // about one blanket per 12 minutes, and zero while inbound exists. Bounding the set is still
+    // right (it is a standing cost, and it pins listeners the daemon would otherwise release),
+    // but do not reason from that 21 MiB/h number — it was never measured, only inferred from a
+    // version of the patch that no longer exists.
     //
     // Two changes:
     //  · Bound the set to what is actually watched — contacts of conversations with activity inside
@@ -1022,6 +1047,11 @@ class AccountService(
         return wanted
     }
 
+    /** Read-only view of the presence URIs this account currently holds, for diagnostics
+     *  (cx.ring.utils.PresenceMap). Not for control flow — [presenceHeld] is the authority. */
+    fun presenceTrackedUris(accountId: String): Set<String> =
+        presenceHeld[accountId]?.keys?.toSet() ?: emptySet()
+
     fun resubscribeAccountPresence(accountId: String) {
         mExecutor.execute {
             val a = mAccountList.firstOrNull { it.accountId == accountId } ?: return@execute
@@ -1049,6 +1079,12 @@ class AccountService(
      *  the safe unit (toggling ALL proxies at once SIGSEGV'd the daemon). onDone runs after restore. */
     fun recoverAccountFromWedge(accountId: String, settleMs: Long = SYNC_SETTLE_MS, onDone: (() -> Unit)? = null) {
         mExecutor.execute {
+            // Restore first, exactly as recoverFromWedge does. A background-deactivated account
+            // would otherwise be dropped from the restore ledger as a "terminal config change" by
+            // the setAccountProxy below and never woken. This was missing here while its
+            // all-accounts sibling had it; harmless only while background deactivation was off,
+            // which stopped being true when it was re-enabled on 2026-07-31.
+            restoreProxyAccountsOnExecutor()
             val acc = mAccountList.firstOrNull { it.accountId == accountId && it.isJami } ?: run { onDone?.invoke(); return@execute }
             if (!acc.isDhtProxyEnabled) { reconnectOne(acc); onDone?.invoke(); return@execute }
             setAccountProxy(accountId, false)
@@ -1063,7 +1099,7 @@ class AccountService(
      *  monitor (a typing nudge alone does not). The probe is visible in the conversation. */
     fun openConnectionTo(accountId: String, conversation: Conversation) {
         // contacts.filter, NOT conversation.contact — the latter throws check(size<=2) for group swarms.
-        conversation.contacts.filter { !it.isUser }.forEach { subscribeBuddy(accountId, it.uri.uri, true) }
+        conversation.contacts.filter { !it.isUser }.forEach { refreshBuddyPresence(accountId, it.uri.uri) }
         val probe = "Connection refresh:\n⌁ " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
         sendConversationMessage(accountId, conversation.uri, probe, null)
     }
@@ -2416,7 +2452,9 @@ class AccountService(
         // size sets the idle data floor: 68 listeners measured ≈ 21 MiB/h on 2026-07-29.
         private const val PRESENCE_RECENT_MS: Long = 7L * 24 * 60 * 60 * 1000  // "recently active"
         private const val PRESENCE_MIN_CONVERSATIONS = 8   // always watch this many, however old
-        private const val PRESENCE_MAX_PER_ACCOUNT = 24    // hard ceiling per account
+        private const val PRESENCE_MAX_PER_ACCOUNT = 24
+/** How long a one-off [AccountService.refreshBuddyPresence] holds its subscription before releasing. */
+private const val PRESENCE_REFRESH_HOLD_MS = 60_000L    // hard ceiling per account
 
         // All-accounts connection poll cadence (see monitorAllConnections). Fast only while a UI
         // surface is actually on screen; the background consumer is the dead-link alarm, which does
