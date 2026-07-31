@@ -1,0 +1,67 @@
+diff --git a/src/jamidht/conversation.cpp b/src/jamidht/conversation.cpp
+index f9d19fcd1..27fa4170c 100644
+--- a/src/jamidht/conversation.cpp
++++ b/src/jamidht/conversation.cpp
+@@ -1022,6 +1022,28 @@ Conversation::Impl::startTracking(std::weak_ptr<Conversation> w)
+                 if (auto sthis = w.lock()) {
+                     if (online && sthis->isMember(uri)) {
+                         sthis->addKnownDevices({deviceId}, uri);
++                    } else if (!online) {
++                        // SK-ABSENTNODE: honour the OFFLINE edge, which upstream discards.
++                        //
++                        // PresenceManager delivers both edges (presence_manager.cpp
++                        // notifyDeviceListeners), but only `online` was ever acted on — so a device
++                        // entered known_nodes on its first announce and was NEVER removed.
++                        // maintainBuckets then kept drawing it from getKnownNodesRandom forever,
++                        // and each speculative dial to an absent device posts a
++                        // PeerConnectionRequest that occupies the target's DHT key for the full
++                        // 10-minute TTL and can never be withdrawn (opendht has no delete: no
++                        // DELETE route in proxy mode, no expire message in the protocol). Measured
++                        // 2026-07-31: 73% of our outbound offers die unanswered at the fixed 30 s
++                        // DHT_MSG_TIMEOUT, 94% of them from this one speculative selector.
++                        //
++                        // setMobileNodes moves the device into upstream's OWN "expected absent"
++                        // bin, which getKnownNodesRandom never draws from. Deliberately not a
++                        // deletion: addMobileNode is a no-op while a live socket exists
++                        // (routing_table.cpp `if (!hasNode(nodeId))`), so it cannot disturb a
++                        // working connection, and the very same listener re-promotes the device on
++                        // its next online announce. connectNode's reuse-only dial, FIND-response
++                        // setKnownNodes and every user-initiated path are untouched.
++                        sthis->setDeviceAbsent(deviceId);
+                     }
+                 }
+             });
+@@ -2878,6 +2900,15 @@ Conversation::bootstrap(std::function<void()> onBootstrapped, const std::vector<
+     }
+ }
+ 
++void
++Conversation::setDeviceAbsent(const DeviceId& deviceId)
++{
++    // SK-ABSENTNODE: forwarder — swarmManager_ is a member of Impl, and the presence listener in
++    // startTracking only holds a weak_ptr<Conversation>.
++    if (pimpl_ && pimpl_->swarmManager_)
++        pimpl_->swarmManager_->setMobileNodes({deviceId});
++}
++
+ void
+ Conversation::addKnownDevices(const std::vector<DeviceId>& devices, const std::string& memberUri)
+ {
+diff --git a/src/jamidht/conversation.h b/src/jamidht/conversation.h
+index 0ad0c1cc9..25a7162e9 100644
+--- a/src/jamidht/conversation.h
++++ b/src/jamidht/conversation.h
+@@ -281,6 +281,13 @@ public:
+      */
+     void addKnownDevices(const std::vector<DeviceId>& devices, const std::string& memberUri);
+ 
++    /**
++     * SK-ABSENTNODE: move a device into the DRT's "expected absent" bin on the presence OFFLINE
++     * edge, so maintainBuckets stops speculatively dialling it. Re-promoted automatically by the
++     * next online announce. No-op while a live socket to that device exists.
++     */
++    void setDeviceAbsent(const DeviceId& deviceId);
++
+     /**
+      * Proactively connect a device in the swarm, bypassing DRT bucket checks.
+      * Used when a TCP link to the device already exists.
