@@ -30,9 +30,11 @@ import net.jami.model.interaction.Interaction
 import net.jami.model.interaction.Interaction.TransferStatus
 import net.jami.model.interaction.*
 import net.jami.smartlist.ConversationItemViewModel
+import net.jami.utils.CallRecordings
 import net.jami.utils.FileUtils.moveFile
 import net.jami.utils.Log
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 class ConversationFacade(
@@ -46,6 +48,9 @@ class ConversationFacade(
     private val mPreferencesService: PreferencesService
 ) {
     private val mDisposableBag = CompositeDisposable()
+
+    /** shiroikuma: recording file path -> (accountId, conversationUri), see onCallRecordingPath. */
+    private val mRecordingOwners = ConcurrentHashMap<String, Pair<String, String>>()
     val currentAccountSubject: Observable<Account> = mAccountService.currentAccountSubject
             .switchMapSingle { account: Account -> loadSmartlist(account) }
 
@@ -165,7 +170,36 @@ class ConversationFacade(
         return Completable.complete()
     }
 
+    /**
+     * shiroikuma: the file behind a local call recording, or null for anything else.
+     *
+     * A recording belongs to a conversation but to no message: it has no messageId, and its bytes live
+     * in the recordings directory rather than in conversation_data. Both delete actions in the message
+     * menu have to be told that, one to avoid deleting nothing and one to avoid crashing.
+     */
+    private fun localRecordingFile(transfer: DataTransfer): File? {
+        val file = transfer.daemonPath ?: return null
+        return if (file.absolutePath.startsWith(mDeviceRuntimeService.callRecordingsDir.absolutePath))
+            file else null
+    }
+
+    /** Delete a local call recording: the file itself, its index entry, and its bubble. */
+    private fun deleteLocalRecording(conversation: Conversation, transfer: DataTransfer, file: File) {
+        mDisposableBag.add(Completable.fromAction {
+            val gone = file.delete()
+            CallRecordings.remove(mDeviceRuntimeService.callRecordingsDir, file)
+            Log.w(TAG, "Deleted call recording ${file.name} (file removed: $gone)")
+        }.subscribeOn(Schedulers.io()).subscribe({
+            conversation.removeLocalFileTransfer(transfer)
+            mAccountService.getAccount(conversation.accountId)?.updated(conversation)
+        }, { e -> Log.e(TAG, "Unable to delete a call recording", e) }))
+    }
+
     fun deleteConversationFile(conversation: Conversation, transfer: DataTransfer) {
+        // The path built below comes from conversation_data, where a recording has never been, so the
+        // normal delete would remove nothing and the bubble would return on the next open.
+        localRecordingFile(transfer)?.let { return deleteLocalRecording(conversation, transfer, it) }
+
         if (transfer.transferStatus === TransferStatus.TRANSFER_ONGOING) {
             mAccountService.cancelDataTransfer(
                 conversation.accountId, conversation.uri.rawRingId, transfer.messageId, transfer.fileId!!
@@ -194,6 +228,13 @@ class ConversationFacade(
     }
 
     fun deleteConversationItem(conversation: Conversation, element: Interaction) {
+        // shiroikuma: "Delete message" on a local call recording used to crash the app. The swarm
+        // branch below ends at deleteConversationMessage(..., element.messageId!!), and a recording has
+        // no messageId — there is no message to delete, only a file. Do that instead, so both delete
+        // actions in the menu mean the same sensible thing here.
+        if (element is DataTransfer)
+            localRecordingFile(element)?.let { return deleteLocalRecording(conversation, element, it) }
+
         if (conversation.isSwarm) {
             if (element is DataTransfer) {
                 if (element.transferStatus === TransferStatus.TRANSFER_ONGOING) {
@@ -728,6 +769,108 @@ class ConversationFacade(
         return notificationCompletable
     }
 
+    /**
+     * shiroikuma: the daemon has named the file a recording is going to (or was) written to. Resolve
+     * which conversation the call belongs to and remember it against the path.
+     *
+     * This is the only moment the call is guaranteed to still exist: the daemon emits this at
+     * recording START, whereas the stop can arrive during call teardown, after the call has been
+     * dropped from CallService. Resolving here and keeping only the answer is what makes
+     * "record, then just hang up" work.
+     */
+    private fun onCallRecordingPath(callId: String, path: String) {
+        if (path.isEmpty() || mRecordingOwners.containsKey(path)) return
+        val call = mCallService.getCallById(callId) ?: run {
+            Log.w(TAG, "No call $callId for recording $path")
+            return
+        }
+        val account = mAccountService.getAccount(call.account) ?: return
+        val conversation = call.conversationUri?.let { account.getByUri(it) }
+            ?: call.contact?.let { c -> account.getByUri(c.conversationUri.blockingFirst()) ?: account.getByUri(c.uri) }
+            ?: return
+        Log.w(TAG, "Recording $path belongs to conversation ${conversation.uri}")
+        mRecordingOwners[path] = Pair(account.accountId, conversation.uri.uri)
+    }
+
+    /**
+     * shiroikuma: a recording has stopped. Index it and add its bubble.
+     *
+     * Deliberately delayed: MediaRecorder::stopRecording only raises a flag and wakes its own thread,
+     * so at this instant the container is still being finalised and the file's size is not yet final.
+     * Adding the entry immediately would record a short length and could show a bubble whose file is
+     * not yet playable. Nothing is lost by waiting — the recording is already on disk.
+     *
+     * The path is looked up rather than trusted, which also makes this safe against the same signal
+     * being raised for playback of an existing recording: an unknown path is ignored.
+     */
+    private fun onCallRecordingStopped(path: String) {
+        val owner = mRecordingOwners.remove(path) ?: run {
+            Log.w(TAG, "Recording stopped for an unknown path, ignoring: $path")
+            return
+        }
+        mDisposableBag.add(Completable.timer(RECORDING_FINALIZE_DELAY_S, TimeUnit.SECONDS, Schedulers.io())
+            .subscribe({
+                val file = File(path)
+                if (!file.isFile || file.length() == 0L) {
+                    Log.w(TAG, "Recording never materialised: $path")
+                    return@subscribe
+                }
+                val (accountId, conversationUri) = owner
+                val entry = CallRecordings.Entry(accountId, conversationUri, file, System.currentTimeMillis())
+                CallRecordings.add(mDeviceRuntimeService.callRecordingsDir, entry)
+                val account = mAccountService.getAccount(accountId) ?: return@subscribe
+                val conversation = account.getByUri(conversationUri) ?: return@subscribe
+                Log.w(TAG, "Adding recording bubble ${file.name} (${file.length()} bytes) to ${conversation.uri}")
+                addRecordingInteraction(conversation, entry)
+                account.updated(conversation)
+            }, { e: Throwable -> Log.e(TAG, "Error adding a call recording", e) }))
+    }
+
+    /**
+     * shiroikuma: put every stored recording for [conversation] into its history. Called each time a
+     * conversation is shown, because its history is rebuilt from the daemon on load and a local
+     * recording is not part of it. Idempotent — an already-present recording is skipped by path.
+     */
+    fun injectLocalRecordings(conversation: Conversation) {
+        val stored = CallRecordings.forConversation(
+            mDeviceRuntimeService.callRecordingsDir, conversation.accountId, conversation.uri.uri
+        )
+        if (stored.isEmpty()) return
+        val present = conversation.sortedHistory.blockingGet().mapNotNullTo(HashSet()) { i ->
+            (i as? DataTransfer)?.daemonPath?.absolutePath
+        }
+        for (entry in stored)
+            if (entry.file.absolutePath !in present)
+                addRecordingInteraction(conversation, entry)
+    }
+
+    private fun addRecordingInteraction(conversation: Conversation, entry: CallRecordings.Entry) {
+        // Shaped like a finished outgoing file transfer, which is what makes the existing audio
+        // bubble render it: play button, waveform, and the long-press menu with Save and Share. The
+        // path is handed over verbatim through daemonPath (what getConversationPath reads for a swarm
+        // conversation), so the recording is played where it lies and never copied.
+        val transfer = DataTransfer(
+            entry.file.name, conversation.accountId, "", entry.file.name,
+            true, entry.timestamp, entry.file.length(), entry.file.length()
+        ).apply {
+            // ConversationAdapter.remove() matches a non-swarm interaction by `id`, and every swarm
+            // message carries the default 0 — so leaving this at 0 would make the view remove whichever
+            // other row it found first. Derive a stable non-zero id from the file name.
+            id = entry.file.name.hashCode().let { if (it == 0) entry.file.name.length + 1 else it }
+            this.conversation = conversation
+            // setSwarmInfo(conversationId) deliberately, NOT the overload that also takes a messageId:
+            // a conversationId is what getConversationPath() needs to resolve the file through
+            // publicPath, while leaving messageId null keeps Interaction.isSwarm false. A synthetic
+            // messageId would make the client treat this as a real swarm message and offer replies,
+            // edits and reactions against an id the daemon has never heard of.
+            setSwarmInfo(conversation.uri.rawRingId)
+            daemonPath = entry.file
+            transferStatus = TransferStatus.TRANSFER_FINISHED
+            contact = conversation.contact
+        }
+        conversation.addLocalFileTransfer(transfer)
+    }
+
     fun cancelFileTransfer(accountId: String, conversationId: Uri, messageId: String?, fileId: String?) {
         mAccountService.cancelDataTransfer(accountId, if (conversationId.isSwarm) conversationId.rawRingId else "", messageId, fileId!!)
         mNotificationService.removeTransferNotification(accountId, conversationId, fileId)
@@ -793,10 +936,23 @@ class ConversationFacade(
         }
 
     companion object {
+        /** shiroikuma: how long to let the recorder finalise its container before indexing it. */
+        private const val RECORDING_FINALIZE_DELAY_S = 3L
+
         private val TAG = ConversationFacade::class.simpleName!!
     }
 
     init {
+        // shiroikuma: a call recording belongs to a conversation but to no message, so nothing would
+        // ever show it. Two signals are needed: the path (which names the call, while it is still
+        // alive) and the stop (which is the only thing that means the recording is over).
+        mDisposableBag.add(mCallService.recordingPath
+            .subscribe({ (callId, path) -> onCallRecordingPath(callId, path) },
+                { e: Throwable -> Log.e(TAG, "Error noting a call recording path", e) }))
+        mDisposableBag.add(mCallService.recordingStopped
+            .subscribe({ path -> onCallRecordingStopped(path) },
+                { e: Throwable -> Log.e(TAG, "Error handling a finished call recording", e) }))
+
         mDisposableBag.add(mCallService.callsUpdates
             //.toFlowable(BackpressureStrategy.LATEST)
             .concatMapCompletable(this::onCallStateChange)
