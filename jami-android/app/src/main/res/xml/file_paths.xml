@@ -2,4 +2,12 @@
 <paths>
     <cache-path name="file_cache" path="tmp" />
     <files-path name="conversation_data" path="conversation_data" />
+    <!-- shiroikuma: call recordings. Without a root that contains them, FileProvider.getUriForFile()
+         throws for every recording, which is why the bubble would not play and Share did nothing while
+         Save (a plain file copy, no content URI) worked. -->
+    <external-files-path name="call_recordings" path="recordings" />
+    <!-- shiroikuma: ContentUri.getUriForFile() works around a Huawei external-files-path bug by
+         copying the file to cacheDir/Huawei and asking for a URI on THAT path — but no root ever
+         contained it either, so the workaround could not succeed on the devices it exists for. -->
+    <cache-path name="huawei_cache" path="Huawei" />
 </paths>
