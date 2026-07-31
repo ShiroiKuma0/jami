@@ -1,21 +1,53 @@
 diff --git a/src/media/audio/aaudio/aaudiolayer.cpp b/src/media/audio/aaudio/aaudiolayer.cpp
-index 26e6b5e26..9557d6fb1 100644
+index 26e6b5e26..e93d16bf0 100644
 --- a/src/media/audio/aaudio/aaudiolayer.cpp
 +++ b/src/media/audio/aaudio/aaudiolayer.cpp
-@@ -16,8 +16,12 @@
+@@ -16,7 +16,15 @@
   */
  
  #include "aaudiolayer.h"
 +
 +#include <cmath>
++#include <filesystem>
++#include <fstream>
++#include <system_error>
  #include "logger.h"
- 
-+#include <opendht/thread_pool.h>
++#include "fileutils.h"
 +
++#include <opendht/thread_pool.h>
+ 
  #include <aaudio/AAudio.h>
  #include <dlfcn.h>
+@@ -33,11 +41,28 @@ using SetInputPresetFunc = void (*)(AAudioStreamBuilder*, aaudio_input_preset_t)
+ // Set once from JNI_OnLoad; used to create the Java AudioTrack fallback on API < 28.
+ static JavaVM* sJavaVM {nullptr};
  
-@@ -122,7 +126,18 @@ AAudioLayer::buildStream(AudioDeviceType type)
++// SK-CAPTUREZERO: marker recording that this device cannot capture on the low-latency
++// voice-communication path. Kept beside the daemon's own configuration so the decision survives a
++// restart: without it, every process start costs the first seconds of the first call in silence while
++// the evidence is gathered again.
++static std::filesystem::path
++captureFallbackMarker()
++{
++    return fileutils::get_config_dir() / "capture-fallback";
++}
++
+ AAudioLayer::AAudioLayer(const AudioPreference& pref)
+     : AudioLayer(pref)
+ {
+     setHasNativeAEC(true);
+     setHasNativeNS(true);
++
++    std::error_code ec;
++    if (std::filesystem::exists(captureFallbackMarker(), ec)) {
++        JAMI_WARNING("This device is known to deliver silence on the low-latency capture path — "
++                     "opening the input on the fallback path from the start");
++        captureFallback_ = true;
++    }
+ }
+ 
+ void
+@@ -122,7 +147,18 @@ AAudioLayer::buildStream(AudioDeviceType type)
      }
      if (type == AudioDeviceType::CAPTURE) {
          if (setInputPreset) {
@@ -35,7 +67,7 @@ index 26e6b5e26..9557d6fb1 100644
          } else {
              JAMI_WARNING("AAudioStreamBuilder_setInputPreset not available, input preset will be unknown");
          }
-@@ -307,6 +322,21 @@ AAudioLayer::dataCallback(AAudioStream* stream, void* userData, void* audioData,
+@@ -307,6 +343,21 @@ AAudioLayer::dataCallback(AAudioStream* stream, void* userData, void* audioData,
      auto format = getStreamFormat(stream);
      int32_t numSamples = numFrames * format.nb_channels;
  
@@ -57,7 +89,7 @@ index 26e6b5e26..9557d6fb1 100644
      if (direction == AAUDIO_DIRECTION_OUTPUT) {
          // JAMI_WARNING("Playback callback: {} frames, format: {}, sample rate: {}", numFrames, (aaFormat ==
          // AAUDIO_FORMAT_PCM_FLOAT) ? "Float" : "I16", sampleRate);
-@@ -329,25 +359,50 @@ AAudioLayer::dataCallback(AAudioStream* stream, void* userData, void* audioData,
+@@ -329,25 +380,50 @@ AAudioLayer::dataCallback(AAudioStream* stream, void* userData, void* audioData,
  
          auto frame = stream == layer->ringStream_.get() ? layer->getToRing(format, numFrames)
                                                          : layer->getToPlay(format, numFrames);
@@ -116,7 +148,7 @@ index 26e6b5e26..9557d6fb1 100644
              layer->putRecorded(std::move(out));
          }
      }
-@@ -355,6 +410,32 @@ AAudioLayer::dataCallback(AAudioStream* stream, void* userData, void* audioData,
+@@ -355,6 +431,39 @@ AAudioLayer::dataCallback(AAudioStream* stream, void* userData, void* audioData,
      return AAUDIO_CALLBACK_RESULT_CONTINUE;
  }
  
@@ -135,6 +167,13 @@ index 26e6b5e26..9557d6fb1 100644
 +    if (captureFallback_.exchange(true))
 +        return;
 +    JAMI_ERROR("Capture delivered only silence — restarting the input on the fallback path");
++    // Remember it, so this is paid once per device and not once per process start.
++    try {
++        std::ofstream marker(captureFallbackMarker());
++        marker << "the low-latency voice-communication capture path delivers only silence on this device\n";
++    } catch (const std::exception& e) {
++        JAMI_ERROR("Unable to persist the capture fallback: {}", e.what());
++    }
 +    // Off this thread, and without taking mutex_ here: this runs on the capture data callback, and the
 +    // restart loop holds mutex_ while calling AAudioStream_requestStop(), which itself waits for the
 +    // data callback to return. Blocking on mutex_ from inside the callback would deadlock the two
