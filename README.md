@@ -14,11 +14,14 @@ with **probe-verified** health, and a live **connection monitor** (per-contact t
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
 too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
-setting, every account, and the **entire chat history with its attachments** to a new phone — and a
+setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
-picture, with a **soft delete** that frees your space without touching anybody else's chat.
+picture, with a **soft delete** that frees your space without touching anybody else's chat, and a
+worked-over **calling** experience: **call recording** that lands in the chat as a playable message, a
+visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
+microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260717-01+148`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260717-01+190`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -296,6 +299,53 @@ lets you resolve a registered name on demand instead of waiting on a silent fail
 On foldables and tablets, Jami shows the conversation list and the open chat side by side. A toggle
 (in **Settings → Appearance** and the chat-list overflow menu) forces **single-pane** when you'd
 rather focus on one screen at a time.
+
+## 🎙 One-way audio — when the phone runs a microphone that isn't there
+
+Some devices open a capture stream, report it healthy, light the microphone privacy indicator, and
+deliver a continuous run of **digital zeros**. The call connects, the other side hears you, and you are
+inaudible — with no error anywhere to explain it.
+
+This fork measures instead of guessing. The capture chain is sampled at both ends — the buffer exactly
+as the platform hands it over, and again after the audio processor — so silence can be attributed to
+the device rather than to anything the app did. When the raw signal reads **exactly** zero for five
+seconds, which a live microphone never does because one always leaks a noise floor, the input is
+re-opened off the low-latency `VOICE_COMMUNICATION` path that is implicated in this class of fault. The
+decision is remembered per device, so it is paid once rather than at every app start.
+
+Measured on the affected phone: `peak=0.0000` at ~510 frames/s on the fast path, and real audio in the
+very next second after the switch. Upstream has neither the detection nor a fallback — and since the
+OpenSL layer was removed there is nothing left to fall back to.
+
+---
+
+## 📼 Call recording, in the conversation
+
+Upstream's phone UI has no way to record a call at all, though the daemon has always been able to. This
+fork adds a **Record** control to the in-call sheet, and — the part that makes it usable — the finished
+recording appears **in the chat as a normal audio message**: play it, scrub the waveform, Share it, Save
+it, delete it.
+
+That took teaching several layers that a message need not come from the swarm: a recording is a local
+artefact with no message id, so it is indexed beside the files themselves, inserted where its timestamp
+belongs rather than pinned to the bottom of the conversation forever, and given a real identity so
+deleting it removes the right row. Recordings land in the app's own visible storage — the daemon's
+fallback is a private directory the user cannot reach.
+
+---
+
+## ⏱ A call timer you can actually see, and a speaker that stays on
+
+- **The running duration is visible.** Upstream computes it every second and writes it into a view it
+  hides for the whole call, so it has never appeared. It now sits at the top of the call screen in
+  bold yellow, `M:SS` and `H:MM:SS` past the hour.
+- **The speaker survives pick-up.** Choosing the speaker while an outgoing call rang out used to be
+  undone the instant the callee answered: every call-state change re-asserted a route derived only from
+  the call type. Your choice is now remembered for the call and re-asserted instead of overwritten.
+- **A voice message opens its menu on a long press anywhere in the bubble** — the play button and the
+  waveform swallowed the gesture, leaving Save and Share reachable only at the bubble's edge.
+
+---
 
 ## 💬 Quality-of-life
 
