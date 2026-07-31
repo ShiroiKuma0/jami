@@ -32,7 +32,7 @@
   <string name="menu_item_settings">設定</string>
   <string name="menu_item_account_settings">アカウント設定</string>
   <string name="menu_item_share">アカウントの共有</string>
-  <string name="menu_item_about">Jamiについて</string>
+  <string name="menu_item_about">白い熊 GNU Jamiについて</string>
   <string name="video_setting_title">ビデオ設定</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
