@@ -86,6 +86,16 @@ class HardwareServiceImpl(
     @Volatile
     private var pendingResolutionReset = false
     private var mShouldSpeakerphone = false
+
+    /**
+     * shiroikuma: the output the USER picked during this call, if any.
+     *
+     * Every call-state change runs updateAudioState, which re-asserts a wanted route list computed
+     * only from "incoming or video" — so choosing the speaker while an outgoing call rings was undone
+     * the moment the callee answered and the state went RINGING -> CURRENT. Remembering the choice
+     * lets it be re-asserted instead of overwritten. Cleared when the call's audio is torn down.
+     */
+    private var mUserSelectedOutput: AudioOutput? = null
     // Tracks whether the call's output stream is muted via the "Mute Audio Output"
     // option. Since Telecom/AudioManager routing APIs do not expose this state,
     // it must be tracked and reported explicitly.
@@ -274,6 +284,14 @@ class HardwareServiceImpl(
 
     @RequiresApi(CONNECTION_SERVICE_TELECOM_API_SDK_COMPATIBILITY)
     fun setAudioState(call: CallConnection, wantSpeaker: Boolean) {
+        // shiroikuma: an explicit choice by the user outranks the implicit one derived from the call
+        // type. Without this, picking the speaker while ringing was discarded on answer.
+        val chosen = mUserSelectedOutput
+        if (chosen != null) {
+            Log.w(TAG, "setAudioState Telecom API keeping the user's choice: ${chosen.type}")
+            call.setWantedAudioState(routeListForOutput(chosen), chosen.outputId)
+            return
+        }
         Log.w(TAG, "setAudioState Telecom API $wantSpeaker ${call.callAudioState}")
         call.setWantedAudioState(if (wantSpeaker) CallConnection.ROUTE_LIST_SPEAKER_IMPLICIT else CallConnection.ROUTE_LIST_DEFAULT)
     }
@@ -348,6 +366,7 @@ class HardwareServiceImpl(
     @Synchronized
     override fun closeAudioState() {
         if (mIsOutputMuted) setOutputMuted(false)
+        mUserSelectedOutput = null // shiroikuma: a choice lasts for one call, not forever
         abandonAudioFocus()
     }
 
@@ -514,6 +533,10 @@ class HardwareServiceImpl(
     @Synchronized
     override fun selectAudioOutput(conf: Conference, output: AudioOutput) {
         Log.w(TAG, "selectAudioOutput $conf $output")
+
+        // shiroikuma: muting is a separate toggle, not a route choice, so it does not replace one.
+        if (output.type != AudioOutputType.MUTE)
+            mUserSelectedOutput = output
 
         if (output.type == AudioOutputType.MUTE) {
             setOutputMuted(true)
