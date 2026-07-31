@@ -259,8 +259,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:contentDescription="@string/action_call_decline"
                     android:stateListAnimator="@animator/button_press_scale"
                     android:text="@string/decline"
-                    app:backgroundTint="@color/call_decline"
+                    android:textColor="@color/colorOnSurface"
+                    app:backgroundTint="@color/red_500"
                     app:icon="@drawable/baseline_call_end_24"
+                    app:iconTint="@color/colorOnSurface"
                     app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium"
                     app:rippleColor="@color/call_button_ripple" />
 
@@ -271,8 +273,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_height="wrap_content"
                     android:stateListAnimator="@animator/button_press_scale"
                     android:text="@string/action_call_accept"
-                    app:backgroundTint="@color/call_accept"
+                    android:textColor="@android:color/black"
+                    app:backgroundTint="@color/colorOnSurface"
                     app:icon="@drawable/baseline_call_24"
+                    app:iconTint="@android:color/black"
                     app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium"
                     app:rippleColor="@color/call_button_ripple" />
 

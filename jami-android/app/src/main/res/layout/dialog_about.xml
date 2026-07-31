@@ -19,12 +19,14 @@
             android:textColor="@color/colorOnSurface" />
 
         <TextView
+            android:id="@+id/credits_developers_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/developers"
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/colorOnSurface"
             android:textSize="18sp"
-            android:layout_margin="@dimen/padding_small"/>
+            android:textStyle="bold"
+            android:layout_margin="@dimen/padding_small" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -36,12 +38,14 @@
             android:textColor="@color/colorOnSurface" />
 
         <TextView
+            android:id="@+id/credits_media_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/media"
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/colorOnSurface"
             android:textSize="18sp"
-            android:layout_margin="@dimen/padding_small"/>
+            android:textStyle="bold"
+            android:layout_margin="@dimen/padding_small" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -53,11 +57,13 @@
             android:textColor="@color/colorOnSurface" />
 
         <TextView
+            android:id="@+id/credits_community_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/community_management"
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/colorOnSurface"
             android:textSize="18sp"
+            android:textStyle="bold"
             android:layout_margin="@dimen/padding_small" />
 
         <TextView
@@ -70,11 +76,13 @@
             android:textColor="@color/colorOnSurface" />
 
         <TextView
+            android:id="@+id/credits_thanks_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/special_thanks"
-            android:textColor="?attr/colorOnBackground"
+            android:textColor="@color/colorOnSurface"
             android:textSize="18sp"
+            android:textStyle="bold"
             android:layout_margin="@dimen/padding_small" />
 
         <TextView
