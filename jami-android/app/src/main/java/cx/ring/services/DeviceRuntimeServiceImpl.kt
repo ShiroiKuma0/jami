@@ -71,6 +71,11 @@ class DeviceRuntimeServiceImpl(
 
     override fun provideFilesDir(): File = mContext.filesDir
 
+    // shiroikuma: user-visible storage, alongside the app's other exported outputs. The daemon's own
+    // fallback is its home directory, which on Android is app-private and unreachable.
+    override val callRecordingsDir: File
+        get() = File(mContext.getExternalFilesDir(null), "recordings")
+
     override fun getFilePath(filename: String) = AndroidFileUtils.getFilePath(mContext, filename)
 
     override fun getConversationPath(accountId: String, conversationId: String, name: String): File =

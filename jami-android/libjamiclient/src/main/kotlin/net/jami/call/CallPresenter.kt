@@ -272,6 +272,38 @@ class CallPresenter @Inject constructor(
         )
     }
 
+    /**
+     * Toggle recording of the current call and return the state after the toggle, or null when
+     * there is no call to record. The daemon records BOTH directions of the conversation — the
+     * remote stream is taken from the RTP receive path and the local one from the capture path — so
+     * this is also the only way from inside the app to inspect what a peer's audio actually
+     * contains.
+     */
+    fun toggleCallRecording(): Boolean? {
+        val conference = mConference ?: return null
+        val callId = conference.call?.id ?: conference.id
+        return mCallService.toggleRecordingCall(conference.accountId, callId)
+    }
+
+    /**
+     * Point the daemon at the shared recordings directory and return it. One source of truth for the
+     * daemon's record path, the index the conversation bubbles are rebuilt from, and the path shown
+     * to the user when a recording stops.
+     */
+    fun prepareRecordPath(): java.io.File {
+        val dir = mDeviceRuntimeService.callRecordingsDir
+        dir.mkdirs()
+        mCallService.recordPath = dir.absolutePath
+        return dir
+    }
+
+    val isCallRecording: Boolean
+        get() {
+            val conference = mConference ?: return false
+            val callId = conference.call?.id ?: conference.id
+            return mCallService.isCallRecording(conference.accountId, callId)
+        }
+
     fun switchVideoInputClick() {
         val conference = mConference ?: return
         if(conference.hasActiveNonScreenShareVideo()) {
