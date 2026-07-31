@@ -378,6 +378,40 @@ class Conversation(
         updatedElementSubject.onNext(Pair(contactEvent, ElementStatus.ADD))
     }
 
+    /**
+     * shiroikuma: add a file that belongs to this conversation but to no message — a local call
+     * recording — at the position its timestamp deserves.
+     *
+     * addFileTransfer() appends, and sortHistory() only ever sorts a NON-swarm history: a swarm's
+     * order is the order the daemon fed its commits in. So an appended local file sits at the bottom
+     * of the conversation permanently, below every message that arrives afterwards, and becomes
+     * lastEvent for the smartlist too. Insert it among the messages instead.
+     */
+    fun addLocalFileTransfer(dataTransfer: DataTransfer) {
+        if (aggregateHistory.contains(dataTransfer)) return
+        mDirty = true
+        val at = aggregateHistory.indexOfFirst { it.timestamp > dataTransfer.timestamp }
+        if (at < 0)
+            aggregateHistory.add(dataTransfer)
+        else
+            aggregateHistory.add(at, dataTransfer)
+        updatedElementSubject.onNext(Pair(dataTransfer, ElementStatus.ADD))
+    }
+
+    /**
+     * shiroikuma: remove a local file added by addLocalFileTransfer.
+     *
+     * removeInteraction() cannot be used for one: its swarm branch dereferences messageId!!, and a
+     * local recording has none. Removing by object identity is exactly right here — Interaction does
+     * not override equals, and this is the same instance the history was given.
+     */
+    fun removeLocalFileTransfer(dataTransfer: DataTransfer) {
+        if (aggregateHistory.remove(dataTransfer)) {
+            mDirty = true
+            updatedElementSubject.onNext(Pair(dataTransfer, ElementStatus.REMOVE))
+        }
+    }
+
     fun addFileTransfer(dataTransfer: DataTransfer) {
         if (aggregateHistory.contains(dataTransfer)) {
             return
