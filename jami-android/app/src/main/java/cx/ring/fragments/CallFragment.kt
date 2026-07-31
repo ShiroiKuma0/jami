@@ -893,12 +893,19 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
 
     override fun updateTime(duration: Long) {
         binding?.let { binding ->
-            binding.callStatusTxt.text = if (duration <= 0) null else String.format(
-                "%d:%02d:%02d",
-                duration / 3600,
-                duration % 3600 / 60,
-                duration % 60
-            )
+            // shiroikuma: M:SS under an hour, H:MM:SS above it — "0:04:07" for a four-minute call reads
+            // as a stopwatch nobody asked for.
+            val text = when {
+                duration <= 0 -> null
+                duration >= 3600 -> String.format("%d:%02d:%02d", duration / 3600, duration % 3600 / 60, duration % 60)
+                else -> String.format("%d:%02d", duration / 60, duration % 60)
+            }
+            binding.callStatusTxt.text = text
+            // The status text above sits inside contact_bubble_layout, which initNormalStateDisplay()
+            // hides as soon as the call is answered — so it is invisible for the whole call. Drive the
+            // standalone yellow duration view as well; it is a root-level child and always on screen.
+            binding.callDurationTxt.text = text
+            binding.callDurationTxt.isVisible = text != null
         }
     }
 
