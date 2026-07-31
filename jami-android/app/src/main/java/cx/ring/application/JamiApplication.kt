@@ -85,44 +85,65 @@ abstract class JamiApplication : Application() {
         private const val CALL_PUSH_GRACE_MS = 60_000L
         // Upper bound for one continuous background-active episode under sustained pushes.
         private const val MAX_BACKGROUND_ACTIVE_MS = 10 * 60_000L
-        // Minimum time deactivated before a non-call push may restore accounts again.
-        private const val NONCALL_RESTORE_COOLDOWN_MS = 3 * 60_000L
+        // Minimum time deactivated before a non-call push may restore accounts again. This is the
+        // SLEEP FLOOR, and the net saving grows monotonically with it: restore costs a fixed
+        // ~1-2.5 MiB per cycle while staying awake costs 11-83 MiB/h, so break-even is a 1-7 min
+        // sleep and everything past that is profit. Raised 3 -> 10 min on 2026-07-31.
+        private const val NONCALL_RESTORE_COOLDOWN_MS = 10 * 60_000L
         // Recheck cadence while the watchdog says the push leg is not proven — long enough that a
         // standing outage costs nothing, short enough to sleep soon after the leg comes back.
         private const val SLEEP_UNSAFE_RECHECK_MS = 60_000L
 
         /**
-         * Background deactivation is OFF — it cannot pay for itself on the DHT proxy (measured
-         * 2026-07-29, four accounts, 4 h 41 m on battery).
+         * Background account deactivation. The figures this comment carried until 2026-07-31
+         * ("~13 MiB per sleep/wake round", "133 MiB/h") were NOT measurements and must not be
+         * quoted again. What was observed on 2026-07-29 was a whole-app rate of ~133 MiB/h in a
+         * window where deactivation happened to be on; the per-cycle 13 MiB was 133 / 10, a
+         * division. That window ran on `+148`, which also carried the unbounded 68-listener
+         * presence set (bounded to <=24/account by `e6f32c7be`), the pre-veto watchdog
+         * false-wedging and re-subscribing everything several times an hour, and the trust-request
+         * confirmation storm (49% of CPU samples, fixed in `+156`). None of those exist now.
          *
-         * [AccountService.deactivateProxyAccountsForBackground] tears each account down with
-         * `setAccountActive(id, false, shutdownConnections=true)`, so every restore rebuilds its
-         * proxy listen subscriptions from scratch — and re-establishing a proxy subscription
-         * re-downloads the full value set of every key. Measured cost: **~13 MiB per sleep/wake
-         * round**. Pushes arrive every 60–180 s, well inside [PUSH_GRACE_MS], so the cycle ran about
-         * ten times an hour and burned **133 MiB/h — no better than the full DHT it replaced**, plus
-         * 285 MB of metered cellular in one afternoon.
+         * What IS established, from the code and the 2026-07-30/31 SK-PROXYDIAG windows:
          *
-         * Registered and idle on the proxy costs **1.33 MiB/h** (measured over the 1 h 33 m the
-         * watchdog happened to hold the accounts awake). A sleep episode would therefore have to run
-         * ~10 hours to break even on one teardown, and nothing like that can happen while push
-         * traffic keeps waking us. There is no cadence at which this wins, so it is not a tuning
-         * problem — the optimization is simply inapplicable to proxy mode, which is now the resting
-         * mode. It was written in the withFirebase flavor against full-DHT costs and hoisted into
-         * `main` in `+143` on the assumption that it would transfer; the measurement says it does
-         * not.
+         *  - Deactivation is INVISIBLE TO THE NETWORK. `doUnregister` sends the proxy nothing: no
+         *    UNSUBSCRIBE, no put cancellation. The proxy keeps re-announcing our DeviceAnnouncement
+         *    and keeps its own DHT listen and push subscription alive for OP_TIMEOUT = 24 h. That
+         *    is why wake-on-push works — and equally why sleeping cannot make peers stop dialling
+         *    us. Deactivation DEFERS inbound cost; it does not reduce it.
+         *  - The dominant cost is not subscription restore. Each account's own
+         *    SHA1("peer:"+deviceId) holds ~60 PeerConnectionRequest values (10-min TTL, ~5.5
+         *    inbound dials/min), and a push carries only value ids, so the client re-GETs the WHOLE
+         *    key each time. Measured 2026-07-31: 148, 128 and 80 KiB per get on three of the four
+         *    accounts, 81% of all inbound bytes. That cost is proportional to time spent AWAKE.
+         *  - A restore re-downloads each of the ~48 listeners' full value set once (a first
+         *    SUBSCRIBE omits `refresh`, so the server answers with a whole `dht_->get`). Estimated
+         *    1-2.5 MiB including ICE/TLS re-establishment — NOT yet measured directly.
+         *  - Break-even sleep is therefore roughly 1-7 min against an awake burn of 11-83 MiB/h.
+         *  - One genuine reduction rather than deferral: ~35% of ICE transports are this phone's
+         *    own four accounts dialling each other (997/2861 device-id occurrences), and since all
+         *    proxy accounts sleep together, that whole component stops on both sides.
          *
-         * Kept rather than deleted: the guards it needs ([ConnectionWatchdog.backgroundSleepSafe],
-         * the detector stand-down, the restore ledger) are all still correct, and flipping this back
-         * to `true` is the whole of the rollback. Note `hardwareService.connectivityChanged(true)`
-         * on message pushes is NOT implicated and stays — it fired ~17×/h through the cheap stretch
-         * and cost nothing measurable, which retires the leading suspect from the earlier analysis.
+         * Enabled 2026-07-31 together with the two changes that make it pay: noise pushes no longer
+         * refresh [lastPushTime] (they were holding the awake window open, giving 77% awake), and
+         * [NONCALL_RESTORE_COOLDOWN_MS] raised 3 -> 10 min. Do NOT restore the
+         * `connectivityChanged(true)` that used to accompany the restore: `doRegister()` already
+         * rebuilds the ConnectionManager and every swarm, and the beacon would put a 3 s kill
+         * deadline on sockets a moment old.
+         *
+         * REVERT CRITERIA, measurable in one window now that the diag byte threshold is 0:
+         *  - sum `listen req ... ENDED ... bytes=` across the burst after an "accounts awake again"
+         *    line. That is the restore cost. If it exceeds ~4 MiB, set this back to false.
+         *  - histogram `push key=... pt=`. If more than ~20% of pushes classify as call/message/sync
+         *    the cooldown never governs, the duty cycle stays high and the win evaporates.
+         *  - if the observed awake fraction does not fall below ~20%, something else is refreshing
+         *    the grace window and this model is wrong.
          *
          * Deliberately a plain `val`, not a `const val`: a compile-time constant would fold the
          * guards below into dead code and draw "condition is always false" warnings on a file that
          * is in the built variant's lintVital scope.
          */
-        private val BACKGROUND_DEACTIVATION_ENABLED = false
+        private val BACKGROUND_DEACTIVATION_ENABLED = true
     }
 
     @Inject
@@ -289,7 +310,15 @@ abstract class JamiApplication : Application() {
         // Publish the grace window before cancelling: a deactivateRunnable already running
         // reads these atomics, and any deactivation it queues runs FIFO after the restore below.
         val now = SystemClock.elapsedRealtime()
-        lastPushTime.set(now)
+        // Only a REAL delivery may hold the awake window open. Setting lastPushTime for noise too
+        // was the whole reason deactivation looked worthless: speculative swarm dials push with an
+        // empty `pt` (JamiAccount forces connType="" on the swarm path), they arrive ~35×/min, and
+        // each one refreshed this clock — so once any noise push had woken us, graceRemaining never
+        // lapsed and we stayed up until MAX_BACKGROUND_ACTIVE_MS. Measured duty cycle: 10 min awake
+        // per 3 min asleep, i.e. 77% awake, at which point the optimization is break-even. The
+        // restore cost is fixed per cycle while the awake cost is proportional to awake time, so
+        // the objective is FEW, LONG sleeps — the opposite of what this produced.
+        if (isCallPush || isMessagePush) lastPushTime.set(now)
         if (isCallPush) lastCallPushTime.set(now)
         if (isMessagePush) lastMessagePushTime.set(now)
         backgroundActiveSince.compareAndSet(0L, now)
@@ -301,8 +330,12 @@ abstract class JamiApplication : Application() {
                 || (mPreferencesService.settings.enablePushNotifications && pushToken != null)
             ) {
                 mAccountService.restoreProxyAccountsAfterBackground()
-                // Full DHT/SIP reconnect to rebuild sockets torn down in doze.
-                if (isCallPush || isMessagePush) hardwareService.connectivityChanged(true)
+                // No connectivityChanged() here. It was added in `+143` to rebuild sockets torn
+                // down by background deactivation; with [BACKGROUND_DEACTIVATION_ENABLED] false
+                // nothing tears them down, so there is nothing to rebuild — the premise expired.
+                // What it still did was cost: connectivityChanged(true) fires a beacon with a 3 s
+                // kill deadline on every peer socket of every account and re-maintains every
+                // conversation's DRT buckets, ~17 times an hour, for sockets that were already up.
             }
             backgroundHandler.removeCallbacks(deactivateRunnable)
             if (BACKGROUND_DEACTIVATION_ENABLED)
