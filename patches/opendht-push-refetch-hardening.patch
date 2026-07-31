@@ -1,0 +1,194 @@
+--- a/include/opendht/dht_proxy_client.h
++++ b/include/opendht/dht_proxy_client.h
+@@ -334,6 +334,14 @@
+     using CacheValueCallback
+         = std::function<bool(const std::vector<std::shared_ptr<Value>>& values, bool expired, system_clock::time_point)>;
+ 
++    // SK-PUSHGET: post-push refetch — burst coalescing + success-gated cache sweep. See the .cpp.
++    // Declared here (not beside opFailed) because it needs CacheValueCallback, defined just above.
++    void pushGet(const InfoHash& key,
++                 size_t token,
++                 system_clock::time_point sendTime,
++                 CacheValueCallback cb,
++                 std::vector<Sp<Value>> oldValues);
++
+     /**
+      * Send Listen with httpClient_
+      */
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -43,6 +43,10 @@
+     CacheValueCallback cb;
+     Sp<OperationState> opstate;
+     std::shared_ptr<http::Request> request;
++    // SK-PUSHGET: post-push get() coalescing state. See DhtProxyClient::pushGet().
++    bool getInFlight {false};
++    bool getPending {false};
++    std::chrono::system_clock::time_point pendingSendTime {};  // system_clock, as sendTime
+ #ifdef OPENDHT_PUSH_NOTIFICATIONS
+     std::unique_ptr<asio::steady_timer> refreshSubscriberTimer;
+ #endif
+@@ -407,12 +411,20 @@
+ 
+         auto opstate = std::make_shared<OperationState>();
+ 
++        // SK-PROXYDIAG: per-key byte attribution for GETs. In push mode almost every get is a
++        // post-push refetch of a whole key, so this is the line that names WHICH key costs what —
++        // a contact still running stock Jami carries a landfilled account key and shows up here as
++        // a fat bytes= on every one of their pushes.
++        auto diagGetBytes = std::make_shared<uint64_t>(0);
++
+         request->add_on_body_callback([this,
+                                        key,
+                                        opstate,
+                                        filter = Value::Filter::chain(std::move(f), w.getFilter()),
+                                        rxBuf = std::make_shared<LineSplit>(),
++                                       diagGetBytes,
+                                        cb](const char* at, size_t length) {
++            *diagGetBytes += length;
+             try {
+                 rxBuf->append(at, length);
+                 // one value per body line
+@@ -446,7 +458,10 @@
+                 opstate->ok.store(false);
+             }
+         });
+-        request->add_on_done_callback([this, reqid, opstate, donecb, key](const http::Response& response) {
++        request->add_on_done_callback([this, reqid, opstate, donecb, key, diagGetBytes](const http::Response& response) {
++            SK_DIAG("[%s] get key=%s bytes=%llu code=%u",
++                    proxyUrl_.c_str(), key.toString().c_str(),
++                    (unsigned long long) *diagGetBytes, (unsigned) response.status_code);
+             if (response.status_code != 200) {
+                 if (logger_)
+                     logger_->error("[proxy:client] [get {}] failed with code={}", key.to_view(), response.status_code);
+@@ -1212,7 +1227,7 @@
+             // 2026-07-25: + per-request byte/key accounting — a fat (landfilled) key shows up here
+             // as a huge bytes= on its SUBSCRIBE/RESUBSCRIBE, key= names it directly.
+             diagListenEnded_++;
+-            if (method == ListenMethod::LISTEN || response.status_code != 200 || *diagReqBytes > 262144)
++            if (method == ListenMethod::LISTEN || response.status_code != 200 || *diagReqBytes > 0)   // SK-PUSHGET: was 262144 — restore-sized SUBSCRIBEs were invisible
+                 SK_DIAG("[%s] listen req #%llu ENDED code=%u aborted=%d bytes=%llu key=%s (sent=%llu ended=%llu)",
+                         proxyUrl_.c_str(), (unsigned long long) reqid,
+                         (unsigned) response.status_code, (int) response.aborted,
+@@ -1346,6 +1361,65 @@
+     }
+ }
+ 
++// SK-PUSHGET: issue the post-push full get() for one listener, sweep the old value set only if
++// that get actually succeeded, then release the in-flight slot and honour any coalesced push.
++// Does NOT acquire searchLock_ itself, so it is safe to call with or without the lock held; the
++// done-callback below runs on the client's own callback loop (get()'s donecb is queued into
++// callbacks_), which is where it takes searchLock_ — the same pattern the `exp` branch uses.
++void
++DhtProxyClient::pushGet(const InfoHash& key,
++                        size_t token,
++                        system_clock::time_point sendTime,
++                        CacheValueCallback cb,
++                        std::vector<Sp<Value>> oldValues)
++{
++    get(
++        key,
++        [cb, sendTime](const std::vector<Sp<Value>>& vals) { return cb(vals, false, sendTime); },
++        [this, key, token, cb, oldValues, sendTime](bool ok) {
++            // SK-PUSHGET (ok-guard): sweep ONLY on a successful get. Stock ignored `ok` and
++            // replayed oldValues as expired unconditionally, so a get that failed (non-200, no
++            // body, parse error) decremented every cached value with no compensating adds —
++            // erasing the listener's whole cache and reporting every value expired. On a presence
++            // key that is every contact going offline at once from one network blip, and this
++            // fork's watchdog triages wedges off exactly that signal.
++            //
++            // Residual, accepted deliberately: if the get failed *after* delivering some values,
++            // those adds are not undone, so their refcount sits one high and a later genuine
++            // expiry decrements 2->1 instead of removing. That is a missed expiration — strictly
++            // milder than the mass false-expiry it replaces. Undoing the partial adds instead
++            // would round-trip them as add-then-expire, i.e. exactly the presence blip this is
++            // meant to prevent, so it is not the better trade.
++            if (ok)
++                cb(oldValues, true, sendTime);
++
++            CacheValueCallback ncb;
++            std::vector<Sp<Value>> nold;
++            system_clock::time_point nsend;
++            bool again = false;
++            {
++                std::lock_guard lock(searchLock_);
++                auto s = searches_.find(key);
++                if (s == searches_.end())
++                    return;
++                auto l = s->second.listeners.find(token);
++                if (l == s->second.listeners.end())
++                    return;
++                l->second.getInFlight = false;
++                if (l->second.getPending and not (l->second.opstate and l->second.opstate->stop)) {
++                    l->second.getPending = false;
++                    l->second.getInFlight = true;
++                    ncb = l->second.cb;
++                    nold = l->second.cache.getValues();
++                    nsend = l->second.pendingSendTime;
++                    again = true;
++                }
++            }
++            if (again)
++                pushGet(key, token, nsend, std::move(ncb), std::move(nold));
++        });
++}
++
+ PushNotificationResult
+ DhtProxyClient::pushNotificationReceived([[maybe_unused]] const std::map<std::string, std::string>& notification)
+ {
+@@ -1412,6 +1486,21 @@
+             }
+             auto& search = searches_.at(key);
+             auto expired = notification.find("exp");
++            {
++                // SK-PROXYDIAG: pair this with the get line above to attribute cost per push.
++                // `ids` is the set of value ids the server says changed; the client refetches the
++                // whole key regardless, so ids= tells us how much of that download was wanted.
++                auto idsIt = notification.find("ids");
++                // "pt" is the server's per-value pushType list (dht_proxy_server.cpp builds it
++                // beside "ids"). It names WHAT changed, which identifies a key whose hash matches
++                // no account, contact or conversation member — i.e. a derived inbox:/peer: key.
++                auto ptIt = notification.find("pt");
++                SK_DIAG("[%s] push key=%s ids=%s pt=%s%s",
++                        proxyUrl_.c_str(), key.toString().c_str(),
++                        idsIt == notification.end() ? "-" : idsIt->second.c_str(),
++                        ptIt == notification.end() ? "-" : ptIt->second.c_str(),
++                        expired == notification.end() ? "" : " EXPIRED");
++            }
+             for (auto& list : search.listeners) {
+                 if (list.second.opstate->stop)
+                     continue;
+@@ -1420,16 +1509,23 @@
+                 auto token = list.first;
+                 auto opstate = list.second.opstate;
+                 if (expired == notification.end()) {
+-                    auto cb = list.second.cb;
+-                    auto oldValues = list.second.cache.getValues();
+-                    get(
+-                        key,
+-                        [cb, sendTime](const std::vector<Sp<Value>>& vals) { return cb(vals, false, sendTime); },
+-                        [cb, oldValues, sendTime](bool /*ok*/) {
+-                            // Decrement old values refcount to expire values not
+-                            // present in the new list
+-                            cb(oldValues, true, sendTime);
+-                        });
++                    // SK-PUSHGET (coalesce): a peer that re-registers mints a whole set of new
++                    // value ids at once, and each one is a separate push. Stock answers EVERY push
++                    // with a full get() of the WHOLE key, so an N-push burst costs N downloads of
++                    // the same key — measured at ~40 KiB each against a landfilled peer key.
++                    // Hold at most one get in flight per listener: a push arriving while one is
++                    // running only raises a flag, and exactly one more get is issued when it
++                    // finishes. Correct because a get returns the key's authoritative full value
++                    // set, so the follow-up sees everything the suppressed pushes announced.
++                    if (list.second.getInFlight) {
++                        list.second.getPending = true;
++                        if (sendTime > list.second.pendingSendTime)
++                            list.second.pendingSendTime = sendTime;
++                        ret = PushNotificationResult::Values;
++                        continue;
++                    }
++                    list.second.getInFlight = true;
++                    pushGet(key, token, sendTime, list.second.cb, list.second.cache.getValues());
+                     ret = PushNotificationResult::Values;
+                 } else {
+                     std::stringstream ss(expired->second);
