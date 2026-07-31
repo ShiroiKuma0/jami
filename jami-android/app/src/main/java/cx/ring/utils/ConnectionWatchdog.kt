@@ -243,8 +243,13 @@ object ConnectionWatchdog {
         // per tick and nothing else. Mode label from the ACTUAL daemon state plus the pref, since
         // the two diverge whenever charging or a wedge forces the proxy off under a "proxy" pref.
         runCatching {
+            // The pref suffix is for DIVERGENCE only. It used to be emitted whenever the pref was
+            // proxy, i.e. on every normal line, so "mode=proxy/pref=proxy" said nothing while
+            // making the interesting case — actual state != pref — hard to spot when scanning.
+            val prefFull = UiPrefs.isFullDhtMode(c)
+            val diverged = prefFull == proxyOnNow   // pref says full DHT but proxy is on, or vice versa
             val mode = (if (proxyOnNow) "proxy" else "fullDHT") +
-                    (if (UiPrefs.isFullDhtMode(c)) "" else "/pref=proxy") +
+                    (if (diverged) (if (prefFull) "/pref=fullDHT" else "/pref=proxy") else "") +
                     (if (noPushAdaptive) "/adaptive" else "")
             DataMeter.hourlyTick(c, mode)
         }
@@ -1366,6 +1371,8 @@ object ConnectionWatchdog {
      *  recovery goes through a fingerprint ledger so unchanged evidence can never re-trigger. */
     private fun heuristicTick(c: Context, accounts: AccountService) {
         val t = now()
+        // SK diagnostic: refresh presence-map.txt (rate-limited to 5 min inside, never throws).
+        PresenceMap.maybeWrite(c, accounts)
         // "Connected" (a live PEER link) under-counts idle-but-healthy accounts (an account with no
         // active conversation legitimately has none) — that read as 3/4 while all four dots were
         // yellow (2026-07-20). Health = REGISTERED and not deaf (recent inbound evidence), matching
@@ -1450,7 +1457,7 @@ object ConnectionWatchdog {
         val stuckSuffix = if (stuck.isNotEmpty()) "; ${stuck.size} undelivered (${offlineCount} to offline — benign)" else ""
 
         // A stuck message to a REACHABLE contact is genuine wedge evidence regardless of the health count.
-        if (wedgeEvidence.isNotEmpty()) { wedgeWithLedger(c, accounts, wedgeEvidence, t); return }
+        if (wedgeEvidence.isNotEmpty()) { wedgeWithLedger(c, accounts, wedgeEvidence, t, healthy); return }
         if (healthy > 0) { log(c, "base check ok — $healthy/$reg healthy [$summary]$stuckSuffix"); return }
 
         // healthy == 0. Reachability-max (2026-07-21): on an idle network real inbound is naturally
@@ -1678,13 +1685,31 @@ object ConnectionWatchdog {
     /** Recover on wedge evidence — but only once per distinct evidence set: same fingerprint
      *  again → one hard-reset escalation → stand down (~60 m) with a single notification.
      *  Any NEW evidence (different message, different peer) re-arms immediately. */
-    private fun wedgeWithLedger(c: Context, accounts: AccountService, evidence: List<ConnectionHealth.StuckMsg>, t: Long) {
+    private fun wedgeWithLedger(
+        c: Context, accounts: AccountService, evidence: List<ConnectionHealth.StuckMsg>, t: Long,
+        healthy: Int,
+    ) {
         val fp = evidence.map { it.fingerprint }.sorted().joinToString("|")
         val who = evidence.joinToString { "${it.memberUri.takeLast(8)}(${it.presence})" }
+        // Which accounts does the evidence actually implicate? Before StuckMsg carried accountId
+        // this was unanswerable, so ANY stuck message escalated ALL accounts to full DHT — three
+        // healthy accounts could not stop it, and the account at fault was not even recoverable
+        // from the evidence. The uniform-probe path a few hundred lines up already states the right
+        // doctrine ("some account answered, so this is not a global fault"); this path bypassed it.
+        val implicated = evidence.map { it.accountId }.distinct()
+        val single = implicated.singleOrNull()?.takeIf { healthy > 0 }
         if (fp != lastWedgeFp) {
             lastWedgeFp = fp; wedgeEscalated = false; wedgeStandDownUntil = 0L
-            log(c, "wedge: undelivered to reachable peer(s) $who — recovering")
-            fullRecover(c, accounts)
+            if (single != null) {
+                // One account implicated while others are healthy: recover THAT account only. Same
+                // primitive the deafness detector already uses, and it restores itself after the
+                // settle, so no account is left diverged on full DHT.
+                log(c, "wedge: undelivered to reachable peer(s) $who — recovering acct ${single.take(6)} only ($healthy healthy)")
+                accounts.recoverAccountFromWedge(single) { accounts.resubscribeAccountPresence(single) }
+            } else {
+                log(c, "wedge: undelivered to reachable peer(s) $who — recovering (${implicated.size} accounts implicated, $healthy healthy)")
+                fullRecover(c, accounts)
+            }
             return
         }
         if (t < wedgeStandDownUntil) { log(c, "wedge unchanged ($who) — standing down"); return }
