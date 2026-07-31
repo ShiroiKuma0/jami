@@ -26,8 +26,10 @@ import android.view.Choreographer
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.animation.OvershootInterpolator
 import androidx.core.content.ContextCompat
+import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
@@ -92,6 +94,12 @@ class WaveformView @JvmOverloads constructor(
 
     /** Last bar index the finger was over while seeking, used to emit one haptic tick per bar. */
     private var lastSeekBar = -1
+
+    // Long-press detection while seeking owns the touch stream (see scheduleLongPress).
+    private var longPressDownX = 0f
+    private var longPressDownY = 0f
+    private var seekStartProgress = 0f
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
 
     /**
      * Cached downsampled bars for [fitMode] review rendering, together with the view width and
@@ -372,11 +380,13 @@ class WaveformView @JvmOverloads constructor(
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 val fraction = (event.x / width).coerceIn(0f, 1f)
+                seekStartProgress = progress
                 progress = fraction
                 onSeek?.invoke(fraction)
                 lastSeekBar = seekBarIndex(fraction)
                 performHapticFeedback(hapticStart)
                 parent?.requestDisallowInterceptTouchEvent(true)
+                scheduleLongPress(event.x, event.y)
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
@@ -390,6 +400,9 @@ class WaveformView @JvmOverloads constructor(
                     performHapticFeedback(hapticTick)
                 }
                 parent?.requestDisallowInterceptTouchEvent(true)
+                // A drag is a seek, not a hold.
+                if (abs(event.x - longPressDownX) > touchSlop || abs(event.y - longPressDownY) > touchSlop)
+                    cancelLongPress()
                 return true
             }
             MotionEvent.ACTION_UP -> {
@@ -398,10 +411,41 @@ class WaveformView @JvmOverloads constructor(
                 onSeek?.invoke(fraction)
                 performHapticFeedback(hapticEnd)
                 lastSeekBar = -1
+                cancelLongPress()
                 return true
             }
+            MotionEvent.ACTION_CANCEL -> cancelLongPress()
         }
         return super.onTouchEvent(event)
+    }
+
+    /**
+     * Seeking consumes DOWN/MOVE/UP, which also suppresses View's own long-press detection — so a
+     * long hold on the waveform used to do nothing at all, and the message's Open / Share / Save /
+     * Delete menu was reachable only on the thin strip of bubble around this view. Run the detection
+     * here instead: hold without dragging past the touch slop and the view fires a normal long click,
+     * after putting playback back where it was, so holding never doubles as a seek. A tap or a drag
+     * cancels it and behaves exactly as before.
+     */
+    private fun scheduleLongPress(x: Float, y: Float) {
+        if (!isLongClickable) return
+        longPressDownX = x
+        longPressDownY = y
+        removeCallbacks(longPressRunnable)
+        postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
+    }
+
+    override fun cancelLongPress() {
+        removeCallbacks(longPressRunnable)
+        super.cancelLongPress()
+    }
+
+    private val longPressRunnable = Runnable {
+        val restore = seekStartProgress
+        progress = restore
+        onSeek?.invoke(restore)
+        lastSeekBar = -1
+        performLongClick()
     }
 
     /** Index of the displayed bar under [fraction], used to space out seek haptics. */
