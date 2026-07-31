@@ -72,11 +72,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/credits"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="16dp"
-                android:text="@string/credits" />
+                android:text="@string/credits"
+                android:textColor="@color/colorOnSurface"
+                app:backgroundTint="@android:color/black"
+                app:strokeColor="@color/colorOnSurface"
+                app:strokeWidth="2dp" />
 
             <RelativeLayout
                 android:layout_width="match_parent"
