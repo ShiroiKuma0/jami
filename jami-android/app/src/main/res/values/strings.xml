@@ -181,7 +181,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="menu_item_sync">Sync all accounts</string>
     <string name="menu_item_extension_list">Extensions Settings</string>
     <string name="menu_item_share">Share my account</string>
-    <string name="menu_item_about">About Jami</string>
+    <string name="menu_item_about">About 白い熊 GNU Jami</string>
 
     <string name="video_setting_title">Video Settings</string>
 
