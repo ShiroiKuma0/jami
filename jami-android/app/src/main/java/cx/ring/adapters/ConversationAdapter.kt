@@ -1295,7 +1295,7 @@ class ConversationAdapter(
             longPressView.background?.setTintList(null)
         }
 
-        longPressView.setOnLongClickListener { v: View ->
+        val longPressListener = View.OnLongClickListener { v: View ->
             if (type == MessageType.TransferType.AUDIO || type == MessageType.TransferType.FILE) {
                 if (file.isIncoming) {
                     longPressView.background.setTint(context.getColor(R.color.grey_500))
@@ -1305,6 +1305,19 @@ class ConversationAdapter(
             }
             openItemMenu(viewHolder, v, file)
             true
+        }
+        longPressView.setOnLongClickListener(longPressListener)
+
+        // A voice message's bubble is mostly covered by two children that swallow touches: the play
+        // Button, and WaveformView, which consumes DOWN/MOVE/UP whenever seeking is enabled. Only the
+        // few pixels of bare LinearLayout around them ever reached the listener above, so Open /
+        // Share / Save / Delete were effectively unreachable on an audio message. Give both children
+        // the same listener so a long hold anywhere on the bubble opens the menu; their normal click
+        // and seek behaviour is untouched (WaveformView restores the pre-press position when it fires
+        // a long click, so holding does not also move playback).
+        if (type == MessageType.TransferType.AUDIO) {
+            viewHolder.btnAccept?.setOnLongClickListener(longPressListener)
+            viewHolder.mAudioWaveform?.setOnLongClickListener(longPressListener)
         }
 
         val isMessageSeparationNeeded = isMessageSeparationNeeded(isDateShown, position)
