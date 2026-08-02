@@ -75,6 +75,7 @@ import cx.ring.extensions.ExtensionUtils
 import cx.ring.service.DRingService
 import cx.ring.settings.extensionssettings.ExtensionDetails
 import cx.ring.utils.ActionHelper
+import cx.ring.utils.BottomSheetTheme
 import cx.ring.utils.ContentUri
 import cx.ring.utils.ConversationPath
 import cx.ring.utils.DeviceUtils.isTablet
@@ -1540,6 +1541,8 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         audioOutputBottomSheetDialog?.dismiss()
         audioOutputBottomSheetDialog = BottomSheetDialog(context).apply {
             setContentView(contentView)
+            // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+            setOnShowListener { BottomSheetTheme.apply(this) }
             setOnDismissListener {
                 audioOutputBottomSheetDialog = null
                 currentAudioState?.let { renderAudioOutputState(it, currentAudioHasVideo) }
