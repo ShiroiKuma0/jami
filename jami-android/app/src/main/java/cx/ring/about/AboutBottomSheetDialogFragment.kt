@@ -26,6 +26,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
 import cx.ring.R
+import cx.ring.utils.BottomSheetTheme
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class AboutBottomSheetDialogFragment : BottomSheetDialogFragment() {
@@ -51,17 +52,9 @@ class AboutBottomSheetDialogFragment : BottomSheetDialogFragment() {
         return dialog
     }
 
-    /**
-     * shiroikuma: black with a yellow border, like the fork's dialogs.
-     *
-     * The background has to be set on the sheet container rather than on the layout: a
-     * BottomSheetDialog paints that container itself from the theme's tonal surface colour, so a
-     * background on our own root would still leave the grey visible around the rounded corners.
-     */
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)
-            ?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            ?.setBackgroundResource(R.drawable.dialog_black_yellow)
+        BottomSheetTheme.apply(dialog)
     }
 }

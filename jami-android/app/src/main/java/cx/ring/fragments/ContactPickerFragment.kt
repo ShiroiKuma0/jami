@@ -28,6 +28,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 import cx.ring.adapters.ContactPickerAdapter
 import cx.ring.databinding.FragContactPickerBinding
+import cx.ring.utils.BottomSheetTheme
 import cx.ring.viewholders.ContactPickerViewHolder.ContactPickerListeners
 import cx.ring.views.AvatarDrawable
 import dagger.hilt.android.AndroidEntryPoint
@@ -124,6 +125,12 @@ class ContactPickerFragment(val contacts: List<Contact> = emptyList()) : BottomS
         }
         binding!!.contactList.adapter = adapter
         return binding!!.root
+    }
+
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+    override fun onStart() {
+        super.onStart()
+        BottomSheetTheme.apply(dialog)
     }
 
     private fun passData(accountId: String, contacts: MutableSet<Contact>){
