@@ -44,6 +44,14 @@ These are the things that cost real time when forgotten. Do not violate them wit
   guard greps for the same marker the damage left behind, so it kept reporting "already applied".
   When a contrib package misbehaves, check for `*.rej`/`*.orig` and count marker occurrences against
   what one application adds. Fix by `rm -rf`-ing the package dir AND its `.<pkg>`/`.dep-<pkg>` stamps.
+- **The background deactivation duty cycle is only safe because of `SK-ANNOUNCE-ID`.** That marker lives
+  *inside* `patches/jami-publish-current-crl-only.patch` (`daemon/src/jamidht/account_manager.cpp`) and
+  gives the DeviceAnnouncement a **stable** value id. Every restore re-puts that announcement; with
+  upstream's random value id each cycle would leave another copy the proxy keeps alive for
+  `OP_TIMEOUT` = 24 h — a self-inflicted landfill on our *own* account key, proportional to the cycle
+  rate (measured ~5-6 restores/h). So dropping or carelessly regenerating that patch does not merely
+  lose the CRL fix: it turns `BACKGROUND_DEACTIVATION_ENABLED` (`JamiApplication.kt`) into an active
+  data leak. If that patch ever goes, turn the flag off in the same change.
 - **Every daemon-own-source patch needs a guard line in the canonical block.** They survive between
   builds only because the `daemon/` working tree persists; a fresh clone silently drops any patch
   without one. `jami-trust-request-confirm-once.patch` had no guard until 2026-07-31.
