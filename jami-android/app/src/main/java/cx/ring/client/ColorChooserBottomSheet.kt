@@ -29,6 +29,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import cx.ring.R
+import cx.ring.utils.BottomSheetTheme
 
 class ColorChooserBottomSheet(val onColorSelected: ((Int) -> Unit)? = null) : BottomSheetDialogFragment() {
     inner class ColorView(itemView: View) : RecyclerView.ViewHolder(itemView)
@@ -63,6 +64,12 @@ class ColorChooserBottomSheet(val onColorSelected: ((Int) -> Unit)? = null) : Bo
             skipCollapsed = true
         }
         return dialog
+    }
+
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+    override fun onStart() {
+        super.onStart()
+        BottomSheetTheme.apply(dialog)
     }
 
     companion object {

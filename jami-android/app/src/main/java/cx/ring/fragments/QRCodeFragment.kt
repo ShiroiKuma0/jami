@@ -35,6 +35,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import cx.ring.R
 import cx.ring.databinding.FragQrcodeBinding
 import cx.ring.share.ScanFragment
+import cx.ring.utils.BottomSheetTheme
 import cx.ring.share.ShareFragment
 import net.jami.model.Uri
 
@@ -101,6 +102,12 @@ class QRCodeFragment : BottomSheetDialogFragment() {
             skipCollapsed = true
         }
         return dialog
+    }
+
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+    override fun onStart() {
+        super.onStart()
+        BottomSheetTheme.apply(dialog)
     }
 
     override fun onResume() {
