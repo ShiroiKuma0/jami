@@ -43,6 +43,7 @@
         <item name="alertDialogTheme">@style/ShiroikumaDialog</item>
         <item name="materialAlertDialogTheme">@style/ShiroikumaDialog</item>
         <item name="extendedFloatingActionButtonStyle">@style/Widget.AppTheme.MainActionButton</item>
+        <item name="extendedFloatingActionButtonSmallStyle">@style/Widget.AppTheme.MainActionButtonSmall</item>
         <item name="materialSearchBarStyle">@style/Widget.Material3Expressive.SearchBar.CenteredText</item>
 
         <item name="preferenceTheme">@style/JamiPreferenceThemeOverlay</item>
@@ -224,7 +225,10 @@
         <item name="background">@color/transparent_dark_grey</item>
     </style>
 
-    <!-- Main action button -->
+    <!-- Main action button. Black fill + 2dp yellow border + yellow label/icon, like the fork's
+         dialogs, sheets and bubbles. ExtendedFloatingActionButton extends MaterialButton, so it
+         honours strokeColor/strokeWidth; backgroundTint is set in both namespaces because the
+         MaterialButton attr and the View attr both tint the same shape drawable. -->
     <style name="Widget.AppTheme.MainActionButton" parent="@style/Widget.Material3.ExtendedFloatingActionButton.Icon.Primary">
         <item name="materialThemeOverlay">@style/ThemeOverlay.Material3Expressive.FloatingActionButton.Primary</item>
         <item name="android:textAppearance">@style/TextAppearance.AppTheme.MainActionButton</item>
@@ -233,6 +237,23 @@
         <!--        <item name="iconPadding">8dp</item>-->
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
+        <item name="backgroundTint">#000000</item>
+        <item name="android:backgroundTint">#000000</item>
+        <item name="android:textColor">@color/fab_yellow_state</item>
+        <item name="iconTint">@color/fab_yellow_state</item>
+        <item name="strokeColor">@color/fab_yellow_state</item>
+        <item name="strokeWidth">2dp</item>
+    </style>
+
+    <!-- Same chrome for the small extended FABs ("Start conversation", "Create group"). Parented on
+         the Expressive Small style so only the colours change, never the pill's size or shape. -->
+    <style name="Widget.AppTheme.MainActionButtonSmall" parent="@style/Widget.Material3Expressive.ExtendedFloatingActionButton.Small">
+        <item name="backgroundTint">#000000</item>
+        <item name="android:backgroundTint">#000000</item>
+        <item name="android:textColor">@color/fab_yellow_state</item>
+        <item name="iconTint">@color/fab_yellow_state</item>
+        <item name="strokeColor">@color/fab_yellow_state</item>
+        <item name="strokeWidth">2dp</item>
     </style>
 
     <style name="InvitationCardToolbarTitleStyle" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
