@@ -164,7 +164,9 @@ class ConversationDetailsActivity : AppCompatActivity(), ContactPickerFragment.O
             }
         }
 
-        mDisposableBag.add(mConversationFacade.observeConversation(conversation)
+        // hasPresence = true: this header avatar carries a presence dot, and the default
+        // presence-less model pins the status to OFFLINE — i.e. a permanently red dot.
+        mDisposableBag.add(mConversationFacade.observeConversation(conversation, true)
             .observeOn(DeviceUtils.uiScheduler)
             .doOnComplete { finish() }
             .subscribe({ vm ->

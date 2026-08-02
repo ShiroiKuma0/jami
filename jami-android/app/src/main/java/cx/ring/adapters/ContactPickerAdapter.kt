@@ -23,17 +23,20 @@ import androidx.recyclerview.widget.RecyclerView
 import cx.ring.databinding.ItemContactBinding
 import cx.ring.viewholders.ContactPickerViewHolder
 import cx.ring.viewholders.ContactPickerViewHolder.ContactPickerListeners
+import net.jami.services.ConversationFacade
 import net.jami.smartlist.ConversationItemViewModel
 
 class ContactPickerAdapter(
     private var conversations: List<ConversationItemViewModel>?,
     private val listener: ContactPickerListeners,
+    private val conversationFacade: ConversationFacade,
 ) : RecyclerView.Adapter<ContactPickerViewHolder>() {
     private var recyclerView: RecyclerView? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactPickerViewHolder {
         val layoutInflater = LayoutInflater.from(parent.context)
-        return ContactPickerViewHolder(ItemContactBinding.inflate(layoutInflater, parent, false))
+        return ContactPickerViewHolder(
+            ItemContactBinding.inflate(layoutInflater, parent, false), conversationFacade)
     }
 
     override fun onViewRecycled(holder: ContactPickerViewHolder) {
