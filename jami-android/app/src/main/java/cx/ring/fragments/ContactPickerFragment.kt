@@ -117,7 +117,7 @@ class ContactPickerFragment(val contacts: List<Contact> = emptyList()) : BottomS
             }
 
             override fun onItemLongClick(item: ConversationItemViewModel) {}
-        })
+        }, mConversationFacade)
         binding!!.createGroupBtn.setOnClickListener { v: View? ->
             passData(mAccountId!!, mCurrentSelection)
             val dialog = dialog
