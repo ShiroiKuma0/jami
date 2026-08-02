@@ -28,6 +28,7 @@ import androidx.core.widget.addTextChangedListener
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import cx.ring.R
 import cx.ring.databinding.DialogAddEditExposedServiceBinding
+import cx.ring.utils.BottomSheetTheme
 import net.jami.services.ExposedServiceInfo
 import net.jami.services.ExposedServiceType
 
@@ -69,6 +70,12 @@ class AddEditExposedServiceDialog(
         savedInstanceState: Bundle?
     ): View = DialogAddEditExposedServiceBinding.inflate(inflater, container, false)
         .also { binding = it }.root
+
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+    override fun onStart() {
+        super.onStart()
+        BottomSheetTheme.apply(dialog)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

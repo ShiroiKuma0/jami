@@ -28,6 +28,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import cx.ring.R
+import cx.ring.utils.BottomSheetTheme
 
 class EmojiChooserBottomSheet(val onEmojiSelected: ((String?) -> Unit)? = null) : BottomSheetDialogFragment() {
     inner class EmojiView(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -69,5 +70,11 @@ class EmojiChooserBottomSheet(val onEmojiSelected: ((String?) -> Unit)? = null) 
             skipCollapsed = true
         }
         return dialog
+    }
+
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+    override fun onStart() {
+        super.onStart()
+        BottomSheetTheme.apply(dialog)
     }
 }
