@@ -21,7 +21,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260717-01+190`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260731-01+001`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -45,7 +45,8 @@ automation tools on top.
 The fork's signature look: black backgrounds with a `#FFFF00` foreground, applied consistently
 across the chat list, conversation bubbles, toolbars, the search and compose bars, **every dialog
 app-wide** (including Android's own preference dialogs — yellow-outlined pill buttons on a bordered
-black card) and the long-press bottom sheet, file and
+black card), **every bottom sheet** — contact picker, member actions, QR share, colour and emoji
+pickers, the in-call speaker chooser and the rest — every **pill button**, file and
 link-preview cards, unread/pending badges, and the
 account-selection dialog. Generated (no-photo) avatars are drawn black with yellow initials and a
 yellow ring; presence dots, the home top bar and the expanded search view are themed to match. The
