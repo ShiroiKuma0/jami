@@ -46,6 +46,7 @@ import cx.ring.application.JamiApplication
 import cx.ring.databinding.ActivityLogsBinding
 import cx.ring.databinding.CrashReportBinding
 import cx.ring.utils.AndroidFileUtils
+import cx.ring.utils.BottomSheetTheme
 import cx.ring.utils.ContentUri
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -199,6 +200,12 @@ class LogsActivity : AppCompatActivity() {
                 }
             }
         }.root
+
+        // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+        override fun onStart() {
+            super.onStart()
+            BottomSheetTheme.apply(dialog)
+        }
 
         private val crashFile: Maybe<File> by lazy {
             val crashReport = arguments?.getString("crash")?.toByteArray() ?: return@lazy Maybe.empty()

@@ -49,6 +49,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.R
 import cx.ring.databinding.FragAudioRecorderBinding
 import cx.ring.utils.AndroidFileUtils
+import cx.ring.utils.BottomSheetTheme
 import java.io.File
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
@@ -229,21 +230,22 @@ class AudioMessageRecorderFragment : BottomSheetDialogFragment() {
             state = BottomSheetBehavior.STATE_EXPANDED
             skipCollapsed = true
         }
-        dialog.setOnShowListener { applyBackgroundBlur(dialog) }
+        // Frosted glass where the device can blur, otherwise the fork's black/yellow sheet.
+        dialog.setOnShowListener { if (!applyBackgroundBlur(dialog)) BottomSheetTheme.apply(dialog) }
         return dialog
     }
 
     /**
      * On Android 12+ (when the device/window manager supports cross-window blur), turns the sheet
      * into a frosted-glass panel: the content behind the dialog is blurred and the sheet background
-     * is made translucent so the blur shows through. Falls back to the default opaque sheet
-     * otherwise.
+     * is made translucent so the blur shows through. Returns false when the device can't blur, so
+     * the caller can fall back to the fork's plain black/yellow sheet.
      */
-    private fun applyBackgroundBlur(dialog: BottomSheetDialog) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val window = dialog.window ?: return
-        val wm = context?.getSystemService(WindowManager::class.java) ?: return
-        if (!wm.isCrossWindowBlurEnabled) return
+    private fun applyBackgroundBlur(dialog: BottomSheetDialog): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        val window = dialog.window ?: return false
+        val wm = context?.getSystemService(WindowManager::class.java) ?: return false
+        if (!wm.isCrossWindowBlurEnabled) return false
 
         val density = resources.displayMetrics.density
         // Blur the screen behind the dialog (the dimmed scrim area) and the content seen through
@@ -257,16 +259,18 @@ class AudioMessageRecorderFragment : BottomSheetDialogFragment() {
         window.setDimAmount(0.2f)
 
         val sheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            ?: return
+            ?: return false
         val surface = MaterialColors.getColor(sheet, com.google.android.material.R.attr.colorSurface)
         val translucentSurface = ColorUtils.setAlphaComponent(surface, (0.80f * 255).toInt())
         val corner = 28f * density
-        sheet.background = GradientDrawable().apply {
+        BottomSheetTheme.apply(dialog, GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadii = floatArrayOf(corner, corner, corner, corner, 0f, 0f, 0f, 0f)
             setColor(translucentSurface)
-        }
-        sheet.backgroundTintList = null
+            // Same yellow border as the fork's other sheets, frosted fill and all.
+            setStroke((2f * density).toInt(), 0xFFFFFF00.toInt())
+        })
+        return true
     }
 
     // region Recording

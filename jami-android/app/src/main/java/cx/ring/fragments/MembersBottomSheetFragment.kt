@@ -30,6 +30,7 @@ import cx.ring.R
 import cx.ring.client.ConversationDetailsActivity
 import cx.ring.databinding.FragMembersBottomsheetBinding
 import cx.ring.databinding.ItemMembersBottomsheetBinding
+import cx.ring.utils.BottomSheetTheme
 import cx.ring.utils.ConversationPath
 import cx.ring.utils.TextUtils.copyAndShow
 import dagger.hilt.android.AndroidEntryPoint
@@ -120,6 +121,12 @@ class MembersBottomSheetFragment : BottomSheetDialogFragment() {
             skipCollapsed = true
         }
         return dialog
+    }
+
+    // shiroikuma: black sheet with a yellow border, like the fork's dialogs.
+    override fun onStart() {
+        super.onStart()
+        BottomSheetTheme.apply(dialog)
     }
 
     override fun onDestroy() {
