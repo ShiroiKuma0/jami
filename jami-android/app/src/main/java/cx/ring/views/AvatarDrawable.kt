@@ -289,15 +289,26 @@ class AvatarDrawable : Drawable {
             return this
         }
 
+        /**
+         * Dot policy: show one exactly when the model actually carries presence — 1:1 and groups
+         * alike (groups were defaulting to OFFLINE regardless of real status).
+         *
+         * It must be `vm.showPresence`, never a blanket `true`: `ConversationItemViewModel` pins
+         * `presenceStatus` to OFFLINE whenever it was built with `showPresence = false`, which is
+         * the default on every snapshot path (`getLoadedConversation`, `observeConversation(…,
+         * hasPresence = false)`). Forcing the dot on there paints a RED one that means "presence
+         * was never loaded", not "offline" — which is how the contact picker, notification and
+         * launcher-shortcut avatars all ended up permanently red.
+         */
         fun withViewModel(vm: ConversationItemViewModel): Builder =
             if (vm.isGroup())
                 withUri(vm.uri)
                     .withContacts(vm.conversationProfile, vm.contacts)
                     .setGroup()
-                    .withPresence(true)            // groups need the dot wired too — it was defaulting
-                    .withOnlineState(vm.presenceStatus)  // to OFFLINE (red) regardless of real status
+                    .withPresence(vm.showPresence)
+                    .withOnlineState(vm.presenceStatus)
             else withContact(ConversationItemViewModel.getContact(vm.contacts))
-                .withPresence(true)   // always show a presence dot (offline = red, never empty)
+                .withPresence(vm.showPresence)
                 .withOnlineState(vm.presenceStatus)
                 .withCheck(vm.isChecked)
 
