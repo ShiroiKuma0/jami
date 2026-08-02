@@ -262,8 +262,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginVertical="8dp"
                 android:text="@string/ab_action_contact_add"
-                android:textAlignment="center"
-                app:backgroundTint="#4CAF50" />
+                android:textAlignment="center" />
 
         </LinearLayout>
 
