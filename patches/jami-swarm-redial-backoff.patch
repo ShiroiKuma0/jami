@@ -1,8 +1,22 @@
 diff --git a/src/jamidht/swarm/swarm_manager.cpp b/src/jamidht/swarm/swarm_manager.cpp
-index 8569a19cc..d2bd2a209 100644
+index 0692b2a92..b6d9940d0 100644
 --- a/src/jamidht/swarm/swarm_manager.cpp
 +++ b/src/jamidht/swarm/swarm_manager.cpp
-@@ -176,10 +176,15 @@ SwarmManager::maintainBuckets(const std::set<NodeId>& toConnect)
+@@ -724,6 +724,13 @@ SwarmManager::maintainBuckets(const std::set<NodeId>& toConnect)
+ {
+     std::set<NodeId> nodes = toConnect;
+     std::unique_lock lock(mutex);
++    // SK-SWARMBACKOFF: with no active node left there is nothing to protect and everything to
++    // regain, so the backoff is bypassed. Upstream's 435e62f6f added a second entry into the
++    // speculative-only path — bootstrap() calls maintainBuckets() with an empty `toConnect` when the
++    // manager is up but disconnected, which is the state a mobile client reaches every time it
++    // returns to the foreground, and the state our background-deactivation duty cycle produces
++    // several times an hour. Gating that would delay the very reconnect it exists to perform.
++    const bool desperate = routing_table.getActiveNodesCount() == 0;
+     auto& buckets = routing_table.getBuckets();
+     for (auto it = buckets.begin(); it != buckets.end(); ++it) {
+         auto& bucket = *it;
+@@ -732,10 +739,16 @@ SwarmManager::maintainBuckets(const std::set<NodeId>& toConnect)
                                           : bucket.getConnectingNodesSize() + bucket.getNodesSize();
          if (connecting_nodes < Bucket::BUCKET_MAX_SIZE) {
              auto nodesToTry = bucket.getKnownNodesRandom(Bucket::BUCKET_MAX_SIZE - connecting_nodes, rd);
@@ -10,8 +24,9 @@ index 8569a19cc..d2bd2a209 100644
 +            for (auto& node : nodesToTry) {
 +                // SK-SWARMBACKOFF: skip a node still inside its backoff window. Only the
 +                // speculative path is gated; `toConnect` (nodes that already have a transport)
-+                // and connectNode()'s reuse-only dial are untouched.
-+                if (!redialAllowed(node))
++                // and connectNode()'s reuse-only dial are untouched — and the gate lifts entirely
++                // when the routing table holds no active node (see `desperate` above).
++                if (!desperate && !redialAllowed(node))
 +                    continue;
                  routing_table.addConnectingNode(node);
 -
@@ -21,7 +36,7 @@ index 8569a19cc..d2bd2a209 100644
          }
      }
      lock.unlock();
-@@ -302,21 +307,89 @@ SwarmManager::resetNodeExpiry(const asio::error_code& ec,
+@@ -915,21 +928,89 @@ SwarmManager::resetNodeExpiry(const asio::error_code& ec,
      }
  }
  
@@ -111,9 +126,9 @@ index 8569a19cc..d2bd2a209 100644
 +                    shared->noteRedialFailure(nodeId);
                  auto bucket = shared->routing_table.findBucket(nodeId);
                  bucket->removeConnectingNode(nodeId);
-                 bucket->addKnownNode(nodeId);
+                 if (!bucket->hasMobileNode(nodeId))
 diff --git a/src/jamidht/swarm/swarm_manager.h b/src/jamidht/swarm/swarm_manager.h
-index 4c16da6ab..00e17b19b 100644
+index 6fc2e6a1b..734340ecb 100644
 --- a/src/jamidht/swarm/swarm_manager.h
 +++ b/src/jamidht/swarm/swarm_manager.h
 @@ -20,6 +20,8 @@
@@ -125,7 +140,7 @@ index 4c16da6ab..00e17b19b 100644
  
  namespace jami {
  
-@@ -239,6 +241,25 @@ private:
+@@ -370,6 +372,25 @@ private:
       */
      void tryConnect(const NodeId& nodeId, bool noNewSocket = false);
  
