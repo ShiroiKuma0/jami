@@ -1,6 +1,90 @@
-# 白い熊 GNU Jami — `20260717-01+190`
+# 白い熊 GNU Jami — `20260731-01+001`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
+
+---
+
+## ⬆️ Now on upstream Jami `20260731-01`
+
+Rebased onto upstream `20260731-01` (versionCode 502), which also advances the C++ daemon by 34
+commits. Two of those are this fork's own work coming home: **“audio: honour the format AAudio
+granted a stream”** and **“audio: keep the granted hardware input format”** — filed to GNU Jami's
+Gerrit as changes 35396/35397 out of the one-way-audio investigation described further down, and now
+merged upstream, so every Jami user gets them rather than only this fork.
+
+What upstream brings that you can see:
+
+- **Blocked group members stay visible**, badged Blocked / Invited / Admin, and the member action
+  becomes Block / Unblock instead of removing them outright.
+- **An account-loading deadlock is fixed.** The daemon's callback thread and the client's
+  per-conversation locks could each block on the other; conversation callbacks are now copied off the
+  daemon thread and dispatched per conversation.
+- **No duplicate notification** for a file transfer the client already knows about.
+- **A commit-announcement storm fixed at the source.** A swarm test that always reported “first
+  connection” made the daemon re-announce the current commit to every device of every member —
+  upstream measured 12041 announcements in three hours. That is squarely the outbound DHT traffic
+  this fork has spent months chasing.
+- **A conversation that fell silent after returning to the foreground** now reconnects instead of
+  waiting for a process restart.
+- Name lookups always answer, and git sockets are shut down when a repository is removed rather than
+  leaving fetches blocked on a dead socket.
+
+**A note on measurements:** the daemon's traffic profile moved in both directions in this release —
+the announcement-storm fix removes traffic, upstream's new mobile-wake machinery adds some. Any
+data-usage baseline taken before this build is **not** comparable to one taken after it.
+
+## 🎨 The theme finishes the job: black sheets and black pills
+
+- **Every bottom sheet is now black with a 2 dp yellow border.** They had kept Material's grey tonal
+  surface, because a `BottomSheetDialog` paints its own container — a background on the fragment's
+  own root still leaves grey around the rounded corners. One shared helper now paints the container,
+  and re-applies after layout, since the sheet installs its own background on its first layout pass.
+  Covers the contact picker, member actions, peer services, QR share and scan, the colour and emoji
+  pickers, the exposed-service editor, the crash-report viewer and the in-call speaker chooser. The
+  voice recorder keeps its frosted-glass panel where the device can blur, now with the same yellow
+  border, and falls back to the plain black sheet where it cannot.
+- **Pill buttons match.** “Start conversation” had a black border on a black fill — invisible. It and
+  every other extended action button (“Create group”, “Start logs”, “Add service”) are now black with
+  a yellow border and yellow label, from two theme-level styles rather than per-layout attributes, so
+  new ones inherit it. A disabled pill dims to 40 % so it still reads as unavailable, and the
+  “Add contact” banner drops its hard-coded green.
+
+## 🔴 Presence dots that mean what they say
+
+A dot was rendered even when the model carrying it had never loaded presence — and that model pins
+the status to OFFLINE, so the dot came out **red meaning “not loaded”**, indistinguishable from red
+meaning “offline”. The contact picker showed every contact red while the chat list behind it showed
+them connected.
+
+- The avatar builder now honours the model instead of forcing a dot on. That alone retires the false
+  red dot from launcher share shortcuts (it was being baked into the adaptive icon), notification
+  avatars, the chat-files browser and the profile-photo dialog.
+- Where a dot is genuinely wanted it is now fed real presence: the contact picker subscribes per row
+  to the same live model the chat list uses, and the conversation-details header stops defaulting to
+  the presence-less one. This is what makes same-daemon accounts read connected — they hold a live
+  link and broadcast no presence, so only the live-connection union gets them right.
+
+## 🧩 Under the hood: the daemon patch stack, reconciled
+
+The fork carries 23 daemon and contrib patches that are re-applied on every build. Twenty survived
+the bump untouched; three needed work, and the reasons are worth recording.
+
+- **The capture patch was retired and rebuilt.** Its format half is upstream now, so re-applying it
+  rejected two hunks and fuzz-inserted a duplicate declaration next to upstream's — which does not
+  compile. Worse, the rejected hunk was the one feeding the silence detector, so a build that
+  survived would have carried the digital-silence fallback as dead code. What remains ours is that
+  fallback and the raw-capture measurement that triggers it.
+- **The swarm redial backoff learned when not to apply.** Upstream added a second entry into exactly
+  the speculative path the backoff gates — the reconnect a phone performs on every return to the
+  foreground. The backoff now lifts entirely when the routing table holds no active node, keeping the
+  measured idle-traffic saving without ever delaying a reconnect from zero.
+- **Absent-device de-listing was retargeted.** The bin it used acquired two new meanings upstream: an
+  entry there is now a mobile **wake-up target**, costing an extra encrypted DHT put per commit
+  announcement — from a patch written to *reduce* outbound traffic — and the call itself expires on
+  2026-10-01, which would have made the patch a silent no-op two months from now. It now removes the
+  device from the speculative-dial pool directly, behind a live-socket check, with neither side
+  effect.
+
 
 ## Calling: a microphone that isn't there, a recorder, and a timer (new in +175–+190)
 
@@ -141,5 +225,5 @@ path, each with pristine-source citations.
 
 ---
 
-**Install:** `shiroikuma-jami_20260717-01+190_arm64-v8a.apk` below — arm64 only, signed, installs
+**Install:** `shiroikuma-jami_20260731-01+001_arm64-v8a.apk` below — arm64 only, signed, installs
 alongside official Jami. Existing installs update in place.
