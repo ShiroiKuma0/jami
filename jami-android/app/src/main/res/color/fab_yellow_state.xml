@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yellow label/icon/border for the fork's black pill buttons, dimmed when disabled so a
+     not-yet-usable pill (e.g. "Create group" before a contact is picked) still reads as such. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="#66FFFF00" android:state_enabled="false" />
+    <item android:color="#FFFF00" />
+</selector>
