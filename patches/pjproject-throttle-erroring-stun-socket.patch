@@ -1,0 +1,76 @@
+--- a/pjnath/src/pjnath/stun_sock.c
++++ b/pjnath/src/pjnath/stun_sock.c
+@@ -39,6 +39,15 @@
+ 
+ enum { MAX_BIND_RETRY = 100 };
+ 
++/* SK-RXERR: after the first, report one read failure in this many. See on_data_recvfrom().
++ * Sized so that a socket failing at the throttled ~100 Hz an event loop settles to still
++ * reports every couple of minutes, while an unthrottled failure storm cannot flood the log
++ * or spend the CPU formatting it.
++ */
++#ifndef SK_RX_ERR_LOG_EVERY
++#   define SK_RX_ERR_LOG_EVERY  10000
++#endif
++
+ #if PJ_HAS_TCP
+ // The head of a RTP packet is stored in a 16 bits header, so the max size of a
+ // packet is 65536
+@@ -100,6 +109,9 @@
+     pj_ioqueue_op_key_t  send_key;      /* Default send key for app */
+     pj_ioqueue_op_key_t  int_send_key;  /* Send key for internal    */
+     pj_status_t          last_err;      /* Last error status        */
++    unsigned             sk_rx_err_cnt; /* SK-RXERR: consecutive
++                                           failed reads, see
++                                           on_data_recvfrom()       */
+ 
+     pj_uint16_t          tsx_id[6];     /* .. to match STUN msg     */
+     pj_stun_session     *stun_sess;     /* STUN session             */
+@@ -1757,11 +1769,45 @@
+     if (!stun_sock)
+         return PJ_FALSE;
+ 
+-    /* Log socket error */
++    /* Log socket error.
++     *
++     * SK-RXERR: rate-limited, because this error is not always transient.
++     *
++     * A datagram socket bound to an interface that has lost its route (measured case: an ICE
++     * candidate on a cellular interface held up alongside WiFi, CGNAT /32, no route in the
++     * table) fails every read with the same status, for ever. Returning PJ_TRUE tells
++     * activesock to re-arm the read, level-triggered epoll re-reports immediately, and the
++     * owning event loop spins at full CPU. Measured on Android: 15 774 iterations/s, 100% of a
++     * core, sustained for 24.8 h.
++     *
++     * Unconditional logging makes that materially worse rather than merely noisy. PJ_PERROR at
++     * level 2 is always compiled and always formats its message, even when the application's
++     * log callback discards it — and a client that only installs a logger at a raised log level
++     * discards all of it. Profiling attributed roughly 13% of the burning core to vsnprintf and
++     * friends underneath this one call: a message built at 16 kHz and then thrown away, which
++     * is also why nothing about the fault was visible in the log.
++     *
++     * So: report the first failure, then one in SK_RX_ERR_LOG_EVERY, carrying the consecutive
++     * count and the fd. Two lines are enough to derive the rate and to identify which socket is
++     * wedged. The counter resets on the first successful read.
++     *
++     * Note this only bounds the LOGGING. The re-arm still happens, because the callback cannot
++     * decline it: returning PJ_FALSE here means "the socket has been destroyed" (see the
++     * comment on the return value in activesock.c's on_read_complete), which is not true, and
++     * claiming it would leave a live socket permanently unread. Bounding the loop itself is the
++     * caller's job.
++     */
+     if (status != PJ_SUCCESS) {
+-        PJ_PERROR(2,(stun_sock->obj_name, status, "recvfrom() error"));
++        if (++stun_sock->sk_rx_err_cnt == 1 ||
++            (stun_sock->sk_rx_err_cnt % SK_RX_ERR_LOG_EVERY) == 0)
++        {
++            PJ_PERROR(2,(stun_sock->obj_name, status,
++                         "recvfrom() error (fd=%d, %u consecutive)",
++                         (int)stun_sock->sock_fd, stun_sock->sk_rx_err_cnt));
++        }
+         return PJ_TRUE;
+     }
++    stun_sock->sk_rx_err_cnt = 0;
+ 
+     return parse_rx_packet(asock, data, size, src_addr, addr_len);
+ }
