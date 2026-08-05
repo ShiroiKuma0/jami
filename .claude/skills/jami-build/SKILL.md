@@ -388,6 +388,14 @@ r git checkout custom
 # daemon-contrib fix (idempotent; submodule, not committed)
 r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls/rules.mak || sed -i 's/--without-idn/--without-idn --without-brotli --without-zstd/' daemon/contrib/src/gnutls/rules.mak"
 
+# ONE-TIME HEAL (2026-08-05) — MUST run before every dhtnet guard below.
+# dhtnet-ice-transport-diag.patch and dhtnet-throttle-failed-ice-transports.patch were REGENERATED,
+# and the OLD versions' markers still satisfy the new guards. A tree patched with the previous pair
+# would therefore be silently skipped and ship the stale code — the +163 stale-libdhtnet failure,
+# in marker form. If ice_transport.cpp carries the old SK-ICEREAP but not the new SK_ICE_SPIN_TRIP,
+# drop the package AND its stamps so the whole chain re-applies from the tarball.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; f="$d/dhtnet/src/ice_transport.cpp"; if [ -f "$f" ] && grep -q SK_ICE_FAILED_POLL_MS "$f" && ! grep -q SK_ICE_SPIN_TRIP "$f"; then echo ">>> dhtnet carries superseded SK-ICEREAP — forcing re-extract"; rm -rf "$d/dhtnet" "$d/.dhtnet" "$d/.dep-dhtnet"; fi'
+
 # dhtnet LAN-interface fix (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(MOVE)|" daemon/contrib/src/dhtnet/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q lanCapable "$d/dhtnet/src/ip_utils.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-prefer-lan-interface.patch && rm -f "$d/.dhtnet"; fi'
@@ -397,19 +405,30 @@ r bash -c 'cp patches/dhtnet-upnp-circuit-breaker.patch daemon/contrib/src/dhtne
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q upnpBreakerFails "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-upnp-circuit-breaker.patch && rm -f "$d/.dhtnet"; fi'
 
 # dhtnet IceTransport lifecycle census (SK-ICEDIAG) — MUST be applied before the throttle patch,
-# whose diff context includes these lines. Guard: skIceCreated.
+# whose diff context includes these lines. Guard: skIceStateName (NOT skIceCreated — that marker
+# is also in the superseded version, so it would mask a stale tree; see the one-time heal above).
 r bash -c 'cp patches/dhtnet-ice-transport-diag.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-ice-transport-diag.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-upnp-circuit-breaker.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-upnp-circuit-breaker.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch|" daemon/contrib/src/dhtnet/rules.mak'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q skIceCreated "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-transport-diag.patch && rm -f "$d/.dhtnet"; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q skIceStateName "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-transport-diag.patch && rm -f "$d/.dhtnet"; fi'
 
-# dhtnet throttle for terminally-FAILED IceTransports (SK-ICEREAP). Guard: SK_ICE_FAILED_POLL_MS.
+# dhtnet spin throttle for IceTransport event threads (SK-ICEREAP v2). Guard: SK_ICE_SPIN_TRIP.
+# v1 was gated on _isFailed() and never fired once — the census behind it read pj_ice_strans_state
+# with an off-by-one legend, so RUNNING spinners were recorded as FAILED. v2 gates on observed
+# behaviour instead: a run of polls that neither blocked nor delivered payload is capped at 100 Hz.
 r bash -c 'cp patches/dhtnet-throttle-failed-ice-transports.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-throttle-failed-ice-transports.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-ice-transport-diag.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-throttle-failed-ice-transports.patch|" daemon/contrib/src/dhtnet/rules.mak'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK_ICE_FAILED_POLL_MS "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-throttle-failed-ice-transports.patch && rm -f "$d/.dhtnet"; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK_ICE_SPIN_TRIP "$d/dhtnet/src/ice_transport.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-throttle-failed-ice-transports.patch && rm -f "$d/.dhtnet"; fi'
 
 # dhtnet SK-ICEDIAG family — apply IN THIS ORDER, each one's diff context includes the previous.
 # Guards: SK_CM / SK_CM("request / mxshutdown / SK_CM("established
-for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag; do
-  r bash -c "cp patches/$p.patch daemon/contrib/src/dhtnet/"
-done
+# rules.mak $(APPLY) coverage (2026-08-05): these five were only ever applied by the direct-patch
+# guards below, and those guards grep files that do NOT exist on a fresh contrib extract — so a
+# clean tree silently dropped all five (rules.mak carried 4 $(APPLY) lines for 9 patches). Chain
+# them after the throttle patch, in order; each one's diff context includes the previous.
+r bash -c 'prev=dhtnet-throttle-failed-ice-transports; m=daemon/contrib/src/dhtnet/rules.mak;
+for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous; do
+  cp "patches/$p.patch" daemon/contrib/src/dhtnet/
+  grep -q "$p.patch" "$m" || sed -i "s|^\t\$(APPLY) \$(SRC)/dhtnet/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/dhtnet/$p.patch|" "$m"
+  prev=$p
+done'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "SK_CM" "$d/dhtnet/src/connectionmanager.cpp"                || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-churn-diag.patch; rm -f "$d/.dhtnet"; }'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "SK_CM(\"request" "$d/dhtnet/src/connectionmanager.cpp"      || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-ice-reason-diag.patch; rm -f "$d/.dhtnet"; }'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "mxshutdown" "$d/dhtnet/src/multiplexed_socket.cpp"          || { (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-shutdown-reason-diag.patch; rm -f "$d/.dhtnet"; }'
@@ -426,7 +445,17 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" 
 # pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" && ! [ "$d/.pjproject" -nt "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" ]; then
+
+# pjnath rate-limit for a permanently-erroring STUN socket (SK-RXERR). Guard: SK_RX_ERR_LOG_EVERY.
+# on_data_recvfrom() logged EVERY failed read at PJ_PERROR level 2, which always formats even when
+# the client discards the line — measured at ~13% of a burning core, and the discard is why the
+# fault was invisible in logcat. First failure plus one in N now, carrying the fd and the count.
+r bash -c 'cp patches/pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/; grep -q pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-throttle-erroring-stun-socket.patch|" daemon/contrib/src/pjproject/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK_RX_ERR_LOG_EVERY "$d/pjproject/pjnath/src/pjnath/stun_sock.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-throttle-erroring-stun-socket.patch; fi'
+
+# Rebuild pjproject if the stamp is older than ANY patched source. Naming only ioqueue_epoll.c here
+# is the same trap that shipped a stale libdhtnet in +163 — stun_sock.c alone would be skipped.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.pjproject" ] || [ -n "$(find "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" "$d/pjproject/pjnath/src/pjnath/stun_sock.c" -newer "$d/.pjproject" 2>/dev/null | head -1)" ]; then
   export ANDROID_NDK="$HOME/android-sdk/ndk/29.0.14206865" TARGET=aarch64-linux-android API=26
   export TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64"
   export CC="$TOOLCHAIN/bin/${TARGET}${API}-clang" CXX="$TOOLCHAIN/bin/${TARGET}${API}-clang++"
@@ -468,12 +497,15 @@ r bash -c 'grep -q SK-CLIENTMODE daemon/src/jamidht/jamiaccount.cpp || (cd daemo
 # logs the peer's voice_activity INFO, which upstream parses and drops. Diagnostic only.
 r bash -c 'grep -q SK-AUDIODIAG daemon/src/media/audio/audio_rtp_session.cpp || (cd daemon && patch -flp1) < patches/jami-audio-rtp-diag.patch'
 
-# honour the granted capture format (SK-CAPTUREFMT; idempotent; daemon's OWN source; TWO files).
-# audiolayer.cpp: hardwareInputFormatAvailable() logged the format and discarded it, so the audio
-# processor is sized from playback alone. aaudiolayer.cpp: the data callback cast the AAudio buffer to
-# float* unconditionally while getStreamFormat() already admits an I16 grant — a 2x over-read, a heap
-# overflow on capture, and audio that reads as digital silence on any device granted I16.
-r bash -c 'grep -q SK-CAPTUREFMT daemon/src/media/audio/audiolayer.cpp || (cd daemon && patch -flp1) < patches/jami-honour-capture-format.patch'
+# capture-silence fallback (SK-CAPTUREZERO; idempotent; daemon's OWN source). 5 s of exact-zero raw
+# capture on a low-latency MMAP VOICE_COMMUNICATION stream => re-open on VOICE_RECOGNITION +
+# PERFORMANCE_MODE_NONE, persisted per device.
+#
+# This REPLACED jami-honour-capture-format.patch (SK-CAPTUREFMT), which is GONE — that half was
+# 白い熊's Gerrit 35396/35397 and LANDED UPSTREAM in the 20260731-01 daemon (a8f6aa1f6, a676e1b1b).
+# Re-applying it rejected two hunks and fuzz-inserted a duplicate `const bool isFloat` — a compile
+# error. The patch file no longer exists. Never re-add the format half.
+r bash -c 'grep -q SK-CAPTUREZERO daemon/src/media/audio/aaudio/aaudiolayer.cpp || (cd daemon && patch -flp1) < patches/jami-capture-silence-fallback.patch'
 
 # current-CRL-only (idempotent; daemon's OWN source — no rules.mak, no contrib rebuild)
 r bash -c 'grep -q SK-CRL-CURRENT daemon/src/jamidht/account_manager.cpp || (cd daemon && patch -flp1) < patches/jami-publish-current-crl-only.patch'
