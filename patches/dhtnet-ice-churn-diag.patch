@@ -1,6 +1,6 @@
 --- a/src/ice_transport.cpp
 +++ b/src/ice_transport.cpp
-@@ -429,15 +429,21 @@
+@@ -468,15 +468,26 @@
          logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
      skId_ = skIceCreated.fetch_add(1, std::memory_order_relaxed) + 1;
      skBorn_ = std::chrono::steady_clock::now();
@@ -19,9 +19,14 @@
 -    SK_ICE("destroy #%u alive=%d lifetime=%llds (created=%u destroyed=%u)",
 -           skId_, skIceAlive.fetch_sub(1, std::memory_order_relaxed) - 1,
 +    // Final ICE state on the way out: of everything created, how much ever actually connected?
-+    // 4=RUNNING means it succeeded; 5=FAILED lost; 1/2/3 means it was torn down mid-negotiation.
-+    SK_ICE("destroy #%u state=%d alive=%d lifetime=%llds (created=%u destroyed=%u)",
-+           skId_, icest_ ? (int) pj_ice_strans_get_state(icest_) : -1,
++    // RUNNING means it succeeded, FAILED lost, anything else means it was torn down mid-flight.
++    //
++    // This line used to print the raw integer with the legend "4=RUNNING, 5=FAILED" — which is off
++    // by one against pjnath/include/pjnath/ice_strans.h (RUNNING is 5, FAILED is 6), so the census
++    // it fed read exactly backwards: transports counted as connected were still in NEGO, and those
++    // written off as failed had in fact reached RUNNING. Print the name; never the number.
++    SK_ICE("destroy #%u state=%s alive=%d lifetime=%llds (created=%u destroyed=%u)",
++           skId_, icest_ ? skIceStateName(pj_ice_strans_get_state(icest_)) : "none",
 +           skIceAlive.fetch_sub(1, std::memory_order_relaxed) - 1,
             (long long) std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::steady_clock::now() - skBorn_).count(),
