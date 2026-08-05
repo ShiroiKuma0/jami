@@ -8,7 +8,7 @@
  }
  
  #include <map>
-@@ -93,6 +94,28 @@
+@@ -93,6 +94,52 @@
  static constexpr unsigned UPNP_BREAKER_THRESHOLD {6};
  static constexpr std::chrono::minutes UPNP_BREAKER_COOLDOWN {5};
  static std::atomic<unsigned> upnpBreakerFails {0};
@@ -34,10 +34,34 @@
 +static std::atomic<unsigned> skIceDestroyed {0};
 +static std::atomic<int> skIceAlive {0};
 +
++// SK-ICEDIAG: render pj_ice_strans_state as a NAME, never as a bare integer.
++//
++// This exists because of a specific, expensive mistake. The state used to be logged as a raw
++// number with a legend in a comment, and the legend was wrong: it omitted READY, so every value
++// from there on was off by one and RUNNING (5) read as FAILED. A census built on that reading
++// concluded the spinning transports were FAILED, the SK-ICEREAP throttle was gated on FAILED
++// accordingly, and it therefore never fired once while a RUNNING transport burned a whole core
++// for 24 hours. The enum in pjnath/include/pjnath/ice_strans.h is the only authority:
++// NULL INIT READY SESS_READY NEGO RUNNING FAILED.
++static const char*
++skIceStateName(pj_ice_strans_state st)
++{
++    switch (st) {
++    case PJ_ICE_STRANS_STATE_NULL:       return "NULL";
++    case PJ_ICE_STRANS_STATE_INIT:       return "INIT";
++    case PJ_ICE_STRANS_STATE_READY:      return "READY";
++    case PJ_ICE_STRANS_STATE_SESS_READY: return "SESS_READY";
++    case PJ_ICE_STRANS_STATE_NEGO:       return "NEGO";
++    case PJ_ICE_STRANS_STATE_RUNNING:    return "RUNNING";
++    case PJ_ICE_STRANS_STATE_FAILED:     return "FAILED";
++    }
++    return "?";
++}
++
  static std::atomic<int64_t> upnpBreakerOpenUntilMs {0};
  
  static int64_t
-@@ -301,6 +324,12 @@
+@@ -301,6 +348,12 @@
              p->cv.notify_all();
          }
      }
@@ -50,7 +74,7 @@
  };
  
  //==============================================================================
-@@ -391,10 +420,20 @@
+@@ -391,10 +444,20 @@
  {
      if (logger_)
          logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
@@ -71,21 +95,23 @@
      threadTerminateFlags_ = true;
  
      if (thread_.joinable()) {
-@@ -670,6 +709,20 @@
+@@ -670,6 +733,22 @@
      // By tests, never seen more than two events per 500ms
      static constexpr auto MAX_NET_EVENTS = 2;
  
-+    // SK-ICEDIAG: one line per transport per ~2000 iterations. At the ioqueue's 10 ms unhandled-event
-+    // backoff that is roughly a minute, so it is low volume — and it answers the question the thread
++    // SK-ICEDIAG: one line per transport per ~2000 iterations — it answers the question the thread
 +    // ages could not: is a thread that keeps spinning attached to a LIVE ice_strans, or to a session
-+    // that has already failed/finished? pj_ice_strans_get_state: 1=INIT 2=SESS_READY 3=NEGO 4=RUNNING
-+    // 5=FAILED. A spinning transport reporting FAILED (or a null strans) is a zombie; RUNNING is the
-+    // honest cost of a live connection.
++    // that has already failed/finished?
++    //
++    // The rate matters as much as the state. One line per 2000 iterations means a transport parked
++    // in a blocking poll is silent, the 10 ms unhandled-event backoff produces roughly a line a
++    // minute, and a hard spin produces several lines a SECOND. Reading that rate is what identified
++    // the 15 774 iterations/s burn; see skIceStateName() for why the state is never a bare number.
 +    if ((++skSpins_ % 2000ULL) == 0ULL) {
 +        auto* st = icest_;
-+        SK_ICE("spin #%u tid=%d spins=%llu state=%d alive=%d",
++        SK_ICE("spin #%u tid=%d spins=%llu state=%s alive=%d",
 +               skId_, (int) gettid(), skSpins_,
-+               st ? (int) pj_ice_strans_get_state(st) : -1,
++               st ? skIceStateName(pj_ice_strans_get_state(st)) : "none",
 +               skIceAlive.load(std::memory_order_relaxed));
 +    }
 +
