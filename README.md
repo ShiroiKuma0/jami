@@ -21,7 +21,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260731-01+001`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260731-01+007`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -213,6 +213,37 @@ single APK — switch between them (or a local DHT node) at runtime. Firebase is
 **microG**, so you get Google-style push with **no Google Play Services**; UnifiedPush pairs with any
 distributor (e.g. [ntfy](https://ntfy.sh)), including a self-hosted one. Whichever you pick, the
 adaptive fallback above covers it when the push server fails.
+
+## 🔥 A core burned by one unreadable socket — and the blindness that hid it
+
+The app sat at **109 % CPU** with the screen off. One thread was doing all of it: 100.0 % of a core,
+**never sleeping once**, and 70 % of the burn in system calls that returned immediately.
+
+An ICE candidate socket had entered a permanent error state — bound to a cellular interface that was
+up but had lost its route, while WiFi and a VPN held the default. Every read failed instantly, the
+network layer logged it and asked to read again, and epoll re-reported at once: **15 774 iterations
+per second, for 24.8 hours**, while the phone was moving 17 packets per second.
+
+Three defences in this fork should have caught it. Every one was structurally blind: one waited for
+an event nobody handled (this one *was* handled), one had never executed in its entire existence, and
+one was watching for the wrong ICE state — because the diagnostic printed that state as a bare number
+against a legend that was off by one, so `RUNNING` had been read as `FAILED` and a whole census was
+inverted. Both diagnostics now print the state **by name**.
+
+The replacement gates on behaviour rather than state: a poll that neither blocked nor delivered any
+payload, a thousand times running, is capped at 100 Hz — **0.6 % of a core instead of 100 %**.
+Requiring both conditions is what keeps real traffic untouched.
+
+**109 % → 3.23 %** over a 10.6-hour run, idling **under 1 %** since.
+
+The deeper find was why it took a profiler at all: the daemon set its network layer's log level to
+zero, so the callback installed on the very next line was **never invoked for anything**. Every
+pjsip and pjnath diagnostic was discarded, permanently, with no way to raise it on Android. A socket
+failing sixteen thousand times a second could burn a core for a day and leave no trace. That layer
+can speak now — and a message that was being formatted at 16 kHz and thrown away, costing ~13 % of
+the burning core, is rate-limited.
+
+---
 
 ## 📉 DHT data efficiency — an upstream bug, fixed at the root
 
