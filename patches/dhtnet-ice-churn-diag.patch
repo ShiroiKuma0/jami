@@ -1,14 +1,34 @@
 --- a/src/ice_transport.cpp
 +++ b/src/ice_transport.cpp
-@@ -468,15 +468,26 @@
+@@ -460,7 +460,11 @@
+ //==============================================================================
+ 
+ IceTransport::Impl::Impl(std::string name, const std::shared_ptr<Logger>& logger, std::unique_ptr<std::mt19937_64>&& rng)
+-    : logger_(logger ? (name.empty() ? logger : logger->createChild(std::move(name))) : nullptr)
++    // SK-ICEDIAG: copy, do NOT std::move. createChild() takes its tag BY VALUE, so moving here
++    // leaves `name` empty before the constructor body ever runs — which silently blanked the
++    // peer= field on every create line this diag has ever emitted. One string copy per transport
++    // (a few per minute) buys the transport-id -> device linkage the census needs.
++    : logger_(logger ? (name.empty() ? logger : logger->createChild(name)) : nullptr)
+     , rng_(rng ? std::move(rng)
+                : std::make_unique<std::mt19937_64>(dht::crypto::getSeededRandomEngine<std::mt19937_64>()))
+ {
+@@ -468,15 +472,33 @@
          logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
      skId_ = skIceCreated.fetch_add(1, std::memory_order_relaxed) + 1;
      skBorn_ = std::chrono::steady_clock::now();
 -    SK_ICE("create #%u alive=%d (created=%u destroyed=%u)",
 -           skId_, skIceAlive.fetch_add(1, std::memory_order_relaxed) + 1,
 +    // name is "Device <id>" from IceTransportFactory's callers, i.e. the peer this session is for.
-+    // Safe to read here: the initializer list only std::move()s it when a logger exists, and the
-+    // daemon leaves opendht's logger null in release.
++    // It is what ties a transport id to a device, which is how a long-lived transport gets
++    // identified.
++    //
++    // This used to claim it was "safe to read here ... the daemon leaves opendht's logger null in
++    // release". That was false twice over: Manager holds ice_tf_ built with Logger::dhtLogger(),
++    // which is never null, and createUTransport falls back to the factory's own logger precisely
++    // when the per-connection one is null. So a logger always existed, the init list always moved,
++    // and this field was ALWAYS empty — the measured create lines print `peer=` with nothing after
++    // it. The move is now a copy; see the constructor's init list.
 +    SK_ICE("create #%u peer=%s alive=%d (created=%u destroyed=%u)",
 +           skId_, name.c_str(), skIceAlive.fetch_add(1, std::memory_order_relaxed) + 1,
             skIceCreated.load(), skIceDestroyed.load());
