@@ -440,11 +440,25 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # Rebuild dhtnet if ANY of its sources is newer than the stamp. The old form named ice_transport.cpp
 # and ip_utils.cpp explicitly, so a change to connectionmanager.cpp alone was SILENTLY SKIPPED and
 # +163 shipped a stale libdhtnet with the new diagnostics simply absent from the APK (2026-07-30).
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" ] || [ -n "$(find "$d/dhtnet/src" -name "*.cpp" -o -name "*.h" -newer "$d/.dhtnet" 2>/dev/null | head -1)" ]; then echo ">>> dhtnet sources changed — rebuilding"; rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
+#
+# NOTE THE PARENTHESES (2026-08-05). Without them this reads
+#   ( -name "*.cpp" )  OR  ( -name "*.h" AND -newer stamp )
+# because find's -o binds looser than its implicit AND — so EVERY .cpp matched unconditionally and
+# dhtnet was rebuilt on every single build, stamp or no stamp. It failed safe (over-building, never
+# under-building) so it only ever cost time, but the guard was not actually testing anything. Same
+# operator-precedence family as the `pgrep -f` self-match invariant in CLAUDE.md.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" ] || [ -n "$(find "$d/dhtnet/src" \( -name "*.cpp" -o -name "*.h" \) -newer "$d/.dhtnet" 2>/dev/null | head -1)" ]; then echo ">>> dhtnet sources changed — rebuilding"; rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
+
+# ONE-TIME HEAL (2026-08-05) — MUST run before the pjproject guards below.
+# pjproject-evict-stuck-epoll-sockets.patch was REGENERATED and the old version's marker
+# (ioqueue_note_unhandled) still satisfies any guard naming it, so a tree carrying the previous
+# version would be skipped and ship stale. Guard is now SK_EVICT. rules.mak already lists every
+# pjproject patch, so a forced re-extract re-applies the whole set cleanly.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; f="$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; if [ -f "$f" ] && grep -q ioqueue_note_unhandled "$f" && ! grep -q SK_EVICT "$f"; then echo ">>> pjproject carries superseded eviction — forcing re-extract"; rm -rf "$d/pjproject" "$d/.pjproject" "$d/.dep-pjproject"; fi'
 
 # pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK_EVICT "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
 
 # pjnath rate-limit for a permanently-erroring STUN socket (SK-RXERR). Guard: SK_RX_ERR_LOG_EVERY.
 # on_data_recvfrom() logged EVERY failed read at PJ_PERROR level 2, which always formats even when
@@ -506,6 +520,15 @@ r bash -c 'grep -q SK-AUDIODIAG daemon/src/media/audio/audio_rtp_session.cpp || 
 # Re-applying it rejected two hunks and fuzz-inserted a duplicate `const bool isFloat` — a compile
 # error. The patch file no longer exists. Never re-add the format half.
 r bash -c 'grep -q SK-CAPTUREZERO daemon/src/media/audio/aaudio/aaudiolayer.cpp || (cd daemon && patch -flp1) < patches/jami-capture-silence-fallback.patch'
+
+# pjsip/pjnath errors reach the log at all (SK-SIPLOG; idempotent; daemon's OWN source). setSipLogLevel()
+# defaulted to 0, so the pj_log callback it installs two lines later was never invoked and EVERY pjsip and
+# pjnath diagnostic was discarded — on Android the env var that raises it cannot practically be set, so
+# that is permanent blindness, and it is why a 100%-CPU pjnath spin was invisible for 24 h in Aug 2026.
+# Default is now 2 (fatal+error). Nearly free: pj_perror_imp() formats the message BEFORE invoke_log()
+# checks the level, so raising it adds the write, never the formatting. Pairs with SK-RXERR's rate limit —
+# without that a wedged socket would deliver ~16 000 identical lines a second.
+r bash -c 'grep -q SK-SIPLOG daemon/src/manager.cpp || (cd daemon && patch -flp1) < patches/jami-sip-log-errors-by-default.patch'
 
 # current-CRL-only (idempotent; daemon's OWN source — no rules.mak, no contrib rebuild)
 r bash -c 'grep -q SK-CRL-CURRENT daemon/src/jamidht/account_manager.cpp || (cd daemon && patch -flp1) < patches/jami-publish-current-crl-only.patch'
