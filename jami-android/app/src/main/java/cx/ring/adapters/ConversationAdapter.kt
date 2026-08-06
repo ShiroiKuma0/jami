@@ -52,7 +52,6 @@ import androidx.core.view.setPadding
 import androidx.core.view.updateLayoutParams
 import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.RecyclerView
-import androidx.vectordrawable.graphics.drawable.Animatable2Compat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -689,6 +688,11 @@ class ConversationAdapter(
         }
         holder.mMsgTxt?.setOnLongClickListener(null)
         holder.mItem?.setOnClickListener(null)
+        // SK-TYPINGAVD: an AnimatedVectorDrawable goes on demanding Choreographer frames until
+        // something stops it -- being recycled, detached, or invisible does not. The typing
+        // indicator's targets are repeatCount="infinite", so without this it never stops at all.
+        // The cast makes this a no-op for the file/image icons that share mIcon.
+        (holder.mIcon?.drawable as? AnimatedVectorDrawableCompat)?.stop()
         holder.compositeDisposable.clear()
     }
 
@@ -1439,18 +1443,31 @@ class ConversationAdapter(
             )
         }
         viewHolder.mTypingIndicatorLayout?.layoutParams = layoutParams
-        //Start the animation.
-        AnimatedVectorDrawableCompat.create(
-            viewHolder.itemView.context, R.drawable.typing_indicator_animation
-        )?.let { anim ->
-            viewHolder.mIcon?.setImageDrawable(anim)
-            anim.registerAnimationCallback(object : Animatable2Compat.AnimationCallback() {
-                override fun onAnimationEnd(drawable: Drawable) {
-                    anim.start()
-                }
-            })
-            anim.start()
-        }
+        // SK-TYPINGAVD: reuse the drawable already on this icon, and never register a
+        // restart-on-end callback.
+        //
+        // This used to build a NEW AnimatedVectorDrawableCompat on every bind and give it a
+        // callback that called start() again from onAnimationEnd. Nothing ever stopped one or
+        // unregistered the callback, so every typing indicator ever shown left behind an immortal
+        // animator demanding a Choreographer frame at the panel's refresh rate -- for the life of
+        // the process, with the app backgrounded and the screen off. They accumulate: measured on
+        // a Mate XT at up to 93 main-thread wakes/s and 76% of a core, climbing over hours, and
+        // only a force-stop cleared it.
+        //
+        // The restart callback was redundant anyway: two of the three targets in
+        // typing_indicator_animation.xml (bounce2, bounce3) are already repeatCount="infinite",
+        // so the set never legitimately ends. The callback existed only to re-trigger the finite
+        // groupOne bounce, and dropping it costs nothing visible.
+        //
+        // Reusing the existing drawable bounds this to at most one animator per view holder --
+        // i.e. to the recycler pool -- instead of one per bind. stop() on recycle (see
+        // onViewRecycled) then releases even those.
+        val typingAnim = viewHolder.mIcon?.drawable as? AnimatedVectorDrawableCompat
+            ?: AnimatedVectorDrawableCompat.create(
+                viewHolder.itemView.context, R.drawable.typing_indicator_animation
+            )?.also { viewHolder.mIcon?.setImageDrawable(it) }
+        if (typingAnim != null && !typingAnim.isRunning)
+            typingAnim.start()
     }
 
     /**
