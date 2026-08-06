@@ -1,8 +1,24 @@
-# 白い熊 GNU Jami — `20260731-01+007`
+# 白い熊 GNU Jami — `20260731-01+008`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
 
 This release is one investigation, start to finish: a phone running at **109 % CPU** — a whole core, continuously — traced to a single thread, fixed, and then the reason it took a profiler to find fixed as well.
+
+---
+
+## ⏳ The most expensive bug of the day: a typing indicator that never stopped
+
+Found by instrumenting the main thread's wake rate after the CPU work below was already done — and it turned out to cost far more than any of it.
+
+`configureForTypingIndicator` built a **new** animated drawable on every bind and registered a callback that called `start()` again from `onAnimationEnd`. Nothing ever stopped one or unregistered the callback. So every typing indicator ever displayed left behind an immortal animator demanding a frame at the panel's refresh rate — for the life of the process, with the app backgrounded and the screen off — and they **accumulate**.
+
+Measured on a 90 Hz panel, backgrounded, screen asleep: **up to 93 main-thread wakes/s and 12–76 % of a core**, climbing over hours, cleared only by a force-stop. A symbolised profile put the work in `AnimatorSet.doAnimationFrame ← pulseAnimationFrame` — the path an `AnimatedVectorDrawable` uses to drive its children — under `Choreographer.doFrame`, alongside `VectorDrawable::Group::onPropertyChanged` for the indicator's three groups. Nested animator sets reported children well over 100 %, which is the accumulation showing up directly.
+
+The fix: **reuse** the drawable already on the icon instead of building one per bind (which alone bounds it to the recycler pool rather than unbounded), and **stop it on recycle** — being recycled, detached or invisible does not stop an animated vector drawable, only an explicit stop does. The self-restarting callback is dropped rather than repaired, because it was redundant: two of the three targets are already `repeatCount="infinite"`, so the set never legitimately ends, and the callback existed only to re-trigger the finite third. Nothing changes visually.
+
+**Verified with a contact actively typing** — the exact trigger — at **0.5 / 1.0 / 2.0 / 3.9 wakes/s**, against a **64.0/s** baseline captured on the same phone minutes before.
+
+This is a **stock GNU Jami defect**, not one this fork introduced: the identical code is at `upstream/master` in `ConversationAdapter.kt`, from upstream's *"chatView: implementation of new design"*. It needs only a contact who types and a few hours of uptime, so it plausibly affects every Android Jami user.
 
 ---
 
