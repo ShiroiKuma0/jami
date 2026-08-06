@@ -388,13 +388,59 @@ r git checkout custom
 # daemon-contrib fix (idempotent; submodule, not committed)
 r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls/rules.mak || sed -i 's/--without-idn/--without-idn --without-brotli --without-zstd/' daemon/contrib/src/gnutls/rules.mak"
 
-# ONE-TIME HEAL (2026-08-05) — MUST run before every dhtnet guard below.
-# dhtnet-ice-transport-diag.patch and dhtnet-throttle-failed-ice-transports.patch were REGENERATED,
-# and the OLD versions' markers still satisfy the new guards. A tree patched with the previous pair
-# would therefore be silently skipped and ship the stale code — the +163 stale-libdhtnet failure,
-# in marker form. If ice_transport.cpp carries the old SK-ICEREAP but not the new SK_ICE_SPIN_TRIP,
-# drop the package AND its stamps so the whole chain re-applies from the tarball.
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; f="$d/dhtnet/src/ice_transport.cpp"; if [ -f "$f" ] && grep -q SK_ICE_FAILED_POLL_MS "$f" && ! grep -q SK_ICE_SPIN_TRIP "$f"; then echo ">>> dhtnet carries superseded SK-ICEREAP — forcing re-extract"; rm -rf "$d/dhtnet" "$d/.dhtnet" "$d/.dep-dhtnet"; fi'
+# SK-PATCHSUM (2026-08-06) — MUST run before every contrib guard below. Replaces the one-time
+# heals that used to sit here; keep this instead of adding another.
+#
+# Every guard below is "skip if grep finds MARKER in the extracted source". That cannot see a
+# patch which was REGENERATED — the old version contains the same marker, so the step is skipped
+# and the stale code ships. It happened twice in two days: dhtnet's SK-ICEREAP on 2026-08-05, and
+# pjproject's eviction on 2026-08-06, where SK_EVICT was already present from the previous build
+# and hid a missing ENOENT suppression. Picking a fresh marker each time only re-arms the trap.
+#
+# A checksum over the patch FILES cannot be fooled: change any byte of any patch and the package is
+# re-extracted, so rules.mak re-applies the whole chain from the tarball. Stamps are written ONLY
+# after a fully successful build (see the end of the block) — a failed build must re-extract again
+# next time rather than record "up to date" for code that never compiled.
+sk_sum() { cat "$@" 2>/dev/null | md5sum | cut -d" " -f1; }
+sk_gate() {  # $1=pkg, rest=patch files
+  local pkg=$1; shift
+  local d=daemon/contrib/build-aarch64-linux-android
+  local sum; sum=$(sk_sum "$@")
+  if [ -d "$d/$pkg" ] && [ "$(cat "$d/.sk-patchsum-$pkg" 2>/dev/null)" != "$sum" ]; then
+    echo ">>> $pkg patch set changed — forcing re-extract"
+    rm -rf "$d/$pkg" "$d/.$pkg" "$d/.dep-$pkg"
+  fi
+}
+r sk_gate dhtnet    patches/dhtnet-*.patch
+r sk_gate pjproject patches/pjproject-*.patch
+r sk_gate opendht   patches/opendht-*.patch
+
+# pjproject FIRST — it is a build dependency of dhtnet (contrib/src/pjproject/rules.mak:71).
+# The block used to have dhtnet first, which was only safe while pjproject was never wiped. Once
+# SK-PATCHSUM can re-extract it, `make .dhtnet` pulls `.pjproject` in as a dependency and its
+# autoconf configure runs WITHOUT the NDK cross env exported inside the pjproject block — dying
+# with the "C compiler cannot create executables" already documented for a bare `make .pjproject`.
+# The documented gotcha and the block's own ordering were quietly incompatible. Cost one build.
+# pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
+r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q "SK-EPOLLQUIET" "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
+
+# pjnath rate-limit for a permanently-erroring STUN socket (SK-RXERR). Guard: SK_RX_ERR_LOG_EVERY.
+# on_data_recvfrom() logged EVERY failed read at PJ_PERROR level 2, which always formats even when
+# the client discards the line — measured at ~13% of a burning core, and the discard is why the
+# fault was invisible in logcat. First failure plus one in N now, carrying the fd and the count.
+r bash -c 'cp patches/pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/; grep -q pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-throttle-erroring-stun-socket.patch|" daemon/contrib/src/pjproject/rules.mak'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK_RX_ERR_LOG_EVERY "$d/pjproject/pjnath/src/pjnath/stun_sock.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-throttle-erroring-stun-socket.patch; fi'
+
+# Rebuild pjproject if the stamp is older than ANY patched source. Naming only ioqueue_epoll.c here
+# is the same trap that shipped a stale libdhtnet in +163 — stun_sock.c alone would be skipped.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.pjproject" ] || [ -n "$(find "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" "$d/pjproject/pjnath/src/pjnath/stun_sock.c" -newer "$d/.pjproject" 2>/dev/null | head -1)" ]; then
+  export ANDROID_NDK="$HOME/android-sdk/ndk/29.0.14206865" TARGET=aarch64-linux-android API=26
+  export TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64"
+  export CC="$TOOLCHAIN/bin/${TARGET}${API}-clang" CXX="$TOOLCHAIN/bin/${TARGET}${API}-clang++"
+  export AS="$CC -c" AR="$TOOLCHAIN/bin/llvm-ar" RANLIB="$TOOLCHAIN/bin/llvm-ranlib" STRIP="$TOOLCHAIN/bin/llvm-strip" LD="$TOOLCHAIN/bin/ld"
+  rm -f "$d/.pjproject" && make -C "$d" .pjproject
+fi'
 
 # dhtnet LAN-interface fix (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(MOVE)|" daemon/contrib/src/dhtnet/rules.mak'
@@ -449,33 +495,22 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # operator-precedence family as the `pgrep -f` self-match invariant in CLAUDE.md.
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" ] || [ -n "$(find "$d/dhtnet/src" \( -name "*.cpp" -o -name "*.h" \) -newer "$d/.dhtnet" 2>/dev/null | head -1)" ]; then echo ">>> dhtnet sources changed — rebuilding"; rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
 
-# ONE-TIME HEAL (2026-08-05) — MUST run before the pjproject guards below.
-# pjproject-evict-stuck-epoll-sockets.patch was REGENERATED and the old version's marker
-# (ioqueue_note_unhandled) still satisfies any guard naming it, so a tree carrying the previous
-# version would be skipped and ship stale. Guard is now SK_EVICT. rules.mak already lists every
-# pjproject patch, so a forced re-extract re-applies the whole set cleanly.
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; f="$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; if [ -f "$f" ] && grep -q ioqueue_note_unhandled "$f" && ! grep -q SK_EVICT "$f"; then echo ">>> pjproject carries superseded eviction — forcing re-extract"; rm -rf "$d/pjproject" "$d/.pjproject" "$d/.dep-pjproject"; fi'
-
-# pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
-r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK_EVICT "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
-
-# pjnath rate-limit for a permanently-erroring STUN socket (SK-RXERR). Guard: SK_RX_ERR_LOG_EVERY.
-# on_data_recvfrom() logged EVERY failed read at PJ_PERROR level 2, which always formats even when
-# the client discards the line — measured at ~13% of a burning core, and the discard is why the
-# fault was invisible in logcat. First failure plus one in N now, carrying the fd and the count.
-r bash -c 'cp patches/pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/; grep -q pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-throttle-erroring-stun-socket.patch|" daemon/contrib/src/pjproject/rules.mak'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK_RX_ERR_LOG_EVERY "$d/pjproject/pjnath/src/pjnath/stun_sock.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-throttle-erroring-stun-socket.patch; fi'
-
-# Rebuild pjproject if the stamp is older than ANY patched source. Naming only ioqueue_epoll.c here
-# is the same trap that shipped a stale libdhtnet in +163 — stun_sock.c alone would be skipped.
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.pjproject" ] || [ -n "$(find "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" "$d/pjproject/pjnath/src/pjnath/stun_sock.c" -newer "$d/.pjproject" 2>/dev/null | head -1)" ]; then
-  export ANDROID_NDK="$HOME/android-sdk/ndk/29.0.14206865" TARGET=aarch64-linux-android API=26
-  export TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64"
-  export CC="$TOOLCHAIN/bin/${TARGET}${API}-clang" CXX="$TOOLCHAIN/bin/${TARGET}${API}-clang++"
-  export AS="$CC -c" AR="$TOOLCHAIN/bin/llvm-ar" RANLIB="$TOOLCHAIN/bin/llvm-ranlib" STRIP="$TOOLCHAIN/bin/llvm-strip" LD="$TOOLCHAIN/bin/ld"
-  rm -f "$d/.pjproject" && make -C "$d" .pjproject
-fi'
+# opendht rules.mak $(APPLY) coverage (2026-08-06). opendht/rules.mak carried ZERO $(APPLY) lines
+# while FIVE of our patches were live in the extracted tree — they survived only because the
+# working tree persists, so a fresh clone or a forced re-extract dropped every one of them silently.
+# Same hole that was closed for dhtnet on 2026-08-05. ORDER IS LOAD-BEARING and was verified against
+# a pristine 4.2.0 tarball: connect-resilience, subscription-refresh, subscription-diag,
+# push-refetch-hardening, dht-message-stats-diag. Moving subscription-diag ahead of
+# subscription-refresh makes it FAIL outright and silently loses a hunk (SK-PROXYDIAG 10 not 11).
+r bash -c 'om=daemon/contrib/src/opendht/rules.mak
+cp patches/opendht-proxy-connect-resilience.patch daemon/contrib/src/opendht/
+grep -q opendht-proxy-connect-resilience.patch "$om" || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/opendht/opendht-proxy-connect-resilience.patch\n\t\$(MOVE)|" "$om"
+prev=opendht-proxy-connect-resilience
+for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag; do
+  cp "patches/$p.patch" daemon/contrib/src/opendht/
+  grep -q "$p.patch" "$om" || sed -i "s|^\t\$(APPLY) \$(SRC)/opendht/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/opendht/$p.patch|" "$om"
+  prev=$p
+done'
 
 # opendht push-refetch hardening (SK-PUSHGET): coalesce post-push gets, sweep the value cache only
 # on a SUCCESSFUL get (a failed one used to expire every cached value = mass false-offline), and
@@ -576,6 +611,11 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
     r zipalign -p -f 4 "$unsigned_apk" /tmp/jami-aligned.apk
     r apksigner sign --ks ~/.android-keystores/jami-custom.jks --ks-key-alias jami-custom --ks-pass pass:jami-shiroikuma --key-pass pass:jami-shiroikuma --out /tmp/jami-signed.apk /tmp/jami-aligned.apk
     r apksigner verify --verbose /tmp/jami-signed.apk
+
+    # SK-PATCHSUM stamps — written ONLY here, after a fully successful build. Writing them at gate
+    # time would record "up to date" for code that never compiled, so a failed build would not
+    # re-extract on the next run. That is the whole point of the gate.
+    r bash -c 'd=daemon/contrib/build-aarch64-linux-android; cd ~/git/shiroikuma-jami; for pkg in dhtnet pjproject opendht; do cat patches/$pkg-*.patch 2>/dev/null | md5sum | cut -d" " -f1 > "$d/.sk-patchsum-$pkg"; done'
 
     # local backup FIRST, unconditionally — a missing cable never costs the build
     r bash -c "mkdir -p ~/tmp && cp /tmp/jami-signed.apk ~/tmp/\"$apk_name\""
