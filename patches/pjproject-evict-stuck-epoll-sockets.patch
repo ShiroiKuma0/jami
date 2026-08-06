@@ -1,18 +1,27 @@
 --- a/pjlib/src/pj/ioqueue_epoll.c
 +++ b/pjlib/src/pj/ioqueue_epoll.c
-@@ -70,6 +70,22 @@
+@@ -70,6 +70,31 @@
  #  define EPOLLEXCLUSIVE        (1U << 28)
  #endif
  
 +/* SK-EVICT: direct Android log for the socket-disarm path.
 + *
-+ * Not PJ_LOG/PJ_PERROR: those go through the application's log callback,
-+ * and a client that only installs one above a raised log level discards
-+ * them entirely -- which is how a 100%-CPU spin in this very file stayed
-+ * invisible for 24 hours. This path is rare by construction (a socket has
-+ * to be dead), so an unconditional line costs nothing and is the only way
-+ * to learn whether it fires at all.
++ * Not PJ_LOG/PJ_PERROR: those go through the application's log callback, and a
++ * client that only installs one above a raised log level discards them
++ * entirely -- which is how a 100%-CPU spin in this very file stayed invisible
++ * for 24 hours. This is the only channel that reliably shows whether the
++ * disarm path fires at all, and until 2026-08-06 it never had.
++ *
++ * It was expected to be rare -- "a socket has to be dead" -- and so logged
++ * unconditionally at first. The first build that could actually reach it
++ * measured 119 disarms in 8 minutes, 23 of them on one fd, because a disarm
++ * does not stick (see disarm_cnt). Hence the rate limit below: after the
++ * first, one disarm in this many, per key.
 + */
++#ifndef SK_EVICT_LOG_EVERY
++#   define SK_EVICT_LOG_EVERY  100
++#endif
++
 +#if defined(__ANDROID__)
 +#  include <android/log.h>
 +#  define SK_EVICT(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
@@ -23,7 +32,7 @@
  enum { IO_MASK = EPOLLIN | EPOLLOUT | EPOLLERR };
  
  static char ioq_name[32];
-@@ -86,6 +102,11 @@
+@@ -86,6 +111,19 @@
  {
      DECLARE_COMMON_KEY
      struct epoll_event ev;
@@ -32,18 +41,27 @@
 +     * EPOLLERR/EPOLLHUP on a dead socket). See ioqueue_note_unhandled().
 +     */
 +    unsigned unhandled_cnt;
++    /* Lifetime count of disarms on this key, used only to rate-limit the
++     * SK_EVICT line. A disarm does not stick: the layer above (pjnath's
++     * activesock) re-posts a read unconditionally after every failure, which
++     * re-arms the fd, so a permanently-erroring socket cycles rather than
++     * going quiet once. Measured at ~2 Hz per bad fd -- paced by the caller's
++     * poll budget, so it is cheap, but one log line per cycle is not.
++     */
++    unsigned disarm_cnt;
  };
  
  struct queue
-@@ -503,6 +524,7 @@
+@@ -503,6 +541,8 @@
      pj_bzero(&key->ev, sizeof(key->ev));
      key->ev.epoll_data = (epoll_data_type)key;
      key->ev.events = 0;
 +    key->unhandled_cnt = 0;
++    key->disarm_cnt = 0;
      if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_EXCLUSIVE)
          key->ev.events |= EPOLLEXCLUSIVE;
      else if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_ONESHOT)
-@@ -640,8 +662,28 @@
+@@ -640,8 +680,28 @@
      status = os_epoll_ctl( ioqueue->epfd, EPOLL_CTL_DEL, key->fd, &key->ev);
      if (status != 0) {
          status = pj_get_os_error();
@@ -74,7 +92,7 @@
          /* From epoll doc: "Closing a file descriptor cause it to be
           * removed from all epoll interest lists". So we should just
           * proceed instead of returning failure here.
-@@ -791,6 +833,107 @@
+@@ -791,6 +851,117 @@
  }
  
  
@@ -169,10 +187,20 @@
 +         * time it fires, rather than trusting an unexercised branch: without
 +         * this the only evidence would be a TRACE_WARN that is compiled out.
 +         */
-+        SK_EVICT("disarmed fd=%d after %u unconsumed error events (%s)",
-+                 (int)h->fd, h->unhandled_cnt,
-+                 (h->ev.events & EPOLLEXCLUSIVE) ? "DEL/exclusive"
-+                                                 : "MOD/oneshot");
++        /* Rate-limited for the same reason SK-RXERR is: a disarm does not stick
++         * (see disarm_cnt), so a single dead socket cycles at ~2 Hz and would
++         * emit a line per cycle -- 119 of them in 8 minutes, measured. Report
++         * the first, then one in SK_EVICT_LOG_EVERY, carrying the count so the
++         * rate is derivable from any two lines.
++         */
++        if (++h->disarm_cnt == 1 || (h->disarm_cnt % SK_EVICT_LOG_EVERY) == 0) {
++            SK_EVICT("disarmed fd=%d after %u unconsumed error events "
++                     "(%s, disarm #%u)",
++                     (int)h->fd, h->unhandled_cnt,
++                     (h->ev.events & EPOLLEXCLUSIVE) ? "DEL/exclusive"
++                                                     : "MOD/oneshot",
++                     h->disarm_cnt);
++        }
 +        h->ev.events = disarmed;
 +    }
 +    h->unhandled_cnt = 0;
@@ -182,7 +210,7 @@
  #if PJ_IOQUEUE_HAS_SAFE_UNREG
  /* Scan closing keys to be put to free list again */
  static void scan_closing_keys(pj_ioqueue_t *ioqueue)
-@@ -942,6 +1085,12 @@
+@@ -942,6 +1113,12 @@
                  queue[event_cnt].key = h;
                  queue[event_cnt].event_type = READABLE_EVENT;
                  ++event_cnt;
@@ -195,7 +223,7 @@
              }
              continue;
          }
-@@ -977,6 +1126,13 @@
+@@ -977,6 +1154,13 @@
           */
          TRACE_WARN((THIS_FILE, "     UNHANDLED event %d: events=0x%x, h=%p",
                      i, events[i].events, h));
@@ -209,7 +237,7 @@
      }
      for (i=0; i<event_cnt; ++i) {
          if (queue[i].key->grp_lock)
-@@ -1016,6 +1172,17 @@
+@@ -1016,6 +1200,17 @@
              }
              if (event_done) {
                  ++processed_cnt;
@@ -227,7 +255,7 @@
              }
          }
  
-@@ -1061,6 +1228,11 @@
+@@ -1061,6 +1256,11 @@
           * Limit the duration of the sleep, as doing pj_thread_sleep() for
           * a long time is very inefficient. The main objective here is just
           * to avoid busy loop.
