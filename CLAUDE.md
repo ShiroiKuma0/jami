@@ -37,6 +37,18 @@ These are the things that cost real time when forgotten. Do not violate them wit
   really 410 in **RUNNING**, so `SK-ICEREAP` was gated on `_isFailed()` and never fired once while a
   RUNNING transport burned a whole core for 24.8 h. A checked constant protects one reading; a name
   in the log protects every future one. Rendering helper: `skIceStateName()` in `ice_transport.cpp`.
+- **Guard contrib packages by PATCH-SET CHECKSUM, not by marker (`SK-PATCHSUM`).** The rule below
+  is the lesson; this is the cure, and it supersedes chasing a fresh marker each time. `sk_gate`
+  in the canonical block md5s each package's `patches/<pkg>-*.patch` and force-re-extracts when it
+  changes; stamps (`.sk-patchsum-<pkg>`) are written ONLY after a fully successful build, so a
+  failed build re-extracts next time instead of recording "up to date" for code that never
+  compiled. The marker approach failed twice in two days (dhtnet 08-05, pjproject 08-06).
+- **`pjproject` must be built BEFORE `dhtnet` in the canonical block.** dhtnet depends on it
+  (`contrib/src/pjproject/rules.mak:71`), so if pjproject is absent, `make .dhtnet` pulls it in as
+  a dependency and its autoconf runs WITHOUT the exported NDK cross env — the documented
+  "C compiler cannot create executables". This never surfaced while pjproject was never wiped; the
+  moment `SK-PATCHSUM` could re-extract it, the block's own ordering and its own documented gotcha
+  turned out to be incompatible. Cost one build on 2026-08-06.
 - **A guard marker must be unique to the version it guards.** The per-build re-apply guards grep for
   a marker; when a patch is REGENERATED, any marker the old version also contained still satisfies
   the guard, so the step is skipped and the stale code ships silently — the +163 stale-libdhtnet
