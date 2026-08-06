@@ -1,6 +1,29 @@
 --- a/pjlib/src/pj/ioqueue_epoll.c
 +++ b/pjlib/src/pj/ioqueue_epoll.c
-@@ -86,6 +86,11 @@
+@@ -70,6 +70,22 @@
+ #  define EPOLLEXCLUSIVE        (1U << 28)
+ #endif
+ 
++/* SK-EVICT: direct Android log for the socket-disarm path.
++ *
++ * Not PJ_LOG/PJ_PERROR: those go through the application's log callback,
++ * and a client that only installs one above a raised log level discards
++ * them entirely -- which is how a 100%-CPU spin in this very file stayed
++ * invisible for 24 hours. This path is rare by construction (a socket has
++ * to be dead), so an unconditional line costs nothing and is the only way
++ * to learn whether it fires at all.
++ */
++#if defined(__ANDROID__)
++#  include <android/log.h>
++#  define SK_EVICT(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++#else
++#  define SK_EVICT(...) do {} while (0)
++#endif
++
+ enum { IO_MASK = EPOLLIN | EPOLLOUT | EPOLLERR };
+ 
+ static char ioq_name[32];
+@@ -86,6 +102,11 @@
  {
      DECLARE_COMMON_KEY
      struct epoll_event ev;
@@ -12,7 +35,7 @@
  };
  
  struct queue
-@@ -503,6 +508,7 @@
+@@ -503,6 +524,7 @@
      pj_bzero(&key->ev, sizeof(key->ev));
      key->ev.epoll_data = (epoll_data_type)key;
      key->ev.events = 0;
@@ -20,7 +43,38 @@
      if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_EXCLUSIVE)
          key->ev.events |= EPOLLEXCLUSIVE;
      else if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_ONESHOT)
-@@ -791,6 +797,63 @@
+@@ -640,8 +662,28 @@
+     status = os_epoll_ctl( ioqueue->epfd, EPOLL_CTL_DEL, key->fd, &key->ev);
+     if (status != 0) {
+         status = pj_get_os_error();
+-        PJ_PERROR(2, (THIS_FILE, status,
+-                      "Ignoring pj_ioqueue_unregister error: os_epoll_ctl"));
++        /* SK-EPOLLQUIET: do not report the one failure this code already
++         * expects. The comment immediately below states the case -- a closed
++         * fd is removed from every interest list by the kernel, so the DEL
++         * that follows finds nothing and returns ENOENT. That is normal
++         * teardown, not an error, and the message says so ("Ignoring").
++         *
++         * It is not free to emit, and it is not rare. Measured over 23
++         * minutes on a 4-account Android client: 386 occurrences, ~16/min,
++         * accounting for 386 of the 511 pjsip-layer lines in a diagnostic
++         * capture -- drowning the signal in a log that exists to carry it.
++         * PJ_PERROR also formats unconditionally (pj_perror_imp() runs
++         * vsnprintf and pj_strerror before invoke_log() consults the level),
++         * so the cost is paid whether or not anything consumes the line.
++         *
++         * ENOENT ONLY, deliberately: that is the code actually measured, and
++         * every other failure here -- EBADF in particular, which would mean a
++         * double close rather than a tidy one -- stays loud.
++         */
++        if (status != PJ_STATUS_FROM_OS(ENOENT)) {
++            PJ_PERROR(2, (THIS_FILE, status,
++                          "Ignoring pj_ioqueue_unregister error: os_epoll_ctl"));
++        }
+         /* From epoll doc: "Closing a file descriptor cause it to be
+          * removed from all epoll interest lists". So we should just
+          * proceed instead of returning failure here.
+@@ -791,6 +833,107 @@
  }
  
  
@@ -42,17 +96,44 @@
 + * reports occur sporadically on healthy sockets and must never count.
 + *
 + * After PJ_IOQUEUE_UNHANDLED_EVICT_CNT consecutive unconsumed reports the
-+ * fd is disarmed with EPOLLONESHOT: the kernel delivers one final report
-+ * and then goes quiet. Any later update_epoll_event_set() (epoll_ctl MOD
-+ * without EPOLLONESHOT, e.g. from ioqueue_add_to_set() when an operation
-+ * is posted) re-arms level-triggered reporting, so a key that becomes
-+ * active again recovers automatically. key->ev.events is deliberately
-+ * left untouched so pjlib's own bookkeeping stays canonical.
++ * key's fd is disarmed. HOW depends on the registration mode, because
++ * EPOLLEXCLUSIVE and EPOLLONESHOT are mutually exclusive in the kernel --
++ * that exact combination is what detect_epoll_support() submits expecting
++ * EINVAL, so an EXCLUSIVE key can never be disarmed with ONESHOT, by MOD
++ * or by DEL+ADD. The two modes therefore need different mechanisms:
++ *
++ *   - EXCLUSIVE key: EPOLL_CTL_DEL. The fd leaves the interest set
++ *     entirely. This is only reached from a call site that has already
++ *     established there is NO pending operation on the key, so nothing is
++ *     waiting on a report that will now not come.
++ *   - otherwise: EPOLL_CTL_MOD adding EPOLLONESHOT, so the kernel delivers
++ *     one final report and then goes quiet.
++ *
++ * In BOTH cases the key's interest bits are cleared from h->ev.events.
++ * That is load-bearing, not bookkeeping tidiness: ioqueue_add_to_set2()
++ * re-registers only `if (events != key->ev.events)`, so leaving the bits
++ * asserted (as an earlier version of this function deliberately did, on
++ * the theory that pjlib's record should stay canonical) means a key whose
++ * interest does not change is never re-armed -- a permanently deaf socket,
++ * which starves its link and produces exactly the reconnect storms this
++ * patch has caused before. Clearing them makes the record honest about
++ * what is actually armed AND guarantees the next posted operation differs,
++ * so update_epoll_event_set() runs and re-registers: MOD for a normal key,
++ * DEL(ENOENT, ignored)+ADD for an EXCLUSIVE one.
++ *
++ * NOTE ON THE COUNTER: h->unhandled_cnt is reset from the dispatch loop,
++ * which runs after pj_lock_release(), so that reset is not serialised
++ * against this function. With one polling thread per ioqueue (dhtnet's
++ * arrangement) there is no race at all; with several, the worst outcome is
++ * a strike lost or applied twice, which only shifts when a dead socket is
++ * disarmed. It is a heuristic, and deliberately not worth a lock.
 + */
 +static void ioqueue_note_unhandled(pj_ioqueue_t *ioqueue,
 +                                   pj_ioqueue_key_t *h)
 +{
 +    struct epoll_event ev;
++    pj_uint32_t disarmed;
++    int rc;
 +
 +    if (IS_CLOSING(h))
 +        return; /* about to be unregistered anyway */
@@ -60,22 +141,39 @@
 +    if (ioqueue->cfg.epoll_flags & PJ_IOQUEUE_EPOLL_ONESHOT)
 +        return; /* kernel already disarms after every delivery */
 +
-+    if (h->ev.events & EPOLLEXCLUSIVE)
-+        return; /* EPOLL_CTL_MOD is invalid on EXCLUSIVE registrations */
-+
 +    if (++h->unhandled_cnt < PJ_IOQUEUE_UNHANDLED_EVICT_CNT)
 +        return;
 +
++    /* What the registration keeps once our interest is withdrawn. */
++    disarmed = h->ev.events & ~(pj_uint32_t)(EPOLLIN | EPOLLOUT);
++
 +    pj_bzero(&ev, sizeof(ev));
 +    ev.epoll_data = (epoll_data_type)h;
-+    ev.events = h->ev.events | EPOLLONESHOT;
-+    if (os_epoll_ctl(ioqueue->epfd, EPOLL_CTL_MOD, h->fd, &ev) != 0) {
-+        PJ_PERROR(4,(THIS_FILE, pj_get_os_error(),
-+                     "evict: epoll_ctl(MOD, ONESHOT) error fd=%d",
-+                     (int)h->fd));
++
++    if (h->ev.events & EPOLLEXCLUSIVE) {
++        ev.events = h->ev.events;
++        rc = os_epoll_ctl(ioqueue->epfd, EPOLL_CTL_DEL, h->fd, &ev);
 +    } else {
-+        TRACE_WARN((THIS_FILE, "     disarmed idle-erroring fd=%d after %u "
-+                    "unconsumed events", (int)h->fd, h->unhandled_cnt));
++        ev.events = h->ev.events | EPOLLONESHOT;
++        rc = os_epoll_ctl(ioqueue->epfd, EPOLL_CTL_MOD, h->fd, &ev);
++    }
++
++    if (rc != 0) {
++        PJ_PERROR(4,(THIS_FILE, pj_get_os_error(),
++                     "evict: epoll_ctl disarm error fd=%d events=0x%x",
++                     (int)h->fd, h->ev.events));
++    } else {
++        /* This path had never once executed in production before 2026-08-05
++         * -- the old EPOLLEXCLUSIVE early-return disabled it on every key of
++         * every kernel that supports EXCLUSIVE. Say so out loud the first
++         * time it fires, rather than trusting an unexercised branch: without
++         * this the only evidence would be a TRACE_WARN that is compiled out.
++         */
++        SK_EVICT("disarmed fd=%d after %u unconsumed error events (%s)",
++                 (int)h->fd, h->unhandled_cnt,
++                 (h->ev.events & EPOLLEXCLUSIVE) ? "DEL/exclusive"
++                                                 : "MOD/oneshot");
++        h->ev.events = disarmed;
 +    }
 +    h->unhandled_cnt = 0;
 +}
@@ -84,7 +182,7 @@
  #if PJ_IOQUEUE_HAS_SAFE_UNREG
  /* Scan closing keys to be put to free list again */
  static void scan_closing_keys(pj_ioqueue_t *ioqueue)
-@@ -942,6 +1005,12 @@
+@@ -942,6 +1085,12 @@
                  queue[event_cnt].key = h;
                  queue[event_cnt].event_type = READABLE_EVENT;
                  ++event_cnt;
@@ -97,7 +195,7 @@
              }
              continue;
          }
-@@ -977,8 +1046,19 @@
+@@ -977,6 +1126,13 @@
           */
          TRACE_WARN((THIS_FILE, "     UNHANDLED event %d: events=0x%x, h=%p",
                      i, events[i].events, h));
@@ -110,14 +208,26 @@
 +            ioqueue_note_unhandled(ioqueue, h);
      }
      for (i=0; i<event_cnt; ++i) {
-+        /* A consumed event proves the key is alive: restart its
-+         * unhandled-report counter.
-+         */
-+        queue[i].key->unhandled_cnt = 0;
          if (queue[i].key->grp_lock)
-             pj_grp_lock_add_ref_dbg(queue[i].key->grp_lock, "ioqueue", 0);
-     }
-@@ -1061,6 +1141,11 @@
+@@ -1016,6 +1172,17 @@
+             }
+             if (event_done) {
+                 ++processed_cnt;
++                /* A CONSUMED event proves the key is alive, so restart its
++                 * unhandled-report counter. This must be here and not in the
++                 * queueing loop above, where an earlier version had it: that
++                 * loop runs over events merely QUEUED, before any dispatch is
++                 * attempted, so it reset the counter even when every dispatch
++                 * went on to fail. A key that is queued on every poll and
++                 * consumed on none -- precisely the dead socket this is meant
++                 * to catch -- had its strike count cleared before it could
++                 * ever reach the eviction threshold.
++                 */
++                queue[i].key->unhandled_cnt = 0;
+             }
+         }
+ 
+@@ -1061,6 +1228,11 @@
           * Limit the duration of the sleep, as doing pj_thread_sleep() for
           * a long time is very inefficient. The main objective here is just
           * to avoid busy loop.
