@@ -1,8 +1,26 @@
-# 白い熊 GNU Jami — `20260731-01+008`
+# 白い熊 GNU Jami — `20260731-01.2026-08-03.g8746fd4b+009`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
 
-This release is one investigation, start to finish. A phone running at **109 % CPU** — a whole core, continuously — traced to a single thread and fixed, then the reason it took a profiler to find fixed as well. And then, because the CPU was finally being watched properly, a **second and much larger** leak surfaced that had been hiding underneath it the whole time: a typing indicator that never stopped animating.
+This release syncs to a new upstream base and carries one investigation, start to finish. A phone running at **109 % CPU** — a whole core, continuously — traced to a single thread and fixed, then the reason it took a profiler to find fixed as well. And then, because the CPU was finally being watched properly, a **second and much larger** leak surfaced that had been hiding underneath it the whole time: a typing indicator that never stopped animating.
+
+---
+
+## ⬆️ Synced to upstream `8746fd4b`, and the version now says so
+
+Upstream advanced two commits **without changing its version string** — still `20260731-01`, still versionCode 502. Under the old scheme this build and the last would have been indistinguishable. So the fork's versionName now pins the upstream commit it is built on:
+
+```
+20260731-01.2026-08-03.g8746fd4b+009
+             └ base date ┘└ base ┘└ build ┘
+```
+
+The base is the merge-base of our branch and upstream's — the commit our patches actually sit on, not our own tip and not upstream's tip. It moves only on a sync, so two builds sharing a pin are provably built on the same upstream code. The date is that commit's own committer date **in UTC** (not build time, and not the commit's local timezone — about 5 % of upstream's commits fall on a different day once normalised, which would make the pin disagree with what an update watcher reads).
+
+What upstream brought:
+
+- **Package-replacement recovery was broken.** `BootReceiver` listened for `Intent.ACTION_MY_PACKAGE_REPLACED`, but the manifest registered `android.intent.action.ACTION_MY_PACKAGE_REPLACED` — while Android actually broadcasts `android.intent.action.MY_PACKAGE_REPLACED`. The receiver never fired after an APK upgrade, so upgrading Jami skipped the boot sync and daemon startup entirely: connectivity did not come back until the phone was rebooted. Fixed upstream, and in this build.
+- A pinned Rust toolchain added to the CI images, because the daemon has gained a Rust contrib package (`yffi`, Y-CRDT, for collaborative editing). CI-only — but it means a future daemon bump will require `cargo` on the build host.
 
 ---
 
