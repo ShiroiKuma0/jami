@@ -1,9 +1,9 @@
 --- a/include/opendht/dht_proxy_client.h
 +++ b/include/opendht/dht_proxy_client.h
 @@ -361,6 +361,14 @@
-
+ 
      std::atomic_bool isDestroying_ {false};
-
+ 
 +    // SK-PROXYDIAG: subscription-lifecycle diagnostics (one DhtProxyClient per account, so these
 +    // counters are per-account). Written from http io threads, read from the confirm timer — atomics.
 +    std::atomic<uint64_t> diagRxLines_ {0};    // values received on listen response bodies
@@ -20,7 +20,7 @@
 @@ -9,6 +9,16 @@
  #include <llhttp.h>
  #include <deque>
-
+ 
 +// SK-PROXYDIAG: the daemon only hands OpenDHT a logger when dhtLogLevel > 0 (a debug-only firehose),
 +// so logger_-routed diagnostics are invisible in a normal build. Log the subscription-lifecycle
 +// diagnostics straight to the Android log instead — unconditional, low-volume, grep 'SK-PROXYDIAG'.
@@ -32,7 +32,7 @@
 +#endif
 +
  namespace dht {
-
+ 
  struct DhtProxyClient::InfoState
 @@ -193,6 +203,34 @@
      if (proxyUrl_.empty())
@@ -69,7 +69,7 @@
      // SK-SUBREFRESH: proactively re-arm EVERY push subscription on each confirmation (now every 3 min). A
      // push subscription can lapse on the proxy while the server stays reachable — getProxyInfos() still
      // reports Connected then, so nothing resubscribes and inbound is silently stranded for up to OP_TIMEOUT
-@@ -1082,8 +1120,10 @@
+@@ -1094,8 +1132,10 @@
                             Listener& listener,
                             ListenMethod method)
  {
@@ -82,7 +82,9 @@
      try {
          auto request = buildRequest();
          listener.request = request;
-@@ -1100,8 +1140,25 @@
+@@ -1111,10 +1151,27 @@
+         request->set_body(body);
+ #endif
          auto rxBuf = std::make_shared<LineSplit>();
 -        request->add_on_body_callback([this, reqid, opstate, rxBuf, cb](const char* at, size_t length) {
 +        // SK-PROXYDIAG: per-request rx accounting — which subscription key delivered how much
@@ -106,10 +108,10 @@
 +                                proxyUrl_.c_str(), (long long) ((nowMs - prev) / 1000),
 +                                (unsigned long long) reqid);
 +                }
-
+ 
                  // one value per body line
                  while (b.getLine('\n') and !opstate->stop) {
-@@ -1137,7 +1195,18 @@
+@@ -1149,7 +1206,18 @@
                  opstate->ok.store(false);
              }
          });
@@ -129,7 +131,7 @@
              if (response.status_code != 200) {
                  if (logger_)
                      logger_->error("[proxy:client] [listen] send request #{} failed with code={}",
-@@ -1280,6 +1348,16 @@
+@@ -1292,6 +1360,16 @@
          statusIpv4_ = NodeStatus::Connected;
          statusIpv6_ = NodeStatus::Connected;
      }
