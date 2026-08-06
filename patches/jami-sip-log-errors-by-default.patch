@@ -1,0 +1,31 @@
+diff --git a/src/manager.cpp b/src/manager.cpp
+index 020c3ecb8..61a4598b6 100644
+--- a/src/manager.cpp
++++ b/src/manager.cpp
+@@ -213,7 +213,25 @@ getDhtnetLogLevel()
+ static void
+ setSipLogLevel()
+ {
+-    int level = 0;
++    // SK-SIPLOG: default to 2 (fatal + error) rather than 0.
++    //
++    // At 0 the callback installed below is never invoked for anything, so every diagnostic pjsip
++    // and pjnath emit is discarded -- on a platform where the env var cannot practically be set,
++    // that is not "minimum logging", it is no logging, permanently. It cost 24 hours in August
++    // 2026: a pjnath socket failed every read forever and reported it through PJ_PERROR on every
++    // iteration, burning 100% of a core, and not one of those lines could reach logcat or the
++    // client's diagnostic log. The fault had to be found with a profiler instead.
++    //
++    // The emit is close to free, because the expense is already being paid. pj_perror_imp()
++    // (pjlib/src/pj/errno.c) runs pj_ansi_vsnprintf() and pj_strerror() to build the message and
++    // only THEN calls invoke_log(), which is where the level is finally checked -- so raising the
++    // level adds the write, never the formatting. Profiling attributed ~13% of a burning core to
++    // that formatting while its output went nowhere.
++    //
++    // Errors only, so the volume stays bounded in normal operation; anything chattier still needs
++    // JAMI_LOG_SIP. Note this pairs with the SK-RXERR rate limit in pjnath's on_data_recvfrom():
++    // without that, one wedged socket would deliver ~16 000 identical lines a second here.
++    int level = 2;
+     if (auto* envvar = getenv("JAMI_LOG_SIP")) {
+         level = std::clamp(to_int<int>(envvar, 0), 0, 6);
+     }
