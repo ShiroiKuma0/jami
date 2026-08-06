@@ -2,7 +2,7 @@
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
 
-This release is one investigation, start to finish: a phone running at **109 % CPU** — a whole core, continuously — traced to a single thread, fixed, and then the reason it took a profiler to find fixed as well.
+This release is one investigation, start to finish. A phone running at **109 % CPU** — a whole core, continuously — traced to a single thread and fixed, then the reason it took a profiler to find fixed as well. And then, because the CPU was finally being watched properly, a **second and much larger** leak surfaced that had been hiding underneath it the whole time: a typing indicator that never stopped animating.
 
 ---
 
