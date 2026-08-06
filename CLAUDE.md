@@ -35,6 +35,15 @@ These are the things that cost real time when forgotten. Do not violate them wit
   `upstreamVersionCode` stays put, and `versionCode = upstreamVersionCode * 10000 + N` would then go
   BACKWARDS if N reset — a downgrade Android refuses to install. The pin orders the name; the
   counter guarantees the code. Keep them independent.
+- **Rust/cargo is pinned to 1.97.1 for this repo via a `rustup` directory override** (set 2026-08-06,
+  ahead of the daemon bump that adds the `yffi` / Y-CRDT contrib package — without a toolchain the
+  contrib build dies with `yffi: cargo not found`). Matches upstream's own Dockerfile pin. The
+  override lives in `~/.rustup/settings.toml`, NOT in the repo, so it is invisible here and will not
+  survive a new machine — re-create with `cd ~/git/shiroikuma-jami && rustup override set 1.97.1`
+  plus `rustup target add aarch64-linux-android --toolchain 1.97.1`. The host default stays
+  `stable` for every other project. It works because `/usr/bin/cargo` is a rustup shim, so the
+  override applies however cargo is reached; `~/.cargo/bin` is not on PATH here. Escape hatch if a
+  build ever picks up the wrong one: the contrib honours `CARGO=/path/to/cargo`.
 - **Method rules for measurement and diagnosis** (earned 2026-07-30/31, each one cost a wrong
   conclusion): **check a symbolic constant against its header before interpreting any logged
   number** — reading `pj_ice_strans_state` one slot off inverted a whole diagnosis; **two
