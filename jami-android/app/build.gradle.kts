@@ -1,7 +1,21 @@
 @file:Suppress("DEPRECATION")
 
+import java.io.BufferedReader
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+// shiroikuma fork: upstream-base pin (see the global `git-versioning` skill).
+fun gitOutput(vararg command: String): String = try {
+    ProcessBuilder()
+        .command(*command)
+        .directory(project.rootDir)
+        .start()
+        .inputStream.bufferedReader().use(BufferedReader::readText)
+        .trim()
+} catch (e: Exception) {
+    println("Git command [${command.joinToString(" ")}] failed [$e]")
+    ""
+}
 
 val buildFirebase = project.hasProperty("buildFirebase") || gradle.startParameter.taskRequests.toString().contains("Firebase")
 
@@ -40,9 +54,38 @@ android {
         minSdk = 26
         targetSdk = 37
         val shiroikumaBuild = (project.findProperty("shiroikumaBuild") as String?)?.toIntOrNull() ?: 0
-        versionCode = 504 * 10000 + shiroikumaBuild
-        // The tail is zero-padded to three digits so builds sort correctly by name.
-        versionName = "20260904-01" + (if (shiroikumaBuild > 0) "+" + "%03d".format(shiroikumaBuild) else "")
+
+        // Upstream's own literals. Read back, never rewritten by the fork -- an upstream bump edits
+        // only these two lines and flows through everything below untouched.
+        val upstreamVersionCode = 504
+        val upstreamVersionName = "20260904-01"
+
+        // Upstream-base pin. The merge-base of HEAD and master is the upstream commit our patches
+        // sit on -- NOT our own HEAD (which +N and the release tag already identify), and NOT
+        // master's tip (which overstates the base whenever master has been fast-forwarded but
+        // custom not yet rebased). It therefore moves only on an upstream sync.
+        val upstreamBaseSha = gitOutput("git", "merge-base", "HEAD", "master").take(8)
+
+        // That commit's own committer date, so versions sort chronologically -- a bare sha orders
+        // them at random. Never build time: every build on one upstream base must share a pin.
+        val upstreamBaseDate = if (upstreamBaseSha.length == 8) {
+            gitOutput("git", "show", "-s", "--format=%cd", "--date=format:%Y-%m-%d", upstreamBaseSha)
+        } else {
+            ""
+        }
+
+        // The build must never fail over a missing sha or date; it degrades instead.
+        val upstreamPin = when {
+            upstreamBaseSha.length != 8 -> ""
+            upstreamBaseDate.length == 10 -> ".$upstreamBaseDate.g$upstreamBaseSha"
+            else -> ".g$upstreamBaseSha"
+        }
+
+        versionCode = upstreamVersionCode * 10000 + shiroikumaBuild
+        // The tail is zero-padded to three digits so builds sort correctly by name; versionCode
+        // keeps the plain integer.
+        versionName = upstreamVersionName + upstreamPin +
+            (if (shiroikumaBuild > 0) "+" + "%03d".format(shiroikumaBuild) else "")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
