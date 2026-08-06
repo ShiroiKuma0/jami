@@ -578,12 +578,20 @@ r bash -c 'grep -q "const std::string& accountId" <(grep "^std::string addAccoun
 # per-build +N tail (TRACKED in-repo counter; resets when the upstream base changes)
 VG="$HOME/git/shiroikuma-jami/jami-android/app/build.gradle.kts"
 counter="$HOME/git/shiroikuma-jami/jami-android/shiroikuma-build.txt"
-base_vn=$(grep -oP 'versionName = "\K[^"]+' "$VG" | head -1)
-code_base=$(grep -oP 'versionCode = \K[0-9]+' "$VG" | head -1)
+base_vn=$(grep -oP 'upstreamVersionName = "\K[^"]+' "$VG" | head -1)
+code_base=$(grep -oP 'upstreamVersionCode = \K[0-9]+' "$VG" | head -1)
+# Upstream-base pin (git-versioning skill). Must mirror build.gradle.kts exactly, or the APK
+# filename and the versionName inside it disagree.
+pin_sha=$(git -C ~/git/shiroikuma-jami merge-base HEAD master 2>/dev/null | cut -c1-8)
+pin=""
+if [ ${#pin_sha} -eq 8 ]; then
+  pin_date=$(git -C ~/git/shiroikuma-jami show -s --format=%cd --date=format:%Y-%m-%d "$pin_sha" 2>/dev/null)
+  if [ ${#pin_date} -eq 10 ]; then pin=".$pin_date.g$pin_sha"; else pin=".g$pin_sha"; fi
+fi
 stored_vn=""; stored_n=0
 [ -f "$counter" ] && read stored_vn stored_n < "$counter"
 if [ "$stored_vn" = "$base_vn" ]; then N=$((stored_n + 1)); else N=1; fi
-versionName="${base_vn}+${N}"
+versionName=$(printf "%s%s+%03d" "$base_vn" "$pin" "$N")
 apk_name="shiroikuma-jami_${versionName}_arm64-v8a.apk"
 echo -e "\033[1;36m>>> Will produce: $apk_name (versionCode $((code_base*10000+N)))\033[0m"
 
