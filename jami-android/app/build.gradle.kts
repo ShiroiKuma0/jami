@@ -1,6 +1,11 @@
 @file:Suppress("DEPRECATION")
 
 import java.io.BufferedReader
+// Imported rather than written as java.time.* at the use site: inside android { defaultConfig { } }
+// the name `java` resolves to AGP's own DSL property, so a fully-qualified java.time.Instant fails
+// to compile with "Unresolved reference 'time'".
+import java.time.Instant
+import java.time.ZoneOffset
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -61,10 +66,23 @@ android {
         // custom not yet rebased). It therefore moves only on an upstream sync.
         val upstreamBaseSha = gitOutput("git", "merge-base", "HEAD", "master").take(8)
 
-        // That commit's own committer date, so versions sort chronologically -- a bare sha orders
-        // them at random. Never build time: every build on one upstream base must share a pin.
+        // That commit's committer date, so versions sort chronologically -- a bare sha orders them
+        // at random. Never build time: every build on one upstream base must share a pin.
+        //
+        // In UTC, and NOT in the commit's own timezone (git's `--date=format:`), because the pin
+        // has to agree character for character with what an update watcher reads from the GitHub
+        // API -- and that API normalises committer dates to Z, dropping the original offset. A
+        // Montreal evening commit (20:xx -04:00) falls on the next day in UTC, which is ~5% of
+        // upstream's commits; the watcher would then report an update no rebase could satisfy.
+        // Formatting the raw epoch (%ct) also keeps the pin independent of the build host's own
+        // timezone, which `--date=format-local:` would not.
         val upstreamBaseDate = if (upstreamBaseSha.length == 8) {
-            gitOutput("git", "show", "-s", "--format=%cd", "--date=format:%Y-%m-%d", upstreamBaseSha)
+            gitOutput("git", "show", "-s", "--format=%ct", upstreamBaseSha).toLongOrNull()?.let {
+                Instant.ofEpochSecond(it)
+                    .atZone(ZoneOffset.UTC)
+                    .toLocalDate()
+                    .toString()
+            } ?: ""
         } else {
             ""
         }
