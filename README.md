@@ -21,7 +21,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260731-01+007`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260731-01+008`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -213,6 +213,29 @@ single APK — switch between them (or a local DHT node) at runtime. Firebase is
 **microG**, so you get Google-style push with **no Google Play Services**; UnifiedPush pairs with any
 distributor (e.g. [ntfy](https://ntfy.sh)), including a self-hosted one. Whichever you pick, the
 adaptive fallback above covers it when the push server fails.
+
+## ⏳ A typing indicator that never stopped animating
+
+Every time a contact typed at you, Jami built a fresh animated drawable for the "…" indicator and
+told it to **restart itself forever** when it ended. Nothing ever stopped one. Recycling the row
+didn't, closing the conversation didn't, backgrounding the app didn't — each one went on demanding a
+frame from the display pipeline at the panel's refresh rate, for the life of the process, and they
+**piled up**.
+
+Measured here on a 90 Hz panel with the app backgrounded and the screen off: **up to 93 main-thread
+wakes per second and 76 % of a core**, climbing over hours, with a force-stop the only cure. A
+profile of the main thread put it squarely on the animated-vector path under the frame scheduler.
+
+Now the drawable is reused rather than rebuilt on every bind, it is **stopped when the row is
+recycled**, and the self-restarting callback is gone — it was redundant, since two of the
+indicator's three bounce animations already loop forever on their own. Verified with a contact
+actively typing: **0.5–3.9 wakes/s, against 64/s minutes earlier on the same phone**.
+
+This one is **stock GNU Jami**, not something this fork introduced — the same code is on upstream
+master. It needs only a chatty contact and a few hours of uptime, so it likely affects every Android
+Jami user.
+
+---
 
 ## 🔥 A core burned by one unreadable socket — and the blindness that hid it
 
