@@ -22,6 +22,19 @@ These are the things that cost real time when forgotten. Do not violate them wit
   - App-source change → `git add jami-android/app/src/main`.
   - Build-config change → `git add jami-android/gradle.properties jami-android/build.gradle.kts jami-android/app/build.gradle.kts jami-android/libjamiclient/build.gradle.kts` (whichever apply).
   - **Never stage:** `daemon/`, the generated SWIG bindings under `jami-android/libjamiclient/src/main/java/net/jami/daemon/`, the `--without-brotli/--without-zstd` sed on `daemon/contrib/src/gnutls/rules.mak`, the SWIG interface edits under `daemon/bin/jni/` (`configurationmanager.i`, `conversation.i`), or the dhtnet/pjproject patches' in-submodule footprint (`daemon/contrib/src/dhtnet/*.patch`, `daemon/contrib/src/pjproject/pjproject-*.patch` + their `rules.mak` `$(APPLY)` lines) — all per-build re-applies, never committed. The **canonical** patches at the repo root ARE committable — `patches/dhtnet-prefer-lan-interface.patch`, `patches/dhtnet-upnp-circuit-breaker.patch`, `patches/pjproject-evict-stuck-epoll-sockets.patch`, `patches/pjproject-throttle-erroring-stun-socket.patch`, `patches/jami-sip-log-errors-by-default.patch`, `patches/opendht-proxy-connect-resilience.patch`, `patches/opendht-proxy-subscription-refresh.patch`, `patches/jami-publish-current-crl-only.patch`, `patches/jami-trust-request-confirm-once.patch`, `patches/dhtnet-ice-transport-diag.patch`, `patches/dhtnet-throttle-failed-ice-transports.patch`, the four SK-ICEDIAG patches (`dhtnet-ice-churn-diag`, `dhtnet-ice-reason-diag`, `dhtnet-shutdown-reason-diag`, `dhtnet-peer-account-diag`) `patches/jami-swig-import-apis.patch`, `patches/opendht-proxy-subscription-diag.patch`, `patches/opendht-push-refetch-hardening.patch`, `patches/jami-swarm-redial-backoff.patch`, `patches/jami-delist-absent-devices.patch`, `patches/dhtnet-local-sibling-rendezvous.patch`, `patches/jami-dht-client-mode.patch` `patches/jami-audio-rtp-diag.patch` and `patches/jami-capture-silence-fallback.patch`; stage them when they change.
+- **Upstream tracking: `git`** — the fork versionName pins the upstream base:
+  `<upstream>.<base commit date>.g<8-char sha>+<BUILD_NUMBER, 3 digits>`, e.g.
+  `20260731-01.2026-07-31.g746025d4+009`. See the global **`git-versioning`** skill. Switched from
+  release-tracking on 2026-08-06 at 白い熊's explicit instruction — note that the skill's own gate
+  reads this repo as release-tracking, because upstream tags every release (`android/release_502`)
+  and our bases have historically landed exactly on those tags, so `20260731-01` *did* already pin
+  the base. The pin is therefore currently redundant and becomes meaningful only once a sync lands
+  on a plain commit rather than a tag. Do not "correct" this back without asking.
+- **Do NOT reset the build counter when only the PIN moves.** The counter resets on a change of
+  `upstreamVersionName` and nothing else. Under git-tracking a sync can move the base while
+  `upstreamVersionCode` stays put, and `versionCode = upstreamVersionCode * 10000 + N` would then go
+  BACKWARDS if N reset — a downgrade Android refuses to install. The pin orders the name; the
+  counter guarantees the code. Keep them independent.
 - **Method rules for measurement and diagnosis** (earned 2026-07-30/31, each one cost a wrong
   conclusion): **check a symbolic constant against its header before interpreting any logged
   number** — reading `pj_ice_strans_state` one slot off inverted a whole diagnosis; **two
