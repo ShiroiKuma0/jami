@@ -3,9 +3,13 @@
 For **forum.jami.net** (GitLab issues are disabled; this is a behaviour/policy question rather than a
 defect with an obvious patch, so it belongs in a thread rather than straight on Gerrit).
 
-**Two blanks to fill before posting** — the daemon log does not record them, so they have to come from
-the affected phone (Settings → About phone): the **exact model** and the **Android version**. Every
-maintainer will ask first, and "a Samsung" is not enough to reproduce.
+**Confirm one line before posting** — the Environment section at the bottom. The device is a Samsung
+Galaxy A17; the **Android version below is provisional** and must be read off that phone
+(Settings → About phone → Software information → Android version) rather than assumed. As of
+2026-08 the A17 line has shipped One UI 8 (Android 16), is receiving One UI 8.5 from May 2026, and
+has One UI 9 (Android 17) in testing — so the plausible range spans two major versions. Note also
+whether it is the **4G (SM-A175x)** or **5G (SM-A176x)** variant: they carry different firmware and a
+maintainer trying to reproduce will need the right one. A wrong version is worse than no version.
 
 ---
 
@@ -118,7 +122,7 @@ useful in the tree — it is a handful of counters and one log line per second, 
 
 ### Environment
 
-- Affected device: **&lt;MODEL&gt;**, Android **&lt;VERSION&gt;**, arm64.
+- Affected device: **Samsung Galaxy A17** (4G/5G variant to be confirmed), Android **16** (One UI 8.5) — *version to be confirmed on the device before posting*, arm64.
 - Jami Daemon 16.0.0 (Android), PJSIP 2.15.1, GnuTLS 3.8.13, OpenDHT 4.2.0.
 - Reproducible on every call on that phone; unaffected peers on the same builds are fine.
 
