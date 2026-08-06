@@ -585,7 +585,10 @@ code_base=$(grep -oP 'upstreamVersionCode = \K[0-9]+' "$VG" | head -1)
 pin_sha=$(git -C ~/git/shiroikuma-jami merge-base HEAD master 2>/dev/null | cut -c1-8)
 pin=""
 if [ ${#pin_sha} -eq 8 ]; then
-  pin_date=$(git -C ~/git/shiroikuma-jami show -s --format=%cd --date=format:%Y-%m-%d "$pin_sha" 2>/dev/null)
+  # UTC, from the raw epoch -- must match build.gradle.kts character for character, and the GitHub
+  # API normalises committer dates to Z. Measured: 3 of upstream's last 60 commits fall on a
+  # different day in UTC than in their own timezone.
+  pin_date=$(date -u -d @"$(git -C ~/git/shiroikuma-jami show -s --format=%ct "$pin_sha" 2>/dev/null)" +%Y-%m-%d 2>/dev/null)
   if [ ${#pin_date} -eq 10 ]; then pin=".$pin_date.g$pin_sha"; else pin=".g$pin_sha"; fi
 fi
 stored_vn=""; stored_n=0
