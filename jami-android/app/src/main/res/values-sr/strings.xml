@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">Nije pronađena nijedna aplikacija za veb pregledač, instalirajte je da biste videli ovu stranicu.</string>
   <string name="website_chooser_title">Pogledajte veb lokaciju koristeći…</string>
   <string name="license">Ovaj softver se pruža „takav kakav je“, bez bilo kakvih garancija. Za detalje pogledajte<u> GNU General Public License verzija 3 ili novija</u></string>
-  <string name="description">Jami je besplatan softver za univerzalnu komunikaciju koji poštuje slobode i privatnost svojih korisnika.</string>
+  <string name="description">白い熊 GNU Jami je besplatan softver za univerzalnu komunikaciju koji poštuje slobode i privatnost svojih korisnika.</string>
   <string name="credits">Zasluge</string>
-  <string name="pip_title">Jami konferencija</string>
+  <string name="pip_title">白い熊 GNU Jami konferencija</string>
   <string name="call_service_description">Ova usluga je neophodna da bi vaši pozivi bili u prvom planu. Aktivna je samo tokom poziva.</string>
   <string name="data_transfer_service_description">Ova usluga je neophodna za prikazivanje upornih obaveštenja tokom prenosa datoteka. Pokreće se samo tokom prenosa datoteka.</string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">Podešavanja naloga</string>
   <string name="menu_item_extension_list">Podešavanje ekstenzija</string>
   <string name="menu_item_share">Podeli moj nalog</string>
-  <string name="menu_item_about">O Jamiju</string>
+  <string name="menu_item_about">O 白い熊 GNU Jamiju</string>
   <string name="video_setting_title">Podešavanja video zapisa</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Pozovi broj</string>
@@ -79,7 +79,7 @@
   <string name="notif_channel_background_service_descr">Omogućava primanje poziva i poruka u bilo kom trenutku.</string>
   <string name="notif_group_calls">Pozivi</string>
   <string name="notif_inprogress_group_call">Poziv u toku</string>
-  <string name="notif_background_service">Jami trenutno radi u pozadini</string>
+  <string name="notif_background_service">白い熊 GNU Jami trenutno radi u pozadini</string>
   <string name="notif_mark_as_read">Označi kao pročitano</string>
   <string name="notif_dismiss">Odbaci</string>
   <string name="notif_reply">Odgovori</string>
@@ -89,7 +89,7 @@
   <string name="notif_sync_title">Sinhronizovanje podataka...</string>
   <string name="notif_location_title">Deljenje lokacije sa %1$s</string>
   <string name="notif_channel_reconnect">Sinhronizacija u pozadini</string>
-  <string name="notif_reconnect_title">Jami se sinhronizuje…</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami se sinhronizuje…</string>
   <string name="location_share_contact">%1$s deli lokaciju sa tobom</string>
   <string name="notif_location_multi_title">Deljenje lokacije sa %1$d kontakta</string>
   <string name="notif_location_remaining">%1$dminuta preostalo</string>
@@ -110,7 +110,7 @@
   <string name="hist_out_call">Odlazni poziv za %1$s</string>
   <string name="call_duration">Trajalo %s</string>
   <string name="call_on_hold">Poziv je na čekanju</string>
-  <string name="start_error_title">Nije moguće pokrenuti Jami</string>
+  <string name="start_error_title">Nije moguće pokrenuti 白い熊 GNU Jami</string>
   <string name="action_call_accept">Prihvati poziv</string>
   <string name="action_call_accept_audio">Prihvati sa zvukom</string>
   <string name="action_call_accept_video">Prihvati sa video-zapisom</string>
@@ -132,7 +132,7 @@
   <string name="write_a_message">Napiši poruku</string>
   <string name="scan_qr">Skeniraj QR kod</string>
   <string name="qr_code">QR kod</string>
-  <string name="qr_code_not_contact">Nije QR kod za kontakt sa Jami</string>
+  <string name="qr_code_not_contact">Nije QR kod za kontakt sa 白い熊 GNU Jami</string>
   <string name="new_group">Kreiraj novu grupu</string>
   <string name="ab_action_flipcamera">Obrni kameru</string>
   <string name="ab_action_hidepreview">Sakrij pregled</string>
@@ -162,15 +162,15 @@
   <string name="ringtone_error_size_too_big">Ova datoteka je prevelika. Maksimalna veličina je %1$d kB.</string>
   <string name="ringtone_custom_prompt">Podesite prilagođenu melodiju zvona</string>
   <string name="ringtone_custom_label">Prilagođeno</string>
-  <string name="ringtone_jami_tones">Jami melodije zvona</string>
+  <string name="ringtone_jami_tones">白い熊 GNU Jami melodije zvona</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">Jamiju je potrebna dozvola „Čitanje kontakata“. Omogućite ga u podešavanjima uređaja da biste koristili ovu funkciju.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jamiju je potrebna dozvola „Čitanje kontakata“. Omogućite ga u podešavanjima uređaja da biste koristili ovu funkciju.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">Jami zahteva dozvolu „Pisanje dnevnika poziva“. Omogućite je u podešavanjima uređaja da biste koristili ovu funkciju.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami zahteva dozvolu „Pisanje dnevnika poziva“. Omogućite je u podešavanjima uređaja da biste koristili ovu funkciju.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">Dozvoli obaveštenja</string>
-  <string name="permission_dialog_post_notifications_message">Jami-ju je potrebna dozvola za obaveštenja da bi vas upozorio na dolazne pozive i poruke, čak i kada je aplikacija u pozadini. Bez nje možete propustiti pozive.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">Obaveštenja su onemogućena za Jami. Bez njih ćete propuštati dolazne pozive i poruke. Omogućite obaveštenja za Jami u podešavanjima uređaja.</string>
+  <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami-ju je potrebna dozvola za obaveštenja da bi vas upozorio na dolazne pozive i poruke, čak i kada je aplikacija u pozadini. Bez nje možete propustiti pozive.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">Obaveštenja su onemogućena za 白い熊 GNU Jami. Bez njih ćete propuštati dolazne pozive i poruke. Omogućite obaveštenja za 白い熊 GNU Jami u podešavanjima uređaja.</string>
   <string name="permission_dialog_open_settings">Отворени накладови</string>
   <string name="permission_dialog_later">Касније</string>
   <!--QRCode Scan-->
@@ -232,7 +232,7 @@
   <string name="video_not_found">Video-datoteka nije pronađena</string>
   <string name="conversation_preference_color">Boja razgovora</string>
   <string name="conversation_preference_emoji">Emodži za razgovor</string>
-  <string name="conversation_type_contact">Jami kontakt</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami kontakt</string>
   <string name="conversation_type_private">Privatno</string>
   <string name="conversation_type_group">Grupa</string>
   <string name="conversation_contact_invited">%1$s je pozvan(a) da se pridruži konverzaciji.</string>
@@ -283,11 +283,11 @@
   <string name="prompt_new_password">Nova lozinka</string>
   <string name="prompt_new_password_optional">Nova lozinka (opciono)</string>
   <string name="prompt_new_password_repeat">Potvrdi novu lozinku</string>
-  <string name="account_create_title">Napravite Jami nalog</string>
+  <string name="account_create_title">Napravite 白い熊 GNU Jami nalog</string>
   <string name="prompt_new_username">Unesi novo korisničko ime</string>
   <string name="prompt_hint_username">Korisničko ime</string>
-  <string name="help_password_choose">Izaberite jaku lozinku koju ćete zapamtiti da biste zaštitili svoj Jami nalog.</string>
-  <string name="help_password_enter">Unesite svoju glavnu lozinku za Jami nalog.</string>
+  <string name="help_password_choose">Izaberite jaku lozinku koju ćete zapamtiti da biste zaštitili svoj 白い熊 GNU Jami nalog.</string>
+  <string name="help_password_enter">Unesite svoju glavnu lozinku za 白い熊 GNU Jami nalog.</string>
   <string name="help_server_enter">Unesite URL servera za upravljanje.</string>
   <string name="pin_copied">Kod za potvrdu identiteta kopiran u privremenu memoriju.</string>
   <string name="copied_clipboard">Kopirano u privremenu memoriju.</string>
@@ -319,7 +319,7 @@
   <string name="devices">Povezani uređaji</string>
   <string name="total_devices">Ukupno uređaja:</string>
   <!--Share fragment-->
-  <string name="share_message">Skeniraj ovaj kod sa Jami aplikacijom</string>
+  <string name="share_message">Skeniraj ovaj kod sa 白い熊 GNU Jami aplikacijom</string>
   <string name="share_message_no_account">Izaberi nalog za deljenje.</string>
   <string name="share_your_account_information">Podeli moje kontakt informacije</string>
   <string name="share_contact_information">Podeli kontakt informacije</string>
@@ -411,8 +411,8 @@
   <string name="speech_recogniton_unavailable">Prepoznavanje govora nije dostupno.</string>
   <string name="audio_permission_rationale_title">Potrebna je audio dozvola</string>
   <string name="camera_permission_rationale_title">Potrebna je dozvola za kameru</string>
-  <string name="audio_permission_rationale_message">Jamiju je potrebna dozvola mikrofona za korišćenje govora u tekst i snimanje audio funkcija. To će biti postavljeno u sledećem koraku.</string>
-  <string name="camera_permission_rationale_message">Jamiju je potrebna dozvola kamere da bi snimio video i uputio video poziv. To će biti postavljeno u sledećem koraku.</string>
+  <string name="audio_permission_rationale_message">白い熊 GNU Jamiju je potrebna dozvola mikrofona za korišćenje govora u tekst i snimanje audio funkcija. To će biti postavljeno u sledećem koraku.</string>
+  <string name="camera_permission_rationale_message">白い熊 GNU Jamiju je potrebna dozvola kamere da bi snimio video i uputio video poziv. To će biti postavljeno u sledećem koraku.</string>
   <string name="unable_to_start_recorder">Nije moguće započeti snimanje zvuka.</string>
   <string name="error_sharing_file">Došlo je do greške prilikom deljenja datoteke.</string>
   <string name="error_opening_file">Došlo je do greške prilikom otvaranja datoteke.</string>
@@ -470,14 +470,14 @@
   <string name="picker_title">Izaberi kontakte</string>
   <string name="picker_btn">Izaberi kontakte</string>
   <string name="no_contact_to_add">Nemate kontakt za dodavanje</string>
-  <string name="bottomsheet_contact">Kontaktiraj Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Kontaktiraj 白い熊 GNU Jami\n%1$s</string>
   <string name="error_open_no_app_found">Nije pronađena nijedna aplikacija za obradu ove datoteke: %1$s</string>
   <string name="swarm_detail_no_document">Još nemate dokumenta.</string>
   <string name="group_admin">Admin</string>
   <string name="group_member_blocked">Blokiran</string>
   <string name="group_member_invited">Pozvani</string>
-  <string name="share_contact_intent_title">Dodajte ovaj kontakt na Jami!</string>
-  <string name="share_contact_intent_body">Možete dodati ovaj kontakt „%1$s“ na Jami distribuiranoj komunikacijskoj platformi: %2$s</string>
+  <string name="share_contact_intent_title">Dodajte ovaj kontakt na 白い熊 GNU Jami!</string>
+  <string name="share_contact_intent_body">Možete dodati ovaj kontakt „%1$s“ na 白い熊 GNU Jami distribuiranoj komunikacijskoj platformi: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">Kopiraj JamiId</string>
   <string name="jami_id_share">Podeli JamiId</string>
@@ -488,8 +488,8 @@
   <string name="jami_id_looking_for_availability">Проверава се доступност корисничког имена…</string>
   <string name="jami_id_choose_username">Izaberi korisničko ime</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Dobrodošli u Jami</string>
-  <string name="welcome_jami_description">Podelite svoj Jami identifikator kako biste lakše kontaktirali sa drugima!</string>
+  <string name="welcome_jami_title">Dobrodošli u 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Podelite svoj 白い熊 GNU Jami identifikator kako biste lakše kontaktirali sa drugima!</string>
   <!--Conversation details-->
   <string name="details">Detalji</string>
   <string name="secure_p2p_connection">Sigurna peer-to-peer veza</string>
@@ -500,7 +500,7 @@
   <string name="show_certificate">Prikaži sertifikat</string>
   <string name="mute_conversation">Utišaj razgovor</string>
   <!--Donation-->
-  <string name="donation_card_description">Ако уживате у коришћењу Јами-ја и верујете у нашу мисију, да ли желите да дате донацију?</string>
+  <string name="donation_card_description">Ако уживате у коришћењу 白い熊 GNU Jami-ја и верујете у нашу мисију, да ли желите да дате донацију?</string>
   <string name="donation_card_not_now">Ne sada</string>
   <string name="donation_donate">Doniraj</string>
   <string name="donation_setting_title">Podsetnik za donaciju</string>
@@ -572,11 +572,11 @@
   <string name="notif_channel_peer_tunnel">Deljene usluge</string>
   <string name="notif_channel_peer_tunnel_descr">Prikazuje se dok su tuneli usluga ravnopravnih članova aktivni u pozadini.</string>
   <string name="notif_peer_tunnel_title">Deljene usluge aktivne</string>
-  <string name="notif_peer_tunnel_text">Jami održava vaše veze usluga aktivnim u pozadini</string>
+  <string name="notif_peer_tunnel_text">白い熊 GNU Jami održava vaše veze usluga aktivnim u pozadini</string>
   <string name="notif_peer_tunnel_stop_all">Zaustavi sve</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">Дељене услуге</string>
-  <string name="shared_services_settings_description">Izloži lokalne usluge korisnicima Jami</string>
+  <string name="shared_services_settings_description">Izloži lokalne usluge korisnicima 白い熊 GNU Jami</string>
   <string name="shared_services_empty">Nijedna usluga nije konfigurisana</string>
   <string name="shared_services_add">Dodaj uslugu</string>
   <string name="shared_services_add_title">Dodaj deljenu uslugu</string>
@@ -591,7 +591,7 @@
   <string name="shared_services_port_invalid">Port mora biti između 1 i 65535</string>
   <string name="shared_services_port">Port: %d</string>
   <string name="shared_services_no_description">Bez opisa</string>
-  <string name="shared_services_empty_subtitle">Delite lokalne datoteke ili usluge sa korisnicima Jami</string>
+  <string name="shared_services_empty_subtitle">Delite lokalne datoteke ili usluge sa korisnicima 白い熊 GNU Jami</string>
   <string name="shared_services_more_options">Више опција</string>
   <string name="shared_services_open_in_browser">Otvori u pregledaču</string>
   <string name="shared_services_disconnect_all">Prekini sve veze</string>

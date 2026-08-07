@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">Дадаць рахунак</string>
   <string name="add_sip_account_title">Дадаць SIP-улік</string>
-  <string name="ring_account_default_name">Ямі рахунак %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami рахунак %1$s</string>
   <string name="prompt_alias">Афіцыйныя</string>
   <string name="prompt_hostname">Гасцінічнае імя</string>
   <string name="prompt_username">Назва карыстальніка</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">Абноўленне рахунку</string>
   <string name="dialog_wait_update_details">Калі ласка, пачакайце, пакуль ваш новы рахунак будзе абнаўляны...</string>
   <string name="account_type_ip2ip">IP-уліковы запіс</string>
-  <string name="help_ring">Уліковы запіс Jami дазваляе вам бяспечна далучацца да людзей з аднаму па аднаму праз цалкам размеркаваную сетку.</string>
+  <string name="help_ring">Уліковы запіс 白い熊 GNU Jami дазваляе вам бяспечна далучацца да людзей з аднаму па аднаму праз цалкам размеркаваную сетку.</string>
   <string name="help_sip_title">Дадаць SIP-улік</string>
   <string name="help_sip">Наладзіць існуючы ўліковы запіс SIP</string>
   <string name="create_sip_account">Наладзіць уліковы запіс SIP</string>
@@ -126,10 +126,10 @@
   <string name="account_export_file">Запіс запісу</string>
   <string name="account_export_file_summary">Запісваць свой рахунак на прыладзе, каб аднавіць яго пазней.</string>
   <string name="account_enter_password">Увядзіце пароль</string>
-  <string name="account_contact_me">Звяжыцеся са мной на Jami!</string>
+  <string name="account_contact_me">Звяжыцеся са мной на 白い熊 GNU Jami!</string>
   <string name="update_account">Абноўленне рахунку</string>
-  <string name="account_migration">Ваш рахунак Jami можа быць абнаўлена.\nДайце пароль.</string>
-  <string name="ring_account">Рахунак Джэмі</string>
+  <string name="account_migration">Ваш рахунак 白い熊 GNU Jami можа быць абнаўлена.\nДайце пароль.</string>
+  <string name="ring_account">Рахунак 白い熊 GNU Jami</string>
   <string name="sip_account">Спі-акаўнт</string>
   <string name="ring_account_identity">Пазначэнне</string>
   <string name="account_migration_title_dialog">Міграцыя рахунку</string>
@@ -144,7 +144,7 @@
   <string name="account_tv_advance_settings_header">Дасканалыя налады</string>
   <string name="account_tv_add_contact">Дадаць кантакт</string>
   <string name="account_tv_advanced_settings">Змяніце агульныя налады</string>
-  <string name="account_tv_about">Пра Джані</string>
+  <string name="account_tv_about">Пра 白い熊 GNU Jami</string>
   <string name="tv_about_version">Версія</string>
   <string name="tv_about_license">Ліцэнзія</string>
   <string name="tv_about_author">Права аўтара</string>
@@ -152,7 +152,7 @@
   <string name="account_link_device">Падключыць з іншага прылады</string>
   <string name="account_link_button">Палучайцеся з сеткі</string>
   <string name="account_link_archive_button">Падключыце з рэзервовай сістэмы</string>
-  <string name="account_new_button">Стварэнне ўліковага запісу Jami</string>
+  <string name="account_new_button">Стварэнне ўліковага запісу 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Звязаць новае прылада</string>
   <string name="account_link_show_button">Паказаць %d больш звязаных прылад</string>
   <string name="account_link_hide_button">Схаваць злучанае прылада</string>
@@ -181,9 +181,9 @@
   <string name="account_status_offline">Недаступная</string>
   <string name="account_status_error">Памылка</string>
   <!--Create account-->
-  <string name="account_creation_home">Сардэчна запрашаем у Джамі</string>
+  <string name="account_creation_home">Сардэчна запрашаем у 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Стварэнне вашага профілю</string>
-  <string name="account_creation_ring">Стварыце свой рахунак Jami</string>
+  <string name="account_creation_ring">Стварыце свой рахунак 白い熊 GNU Jami</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">Увядзіце пароль для пацверджання</string>

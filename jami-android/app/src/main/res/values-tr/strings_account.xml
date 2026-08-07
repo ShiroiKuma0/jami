@@ -8,7 +8,7 @@
   <string name="account_selection">Hesap seç</string>
   <string name="add_ring_account_title">Hesap ekle</string>
   <string name="add_sip_account_title">SIP hesabı ekle</string>
-  <string name="ring_account_default_name">Jami hesabı %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami hesabı %1$s</string>
   <string name="account_creation_error">Hesap oluşturulurken bir hata oluştu.</string>
   <string name="prompt_alias">Takma ad</string>
   <string name="prompt_hostname">Sunucu adı</string>
@@ -28,7 +28,7 @@
         Yalnızca doğrudan ip çağrıları yapabilir ve alabilirsin.
         Hesabını daha sonra düzenleyebilirsin.</string>
   <string name="account_type_ip2ip">IP hesabı</string>
-  <string name="help_ring">Jami hesabı, tümüyle dağıtık ağdan insanlara uçtan uca güvenle ulaşmanızı sağlar.</string>
+  <string name="help_ring">白い熊 GNU Jami hesabı, tümüyle dağıtık ağdan insanlara uçtan uca güvenle ulaşmanızı sağlar.</string>
   <string name="help_sip_title">SIP hesabı ekle</string>
   <string name="help_sip">Mevcut SIP hesabını yapılandır</string>
   <string name="create_sip_account">SIP hesabını yapılandır</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Daha sonra geri yükleyebilmek için hesabını aygıtına yedekle.</string>
   <string name="account_export_end_decryption_message">Hatalı parola. Lütfen doğru parolayla tekrar dene.</string>
   <string name="account_enter_password">Parolayı gir</string>
-  <string name="account_share_body">Jami dağıtık iletişim platformunda \"%1$s\" kullanarak benimle iletişime geç: %2$s</string>
-  <string name="account_share_body_with_username">Benimle iletişime geçmek için Jami dağıtık iletişim platformunda “%1$s” veya umuma açık kullanıcı adım olan “%2$s kullanabilirsin: %3$s</string>
-  <string name="account_contact_me">Benimle Jami\'de iletişime geç!</string>
+  <string name="account_share_body">白い熊 GNU Jami dağıtık iletişim platformunda \"%1$s\" kullanarak benimle iletişime geç: %2$s</string>
+  <string name="account_share_body_with_username">Benimle iletişime geçmek için 白い熊 GNU Jami dağıtık iletişim platformunda “%1$s” veya umuma açık kullanıcı adım olan “%2$s kullanabilirsin: %3$s</string>
+  <string name="account_contact_me">Benimle 白い熊 GNU Jami\'de iletişime geç!</string>
   <string name="update_account">Hesabı güncelle</string>
-  <string name="account_migration">Jami hesabın güncellenebilir.\nParolanı gir.</string>
-  <string name="ring_account">Jami hesabı </string>
+  <string name="account_migration">白い熊 GNU Jami hesabın güncellenebilir.\nParolanı gir.</string>
+  <string name="ring_account">白い熊 GNU Jami hesabı </string>
   <string name="sip_account">SIP hesabı</string>
   <string name="ring_account_identity">Kimlik</string>
   <string name="account_migration_title_dialog">Hesap taşıma</string>
   <string name="account_migration_message_dialog">Hesapların güncellenmesi gerekiyor. Bu işlem için Hesap yönetimi ekranına gitmek ister misin?</string>
   <string name="account_update_needed">Güncelleme gerekli</string>
   <string name="account_cannot_be_found_title">Hesap hatası</string>
-  <string name="account_cannot_be_found_message">Jami ağında hesap bulunamadı. Mevcut bir cihazdan Jami\'ye aktarıldığından ve sağlanan kimlik bilgilerinin doğru olduğundan emin ol.</string>
+  <string name="account_cannot_be_found_message">白い熊 GNU Jami ağında hesap bulunamadı. Mevcut bir cihazdan 白い熊 GNU Jami\'ye aktarıldığından ve sağlanan kimlik bilgilerinin doğru olduğundan emin ol.</string>
   <string name="jams_account_cannot_be_found_message">Hesap bağlanırken bir hata oluştu. Lütfen kimlik bilgilerini kontrol edip tekrar dene.</string>
   <string name="account_sip_cannot_be_registered_message">Hesap oluşturma süreciyle devam edebilir ya da bilgilerini burada düzenleyebilirsin. Düzenleme daha sonra hesap ayarlarında yapılabilir.</string>
   <string name="account_no_network_title">Ağ hatası</string>
-  <string name="account_no_network_message">Jami hesabı dağıtık ağa eklenirken bir bağlantı hatası oluştu. Cihazın bağlantısını kontrol et.</string>
+  <string name="account_no_network_message">白い熊 GNU Jami hesabı dağıtık ağa eklenirken bir bağlantı hatası oluştu. Cihazın bağlantısını kontrol et.</string>
   <string name="account_device_added_title">Hesap aygıtı eklendi</string>
-  <string name="account_device_added_message">Jami hesabı bu cihazda başarıyla kuruldu.</string>
+  <string name="account_device_added_message">白い熊 GNU Jami hesabı bu cihazda başarıyla kuruldu.</string>
   <string name="account_device_updated_title">Hesap aygıtı güncellendi</string>
-  <string name="account_device_updated_message">Jami hesabı başarıyla güncellendi.</string>
+  <string name="account_device_updated_message">白い熊 GNU Jami hesabı başarıyla güncellendi.</string>
   <string name="account_cannot_be_updated_message">Hesap güncellenirken bir hata oluştu. Lütfen hesap parolasını kontrol et.</string>
   <string name="account_sip_success_title">SIP hesabı kaydedildi</string>
   <string name="account_sip_success_message">SIP hesabı başarıyla kaydedildi.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Gelişmiş ayarlar</string>
   <string name="account_tv_add_contact">Kişi ekle</string>
   <string name="account_tv_advanced_settings">Genel ayarları değiştir</string>
-  <string name="account_tv_about">Jami Hakkında</string>
+  <string name="account_tv_about">白い熊 GNU Jami Hakkında</string>
   <string name="tv_about_version">Sürüm</string>
   <string name="tv_about_license">Lisans</string>
   <string name="tv_about_author">Yönetici izinleri</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Başka aygıttan bağlan</string>
   <string name="account_link_button">Ağdan bağlan</string>
   <string name="account_link_archive_button">Yedekten bağlan</string>
-  <string name="account_new_button">Jami hesabı oluştur</string>
+  <string name="account_new_button">白い熊 GNU Jami hesabı oluştur</string>
   <string name="account_link_export_button">Yeni aygıt bağla</string>
   <string name="account_link_show_button">Diğer %d bağlı aygıtı göster</string>
   <string name="account_link_hide_button">Bağlı aygıtı gizle</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Çevrim dışı</string>
   <string name="account_status_error">Hata</string>
   <!--Create account-->
-  <string name="account_creation_home">Jami\'ye Hoş geldin</string>
+  <string name="account_creation_home">白い熊 GNU Jami\'ye Hoş geldin</string>
   <string name="account_creation_profile">Profilini oluştur</string>
-  <string name="account_creation_ring">Jami hesabını oluştur</string>
+  <string name="account_creation_ring">白い熊 GNU Jami hesabını oluştur</string>
   <string name="account_sip_cannot_be_registered">SIP hesabı kaydedilirken bir hata oluştu.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Profili düzenle</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Lütfen bekle...</string>
   <string name="revoke_device_wait_message">Aygıt iptal ediliyor</string>
   <string name="rename_device_title">Bu aygıtı yeniden adlandır</string>
-  <string name="rename_device_message">Bu aygıtı Jami hesabında tanımlamak için cihaz adı gir</string>
+  <string name="rename_device_message">Bu aygıtı 白い熊 GNU Jami hesabında tanımlamak için cihaz adı gir</string>
   <string name="rename_device_button">Aygıtı yeniden adlandır</string>
   <string name="account_rename_device_hint">Yeni aygıt adı seç</string>
   <string name="account_device_name_empty">Aygıt adı boş olamaz.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">Aygıt Kimliği</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Bu biçim desteklenmiyor.</string>
-  <string name="account_link_info">Yeni aygıttaki Jami uygulamasında QR kodunu tara veya kimlik doğrulama kodunu manuel olarak gir.</string>
+  <string name="account_link_info">Yeni aygıttaki 白い熊 GNU Jami uygulamasında QR kodunu tara veya kimlik doğrulama kodunu manuel olarak gir.</string>
   <string name="account_link_device_title">Yeni aygıt bağla</string>
   <string name="account_link_password">Bu hesap parolayla korunuyor; kimlik doğrulama kodunu oluşturmak için parolayı gir.</string>
   <string name="account_link_generate_button">Oluştur</string>
   <string name="account_link_time_valid">Kimlik doğrulama kodu geçersiz olacak: %1$s.</string>
-  <string name="account_link_device_info">QR kodunu veya kimlik doğrulama kodunu göstermek için diğer Jami uygulamasından \"Yeni bir cihaz bağla\"yı seç.</string>
+  <string name="account_link_device_info">QR kodunu veya kimlik doğrulama kodunu göstermek için diğer 白い熊 GNU Jami uygulamasından \"Yeni bir cihaz bağla\"yı seç.</string>
   <string name="account_generate_export_device">Diğer aygıtta</string>
-  <string name="account_generate_export_info">Jami\'yi kur ve başlat. “Başka bir cihazdan içe aktar”ı seç ve QR kodunu tara. Alternatif olarak PIN kodunu manuel olarak gir.</string>
+  <string name="account_generate_export_info">白い熊 GNU Jami\'yi kur ve başlat. “Başka bir cihazdan içe aktar”ı seç ve QR kodunu tara. Alternatif olarak PIN kodunu manuel olarak gir.</string>
   <string name="content_description_qr_generated">Hesap QR kodu</string>
   <string name="account_generate_export_invalid">Kimlik doğrulama kodu artık geçerli değil.\nParolayı gir ve yeni cihazı bağlamak için başka bir parola oluştur.</string>
   <string name="account_generate_export_invalid_two">Kimlik doğrulama kodu artık geçerli değil.\nYeni cihazı bağlamak için başka bir kod oluştur.</string>
   <string name="help_pin_info">Hesap parolayla korunuyorsa gereklidir.</string>
   <string name="account_link_device_button">Bağlan</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Jami hesabının kilidini aç</string>
+  <string name="account_biometry_auth_title">白い熊 GNU Jami hesabının kilidini aç</string>
   <string name="account_biometry_auth_message">Hesabının kilidini açmak için biyometri kullan</string>
   <string name="account_biometry_enroll_title">Biyometrik kimlik doğrulama kullanılsın mı?</string>
   <string name="account_biometry_enroll_message">Cihazınız güvenli biyometrik kimlik doğrulamayı destekliyor.
-Biyometrik veya cihaz kimlik doğrulaması, Jami hesabına erişim kilidini yerel olarak açmanın kullanışlı bir yolunu ekler. Parolanı kullanmaya devam edebilirsin.</string>
+Biyometrik veya cihaz kimlik doğrulaması, 白い熊 GNU Jami hesabına erişim kilidini yerel olarak açmanın kullanışlı bir yolunu ekler. Parolanı kullanmaya devam edebilirsin.</string>
   <string name="account_biometry_enroll_accept">Biyometri kullan</string>
   <string name="no_thanks">Hayır, teşekkürler</string>
-  <string name="account_biometry_enroll_auth_title">Jami hesabın için kimlik doğrulama ekle</string>
+  <string name="account_biometry_enroll_auth_title">白い熊 GNU Jami hesabın için kimlik doğrulama ekle</string>
   <string name="account_biometry_enroll_auth_message">Parolana alternatif olarak biyometri veya cihaz kimlik doğrulaması ekle</string>
   <string name="account_auth_error">Kimlik doğrulama hatası: %1$s</string>
   <string name="account_auth_success">Kimlik doğrulama başarılı</string>

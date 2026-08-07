@@ -8,7 +8,7 @@
   <string name="version_section">גרסה</string>
   <string name="website_chooser_title">צפו באתר באמצעות...</string>
   <string name="license">תוכנת זו מסופקת "כפי שהיא", ללא אחריות של כל סוג. לפרטים, ראה GNU General Public License גרסה 3 או מאוחר יותר&lt;/u&gt;</string>
-  <string name="description">ג\'אמי היא תוכנה חופשית לתקשורת אוניברסלית שמכבדת את החירות והפרטיות של המשתמשים שלה.</string>
+  <string name="description">白い熊 GNU Jami היא תוכנה חופשית לתקשורת אוניברסלית שמכבדת את החירות והפרטיות של המשתמשים שלה.</string>
   <string name="credits">שבחים</string>
   <string name="pip_title">ימי</string>
   <string name="call_service_description">שירות זה הכרחי כדי לשמור על השיחות שלך פועלות בקודם. הוא פועל רק במהלך השיחות.</string>
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">הגדרות</string>
   <string name="menu_item_account_settings">הגדרות החשבון</string>
   <string name="menu_item_share">לחלוק את החשבון שלי</string>
-  <string name="menu_item_about">על אודות Jami</string>
+  <string name="menu_item_about">על אודות 白い熊 GNU Jami</string>
   <string name="video_setting_title">הגדרות הוידאו</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -121,7 +121,7 @@
   <string name="yesterday">אתמול</string>
   <!--Contacts-->
   <string name="prompt_new_password_repeat">אישר סיסמה חדשה</string>
-  <string name="account_create_title">ליצור חשבון Jami</string>
+  <string name="account_create_title">ליצור חשבון 白い熊 GNU Jami</string>
   <string name="prompt_hint_username">שם משתמש</string>
   <string name="copied_clipboard">הועתק ללוח.</string>
   <string name="wizard_next">קדימה</string>
@@ -214,15 +214,15 @@
   <string name="jami_id_validate">רשום שם משתמש</string>
   <string name="jami_id_choose_username">בחר שם משתמש</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">ברוך בואך אל Jami</string>
-  <string name="welcome_jami_description">שתף את מזהה ה-Jami שלך כדי שיהיה קל יותר ליצור איתך קשר!</string>
+  <string name="welcome_jami_title">ברוך בואך אל 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">שתף את מזהה ה-白い熊 GNU Jami שלך כדי שיהיה קל יותר ליצור איתך קשר!</string>
   <!--Conversation details-->
   <string name="details">פרטים</string>
   <string name="swarm_type">סוג שיחה</string>
   <string name="Private">פרטי</string>
   <string name="mute_conversation">שיחה שקטה</string>
   <!--Donation-->
-  <string name="donation_card_description">אם אתה נהנה משימוש ב-Jami ומאמין בשליחות שלנו, האם ברצונך לתרום?</string>
+  <string name="donation_card_description">אם אתה נהנה משימוש ב-白い熊 GNU Jami ומאמין בשליחות שלנו, האם ברצונך לתרום?</string>
   <string name="donation_card_not_now">לא עכשיו</string>
   <string name="donation_donate">תרום</string>
   <!--Extension-->

@@ -8,9 +8,9 @@
   <string name="version_section">সংস্করণ</string>
   <string name="website_chooser_title">ওয়েবসাইট দেখুন...</string>
   <string name="license">এই সফ্টওয়্যারটি \"যেমনটি\", কোনও ধরণের গ্যারান্টি ছাড়াই সরবরাহ করা হয়। বিস্তারিত জানার জন্য, দেখুন <u>GNU সাধারণ পাবলিক লাইসেন্স সংস্করণ 3 বা তার পরে</u></string>
-  <string name="description">জামি হল সার্বজনীন যোগাযোগের জন্য একটি মুক্ত সফটওয়্যার যা ব্যবহারকারীদের স্বাধীনতা ও গোপনীয়তাকে সম্মান করে।</string>
+  <string name="description">白い熊 GNU Jami হল সার্বজনীন যোগাযোগের জন্য একটি মুক্ত সফটওয়্যার যা ব্যবহারকারীদের স্বাধীনতা ও গোপনীয়তাকে সম্মান করে।</string>
   <string name="credits">ক্রেডিট</string>
-  <string name="pip_title">জামি সম্মেলন</string>
+  <string name="pip_title">白い熊 GNU Jami সম্মেলন</string>
   <string name="call_service_description">এই পরিষেবাটি আপনার কলগুলিকে প্রথম স্থানে রাখতে প্রয়োজনীয়। এটি শুধুমাত্র কলের সময় চালিত হয়।</string>
   <string name="data_transfer_service_description">ফাইল স্থানান্তর সময় এই পরিষেবাটি স্থায়ী বিজ্ঞপ্তি প্রদর্শন করতে প্রয়োজনীয়। এটি শুধুমাত্র ফাইল স্থানান্তর সময় চালিত হয়।</string>
   <!--About dialog-->
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">সেটিং</string>
   <string name="menu_item_account_settings">অ্যাকাউন্ট সেটিংস</string>
   <string name="menu_item_share">আমার অ্যাকাউন্ট শেয়ার করুন</string>
-  <string name="menu_item_about">জামি সম্পর্কে</string>
+  <string name="menu_item_about">白い熊 GNU Jami সম্পর্কে</string>
   <string name="video_setting_title">ভিডিও সেটিং</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -184,7 +184,7 @@
   <string name="conversation_reply_you">তুমি</string>
   <string name="conversation_preference_color">কথোপকথনের রঙ</string>
   <string name="conversation_preference_emoji">কথোপকথন ইমোজি</string>
-  <string name="conversation_type_contact">জামি যোগাযোগ</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami যোগাযোগ</string>
   <string name="conversation_type_private">ব্যক্তিগত</string>
   <string name="conversation_search_hint">অনুসন্ধান কথোপকথন</string>
   <string name="audio_recording_in_progress">রেকর্ডিং...</string>
@@ -199,11 +199,11 @@
   <string name="prompt_new_password">নতুন পাসওয়ার্ড</string>
   <string name="prompt_new_password_optional">নতুন পাসওয়ার্ড (ঐচ্ছিক)</string>
   <string name="prompt_new_password_repeat">নতুন পাসওয়ার্ড নিশ্চিত করুন</string>
-  <string name="account_create_title">জামি অ্যাকাউন্ট তৈরি করুন</string>
+  <string name="account_create_title">白い熊 GNU Jami অ্যাকাউন্ট তৈরি করুন</string>
   <string name="prompt_new_username">নতুন ব্যবহারকারীর নাম লিখুন</string>
   <string name="prompt_hint_username">ব্যবহারকারীর নাম</string>
-  <string name="help_password_choose">আপনার জামি অ্যাকাউন্টের সুরক্ষার জন্য একটি শক্তিশালী পাসওয়ার্ড নির্বাচন করুন।</string>
-  <string name="help_password_enter">আপনার মূল জামি অ্যাকাউন্টের পাসওয়ার্ড লিখুন।</string>
+  <string name="help_password_choose">আপনার 白い熊 GNU Jami অ্যাকাউন্টের সুরক্ষার জন্য একটি শক্তিশালী পাসওয়ার্ড নির্বাচন করুন।</string>
+  <string name="help_password_enter">আপনার মূল 白い熊 GNU Jami অ্যাকাউন্টের পাসওয়ার্ড লিখুন।</string>
   <string name="help_server_enter">ম্যানেজমেন্ট সার্ভারের URL লিখুন।</string>
   <string name="copied_clipboard">ক্লিপবোর্ডে অনুলিপি করা হয়েছে।</string>
   <string name="wizard_next">পরবর্তী</string>
@@ -229,7 +229,7 @@
   <string name="devices">সংযুক্ত ডিভাইস</string>
   <string name="total_devices">মোট ডিভাইসঃ </string>
   <!--Share fragment-->
-  <string name="share_message">জ্যামির সাথে এই কোড স্ক্যান করুন</string>
+  <string name="share_message">白い熊 GNU Jamiর সাথে এই কোড স্ক্যান করুন</string>
   <string name="share_message_no_account">শেয়ার করার জন্য একটি অ্যাকাউন্ট নির্বাচন করুন।</string>
   <string name="share_your_account_information">আমার যোগাযোগের তথ্য শেয়ার করুন</string>
   <string name="share_label">ভাগ করে নেওয়ার</string>
@@ -335,21 +335,21 @@
   <string name="dialog_hint_description">বর্ণনা</string>
   <string name="picker_title">পরিচিতি নির্বাচন করুন</string>
   <string name="picker_btn">পরিচিতি নির্বাচন করুন</string>
-  <string name="bottomsheet_contact">জ্যামি %1$s এর সাথে যোগাযোগ করুন</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami %1$s এর সাথে যোগাযোগ করুন</string>
   <string name="error_open_no_app_found">এই ফাইলটি সামলানোর জন্য কোন আপ্লিকেশন পাওয়া যাইনি: 1%1$s</string>
   <!--JamiId-->
   <string name="jami_id_validate">ব্যবহারকারীর নাম নিবন্ধন</string>
   <string name="jami_id_choose_username">একটি ব্যবহারকারীর নাম নির্বাচন করুন</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">জামিতে স্বাগতম</string>
-  <string name="welcome_jami_description">আরও সহজে যোগাযোগ করার জন্য আপনার Jami শনাক্তকারী ভাগ করুন!</string>
+  <string name="welcome_jami_title">白い熊 GNU Jamiতে স্বাগতম</string>
+  <string name="welcome_jami_description">আরও সহজে যোগাযোগ করার জন্য আপনার 白い熊 GNU Jami শনাক্তকারী ভাগ করুন!</string>
   <!--Conversation details-->
   <string name="details">বিস্তারিত</string>
   <string name="swarm_type">কথোপকথনের ধরন</string>
   <string name="Private">ব্যক্তিগত</string>
   <string name="mute_conversation">নিঃশব্দ কথোপকথন</string>
   <!--Donation-->
-  <string name="donation_card_description">আপনি যদি Jami ব্যবহার করতে উপভোগ করেন এবং আমাদের লক্ষ্যে বিশ্বাস করেন, আপনি কি একটি দান করতে চান?</string>
+  <string name="donation_card_description">আপনি যদি 白い熊 GNU Jami ব্যবহার করতে উপভোগ করেন এবং আমাদের লক্ষ্যে বিশ্বাস করেন, আপনি কি একটি দান করতে চান?</string>
   <string name="donation_card_not_now">এখন না</string>
   <string name="donation_donate">দান করুন</string>
   <!--Extension-->

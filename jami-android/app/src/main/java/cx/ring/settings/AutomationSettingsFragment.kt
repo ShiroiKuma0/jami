@@ -91,7 +91,7 @@ class AutomationSettingsFragment : Fragment() {
             text = "Copy"
             setOnClickListener {
                 val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("Jami automation token", AutomationPrefs.getToken(ctx)))
+                cm.setPrimaryClip(ClipData.newPlainText("白い熊 GNU Jami automation token", AutomationPrefs.getToken(ctx)))
                 Flash.show(ctx, "Token copied", Toast.LENGTH_SHORT)
             }
         })
@@ -146,7 +146,7 @@ class AutomationSettingsFragment : Fragment() {
         val name = a.displayUsername?.takeIf { it.isNotEmpty() }
             ?: a.registeredName.takeIf { it.isNotEmpty() }
             ?: a.alias?.takeIf { it.isNotEmpty() }
-            ?: "(Jami account)"
+            ?: "(白い熊 GNU Jami account)"
         return LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(6f), 0, dp(6f))

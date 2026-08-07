@@ -4,7 +4,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">Dodaj račun</string>
   <string name="prompt_alias">Nadimak</string>
-  <string name="help_ring">Ako imate račun u Jamiju, možete se sigurno javiti ljudima putem potpuno raspoređene mreže.</string>
+  <string name="help_ring">Ako imate račun u 白い熊 GNU Jamiju, možete se sigurno javiti ljudima putem potpuno raspoređene mreže.</string>
   <string name="help_sip_title">Dodajte SIP račun</string>
   <string name="help_sip">Konfiguriraj postojeći SIP račun</string>
   <string name="create_sip_account">Konfiguriraj SIP račun</string>
@@ -65,9 +65,9 @@
   <string name="account_export_file">Zaštita računa</string>
   <string name="account_export_file_summary">Zaštita računa na uređaju da ga kasnije obnovite.</string>
   <string name="account_enter_password">Unesi lozinku</string>
-  <string name="account_contact_me">Kontaktirajte me na Jami!</string>
-  <string name="account_migration">Vaš Jami račun može biti ažuriran.</string>
-  <string name="ring_account">Jami račun</string>
+  <string name="account_contact_me">Kontaktirajte me na 白い熊 GNU Jami!</string>
+  <string name="account_migration">Vaš 白い熊 GNU Jami račun može biti ažuriran.</string>
+  <string name="ring_account">白い熊 GNU Jami račun</string>
   <string name="sip_account">SIP račun</string>
   <string name="ring_account_identity">Identifikacija</string>
   <string name="account_migration_title_dialog">Migracija računa</string>
@@ -84,7 +84,7 @@
   <string name="account_link_device">Povezivanje s drugog uređaja</string>
   <string name="account_link_button">Povezivanje s mreže</string>
   <string name="account_link_archive_button">Povezivanje sa rezervom</string>
-  <string name="account_new_button">Stvoriti račun Jami</string>
+  <string name="account_new_button">Stvoriti račun 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Povezivanje novog uređaja</string>
   <string name="account_link_show_button">Pokaži %d više povezanih uređaja</string>
   <string name="account_link_hide_button">Skloni se priključeno uređaj</string>
@@ -109,7 +109,7 @@
   <string name="account_status_online">Online</string>
   <string name="account_status_offline">Neprijavljeni</string>
   <!--Create account-->
-  <string name="account_creation_ring">Stvorite svoj Jami račun</string>
+  <string name="account_creation_ring">Stvorite svoj 白い熊 GNU Jami račun</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">Ubaci lozinku za potvrdu</string>

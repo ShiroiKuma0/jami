@@ -8,9 +8,9 @@
   <string name="version_section">Версія</string>
   <string name="website_chooser_title">Праглядзіце сайт з дапамогай...</string>
   <string name="license">Гэты праграмны праграмны прадукт прадастаўляецца "як ёсць", без гарантыі якога-небудзь роду. Для падрабязнасці, глядзіце GNU General Public License версія 3 або пазней&lt;/u&gt;</string>
-  <string name="description">Jami з\'яўляецца свабодным праграмным забеспячэннем для універсальнай камунікацыі, якое паважае свабоды і прыватнасць сваіх карыстальнікаў.</string>
+  <string name="description">白い熊 GNU Jami з\'яўляецца свабодным праграмным забеспячэннем для універсальнай камунікацыі, якое паважае свабоды і прыватнасць сваіх карыстальнікаў.</string>
   <string name="credits">Крэдыты</string>
-  <string name="pip_title">Канферэнцыя Джані</string>
+  <string name="pip_title">Канферэнцыя 白い熊 GNU Jami</string>
   <string name="call_service_description">Гэты сэрвіс неабходны для таго, каб выклікі працавалі ў першую чаргу. Ён працуе толькі падчас званкоў.</string>
   <string name="data_transfer_service_description">Гэтая служба неабходная для прагляду пастаянных апавяданняў падчас перадачы файлаў.</string>
   <!--About dialog-->
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">Налады</string>
   <string name="menu_item_account_settings">Налады ўліковых запісаў</string>
   <string name="menu_item_share">Падзяліцца маім рахункам</string>
-  <string name="menu_item_about">Пра Джані</string>
+  <string name="menu_item_about">Пра 白い熊 GNU Jami</string>
   <string name="video_setting_title">Налады відэа</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -110,7 +110,7 @@
   <string name="yesterday">Учора</string>
   <!--Contacts-->
   <string name="prompt_new_password_repeat">Пацвердзіце новы пароль</string>
-  <string name="account_create_title">Стварэнне ўліковага запісу Jami</string>
+  <string name="account_create_title">Стварэнне ўліковага запісу 白い熊 GNU Jami</string>
   <string name="prompt_hint_username">Назва карыстальніка</string>
   <string name="copied_clipboard">Скапіравана ў буфер абмену.</string>
   <string name="wizard_next">Далей</string>
@@ -198,15 +198,15 @@
   <string name="jami_id_validate">Запіс імя карыстальніка</string>
   <string name="jami_id_choose_username">Выберыце імя карыстальніка</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Сардэчна запрашаем у Джамі</string>
-  <string name="welcome_jami_description">Падзяліцеся вашым ідэнтыфікатарам Jami, каб з вамі было лягчэй звязацца!</string>
+  <string name="welcome_jami_title">Сардэчна запрашаем у 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Падзяліцеся вашым ідэнтыфікатарам 白い熊 GNU Jami, каб з вамі было лягчэй звязацца!</string>
   <!--Conversation details-->
   <string name="details">Падрабязнасці</string>
   <string name="swarm_type">Тып размовы</string>
   <string name="Private">Прыватныя</string>
   <string name="mute_conversation">Маўчаная размова</string>
   <!--Donation-->
-  <string name="donation_card_description">Калі вам падабаецца карыстацца Jami і вы верыце ў нашу місію, хочаце зрабіць ахвяраванне?</string>
+  <string name="donation_card_description">Калі вам падабаецца карыстацца 白い熊 GNU Jami і вы верыце ў нашу місію, хочаце зрабіць ахвяраванне?</string>
   <string name="donation_card_not_now">Не зараз</string>
   <string name="donation_donate">Ахвяраваць</string>
   <!--Extension-->

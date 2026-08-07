@@ -25,10 +25,10 @@
   <string name="pref_videoResolution_summary">Seleccionar la resolución predeterminada de salida de vídeo</string>
   <string name="pref_systemContacts_title">Usar contactos del sistema</string>
   <string name="pref_systemContacts_summary">Usar contactos del sistema para mostrar detalles del interlocutor.</string>
-  <string name="pref_systemDialer_title">Configurar el sistema para llamar usando Jami</string>
-  <string name="pref_systemDialer_summary">Usar Jami para hacer llamadas al sistema cuando sea posible.</string>
-  <string name="pref_startOnBoot_title">Ejecutar Jami al inicio</string>
-  <string name="pref_startOnBoot_summary">Ejecutar Jami en segundo plano cuando se inicie el sistema.</string>
+  <string name="pref_systemDialer_title">Configurar el sistema para llamar usando 白い熊 GNU Jami</string>
+  <string name="pref_systemDialer_summary">Usar 白い熊 GNU Jami para hacer llamadas al sistema cuando sea posible.</string>
+  <string name="pref_startOnBoot_title">Ejecutar 白い熊 GNU Jami al inicio</string>
+  <string name="pref_startOnBoot_summary">Ejecutar 白い熊 GNU Jami en segundo plano cuando se inicie el sistema.</string>
   <string name="pref_clearHistory_title">Limpiar historial</string>
   <string name="pref_notification_title">Visibilidad de notificaciones</string>
   <string name="pref_notification_summary">Establecer la visibilidad de las notificaciones en la pantalla de bloqueo.</string>
@@ -36,7 +36,7 @@
   <string name="pref_blackList_summary">Revisa tu lista de bloqueos</string>
   <string name="pref_delete_account_title">Borrar cuenta</string>
   <string name="pref_newGroup_title">Habilitar chat grupal</string>
-  <string name="pref_newGroup_summary">Habilitar la creación de grupos en Jami.</string>
+  <string name="pref_newGroup_summary">Habilitar la creación de grupos en 白い熊 GNU Jami.</string>
   <string name="pref_logs_title">Registros de diagnóstico</string>
   <string name="pref_logs_summary">Abrir preferencias de registro de diagnóstico</string>
   <string name="pref_logs_start">Iniciar registro</string>

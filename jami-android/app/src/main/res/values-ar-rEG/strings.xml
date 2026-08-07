@@ -10,9 +10,9 @@
   <string name="version_section">الإصدار</string>
   <string name="website_chooser_title">معاينة الموقع الإلكتروني بواسطة...</string>
   <string name="license">هذا البرنامج مقدم \"كما هو\", بدون ضمان من أي نوع, للتفاصيل, أنظر <u>رخصة غنو العمومية إصدار الترخيص 3 أو ما بعدها</u></string>
-  <string name="description">جامى هو برنامج حر مجانى للتواصل العالمى الذى يحترم حريات وخصوصيات مستخدميه.</string>
+  <string name="description">白い熊 GNU Jami هو برنامج حر مجانى للتواصل العالمى الذى يحترم حريات وخصوصيات مستخدميه.</string>
   <string name="credits">الأطراف الداعمة</string>
-  <string name="pip_title">اجتماع جامي مرئي</string>
+  <string name="pip_title">اجتماع 白い熊 GNU Jami مرئي</string>
   <string name="call_service_description">هذه الخدمه ضرورية لتبقي المكالمات تعمل في الواجهة. إنها تعمل فقط أثناء المكالمات.</string>
   <string name="data_transfer_service_description">هذه الخدمة ضرورية لعرض الإعلامات المستمرة أثناء نقل الملفات. تعمل فقط أثناء نقل الملفات.</string>
   <!--About dialog-->
@@ -33,7 +33,7 @@
   <string name="menu_item_settings">الإعدادات</string>
   <string name="menu_item_account_settings">إعدادت الحساب</string>
   <string name="menu_item_share">مشاركة حسابي</string>
-  <string name="menu_item_about">حول جامي</string>
+  <string name="menu_item_about">حول 白い熊 GNU Jami</string>
   <string name="video_setting_title">إعدادات الفيديو</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -186,7 +186,7 @@
   <string name="conversation_reply_you">أنت</string>
   <string name="conversation_preference_color">لون المحادثة</string>
   <string name="conversation_preference_emoji">إيموجي المحادثة</string>
-  <string name="conversation_type_contact">جهة اتصال جامي</string>
+  <string name="conversation_type_contact">جهة اتصال 白い熊 GNU Jami</string>
   <string name="conversation_type_private">خاص</string>
   <string name="conversation_type_group">مجموعة</string>
   <string name="conversation_contact_invited">تمت دعوة %1$s للانضمام إلى المحادثة.</string>
@@ -207,11 +207,11 @@
   <string name="prompt_new_password">كلمة مرور جديدة</string>
   <string name="prompt_new_password_optional">كلمة مرور جديدة (إختياري)</string>
   <string name="prompt_new_password_repeat">تأكيد كلمة المرور الجديدة</string>
-  <string name="account_create_title">إعداد حساب جامي</string>
+  <string name="account_create_title">إعداد حساب 白い熊 GNU Jami</string>
   <string name="prompt_new_username">إدخال إسم مستخدم جديد</string>
   <string name="prompt_hint_username">اسم المستخدم</string>
-  <string name="help_password_choose">إختيار كلمة مرور قوية يمكن تذكرها لحماية حساب جامي الخاص بك.</string>
-  <string name="help_password_enter">إدخال كلمة مرور حسابك الرئيسي على جامي.</string>
+  <string name="help_password_choose">إختيار كلمة مرور قوية يمكن تذكرها لحماية حساب 白い熊 GNU Jami الخاص بك.</string>
+  <string name="help_password_enter">إدخال كلمة مرور حسابك الرئيسي على 白い熊 GNU Jami.</string>
   <string name="help_server_enter">إدخال رابط خادم الإدارة.</string>
   <string name="copied_clipboard">تم النسخ إلى الحافظة.</string>
   <string name="wizard_next">التالي</string>
@@ -239,7 +239,7 @@
   <string name="devices">الأجهزة المتصلة</string>
   <string name="total_devices">الأجهزة الكلية</string>
   <!--Share fragment-->
-  <string name="share_message">إمسح هذا الكود بإستعمال جامي</string>
+  <string name="share_message">إمسح هذا الكود بإستعمال 白い熊 GNU Jami</string>
   <string name="share_message_no_account">الرجاء إختيار حساب للمشاركة.</string>
   <string name="share_your_account_information">شارك معلومات الإتصال الخاصة بي</string>
   <string name="share_contact_information">مشاركة معلومات جهة الاتصال</string>
@@ -349,7 +349,7 @@
   <string name="dialog_hint_description">وصف</string>
   <string name="picker_title">إختيار جهات الاتصال</string>
   <string name="picker_btn">إختيار جهات الاتصال</string>
-  <string name="bottomsheet_contact">الاتصال مع Jami\n%1$s</string>
+  <string name="bottomsheet_contact">الاتصال مع 白い熊 GNU Jami\n%1$s</string>
   <!--JamiId-->
   <string name="jami_id_validate">تسجيل اسم المستخدم</string>
   <string name="jami_id_available">اسم المستخدم متاح.</string>
@@ -357,15 +357,15 @@
   <string name="jami_id_looking_for_availability">جارٍ التحقق من توفّر اسم المستخدم…</string>
   <string name="jami_id_choose_username">اختر اسم مستخدم</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">مرحبا بك في جامي</string>
-  <string name="welcome_jami_description">شارك معرّف Jami الخاص بك لتسهيل التواصل معك!</string>
+  <string name="welcome_jami_title">مرحبا بك في 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">شارك معرّف 白い熊 GNU Jami الخاص بك لتسهيل التواصل معك!</string>
   <!--Conversation details-->
   <string name="details">التفاصيل</string>
   <string name="swarm_type">نوع المحادثة</string>
   <string name="Private">خاص</string>
   <string name="mute_conversation">محادثة صامتة</string>
   <!--Donation-->
-  <string name="donation_card_description">إذا كنت تستمتع باستخدام Jami وتؤمن برسالتنا، فهل تريد التبرّع؟</string>
+  <string name="donation_card_description">إذا كنت تستمتع باستخدام 白い熊 GNU Jami وتؤمن برسالتنا، فهل تريد التبرّع؟</string>
   <string name="donation_card_not_now">ليس الآن</string>
   <string name="donation_donate">تبرّع</string>
   <!--Extension-->

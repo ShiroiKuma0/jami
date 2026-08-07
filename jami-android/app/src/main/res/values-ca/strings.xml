@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">No s\'ha trobat cap navegador web; instal·leu-ne un per veure aquesta pàgina.</string>
   <string name="website_chooser_title">Visualitza el lloc web amb...</string>
   <string name="license">Aquest programari es proporciona \"tal i com es\" sense garantia de cap tipus. Per més detalls, veure la<u> Llicència Pública General GNU versió 3 o posterior</u> </string>
-  <string name="description">Jami és un programari lliure de comunicació universal, que respecta les llibertats i la privacitat dels seus usuaris.</string>
+  <string name="description">白い熊 GNU Jami és un programari lliure de comunicació universal, que respecta les llibertats i la privacitat dels seus usuaris.</string>
   <string name="credits">Crèdits</string>
-  <string name="pip_title">Conferència Jami</string>
+  <string name="pip_title">Conferència 白い熊 GNU Jami</string>
   <string name="call_service_description">Aquest servei és necessari per mantenir les trucades en curs en primer pla. Només s\'executa durant les trucades.</string>
   <string name="data_transfer_service_description">Aquest servei és necessari per mostrar notificacions persistents durant la transferència d\'arxius. Només s\'executa durant la transferència d\'arxius.</string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">Configuracions de comptes</string>
   <string name="menu_item_extension_list">Preferències de les Extensions</string>
   <string name="menu_item_share">Comparteix el meu compte</string>
-  <string name="menu_item_about">Sobre Jami...</string>
+  <string name="menu_item_about">Sobre 白い熊 GNU Jami...</string>
   <string name="video_setting_title">Configuracions de vídeo</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Marca el número</string>
@@ -78,7 +78,7 @@
   <string name="notif_channel_background_service_descr">Permet rebre trucades i missatges en qualsevol moment.</string>
   <string name="notif_group_calls">Trucades</string>
   <string name="notif_inprogress_group_call">Trucada en curs</string>
-  <string name="notif_background_service">Jami s\'està executant ara mateix en segon pla</string>
+  <string name="notif_background_service">白い熊 GNU Jami s\'està executant ara mateix en segon pla</string>
   <string name="notif_mark_as_read">Marca com a llegit</string>
   <string name="notif_dismiss">Ignora</string>
   <string name="notif_reply">Respon</string>
@@ -88,7 +88,7 @@
   <string name="notif_sync_title">Sincronitzant dades…</string>
   <string name="notif_location_title">Compartint localització amb %1$s</string>
   <string name="notif_channel_reconnect">Sincronització en segon pla</string>
-  <string name="notif_reconnect_title">El Jami s\'està sincronitzant…</string>
+  <string name="notif_reconnect_title">El 白い熊 GNU Jami s\'està sincronitzant…</string>
   <string name="location_share_contact">%1$s està compartint la localització amb tu</string>
   <string name="notif_location_multi_title">Compartint la localització amb %1$d contactes</string>
   <string name="notif_location_remaining">%1$d minuts restants</string>
@@ -109,7 +109,7 @@
   <string name="hist_out_call">Trucada sortint a %1$s</string>
   <string name="call_duration">Ha durat %s</string>
   <string name="call_on_hold">La trucada està en espera</string>
-  <string name="start_error_title">Incapaç d\'arrancar Jami</string>
+  <string name="start_error_title">Incapaç d\'arrancar 白い熊 GNU Jami</string>
   <string name="action_call_accept">Accepta trucada</string>
   <string name="action_call_accept_audio">Acceptar amb audio</string>
   <string name="action_call_accept_video">Acceptar amb vídeo</string>
@@ -131,7 +131,7 @@
   <string name="write_a_message">Escriu missatge</string>
   <string name="scan_qr">Escaneja un codi QR</string>
   <string name="qr_code">Codi QR</string>
-  <string name="qr_code_not_contact">No és un codi QR de contacte de Jami</string>
+  <string name="qr_code_not_contact">No és un codi QR de contacte de 白い熊 GNU Jami</string>
   <string name="new_group">Crea un grup nou</string>
   <string name="ab_action_flipcamera">Canvia la càmera</string>
   <string name="ab_action_hidepreview">Amaga la previsualització</string>
@@ -161,15 +161,15 @@
   <string name="ringtone_error_size_too_big">Aquest arxiu és massa gran. La mida màxima és %1$dkB.</string>
   <string name="ringtone_custom_prompt">Posa un to de trucada personalitzat</string>
   <string name="ringtone_custom_label">Personalitzat</string>
-  <string name="ringtone_jami_tones">Tons de trucada del Jami</string>
+  <string name="ringtone_jami_tones">Tons de trucada del 白い熊 GNU Jami</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">El Jami requereix el permís «Llegir els contactes». Activeu-lo a la configuració del dispositiu per utilitzar aquesta funció.</string>
+  <string name="permission_dialog_read_contacts_message">El 白い熊 GNU Jami requereix el permís «Llegir els contactes». Activeu-lo a la configuració del dispositiu per utilitzar aquesta funció.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">El Jami requereix el permís «Escriure el registre de trucades». Activeu-lo a la configuració del dispositiu per utilitzar aquesta funció.</string>
+  <string name="permission_dialog_write_call_log_message">El 白い熊 GNU Jami requereix el permís «Escriure el registre de trucades». Activeu-lo a la configuració del dispositiu per utilitzar aquesta funció.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">Permet les notificacions</string>
-  <string name="permission_dialog_post_notifications_message">El Jami necessita el permís de notificacions per avisar-vos de trucades i missatges entrants, fins i tot quan l\'aplicació està en segon pla. Sense aquest permís, podríeu perdre trucades.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">Les notificacions estan desactivades per al Jami. Sense elles, perdreu trucades i missatges entrants. Activeu les notificacions per al Jami a la configuració del dispositiu.</string>
+  <string name="permission_dialog_post_notifications_message">El 白い熊 GNU Jami necessita el permís de notificacions per avisar-vos de trucades i missatges entrants, fins i tot quan l\'aplicació està en segon pla. Sense aquest permís, podríeu perdre trucades.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">Les notificacions estan desactivades per al 白い熊 GNU Jami. Sense elles, perdreu trucades i missatges entrants. Activeu les notificacions per al 白い熊 GNU Jami a la configuració del dispositiu.</string>
   <string name="permission_dialog_open_settings">Configuracions obertes</string>
   <string name="permission_dialog_later">Més tard</string>
   <!--QRCode Scan-->
@@ -231,7 +231,7 @@
   <string name="video_not_found">No s\'ha trobat el fitxer de vídeo</string>
   <string name="conversation_preference_color">Color de conversa</string>
   <string name="conversation_preference_emoji">Emoticona de conversa</string>
-  <string name="conversation_type_contact">Contacte de Jami</string>
+  <string name="conversation_type_contact">Contacte de 白い熊 GNU Jami</string>
   <string name="conversation_type_private">Privat</string>
   <string name="conversation_type_group">Grup</string>
   <string name="conversation_contact_invited">S\'ha convidat %1$s a la conversa.</string>
@@ -282,11 +282,11 @@
   <string name="prompt_new_password">Contrasenya nova</string>
   <string name="prompt_new_password_optional">Contrasenya nova (opcional)</string>
   <string name="prompt_new_password_repeat">Confirmar la nova contrasenya</string>
-  <string name="account_create_title">Creació de compte Jami</string>
+  <string name="account_create_title">Creació de compte 白い熊 GNU Jami</string>
   <string name="prompt_new_username">Escriviu un nom d\'usuari</string>
   <string name="prompt_hint_username">Nom d\'usuari</string>
-  <string name="help_password_choose">Escull una contrasenya forta que puguis recordar per protegir el teu compte Jami.</string>
-  <string name="help_password_enter">Introdueix la contrassenya principal de Jami</string>
+  <string name="help_password_choose">Escull una contrasenya forta que puguis recordar per protegir el teu compte 白い熊 GNU Jami.</string>
+  <string name="help_password_enter">Introdueix la contrassenya principal de 白い熊 GNU Jami</string>
   <string name="help_server_enter">Introdueix la URL del servidor de manegament</string>
   <string name="pin_copied">S\'ha copiat el codi d\'autenticació al porta-retalls.</string>
   <string name="copied_clipboard">S\'ha copiat al porta-retalls.</string>
@@ -318,7 +318,7 @@
   <string name="devices">Dispositius enllaçats</string>
   <string name="total_devices">Total de dispositius:</string>
   <!--Share fragment-->
-  <string name="share_message">Escaneja aquest codi amb Jami</string>
+  <string name="share_message">Escaneja aquest codi amb 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Seleccioneu un compte per compartir</string>
   <string name="share_your_account_information">Comparteix la meva informació de contacte</string>
   <string name="share_contact_information">Comparteix la informació del contacte</string>
@@ -410,8 +410,8 @@
   <string name="speech_recogniton_unavailable">El reconeixement de veu no està disponible.</string>
   <string name="audio_permission_rationale_title">Es necessita permís d\'àudio</string>
   <string name="camera_permission_rationale_title">Cal el permís de la càmera</string>
-  <string name="audio_permission_rationale_message">El Jami requereix el permís del micròfon per utilitzar les funcions de veu a text i d\'enregistrament d\'àudio. Es demanarà al pas següent.</string>
-  <string name="camera_permission_rationale_message">El Jami requereix el permís de la càmera per enregistrar vídeo i fer videotrucades. Es demanarà al pas següent.</string>
+  <string name="audio_permission_rationale_message">El 白い熊 GNU Jami requereix el permís del micròfon per utilitzar les funcions de veu a text i d\'enregistrament d\'àudio. Es demanarà al pas següent.</string>
+  <string name="camera_permission_rationale_message">El 白い熊 GNU Jami requereix el permís de la càmera per enregistrar vídeo i fer videotrucades. Es demanarà al pas següent.</string>
   <string name="unable_to_start_recorder">No s\'ha pogut iniciar l\'enregistrament d\'àudio.</string>
   <string name="error_sharing_file">S\'ha produït un error en compartir el fitxer.</string>
   <string name="error_opening_file">S\'ha produït un error en obrir el fitxer.</string>
@@ -469,12 +469,12 @@
   <string name="picker_title">Seleccionar els contactes</string>
   <string name="picker_btn">Seleccionar els contactes</string>
   <string name="no_contact_to_add">No teniu cap contacte per afegir</string>
-  <string name="bottomsheet_contact">Contacte amb Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Contacte amb 白い熊 GNU Jami\n%1$s</string>
   <string name="error_open_no_app_found">No s\'ha trobat cap aplicació per gestionar aquest fitxer: %1$s</string>
   <string name="swarm_detail_no_document">Encara no teniu cap document.</string>
   <string name="group_admin">Administrador</string>
-  <string name="share_contact_intent_title">Afegiu aquest contacte al Jami!</string>
-  <string name="share_contact_intent_body">Podeu afegir aquest contacte «%1$s» a la plataforma de comunicació distribuïda Jami: %2$s</string>
+  <string name="share_contact_intent_title">Afegiu aquest contacte al 白い熊 GNU Jami!</string>
+  <string name="share_contact_intent_body">Podeu afegir aquest contacte «%1$s» a la plataforma de comunicació distribuïda 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">Copia el JamiId</string>
   <string name="jami_id_share">Comparteix el JamiId</string>
@@ -485,8 +485,8 @@
   <string name="jami_id_looking_for_availability">S\'està comprovant la disponibilitat del nom d\'usuari…</string>
   <string name="jami_id_choose_username">Seleccioneu un nom d\'usuari</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Benvingut a Jami</string>
-  <string name="welcome_jami_description">Comparteix el teu identificador de Jami per tal de ser contactat mes fàcilment!</string>
+  <string name="welcome_jami_title">Benvingut a 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Comparteix el teu identificador de 白い熊 GNU Jami per tal de ser contactat mes fàcilment!</string>
   <!--Conversation details-->
   <string name="details">Detalls</string>
   <string name="secure_p2p_connection">Connexió segura punt a punt</string>
@@ -497,7 +497,7 @@
   <string name="show_certificate">Mostra el certificat</string>
   <string name="mute_conversation">Conversació mudada</string>
   <!--Donation-->
-  <string name="donation_card_description">Si gaudiu utilitzant Jami i creieu en la nostra missió, voleu fer un donatiu?</string>
+  <string name="donation_card_description">Si gaudiu utilitzant 白い熊 GNU Jami i creieu en la nostra missió, voleu fer un donatiu?</string>
   <string name="donation_card_not_now">Ara no</string>
   <string name="donation_donate">Donar</string>
   <string name="donation_setting_title">Recordatori de donació</string>
@@ -569,11 +569,11 @@
   <string name="notif_channel_peer_tunnel">Serveis compartits</string>
   <string name="notif_channel_peer_tunnel_descr">Es mostra mentre els túnels de serveis entre iguals estan actius en segon pla.</string>
   <string name="notif_peer_tunnel_title">Serveis compartits actius</string>
-  <string name="notif_peer_tunnel_text">El Jami manté actives les vostres connexions de servei en segon pla</string>
+  <string name="notif_peer_tunnel_text">El 白い熊 GNU Jami manté actives les vostres connexions de servei en segon pla</string>
   <string name="notif_peer_tunnel_stop_all">Atura-ho tot</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">Serveis compartits</string>
-  <string name="shared_services_settings_description">Exposa serveis locals als usuaris del Jami</string>
+  <string name="shared_services_settings_description">Exposa serveis locals als usuaris del 白い熊 GNU Jami</string>
   <string name="shared_services_empty">Cap servei configurat</string>
   <string name="shared_services_add">Afegeix un servei</string>
   <string name="shared_services_add_title">Afegeix un servei compartit</string>
@@ -588,7 +588,7 @@
   <string name="shared_services_port_invalid">El port ha d\'estar entre 1 i 65535</string>
   <string name="shared_services_port">Port: %d</string>
   <string name="shared_services_no_description">Sense descripció</string>
-  <string name="shared_services_empty_subtitle">Compartiu fitxers o serveis locals amb els usuaris del Jami</string>
+  <string name="shared_services_empty_subtitle">Compartiu fitxers o serveis locals amb els usuaris del 白い熊 GNU Jami</string>
   <string name="shared_services_more_options">Més opcions</string>
   <string name="shared_services_open_in_browser">Obre al navegador</string>
   <string name="shared_services_disconnect_all">Desconnecta-ho tot</string>

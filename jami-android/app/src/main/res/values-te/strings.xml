@@ -7,9 +7,9 @@
   <string name="version_section">వెర్షన్</string>
   <string name="website_chooser_title">వెబ్సైట్ను ఉపయోగించి వీక్షించండి.</string>
   <string name="license">ఈ సాఫ్ట్వేర్ ఏ రకమైన హామీ లేకుండా "అలాగే" అందించబడుతుంది. వివరాల కోసం, చూడండి GNU జనరల్ పబ్లిక్ లైసెన్స్ వెర్షన్ 3 లేదా తరువాత&lt;/u&gt;</string>
-  <string name="description">జామి అనేది సార్వత్రిక కమ్యూనికేషన్ కోసం ఉచిత సాఫ్ట్వేర్, ఇది దాని వినియోగదారుల స్వేచ్ఛ మరియు గోప్యతను గౌరవిస్తుంది.</string>
+  <string name="description">白い熊 GNU Jami అనేది సార్వత్రిక కమ్యూనికేషన్ కోసం ఉచిత సాఫ్ట్వేర్, ఇది దాని వినియోగదారుల స్వేచ్ఛ మరియు గోప్యతను గౌరవిస్తుంది.</string>
   <string name="credits">క్రెడిట్స్</string>
-  <string name="pip_title">జామి సమావేశం</string>
+  <string name="pip_title">白い熊 GNU Jami సమావేశం</string>
   <string name="call_service_description">ఈ సేవ మీ కాల్స్ ముందుగానే నడుస్తున్నట్లు ఉంచడానికి అవసరం. ఇది కాల్స్ సమయంలో మాత్రమే నడుస్తుంది.</string>
   <string name="data_transfer_service_description">ఫైలు బదిలీల సమయంలో నిరంతర నోటిఫికేషన్లను ప్రదర్శించడానికి ఈ సేవ అవసరం. ఇది ఫైలు బదిలీల సమయంలో మాత్రమే నడుస్తుంది.</string>
   <!--About dialog-->
@@ -26,7 +26,7 @@
   <string name="menu_item_settings">సెట్టింగులు</string>
   <string name="menu_item_account_settings">ఖాతా సెట్టింగులు</string>
   <string name="menu_item_share">నా ఖాతాను పంచుకోండి</string>
-  <string name="menu_item_about">జామి గురించి</string>
+  <string name="menu_item_about">白い熊 GNU Jami గురించి</string>
   <string name="video_setting_title">వీడియో సెట్టింగులు</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -169,7 +169,7 @@
   <string name="conversation_reply_you">మీరు</string>
   <string name="conversation_preference_color">సంభాషణ రంగు</string>
   <string name="conversation_preference_emoji">సంభాషణ ఎమోజీ</string>
-  <string name="conversation_type_contact">జామి పరిచయం</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami పరిచయం</string>
   <string name="conversation_type_private">ప్రైవేటు</string>
   <string name="conversation_search_hint">శోధన సంభాషణ</string>
   <string name="audio_recording_in_progress">రికార్డింగ్.</string>
@@ -184,11 +184,11 @@
   <string name="prompt_new_password">కొత్త పాస్వర్డ్</string>
   <string name="prompt_new_password_optional">కొత్త పాస్వర్డ్ (ఐచ్ఛికం)</string>
   <string name="prompt_new_password_repeat">కొత్త పాస్వర్డ్ను నిర్ధారించు</string>
-  <string name="account_create_title">జమి ఖాతాను సృష్టించు</string>
+  <string name="account_create_title">白い熊 GNU Jami ఖాతాను సృష్టించు</string>
   <string name="prompt_new_username">కొత్త వాడుకరి పేరును నమోదు చేయండి</string>
   <string name="prompt_hint_username">వాడుకరి పేరు</string>
-  <string name="help_password_choose">మీ జమీ ఖాతాను రక్షించడానికి మీరు గుర్తుంచుకోగల బలమైన పాస్వర్డ్ను ఎంచుకోండి.</string>
-  <string name="help_password_enter">మీ ప్రధాన జమీ ఖాతా పాస్వర్డ్ను నమోదు చేయండి.</string>
+  <string name="help_password_choose">మీ 白い熊 GNU Jami ఖాతాను రక్షించడానికి మీరు గుర్తుంచుకోగల బలమైన పాస్వర్డ్ను ఎంచుకోండి.</string>
+  <string name="help_password_enter">మీ ప్రధాన 白い熊 GNU Jami ఖాతా పాస్వర్డ్ను నమోదు చేయండి.</string>
   <string name="help_server_enter">నిర్వహణ సర్వర్ యొక్క URL ను నమోదు చేయండి.</string>
   <string name="wizard_next">తదుపరి</string>
   <string name="wizard_back">తిరిగి</string>
@@ -213,7 +213,7 @@
   <string name="devices">లింక్ చేయబడిన పరికరాలు</string>
   <string name="total_devices">మొత్తం పరికరాలుః </string>
   <!--Share fragment-->
-  <string name="share_message">జామి తో ఈ కోడ్ స్కాన్</string>
+  <string name="share_message">白い熊 GNU Jami తో ఈ కోడ్ స్కాన్</string>
   <string name="share_message_no_account">దయచేసి భాగస్వామ్యం చేయడానికి ఒక ఖాతాను ఎంచుకోండి.</string>
   <string name="share_your_account_information">నా సంప్రదింపు సమాచారాన్ని పంచుకోండి</string>
   <string name="share_label">భాగస్వామ్యం</string>
@@ -313,13 +313,13 @@
   <string name="dialog_hint_description">వివరణ</string>
   <string name="picker_title">పరిచయాలను ఎంచుకోండి</string>
   <string name="picker_btn">పరిచయాలను ఎంచుకోండి</string>
-  <string name="bottomsheet_contact">జామి\n%1$s తో సంప్రదించండి</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami\n%1$s తో సంప్రదించండి</string>
   <string name="group_member_invited">ఆహ్వానించబడినవారు</string>
   <!--JamiId-->
   <string name="jami_id_validate">వినియోగదారు పేరును నమోదు చేయండి</string>
   <string name="jami_id_choose_username">ఒక వినియోగదారు పేరును ఎంచుకోండి</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">జామికి స్వాగతం</string>
+  <string name="welcome_jami_title">白い熊 GNU Jamiకి స్వాగతం</string>
   <!--Conversation details-->
   <string name="details">వివరాలు</string>
   <string name="Private">ప్రైవేటు</string>

@@ -7,9 +7,9 @@
   <string name="version_section">نسخه</string>
   <string name="website_chooser_title">سايتين سايتيني...</string>
   <string name="license">بو نرم افزار هر نوع گارانتیسیز \"هماناً\" وئریلیر.</string>
-  <string name="description">جامی، آلیشمیش آلیشما اوچون آزاد بیر نرم افزار دیر کی، اؤز ایستیفاده چیلرینین آزادلیقلارینا و خصوصی لیکلرینه حؤرمت ائدیر.</string>
+  <string name="description">白い熊 GNU Jami، آلیشمیش آلیشما اوچون آزاد بیر نرم افزار دیر کی، اؤز ایستیفاده چیلرینین آزادلیقلارینا و خصوصی لیکلرینه حؤرمت ائدیر.</string>
   <string name="credits">اعتبارلار</string>
-  <string name="pip_title">جامي کنفرانس</string>
+  <string name="pip_title">白い熊 GNU Jami کنفرانس</string>
   <string name="call_service_description">بو سرویس، تماسلارینیزی قاباقجا ساخلاماق اوچون لازیمدیر.</string>
   <string name="data_transfer_service_description">بو سرویس فایللار یئرلشدیریلیش واختلارین داواملی خبرلرینی گؤسترمک اوچون لازیمدیر.</string>
   <!--About dialog-->
@@ -26,7 +26,7 @@
   <string name="menu_item_settings">تنظیمات</string>
   <string name="menu_item_account_settings">حسابلارین تنظیماتلاری</string>
   <string name="menu_item_share">حسابيمي بؤلوشدور</string>
-  <string name="menu_item_about">جامی حاقّيندا</string>
+  <string name="menu_item_about">白い熊 GNU Jami حاقّيندا</string>
   <string name="video_setting_title">ویدئو تنظیمات</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -169,7 +169,7 @@
   <string name="conversation_reply_you">سن</string>
   <string name="conversation_preference_color">دانیشیق رنگینه</string>
   <string name="conversation_preference_emoji">مکالمات ایموجی</string>
-  <string name="conversation_type_contact">جمی تماس</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami تماس</string>
   <string name="conversation_type_private">خصوصی</string>
   <string name="conversation_search_hint">بحث آختارماق</string>
   <string name="audio_recording_in_progress">ضبط کردن...</string>
@@ -184,11 +184,11 @@
   <string name="prompt_new_password">یئنی رمز</string>
   <string name="prompt_new_password_optional">یئنی رمز (اختیاری)</string>
   <string name="prompt_new_password_repeat">یئنی رمز لری تصدیق ائدیر</string>
-  <string name="account_create_title">Jami حسابي يارادين</string>
+  <string name="account_create_title">白い熊 GNU Jami حسابي يارادين</string>
   <string name="prompt_new_username">یئنی یئنی آد یئتیریر</string>
   <string name="prompt_hint_username">ایستیفاده چی آد</string>
-  <string name="help_password_choose">جامی حسابینی قوروماق اوچون خاطیرلاداجاقینیز گوجلو رمز سئچیب.</string>
-  <string name="help_password_enter">اصلی جمی حسابین رمزونو دن دن.</string>
+  <string name="help_password_choose">白い熊 GNU Jami حسابینی قوروماق اوچون خاطیرلاداجاقینیز گوجلو رمز سئچیب.</string>
+  <string name="help_password_enter">اصلی 白い熊 GNU Jami حسابین رمزونو دن دن.</string>
   <string name="help_server_enter">مدیریت سرورین URL-ی دن یئریشدیر</string>
   <string name="wizard_next">سونراسي</string>
   <string name="wizard_back">گئری دؤن</string>
@@ -213,7 +213,7 @@
   <string name="devices">باغلانان سئلاحلار</string>
   <string name="total_devices">کل آلاتلار: </string>
   <!--Share fragment-->
-  <string name="share_message">بو کودونو جمی ایله سکن ائدیر</string>
+  <string name="share_message">بو کودونو 白い熊 GNU Jami ایله سکن ائدیر</string>
   <string name="share_message_no_account">لطفا اشتراک اوچون حساب سئچیب.</string>
   <string name="share_your_account_information">تماس اطلاعاتيمي بؤلوم</string>
   <string name="share_label">بؤلوم</string>
@@ -313,12 +313,12 @@
   <string name="dialog_hint_description">شرح</string>
   <string name="picker_title">تماس لارین سئچیلماسی</string>
   <string name="picker_btn">تماس لارین سئچیلماسی</string>
-  <string name="bottomsheet_contact">Jami\n%1$s ایله تماس</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami\n%1$s ایله تماس</string>
   <!--JamiId-->
   <string name="jami_id_validate">آدی یازی</string>
   <string name="jami_id_choose_username">ایستیفاده چی آدینی سئچیب</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">\" جامي \" نين خوش آمديد</string>
+  <string name="welcome_jami_title">\" 白い熊 GNU Jami \" نين خوش آمديد</string>
   <!--Conversation details-->
   <string name="details">جزئیات</string>
   <string name="Private">خصوصی</string>

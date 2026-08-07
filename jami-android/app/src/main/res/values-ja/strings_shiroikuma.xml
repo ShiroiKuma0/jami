@@ -18,7 +18,7 @@
     <string name="sk_exim_import">復元</string>
     <string name="sk_exim_export">保存</string>
 
-    <string name="sk_cat_accounts">アカウント（Jami アーカイブ）</string>
+    <string name="sk_cat_accounts">アカウント（白い熊 GNU Jami アーカイブ）</string>
     <string name="sk_cat_chat_texts">会話 — メッセージと履歴</string>
     <string name="sk_cat_chat_files">会話 — 送受信したファイル</string>
     <string name="sk_cat_fonts">フォントと文字サイズ</string>
@@ -96,7 +96,7 @@
     <string name="sk_rep_not_ours">このファイルに 白い熊 GNU Jami のバックアップが見つかりません。</string>
     <string name="sk_rep_no_space">空き容量が足りません: %1$s 必要、%2$s 利用可能。</string>
 
-    <string name="sk_wizard_import">白い熊 Jami のエクスポートから復元</string>
+    <string name="sk_wizard_import">白い熊 GNU Jami のエクスポートから復元</string>
     <string name="sk_exim_phase_verify">バックアップを検証中</string>
     <string name="sk_rep_verified">検証済み: %1$d 項目、破損なし</string>
     <string name="sk_rep_corrupt">破損: %1$d 項目が検証に失敗 — このバックアップは信頼できません</string>

@@ -67,7 +67,7 @@
     <string name="probe_already_running">受信テストは実行中です。</string>
 
     <!-- Auto-recovery notifications -->
-    <string name="notif_recover_title">白い熊 Jami 自動回復</string>
+    <string name="notif_recover_title">白い熊 GNU Jami 自動回復</string>
     <string name="notif_storm_smart">エラーストーム検出 → スマート回復 (%s)</string>
     <string name="notif_storm_hard">エラーストーム再発 → ハードリセット (%s)</string>
     <string name="notif_deaf_smart">アカウント受信沈黙 %1$d 分 → 回復 (%2$s)</string>

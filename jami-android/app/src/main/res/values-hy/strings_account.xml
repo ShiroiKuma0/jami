@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">Բաժնորդագրություն ավելացնել</string>
   <string name="add_sip_account_title">Ավելացնել SIP հաշիվ</string>
-  <string name="ring_account_default_name">Jami հաշիվ %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami հաշիվ %1$s</string>
   <string name="prompt_alias">Անանուններ</string>
   <string name="prompt_hostname">Հյուրընկալող անուն</string>
   <string name="prompt_username">Օգտագործողի անունը</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">Հաշվետու թարմացում</string>
   <string name="dialog_wait_update_details">Խնդրում եմ սպասել, մինչեւ ձեր նոր հաշիվը թարմացվի...</string>
   <string name="account_type_ip2ip">IP հաշիվ</string>
-  <string name="help_ring">Jami հաշիվը թույլ է տալիս ապահովորեն հասնել մարդկանց, զուգընկերների միջոցով ամբողջությամբ տարածված ցանցի միջոցով:</string>
+  <string name="help_ring">白い熊 GNU Jami հաշիվը թույլ է տալիս ապահովորեն հասնել մարդկանց, զուգընկերների միջոցով ամբողջությամբ տարածված ցանցի միջոցով:</string>
   <string name="help_sip_title">Ավելացնել SIP հաշիվ</string>
   <string name="help_sip">Կարգավորել առկա SIP հաշիվը</string>
   <string name="create_sip_account">Կարգավորել SIP հաշիվ</string>
@@ -127,10 +127,10 @@
   <string name="account_export_file">Բաքու հաշիվ</string>
   <string name="account_export_file_summary">Ձեր հաշիվը պահուստային պահեստով պահեք ձեր սարքում, որպեսզի այն հետագայում վերականգնվի:</string>
   <string name="account_enter_password">Գտեք գաղտնաբառ</string>
-  <string name="account_contact_me">Կապվեք ինձ հետ Ջամիի մասին:</string>
+  <string name="account_contact_me">Կապվեք ինձ հետ 白い熊 GNU Jamiի մասին:</string>
   <string name="update_account">Հաշիվի թարմացում</string>
-  <string name="account_migration">Ձեր Ջամի հաշիվը կարող է թարմացվել: Խնդրում ենք մուտքագրել գաղտնաբառը:</string>
-  <string name="ring_account">Ջամի հաշիվը</string>
+  <string name="account_migration">Ձեր 白い熊 GNU Jami հաշիվը կարող է թարմացվել: Խնդրում ենք մուտքագրել գաղտնաբառը:</string>
+  <string name="ring_account">白い熊 GNU Jami հաշիվը</string>
   <string name="sip_account">SIP հաշիվ</string>
   <string name="ring_account_identity">Անձնագրություն</string>
   <string name="account_migration_title_dialog">Հաշվետու միգրացիա</string>
@@ -145,7 +145,7 @@
   <string name="account_tv_advance_settings_header">Հրագաթնակետային կարգավորումներ</string>
   <string name="account_tv_add_contact">Բարձրացնել շփումը</string>
   <string name="account_tv_advanced_settings">Փոխել ընդհանուր կարգավորումները</string>
-  <string name="account_tv_about">Ջամիի մասին</string>
+  <string name="account_tv_about">白い熊 GNU Jamiի մասին</string>
   <string name="tv_about_version">Վարկած</string>
   <string name="tv_about_license">Անվճար</string>
   <string name="tv_about_author">Գրողի իրավունքներ</string>
@@ -153,7 +153,7 @@
   <string name="account_link_device">Կապակցել այլ սարք</string>
   <string name="account_link_button">Հեռախոսային ցանցից միանալ</string>
   <string name="account_link_archive_button">Կապակցեք պահուստային համակարգից</string>
-  <string name="account_new_button">Ստեղծեք Jami հաշիվ</string>
+  <string name="account_new_button">Ստեղծեք 白い熊 GNU Jami հաշիվ</string>
   <string name="account_link_export_button">Կապակցեք նոր սարքը</string>
   <string name="account_link_show_button">Ցուցադրել %d ավելի շատ կապված սարք</string>
   <string name="account_link_hide_button">Հավաքել միացված սարքը</string>
@@ -182,9 +182,9 @@
   <string name="account_status_offline">Հեռախոսից</string>
   <string name="account_status_error">Սխալ</string>
   <!--Create account-->
-  <string name="account_creation_home">Բարի գալուստ Ջամի:</string>
+  <string name="account_creation_home">Բարի գալուստ 白い熊 GNU Jami:</string>
   <string name="account_creation_profile">Ստեղծեք ձեր պրոֆիլը</string>
-  <string name="account_creation_ring">Ստեղծեք ձեր Jami հաշիվը</string>
+  <string name="account_creation_ring">Ստեղծեք ձեր 白い熊 GNU Jami հաշիվը</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">Փոխանցեք գաղտնաբառը հաստատելու համար</string>

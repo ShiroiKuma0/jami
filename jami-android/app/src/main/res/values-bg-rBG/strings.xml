@@ -8,9 +8,9 @@
   <string name="version_section">Версия</string>
   <string name="website_chooser_title">Преглед на уеб сайта чрез…</string>
   <string name="license">Този софтуер се предоставя във вида, в който е, без никакви гаранции. За повече подробности, вижте <u>Общия публичен лиценз на GNU, версия 3 или по-нов</u></string>
-  <string name="description">Ring е безплатен софтуер за универсална комуникация, който уважава свободата и личните данни на потребителите си.</string>
+  <string name="description">白い熊 GNU Jami е безплатен софтуер за универсална комуникация, който уважава свободата и личните данни на потребителите си.</string>
   <string name="credits">Заслуги</string>
-  <string name="pip_title">Конференция на Джами</string>
+  <string name="pip_title">Конференция на 白い熊 GNU Jami</string>
   <string name="call_service_description">Тази услуга е необходима, за да се поддържат обажданията ви в предната линия.</string>
   <string name="data_transfer_service_description">Тази услуга е необходима за показване на постоянни уведомления по време на прехвърляне на файлове.</string>
   <!--About dialog-->
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">Настройки</string>
   <string name="menu_item_account_settings">Настройки на сметката</string>
   <string name="menu_item_share">Споделете ми профила.</string>
-  <string name="menu_item_about">Относно Jami</string>
+  <string name="menu_item_about">Относно 白い熊 GNU Jami</string>
   <string name="video_setting_title">Настройки на видео</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -184,7 +184,7 @@
   <string name="conversation_reply_you">Ти си...</string>
   <string name="conversation_preference_color">Цвет на разговора</string>
   <string name="conversation_preference_emoji">Разговорни емотики</string>
-  <string name="conversation_type_contact">Контакт с Джами</string>
+  <string name="conversation_type_contact">Контакт с 白い熊 GNU Jami</string>
   <string name="conversation_type_private">Приватна</string>
   <string name="conversation_type_group">Група</string>
   <string name="conversation_search_hint">Търсене на разговор</string>
@@ -200,11 +200,11 @@
   <string name="prompt_new_password">Нова парола</string>
   <string name="prompt_new_password_optional">Нова парола (незадължително)</string>
   <string name="prompt_new_password_repeat">Потвърди новия парол</string>
-  <string name="account_create_title">Създаване на акаунт Jami</string>
+  <string name="account_create_title">Създаване на акаунт 白い熊 GNU Jami</string>
   <string name="prompt_new_username">Въведете ново потребителско име</string>
   <string name="prompt_hint_username">Потребителско име</string>
   <string name="help_password_choose">Изберете сигурна парола, която ще запомните, за да е защитен профилът ви.</string>
-  <string name="help_password_enter">Введете паролата за основната сметка на Джами.</string>
+  <string name="help_password_enter">Введете паролата за основната сметка на 白い熊 GNU Jami.</string>
   <string name="help_server_enter">Введете URL на сървъра за управление.</string>
   <string name="copied_clipboard">Копирано в клипборда.</string>
   <string name="wizard_next">Напред</string>
@@ -230,7 +230,7 @@
   <string name="devices">Свързани устройства</string>
   <string name="total_devices">Общо устройства: </string>
   <!--Share fragment-->
-  <string name="share_message">Сканирайте този код с Jami</string>
+  <string name="share_message">Сканирайте този код с 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Моля, изберете кой профил искате да споделите.</string>
   <string name="share_your_account_information">Споделяне на информацията аз връзка с мен</string>
   <string name="share_label">Споделяне</string>
@@ -336,20 +336,20 @@
   <string name="dialog_hint_description">Описание</string>
   <string name="picker_title">Изберете контакти</string>
   <string name="picker_btn">Изберете контакти</string>
-  <string name="bottomsheet_contact">Свържете се с Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Свържете се с 白い熊 GNU Jami\n%1$s</string>
   <!--JamiId-->
   <string name="jami_id_validate">Регистрирайте потребителско име</string>
   <string name="jami_id_choose_username">Изберете потребителско име</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Добре дошли в Jami</string>
-  <string name="welcome_jami_description">Споделете идентификатора си в Jami, за да можете да бъдете лесно намирани!</string>
+  <string name="welcome_jami_title">Добре дошли в 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Споделете идентификатора си в 白い熊 GNU Jami, за да можете да бъдете лесно намирани!</string>
   <!--Conversation details-->
   <string name="details">Подробности</string>
   <string name="swarm_type">Тип разговор</string>
   <string name="Private">Приватна</string>
   <string name="mute_conversation">Мълчави разговори</string>
   <!--Donation-->
-  <string name="donation_card_description">Ако харесвате да използвате Jami и вярвате в нашата мисия, искате ли да направите дарение?</string>
+  <string name="donation_card_description">Ако харесвате да използвате 白い熊 GNU Jami и вярвате в нашата мисия, искате ли да направите дарение?</string>
   <string name="donation_card_not_now">Не сега</string>
   <string name="donation_donate">Дарете</string>
   <!--Extension-->

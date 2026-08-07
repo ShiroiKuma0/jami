@@ -7,9 +7,9 @@
   <string name="version_section">आवृत्ती</string>
   <string name="website_chooser_title">वेबसाइट वापरून पहा.</string>
   <string name="license">या सॉफ्टवेअरची कोणतीही हमी न घेता "जसे आहे" प्रदान केली जाते. तपशीलांसाठी, GNU जनरल पब्लिक लायसन्स आवृत्ती 3 किंवा नंतर पहा&lt;/u&gt;</string>
-  <string name="description">जेमी हे सार्वत्रिक संप्रेषणासाठी एक मुक्त सॉफ्टवेअर आहे जे वापरकर्त्यांच्या स्वातंत्र्याचा आणि गोपनीयतेचा आदर करते.</string>
+  <string name="description">白い熊 GNU Jami हे सार्वत्रिक संप्रेषणासाठी एक मुक्त सॉफ्टवेअर आहे जे वापरकर्त्यांच्या स्वातंत्र्याचा आणि गोपनीयतेचा आदर करते.</string>
   <string name="credits">क्रेडिट</string>
-  <string name="pip_title">जेमी परिषद</string>
+  <string name="pip_title">白い熊 GNU Jami परिषद</string>
   <string name="call_service_description">या सेवेमुळे तुमच्या कॉलचा प्रवाह सुरु राहतो. तो केवळ कॉल दरम्यानच चालतो.</string>
   <string name="data_transfer_service_description">फाइल ट्रान्सफर दरम्यान सतत सूचना प्रदर्शित करण्यासाठी ही सेवा आवश्यक आहे. ती केवळ फाइल ट्रान्सफर दरम्यान चालते.</string>
   <!--About dialog-->
@@ -26,7 +26,7 @@
   <string name="menu_item_settings">सेटिंग्ज</string>
   <string name="menu_item_account_settings">खाते सेटिंग्ज</string>
   <string name="menu_item_share">माझे खाते सामायिक करा</string>
-  <string name="menu_item_about">जेमी बद्दल</string>
+  <string name="menu_item_about">白い熊 GNU Jami बद्दल</string>
   <string name="video_setting_title">व्हिडिओ सेटिंग्ज</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -169,7 +169,7 @@
   <string name="conversation_reply_you">तू</string>
   <string name="conversation_preference_color">संभाषण रंग</string>
   <string name="conversation_preference_emoji">संभाषण इमोजी</string>
-  <string name="conversation_type_contact">जमी संपर्क</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami संपर्क</string>
   <string name="conversation_type_private">खासगी</string>
   <string name="conversation_search_hint">शोध संभाषण</string>
   <string name="audio_recording_in_progress">रेकॉर्डिंग.</string>
@@ -184,11 +184,11 @@
   <string name="prompt_new_password">नवीन संकेतशब्द</string>
   <string name="prompt_new_password_optional">नवीन संकेतशब्द (पर्यायी)</string>
   <string name="prompt_new_password_repeat">नवीन संकेतशब्द पुष्टी करा</string>
-  <string name="account_create_title">Jami खाते तयार करा</string>
+  <string name="account_create_title">白い熊 GNU Jami खाते तयार करा</string>
   <string name="prompt_new_username">नवीन वापरकर्तानाव प्रविष्ट करा</string>
   <string name="prompt_hint_username">नाव</string>
-  <string name="help_password_choose">आपल्या जामी खात्याचे संरक्षण करण्यासाठी तुम्हाला लक्षात राहणार्या मजबूत संकेतशब्द निवडा.</string>
-  <string name="help_password_enter">तुमचा मुख्य जामी अकाऊंट पासवर्ड प्रविष्ट करा.</string>
+  <string name="help_password_choose">आपल्या 白い熊 GNU Jami खात्याचे संरक्षण करण्यासाठी तुम्हाला लक्षात राहणार्या मजबूत संकेतशब्द निवडा.</string>
+  <string name="help_password_enter">तुमचा मुख्य 白い熊 GNU Jami अकाऊंट पासवर्ड प्रविष्ट करा.</string>
   <string name="help_server_enter">मॅनेजमेंट सर्व्हरची URL प्रविष्ट करा.</string>
   <string name="wizard_next">पुढील</string>
   <string name="wizard_back">परत</string>
@@ -213,7 +213,7 @@
   <string name="devices">जोडलेले उपकरणे</string>
   <string name="total_devices">एकूण उपकरणे: </string>
   <!--Share fragment-->
-  <string name="share_message">या कोडला जामीसोबत स्कॅन करा.</string>
+  <string name="share_message">या कोडला 白い熊 GNU Jamiसोबत स्कॅन करा.</string>
   <string name="share_message_no_account">कृपया सामायिक करण्यासाठी एक खाते निवडा.</string>
   <string name="share_your_account_information">माझी संपर्क माहिती सामायिक करा</string>
   <string name="share_label">शेअर करा</string>
@@ -313,13 +313,13 @@
   <string name="dialog_hint_description">वर्णन</string>
   <string name="picker_title">संपर्क निवडा</string>
   <string name="picker_btn">संपर्क निवडा</string>
-  <string name="bottomsheet_contact">Jami\n%1$s शी संपर्क साधा</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami\n%1$s शी संपर्क साधा</string>
   <string name="group_member_invited">आमंत्रित केले</string>
   <!--JamiId-->
   <string name="jami_id_validate">नोंदणी वापरकर्तानाव</string>
   <string name="jami_id_choose_username">एक वापरकर्तानाव निवडा</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">जामी येथे आपले स्वागत आहे</string>
+  <string name="welcome_jami_title">白い熊 GNU Jami येथे आपले स्वागत आहे</string>
   <!--Conversation details-->
   <string name="details">तपशील</string>
   <string name="Private">खासगी</string>

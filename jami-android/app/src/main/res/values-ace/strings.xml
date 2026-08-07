@@ -7,9 +7,9 @@
   <string name="version_section">ڤرسي</string>
   <string name="website_chooser_title">مڠمبيل ڤرچاي ويب دڠن...</string>
   <string name="license">ڤوۏيرو اين دبريكن \"ساي كيت،\" دڠن كرجاسام سياڤا. اونتوق ڤرليندوڠن، اكن مڠيكوت <u>GNU General Public License ڤرسي 3 اتاو ڤرليندوڠ</u></string>
-  <string name="description">Jami اداله سوفيتور براوسيا اونورسال يڠ ممڤرچايا?? ي ڤرليبتن دان ڤريۏيتي ڤڠڬوناڽ.</string>
+  <string name="description">白い熊 GNU Jami اداله سوفيتور براوسيا اونورسال يڠ ممڤرچايا?? ي ڤرليبتن دان ڤريۏيتي ڤڠڬوناڽ.</string>
   <string name="credits">ڤرودوک</string>
-  <string name="pip_title">كونفرنس جامي</string>
+  <string name="pip_title">كونفرنس 白い熊 GNU Jami</string>
   <string name="call_service_description">ڤرلو مڠڬوناكن ڤرسكوتوان اين اونتوق ممڤرچايا?? ي ڤرسكوتوان كيت دالم ڤرچايا?? ن.</string>
   <string name="data_transfer_service_description">ڤرلاون اين ڤرلو دڤرچايا?? ي ڤمبلا?? ين ڤرساتوان ڤرساتوان دالم ڤرچايا?? ن ڤمباچ.</string>
   <!--About dialog-->
@@ -26,7 +26,7 @@
   <string name="menu_item_settings">سيٽنگون</string>
   <string name="menu_item_account_settings">ڤڠاجرن حساب</string>
   <string name="menu_item_share">مڠمبيل ڤڠاجرن ساي</string>
-  <string name="menu_item_about">دري جامي</string>
+  <string name="menu_item_about">دري 白い熊 GNU Jami</string>
   <string name="video_setting_title">ڤڠاجرن ڤيديو</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -92,7 +92,7 @@
   <string name="yesterday">ديري</string>
   <!--Contacts-->
   <string name="prompt_new_password_repeat">ڤڠاتسكن ڤرسودن بارو</string>
-  <string name="account_create_title">منوليس ايكون Jami</string>
+  <string name="account_create_title">منوليس ايكون 白い熊 GNU Jami</string>
   <string name="prompt_hint_username">نام ڤڠڬونا</string>
   <string name="wizard_next">ڤد ماس يڠ لاين</string>
   <string name="wizard_back">ڤرنه</string>
@@ -168,7 +168,7 @@
   <string name="jami_id_validate">نام ڤڠڬونا</string>
   <string name="jami_id_choose_username">مميليه نام ڤڠڬونا</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">خوش اومدن جامي</string>
+  <string name="welcome_jami_title">خوش اومدن 白い熊 GNU Jami</string>
   <!--Conversation details-->
   <string name="details">ڤڠاجرن</string>
   <string name="Private">ڤريڤوت</string>

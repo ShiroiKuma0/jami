@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">مڠمبيل ڤڠاجرن</string>
   <string name="add_sip_account_title">مڠهادڤکن کات SIP</string>
-  <string name="ring_account_default_name">حساب جامي %1$s</string>
+  <string name="ring_account_default_name">حساب 白い熊 GNU Jami %1$s</string>
   <string name="prompt_alias">نامن سباڬاي</string>
   <string name="prompt_hostname">نام ڤڠاجين</string>
   <string name="prompt_username">نام ڤڠڬونا</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">ڤڠاجرن حساب</string>
   <string name="dialog_wait_update_details">تكايه منتظره اونتوق حساب نويس اتو...</string>
   <string name="account_type_ip2ip">حساب IP</string>
-  <string name="help_ring">اکاونت Jami ممبريکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکن</string>
+  <string name="help_ring">اکاونت 白い熊 GNU Jami ممبريکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکنکن</string>
   <string name="help_sip_title">مڠهادڤکن کات SIP</string>
   <!--Strings related to account deletion-->
   <!--AccountManagementFragment-->
@@ -119,10 +119,10 @@
   <string name="account_export_file">حساب ڤڠاجرن</string>
   <string name="account_export_file_summary">كاوڤونكن ايكونت دالم ڤرودوک اونتوق مڠمبيلكنڽ لاين.</string>
   <string name="account_enter_password">ڤرلو مڠهادڤي كاسوس</string>
-  <string name="account_contact_me">با من دري جامي تماس بگير!</string>
+  <string name="account_contact_me">با من دري 白い熊 GNU Jami تماس بگير!</string>
   <string name="update_account">ڤڠاجرن حساب</string>
-  <string name="account_migration">حساب جامي تو ميتوان دتموكن.\\nتوسوق ممبريكن ڤرسود.</string>
-  <string name="ring_account">حساب جامي</string>
+  <string name="account_migration">حساب 白い熊 GNU Jami تو ميتوان دتموكن.\\nتوسوق ممبريكن ڤرسود.</string>
+  <string name="ring_account">حساب 白い熊 GNU Jami</string>
   <string name="sip_account">حساب SIP</string>
   <string name="ring_account_identity">ادينتيتي</string>
   <string name="account_migration_title_dialog">ڤمباچ ڤرچاي</string>
@@ -137,7 +137,7 @@
   <string name="account_tv_advance_settings_header">ڤڠاجرن ڤڠاجرن</string>
   <string name="account_tv_add_contact">مڠهادڤکن ڤڠاجرن</string>
   <string name="account_tv_advanced_settings">تغيير تنظیمات عموم</string>
-  <string name="account_tv_about">دري جامي</string>
+  <string name="account_tv_about">دري 白い熊 GNU Jami</string>
   <string name="tv_about_version">ڤرسي</string>
   <string name="tv_about_license">ڤرودوک</string>
   <string name="tv_about_author">حق ڤمباچ</string>
@@ -145,7 +145,7 @@
   <string name="account_link_device">منچاريكن دري ڤرودوک لاين</string>
   <string name="account_link_button">منچاريكن دري نيتۏرك</string>
   <string name="account_link_archive_button">منوليسكن دري ڤڠوربانن</string>
-  <string name="account_new_button">منوليس ايكون Jami</string>
+  <string name="account_new_button">منوليس ايكون 白い熊 GNU Jami</string>
   <string name="account_link_export_button">دڠن ڤڠاجرن ڤڠاجرن</string>
   <string name="account_link_show_button">مڠمبيل %d ڤرودوک يڠ دتڠݢوڠ</string>
   <string name="account_link_hide_button">ڤڠڬيلن يڠ دڤرچايا?? ي</string>
@@ -173,9 +173,9 @@
   <string name="account_status_offline">اونلاين</string>
   <string name="account_status_error">خطأ</string>
   <!--Create account-->
-  <string name="account_creation_home">خوش اومدن جامي</string>
+  <string name="account_creation_home">خوش اومدن 白い熊 GNU Jami</string>
   <string name="account_creation_profile">ڤرچاي ڤرڤايل</string>
-  <string name="account_creation_ring">منوليسكن حساب Jami</string>
+  <string name="account_creation_ring">منوليسكن حساب 白い熊 GNU Jami</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">ڤرلو مڠهادڤي كاسد اونتوق مڠهادڤي</string>
