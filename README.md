@@ -6,7 +6,8 @@
 
 **Private, peer-to-peer messaging & calling — themed and tuned to taste.**
 
-A fork of [GNU Jami](https://jami.net) with **major additions**: a full yellow-on-black theme, a
+A fork of [GNU Jami](https://jami.net) with **major additions**: a **fork-wide rebrand** that makes
+the app name itself correctly in all 100 languages, a full yellow-on-black theme, a
 per-element **UI fonts & colours** system with an RGBA colour picker, deep **connectivity
 resilience** — a **three-fold connection mode** (full DHT / Firebase / UnifiedPush) with an
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
@@ -21,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260731-01.2026-08-03.g8746fd4b+009`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260731-01.2026-08-03.g8746fd4b+011`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -39,6 +40,24 @@ Built for **arm64-v8a**; the C++ Jami daemon and all of its contrib are compiled
 itself is unchanged underneath — same protocol, same distributed network, same end-to-end
 encryption — this fork only adds a thick layer of personalization and a few reliability and
 automation tools on top.
+
+## 🏷 It calls itself by name — in every language it ships
+
+Renaming an app is not renaming its label. Upstream's translations write "Jami" into the running
+text of roughly four and a half thousand strings, so on a phone set to Czech the About page read
+**"O Jami"**, and the fork's identity survived only in the launcher icon. Every one of those
+mentions now reads **白い熊 GNU Jami**, across all **100 locales**.
+
+Grammar is preserved rather than flattened — the suffix carries the case, the brand carries the
+name: Finnish `白い熊 GNU Jamilla`, Hungarian `白い熊 GNU Jamit`, Basque `白い熊 GNU Jamira`,
+German `白い熊 GNU Jami-Konto`. Languages that never spelled the name in Latin at all are covered
+too, including the ones that transliterate into their own script — Serbian `Јами`, Korean `자미`,
+Japanese `ジャミ`, Hebrew `ג'אמי`, Tamil `ஜாமி` — and Bulgarian, which was still shipping the app's
+**pre-2018 name, "Ring"**.
+
+Left deliberately untouched: the credits and sponsor lines that name upstream and its team, the
+`JamiId` identifier, and every `jami.net` link. Crediting Savoir-faire Linux with this fork would
+be a lie, and the branding stops where the truth does.
 
 ## 🎨 Yellow-on-black theme
 
