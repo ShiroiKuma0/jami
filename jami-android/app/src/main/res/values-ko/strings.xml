@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">웹 브라우저 앱을 찾지 못했습니다. 해당 페이지를 보려면 설치하세요.</string>
   <string name="website_chooser_title">웹 사이트를 사용해서 볼 수 있습니다.</string>
   <string name="license">이 소프트웨어는 어떠한 보증도 없이 \"그대로\" 제공된다. 자세한 내용은 GNU 일반 공중 라이선스 버전 3 또는 후기를 참조하십시오.</string>
-  <string name="description">자미는 이용자의 자유와 사생활을 존중하는 보편적 통신을 위한 자유 소프트웨어입니다.</string>
+  <string name="description">白い熊 GNU Jami는 이용자의 자유와 사생활을 존중하는 보편적 통신을 위한 자유 소프트웨어입니다.</string>
   <string name="credits">신용</string>
-  <string name="pip_title">자미 회의</string>
+  <string name="pip_title">白い熊 GNU Jami 회의</string>
   <string name="call_service_description">이 서비스는 전화가 앞면에 계속 실행되도록 필요합니다. 전화 중에만 실행됩니다.</string>
   <string name="data_transfer_service_description">이 서비스는 파일 전송 중에 지속적인 알림을 표시하는 데 필요합니다. 이 서비스는 파일 전송 중에만 실행됩니다.</string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">계정 설정</string>
   <string name="menu_item_extension_list">확장 설정</string>
   <string name="menu_item_share">내 계정을 공유</string>
-  <string name="menu_item_about">자미 에 관한 것</string>
+  <string name="menu_item_about">白い熊 GNU Jami 에 관한 것</string>
   <string name="video_setting_title">비디오 설정</string>
   <!--Dialing Fragment-->
   <string name="dial_number">다이얼 숫자</string>
@@ -77,7 +77,7 @@
   <string name="notif_channel_background_service_descr">언제든 전화와 메시지를 받을 수 있습니다.</string>
   <string name="notif_group_calls">전화</string>
   <string name="notif_inprogress_group_call">통화 진행 중</string>
-  <string name="notif_background_service">Jami가 현재 백그라운드에서 실행 중입니다</string>
+  <string name="notif_background_service">白い熊 GNU Jami가 현재 백그라운드에서 실행 중입니다</string>
   <string name="notif_mark_as_read">기록 된 표기</string>
   <string name="notif_dismiss">해고</string>
   <string name="notif_reply">답변</string>
@@ -87,7 +87,7 @@
   <string name="notif_sync_title">데이터 동기화...</string>
   <string name="notif_location_title">%1$s와 공유 위치</string>
   <string name="notif_channel_reconnect">백그라운드 동기화 중</string>
-  <string name="notif_reconnect_title">Jami 동기화 중...</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami 동기화 중...</string>
   <string name="location_share_contact">%1$s는 위치 공유를 하고 있습니다</string>
   <string name="notif_location_multi_title">%1$d 연락처와 공유 위치</string>
   <string name="notif_location_remaining">%1$d 남은 분</string>
@@ -108,7 +108,7 @@
   <string name="hist_out_call">%1$s의 출력 호출</string>
   <string name="call_duration">%s 동안 지속됨</string>
   <string name="call_on_hold">통화 대기 중</string>
-  <string name="start_error_title">Jami를 시작할 수 없습니다</string>
+  <string name="start_error_title">白い熊 GNU Jami를 시작할 수 없습니다</string>
   <string name="action_call_accept">통화 수락</string>
   <string name="action_call_accept_audio">음성과 함께 수락</string>
   <string name="action_call_accept_video">영상과 함께 수락</string>
@@ -130,7 +130,7 @@
   <string name="write_a_message">메시지 작성</string>
   <string name="scan_qr">QR 코드를 스캔</string>
   <string name="qr_code">QR 코드</string>
-  <string name="qr_code_not_contact">Jami 연락처 QR 코드가 아닙니다</string>
+  <string name="qr_code_not_contact">白い熊 GNU Jami 연락처 QR 코드가 아닙니다</string>
   <string name="new_group">새 그룹 만들기</string>
   <string name="ab_action_flipcamera"> 카메라</string>
   <string name="ab_action_hidepreview">미리보기 숨기기</string>
@@ -160,15 +160,15 @@
   <string name="ringtone_error_size_too_big">이 파일은 너무 크다. 최대 크기는 %1$dkB입니다.</string>
   <string name="ringtone_custom_prompt">사용자 지정 윙톤을 설정</string>
   <string name="ringtone_custom_label">관습</string>
-  <string name="ringtone_jami_tones">Jami 벨소리</string>
+  <string name="ringtone_jami_tones">白い熊 GNU Jami 벨소리</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">Jami에는 “연락처 읽기” 권한이 필요합니다. 이 기능을 사용하려면 기기 설정에서 활성화하십시오.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jami에는 “연락처 읽기” 권한이 필요합니다. 이 기능을 사용하려면 기기 설정에서 활성화하십시오.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">Jami에는 “통화 기록 쓰기” 권한이 필요합니다. 이 기능을 사용하려면 기기 설정에서 활성화하십시오.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami에는 “통화 기록 쓰기” 권한이 필요합니다. 이 기능을 사용하려면 기기 설정에서 활성화하십시오.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">알림 허용</string>
-  <string name="permission_dialog_post_notifications_message">Jami는 앱이 백그라운드에 있을 때에도 수신 통화와 메시지를 알리기 위해 알림 권한이 필요합니다. 권한이 없으면 통화를 놓칠 수 있습니다.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">Jami의 알림이 비활성화되어 있습니다. 알림이 없으면 수신 통화와 메시지를 놓치게 됩니다. 기기 설정에서 Jami의 알림을 활성화하십시오.</string>
+  <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami는 앱이 백그라운드에 있을 때에도 수신 통화와 메시지를 알리기 위해 알림 권한이 필요합니다. 권한이 없으면 통화를 놓칠 수 있습니다.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">白い熊 GNU Jami의 알림이 비활성화되어 있습니다. 알림이 없으면 수신 통화와 메시지를 놓치게 됩니다. 기기 설정에서 白い熊 GNU Jami의 알림을 활성화하십시오.</string>
   <string name="permission_dialog_open_settings">열기 설정</string>
   <string name="permission_dialog_later">나중에</string>
   <!--QRCode Scan-->
@@ -230,7 +230,7 @@
   <string name="video_not_found">영상 파일을 찾을 수 없음</string>
   <string name="conversation_preference_color">대화 색상</string>
   <string name="conversation_preference_emoji">대화 에모지</string>
-  <string name="conversation_type_contact">자미 연락처</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami 연락처</string>
   <string name="conversation_type_private">개인</string>
   <string name="conversation_type_group">모임</string>
   <string name="conversation_contact_invited">%1$s이(가) 대화에 초대되었습니다.</string>
@@ -281,11 +281,11 @@
   <string name="prompt_new_password">새로운 비밀번호</string>
   <string name="prompt_new_password_optional">새 비밀번호 (선택)</string>
   <string name="prompt_new_password_repeat">새로운 비밀번호를 확인</string>
-  <string name="account_create_title">Jami 계정을 생성</string>
+  <string name="account_create_title">白い熊 GNU Jami 계정을 생성</string>
   <string name="prompt_new_username">새로운 사용자 이름을 입력</string>
   <string name="prompt_hint_username">사용자명</string>
-  <string name="help_password_choose">자미 계정을 보호하기 위해 기억할 강력한 비밀번호를 선택하세요.</string>
-  <string name="help_password_enter">주 주 자미 계정 비밀번호를 입력하세요.</string>
+  <string name="help_password_choose">白い熊 GNU Jami 계정을 보호하기 위해 기억할 강력한 비밀번호를 선택하세요.</string>
+  <string name="help_password_enter">주 주 白い熊 GNU Jami 계정 비밀번호를 입력하세요.</string>
   <string name="help_server_enter">관리 서버의 URL를 입력하십시오.</string>
   <string name="pin_copied">인증 코드가 클립보드에 복사되었습니다.</string>
   <string name="copied_clipboard">클립보드에 복사되었습니다.</string>
@@ -317,7 +317,7 @@
   <string name="devices">연결된 장치</string>
   <string name="total_devices">총 장치: </string>
   <!--Share fragment-->
-  <string name="share_message">자미와 이 코드를 스캔해</string>
+  <string name="share_message">白い熊 GNU Jami와 이 코드를 스캔해</string>
   <string name="share_message_no_account">공유할 계정을 선택해 주세요.</string>
   <string name="share_your_account_information">연락처 정보를 공유하세요</string>
   <string name="share_contact_information">연락처 정보 공유</string>
@@ -409,8 +409,8 @@
   <string name="speech_recogniton_unavailable">음성 인식을 사용할 수 없습니다.</string>
   <string name="audio_permission_rationale_title">음향 권한 요구됨</string>
   <string name="camera_permission_rationale_title">카메라 권한 요구됨</string>
-  <string name="audio_permission_rationale_message">Jami는 음성-텍스트 변환 및 오디오 녹음 기능을 사용하기 위해 마이크 권한이 필요합니다. 다음 단계에서 요청됩니다.</string>
-  <string name="camera_permission_rationale_message">Jami는 영상을 녹화하고 영상 통화를 하기 위해 카메라 권한이 필요합니다. 다음 단계에서 요청됩니다.</string>
+  <string name="audio_permission_rationale_message">白い熊 GNU Jami는 음성-텍스트 변환 및 오디오 녹음 기능을 사용하기 위해 마이크 권한이 필요합니다. 다음 단계에서 요청됩니다.</string>
+  <string name="camera_permission_rationale_message">白い熊 GNU Jami는 영상을 녹화하고 영상 통화를 하기 위해 카메라 권한이 필요합니다. 다음 단계에서 요청됩니다.</string>
   <string name="unable_to_start_recorder">오디오 녹음을 시작할 수 없습니다.</string>
   <string name="error_sharing_file">파일 공유 중 오류가 발생했습니다.</string>
   <string name="error_opening_file">파일을 여는 중 오류가 발생했습니다.</string>
@@ -468,7 +468,7 @@
   <string name="picker_title">연락처를 선택</string>
   <string name="picker_btn">연락처를 선택</string>
   <string name="no_contact_to_add">추가할 연락처가 없습니다</string>
-  <string name="bottomsheet_contact">Jami\n%1$s에 연락하세요</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami\n%1$s에 연락하세요</string>
   <string name="bottomsheet_block">구성원 차단</string>
   <string name="bottomsheet_unblock">구성원 차단 해제</string>
   <string name="error_open_no_app_found">이 파일을 처리할 응용 프로그램을 찾을 수 없습니다: %1$s</string>
@@ -476,8 +476,8 @@
   <string name="group_admin">관리자</string>
   <string name="group_member_blocked">차단됨</string>
   <string name="group_member_invited">초대받았어</string>
-  <string name="share_contact_intent_title">Jami에서 이 연락처를 추가하세요!</string>
-  <string name="share_contact_intent_body">Jami 분산 통신 플랫폼에서 이 연락처 “%1$s”을(를) 추가할 수 있습니다: %2$s</string>
+  <string name="share_contact_intent_title">白い熊 GNU Jami에서 이 연락처를 추가하세요!</string>
+  <string name="share_contact_intent_body">白い熊 GNU Jami 분산 통신 플랫폼에서 이 연락처 “%1$s”을(를) 추가할 수 있습니다: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">JamiId 복사</string>
   <string name="jami_id_share">JamiId 공유</string>
@@ -488,8 +488,8 @@
   <string name="jami_id_looking_for_availability">사용자 이름 사용 가능 여부 확인 중…</string>
   <string name="jami_id_choose_username">사용자 이름을 선택</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">자미에 오신 것을 환영합니다</string>
-  <string name="welcome_jami_description">더 쉽게 연락받을 수 있도록 Jami 식별자를 공유하세요!</string>
+  <string name="welcome_jami_title">白い熊 GNU Jami에 오신 것을 환영합니다</string>
+  <string name="welcome_jami_description">더 쉽게 연락받을 수 있도록 白い熊 GNU Jami 식별자를 공유하세요!</string>
   <!--Conversation details-->
   <string name="details">세부 사항</string>
   <string name="secure_p2p_connection">보안 P2P 연결</string>
@@ -500,7 +500,7 @@
   <string name="show_certificate">인증서 표시</string>
   <string name="mute_conversation">침묵의 대화</string>
   <!--Donation-->
-  <string name="donation_card_description">Jami를 잘 사용 중이고 우리의 사명을 응원한다면 후원해 주시겠습니까?</string>
+  <string name="donation_card_description">白い熊 GNU Jami를 잘 사용 중이고 우리의 사명을 응원한다면 후원해 주시겠습니까?</string>
   <string name="donation_card_not_now">나중에</string>
   <string name="donation_donate">후원</string>
   <string name="donation_setting_title">기부 알림</string>
@@ -572,11 +572,11 @@
   <string name="notif_channel_peer_tunnel">공유 서비스</string>
   <string name="notif_channel_peer_tunnel_descr">피어 서비스 터널이 백그라운드에서 활성화되어 있는 동안 표시됩니다.</string>
   <string name="notif_peer_tunnel_title">공유 서비스 활성화됨</string>
-  <string name="notif_peer_tunnel_text">Jami가 백그라운드에서 서비스 연결을 유지하고 있습니다</string>
+  <string name="notif_peer_tunnel_text">白い熊 GNU Jami가 백그라운드에서 서비스 연결을 유지하고 있습니다</string>
   <string name="notif_peer_tunnel_stop_all">모두 중지</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">공유 서비스</string>
-  <string name="shared_services_settings_description">로컬 서비스를 Jami 사용자에게 노출</string>
+  <string name="shared_services_settings_description">로컬 서비스를 白い熊 GNU Jami 사용자에게 노출</string>
   <string name="shared_services_empty">구성된 서비스 없음</string>
   <string name="shared_services_add">서비스 추가</string>
   <string name="shared_services_add_title">공유 서비스 추가</string>
@@ -591,7 +591,7 @@
   <string name="shared_services_port_invalid">포트는 1에서 65535 사이여야 합니다</string>
   <string name="shared_services_port">포트: %d</string>
   <string name="shared_services_no_description">설명 없음</string>
-  <string name="shared_services_empty_subtitle">로컬 파일이나 서비스를 Jami 사용자와 공유하세요</string>
+  <string name="shared_services_empty_subtitle">로컬 파일이나 서비스를 白い熊 GNU Jami 사용자와 공유하세요</string>
   <string name="shared_services_more_options">더 많은 선택 사항</string>
   <string name="shared_services_open_in_browser">브라우저에서 열기</string>
   <string name="shared_services_disconnect_all">모두 연결 끊기</string>

@@ -67,7 +67,7 @@
     <string name="probe_already_running">Test příjmu už běží.</string>
 
     <!-- Auto-recovery notifications -->
-    <string name="notif_recover_title">白い熊 Jami · automatická obnova</string>
+    <string name="notif_recover_title">白い熊 GNU Jami · automatická obnova</string>
     <string name="notif_storm_smart">Bouře chyb → chytrá obnova (%s)</string>
     <string name="notif_storm_hard">Bouře chyb znovu → tvrdý reset (%s)</string>
     <string name="notif_deaf_smart">Účet mlčí %1$d min → obnova (%2$s)</string>

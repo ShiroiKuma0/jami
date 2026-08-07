@@ -739,7 +739,7 @@ class FontsSettingsFragment : Fragment() {
             setPadding(0, dp(2f), 0, dp(2f))
             setOnClickListener {
                 val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                cm.setPrimaryClip(android.content.ClipData.newPlainText("Jami automation token", AutomationPrefs.getToken(ctx)))
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("白い熊 GNU Jami automation token", AutomationPrefs.getToken(ctx)))
                 Flash.show(ctx, "Token copied")
             }
         }
