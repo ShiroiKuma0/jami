@@ -8,7 +8,7 @@
   <string name="account_selection">계정 선택</string>
   <string name="add_ring_account_title">계정 추가</string>
   <string name="add_sip_account_title">SIP 계정을 추가</string>
-  <string name="ring_account_default_name">Jami 계정 %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami 계정 %1$s</string>
   <string name="account_creation_error">계정 생성 중 오류가 발생했습니다.</string>
   <string name="prompt_alias">별칭</string>
   <string name="prompt_hostname">호스트 이름</string>
@@ -28,7 +28,7 @@
         직접 IP 통화만 걸고 받을 수 있습니다.
         나중에 계정을 편집할 수 있습니다</string>
   <string name="account_type_ip2ip">IP 계정</string>
-  <string name="help_ring">Jami 계정을 사용하면 완전히 분산된 네트워크를 통해 P2P 방식으로 상대방에게 안전하게 도달할 수 있습니다.</string>
+  <string name="help_ring">白い熊 GNU Jami 계정을 사용하면 완전히 분산된 네트워크를 통해 P2P 방식으로 상대방에게 안전하게 도달할 수 있습니다.</string>
   <string name="help_sip_title">SIP 계정을 추가</string>
   <string name="help_sip">기존 SIP 계정 구성</string>
   <string name="create_sip_account">SIP 계정 구성</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">나중에 복구하기 위해 계정을 장치에 백업하십시오.</string>
   <string name="account_export_end_decryption_message">비밀번호가 올바르지 않습니다. 올바른 비밀번호로 다시 시도하십시오.</string>
   <string name="account_enter_password">암호 입력</string>
-  <string name="account_share_body">Jami 분산 통신 플랫폼에서 “%1$s”(으)로 저에게 연락하십시오: %2$s</string>
-  <string name="account_share_body_with_username">Jami 분산 통신 플랫폼에서 “%1$s” 또는 제 공개 사용자 이름 “%2$s”(으)로 저에게 연락하십시오: %3$s</string>
-  <string name="account_contact_me">Jami로 연락해!</string>
+  <string name="account_share_body">白い熊 GNU Jami 분산 통신 플랫폼에서 “%1$s”(으)로 저에게 연락하십시오: %2$s</string>
+  <string name="account_share_body_with_username">白い熊 GNU Jami 분산 통신 플랫폼에서 “%1$s” 또는 제 공개 사용자 이름 “%2$s”(으)로 저에게 연락하십시오: %3$s</string>
+  <string name="account_contact_me">白い熊 GNU Jami로 연락해!</string>
   <string name="update_account">계정 업데이트</string>
-  <string name="account_migration">Jami 계정 업데이트가 가능합니다.\n암호를 입력하세요.</string>
-  <string name="ring_account">Jami 계정</string>
+  <string name="account_migration">白い熊 GNU Jami 계정 업데이트가 가능합니다.\n암호를 입력하세요.</string>
+  <string name="ring_account">白い熊 GNU Jami 계정</string>
   <string name="sip_account">SIP 계좌</string>
   <string name="ring_account_identity">신분</string>
   <string name="account_migration_title_dialog">계정 마이그레이션</string>
   <string name="account_migration_message_dialog">계정을 업데이트해야 합니다. 이 작업을 수행하기 위해 계정 관리 화면으로 이동하시겠습니까?</string>
   <string name="account_update_needed">업데이트가 필요</string>
   <string name="account_cannot_be_found_title">계정 오류</string>
-  <string name="account_cannot_be_found_message">Jami 네트워크에서 계정을 찾을 수 없습니다. 기존 기기에서 Jami로 내보냈는지, 제공된 자격 증명이 올바른지 확인하십시오.</string>
+  <string name="account_cannot_be_found_message">白い熊 GNU Jami 네트워크에서 계정을 찾을 수 없습니다. 기존 기기에서 白い熊 GNU Jami로 내보냈는지, 제공된 자격 증명이 올바른지 확인하십시오.</string>
   <string name="jams_account_cannot_be_found_message">계정을 연결하는 중 오류가 발생했습니다. 자격 증명을 확인하고 다시 시도하십시오.</string>
   <string name="account_sip_cannot_be_registered_message">계정 생성 과정 을 계속 하거나 이 부분 에서 정보 를 편집 할 수 있습니다. 계정 설정 에서 나중에 에디션 을 할 수 있습니다.</string>
   <string name="account_no_network_title">네트워크 오류</string>
-  <string name="account_no_network_message">Jami 계정을 분산 네트워크에 추가하는 중 연결 오류가 발생했습니다. 기기 연결을 확인하십시오.</string>
+  <string name="account_no_network_message">白い熊 GNU Jami 계정을 분산 네트워크에 추가하는 중 연결 오류가 발생했습니다. 기기 연결을 확인하십시오.</string>
   <string name="account_device_added_title">계정 장치 추가</string>
-  <string name="account_device_added_message">이 기기에서 Jami 계정이 성공적으로 설정되었습니다.</string>
+  <string name="account_device_added_message">이 기기에서 白い熊 GNU Jami 계정이 성공적으로 설정되었습니다.</string>
   <string name="account_device_updated_title">계정 장치 업데이트</string>
-  <string name="account_device_updated_message">Jami 계정이 성공적으로 업데이트되었습니다.</string>
+  <string name="account_device_updated_message">白い熊 GNU Jami 계정이 성공적으로 업데이트되었습니다.</string>
   <string name="account_cannot_be_updated_message">계정을 업데이트하는 중 오류가 발생했습니다. 계정 비밀번호를 확인하십시오.</string>
   <string name="account_sip_success_title">SIP 계정 등록됨</string>
   <string name="account_sip_success_message">SIP 계정이 성공적으로 등록되었습니다.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">고급 설정</string>
   <string name="account_tv_add_contact">연락처 추가</string>
   <string name="account_tv_advanced_settings">일반 설정 변경</string>
-  <string name="account_tv_about">Jami에 관하여</string>
+  <string name="account_tv_about">白い熊 GNU Jami에 관하여</string>
   <string name="tv_about_version">버전</string>
   <string name="tv_about_license">라이선스</string>
   <string name="tv_about_author">저작권</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">다른 장치에서 연결</string>
   <string name="account_link_button">네트워크에서 연결</string>
   <string name="account_link_archive_button">백업에서 연결</string>
-  <string name="account_new_button">Jami 계정 생성</string>
+  <string name="account_new_button">白い熊 GNU Jami 계정 생성</string>
   <string name="account_link_export_button">새로운 장치를 연결</string>
   <string name="account_link_show_button">%d 더 많은 연결된 장치를 표시</string>
   <string name="account_link_hide_button">연결된 장치를 숨기</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">오프라인</string>
   <string name="account_status_error">오류</string>
   <!--Create account-->
-  <string name="account_creation_home">Jami에 오신 것을 환영합니다</string>
+  <string name="account_creation_home">白い熊 GNU Jami에 오신 것을 환영합니다</string>
   <string name="account_creation_profile">프로필 만들기</string>
-  <string name="account_creation_ring">Jami 계정을 생성하세요</string>
+  <string name="account_creation_ring">白い熊 GNU Jami 계정을 생성하세요</string>
   <string name="account_sip_cannot_be_registered">SIP 계정을 등록하는 중 오류가 발생했습니다.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">프로필 수정</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">잠깐만요</string>
   <string name="revoke_device_wait_message">취소 장치</string>
   <string name="rename_device_title">이 장치의 이름을 바꾸</string>
-  <string name="rename_device_message">Jami 계정에서 이 기기를 식별할 기기 이름을 입력하십시오</string>
+  <string name="rename_device_message">白い熊 GNU Jami 계정에서 이 기기를 식별할 기기 이름을 입력하십시오</string>
   <string name="rename_device_button">이름 변경 장치</string>
   <string name="account_rename_device_hint">새로운 장치 이름을 선택</string>
   <string name="account_device_name_empty">기기 이름은 비워 둘 수 없습니다.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">기기 ID</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">이 형식은 지원되지 않습니다.</string>
-  <string name="account_link_info">새 기기의 Jami 앱에서 QR 코드를 스캔하거나 인증 코드를 수동으로 입력하십시오.</string>
+  <string name="account_link_info">새 기기의 白い熊 GNU Jami 앱에서 QR 코드를 스캔하거나 인증 코드를 수동으로 입력하십시오.</string>
   <string name="account_link_device_title">새로운 장치를 연결</string>
   <string name="account_link_password">이 계정은 비밀번호로 암호화되어 있습니다. 인증 코드를 생성하려면 비밀번호를 입력하십시오.</string>
   <string name="account_link_generate_button">생성</string>
   <string name="account_link_time_valid">인증 코드가 무효화됩니다: %1$s.</string>
-  <string name="account_link_device_info">QR 코드 또는 인증 코드를 표시하려면 다른 Jami 앱에서 “새 기기 연결”을 선택하십시오.</string>
+  <string name="account_link_device_info">QR 코드 또는 인증 코드를 표시하려면 다른 白い熊 GNU Jami 앱에서 “새 기기 연결”을 선택하십시오.</string>
   <string name="account_generate_export_device">다른 기기에서</string>
-  <string name="account_generate_export_info">Jami를 설치하고 실행하십시오. “다른 기기에서 가져오기”를 선택하고 QR 코드를 스캔하십시오. 또는 PIN 코드를 수동으로 입력하십시오.</string>
+  <string name="account_generate_export_info">白い熊 GNU Jami를 설치하고 실행하십시오. “다른 기기에서 가져오기”를 선택하고 QR 코드를 스캔하십시오. 또는 PIN 코드를 수동으로 입력하십시오.</string>
   <string name="content_description_qr_generated">계정 QR 코드</string>
   <string name="account_generate_export_invalid">인증 코드가 더 이상 유효하지 않습니다.\n비밀번호를 입력하고 새 기기를 연결하기 위해 다른 코드를 생성하십시오.</string>
   <string name="account_generate_export_invalid_two">인증 코드가 더 이상 유효하지 않습니다.\n새 기기를 연결하기 위해 다른 코드를 생성하십시오.</string>
   <string name="help_pin_info">계정이 비밀번호로 암호화된 경우 필요합니다.</string>
   <string name="account_link_device_button">연결</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Jami 계정 잠금 해제</string>
+  <string name="account_biometry_auth_title">白い熊 GNU Jami 계정 잠금 해제</string>
   <string name="account_biometry_auth_message">생체 인식을 사용하여 계정 잠금을 해제하십시오</string>
   <string name="account_biometry_enroll_title">생체 인증을 사용하시겠습니까?</string>
   <string name="account_biometry_enroll_message">기기가 안전한 생체 인증을 지원합니다.
-생체 또는 기기 인증은 Jami 계정에 대한 로컬 접근 잠금을 해제하는 편리한 방법을 추가합니다. 여전히 비밀번호를 사용할 수 있습니다.</string>
+생체 또는 기기 인증은 白い熊 GNU Jami 계정에 대한 로컬 접근 잠금을 해제하는 편리한 방법을 추가합니다. 여전히 비밀번호를 사용할 수 있습니다.</string>
   <string name="account_biometry_enroll_accept">생체 인증 사용</string>
   <string name="no_thanks">괜찮습니다</string>
-  <string name="account_biometry_enroll_auth_title">Jami 계정에 인증 추가</string>
+  <string name="account_biometry_enroll_auth_title">白い熊 GNU Jami 계정에 인증 추가</string>
   <string name="account_biometry_enroll_auth_message">비밀번호의 대안으로 안전한 생체 또는 기기 인증을 추가하십시오</string>
   <string name="account_auth_error">인증 오류: %1$s</string>
   <string name="account_auth_success">인증 성공됨</string>

@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">கணக்கை சேர்க்கவும்</string>
   <string name="add_sip_account_title">SIP கணக்கை சேர்க்கவும்</string>
-  <string name="ring_account_default_name">ஜாமி கணக்கு %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami கணக்கு %1$s</string>
   <string name="prompt_alias">அனிமேஷன்</string>
   <string name="prompt_hostname">ஹோஸ்ட் பெயர்</string>
   <string name="prompt_username">பயனர் பெயர்</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">கணக்கை புதுப்பித்தல்</string>
   <string name="dialog_wait_update_details">தயவு செய்து உங்கள் புதிய கணக்கு புதுப்பிக்கப்படும் வரை காத்திருங்கள்.</string>
   <string name="account_type_ip2ip">ஐபி கணக்கு</string>
-  <string name="help_ring">ஜாமி கணக்குகள், முழுமையாக பரவலாகப் பரவலாக உள்ள நெட்வொர்க்குகள் மூலம் பாதுகாப்பாக, ஒருவருக்கொருவர் தொடர்பு கொள்ள உங்களை அனுமதிக்கின்றன.</string>
+  <string name="help_ring">白い熊 GNU Jami கணக்குகள், முழுமையாக பரவலாகப் பரவலாக உள்ள நெட்வொர்க்குகள் மூலம் பாதுகாப்பாக, ஒருவருக்கொருவர் தொடர்பு கொள்ள உங்களை அனுமதிக்கின்றன.</string>
   <string name="help_sip_title">SIP கணக்கை சேர்க்கவும்</string>
   <!--Strings related to account deletion-->
   <string name="account_delete_dialog_message">இந்த நடவடிக்கை திரும்பப் பெற முடியாது.</string>
@@ -120,10 +120,10 @@
   <string name="account_export_file">காப்பு கணக்கு</string>
   <string name="account_export_file_summary">பின்னர் மீட்டெடுக்க உங்கள் சாதனத்தில் உங்கள் கணக்கை காப்புப் பிரதி எடுக்கவும்.</string>
   <string name="account_enter_password">கடவுச்சொல்லை உள்ளிடவும்</string>
-  <string name="account_contact_me">ஜாமி மீது என்னை தொடர்பு!</string>
+  <string name="account_contact_me">白い熊 GNU Jami மீது என்னை தொடர்பு!</string>
   <string name="update_account">கணக்கை புதுப்பிக்கவும்</string>
-  <string name="account_migration">உங்கள் ஜாமி கணக்கை புதுப்பிக்க முடியும். தயவுசெய்து உங்கள் கடவுச்சொல்லை உள்ளிடவும்.</string>
-  <string name="ring_account">ஜாமி கணக்கு</string>
+  <string name="account_migration">உங்கள் 白い熊 GNU Jami கணக்கை புதுப்பிக்க முடியும். தயவுசெய்து உங்கள் கடவுச்சொல்லை உள்ளிடவும்.</string>
+  <string name="ring_account">白い熊 GNU Jami கணக்கு</string>
   <string name="sip_account">SIP கணக்கு</string>
   <string name="ring_account_identity">அடையாளம்</string>
   <string name="account_migration_title_dialog">கணக்கு இடம்பெயர்வு</string>
@@ -138,7 +138,7 @@
   <string name="account_tv_advance_settings_header">மேம்பட்ட அமைப்புகள்</string>
   <string name="account_tv_add_contact">தொடர்பு சேர்க்கவும்</string>
   <string name="account_tv_advanced_settings">பொது அமைப்பை மாற்றவும்</string>
-  <string name="account_tv_about">ஜாமி பற்றி</string>
+  <string name="account_tv_about">白い熊 GNU Jami பற்றி</string>
   <string name="tv_about_version">பதிப்பு</string>
   <string name="tv_about_license">உரிமம்</string>
   <string name="tv_about_author">பதிப்புரிமை</string>
@@ -146,7 +146,7 @@
   <string name="account_link_device">மற்றொரு சாதனத்திலிருந்து இணைக்கவும்</string>
   <string name="account_link_button">நெட்வொர்க்கிலிருந்து இணைப்பு</string>
   <string name="account_link_archive_button">காப்பு இருந்து இணைக்கவும்</string>
-  <string name="account_new_button">ஜாமி கணக்கை உருவாக்கவும்</string>
+  <string name="account_new_button">白い熊 GNU Jami கணக்கை உருவாக்கவும்</string>
   <string name="account_link_export_button">புதிய சாதனத்தை இணைக்கவும்</string>
   <string name="account_link_show_button">%d இணைக்கப்பட்ட சாதனத்தை காட்டவும்</string>
   <string name="account_link_hide_button">இணைக்கப்பட்ட சாதனத்தை மறைக்கவும்</string>
@@ -174,9 +174,9 @@
   <string name="account_status_offline">ஆஃப்லைன்</string>
   <string name="account_status_error">தவறு</string>
   <!--Create account-->
-  <string name="account_creation_home">ஜாமிக்கு வரவேற்கிறோம்</string>
+  <string name="account_creation_home">白い熊 GNU Jamiக்கு வரவேற்கிறோம்</string>
   <string name="account_creation_profile">உங்கள் சுயவிவரத்தை உருவாக்கவும்</string>
-  <string name="account_creation_ring">உங்கள் ஜாமி கணக்கை உருவாக்கவும்</string>
+  <string name="account_creation_ring">உங்கள் 白い熊 GNU Jami கணக்கை உருவாக்கவும்</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">உறுதிப்படுத்த கடவுச்சொல்லை உள்ளிடவும்</string>
