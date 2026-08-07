@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">એકાઉન્ટ ઉમેરો</string>
   <string name="add_sip_account_title">SIP એકાઉન્ટ ઉમેરો</string>
-  <string name="ring_account_default_name">જમ્મી એકાઉન્ટ %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami એકાઉન્ટ %1$s</string>
   <string name="prompt_alias">અલીયા</string>
   <string name="prompt_hostname">હોસ્ટનામ</string>
   <string name="prompt_username">વપરાશકર્તા નામ</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">એકાઉન્ટને અપડેટ કરવું</string>
   <string name="dialog_wait_update_details">કૃપા કરીને તમારા નવા એકાઉન્ટને અપડેટ કરવામાં આવે ત્યાં સુધી રાહ જુઓ.</string>
   <string name="account_type_ip2ip">આઇપી એકાઉન્ટ</string>
-  <string name="help_ring">એક જેમી એકાઉન્ટ તમને સંપૂર્ણ રીતે વહેંચાયેલ નેટવર્ક દ્વારા પીઅર-ટુ-પીઅર લોકો સુધી સુરક્ષિત રીતે પહોંચવાની મંજૂરી આપે છે.</string>
+  <string name="help_ring">એક 白い熊 GNU Jami એકાઉન્ટ તમને સંપૂર્ણ રીતે વહેંચાયેલ નેટવર્ક દ્વારા પીઅર-ટુ-પીઅર લોકો સુધી સુરક્ષિત રીતે પહોંચવાની મંજૂરી આપે છે.</string>
   <string name="help_sip_title">SIP એકાઉન્ટ ઉમેરો</string>
   <!--Strings related to account deletion-->
   <string name="account_delete_dialog_message">આ કાર્યવાહીને રદ કરી શકાતી નથી.</string>
@@ -120,10 +120,10 @@
   <string name="account_export_file">બેકઅપ એકાઉન્ટ</string>
   <string name="account_export_file_summary">તમારા ઉપકરણ પર તમારા એકાઉન્ટનું બેકઅપ લો જેથી તે પછીથી પુનઃસ્થાપિત થઈ શકે.</string>
   <string name="account_enter_password">પાસવર્ડ દાખલ કરો</string>
-  <string name="account_contact_me">જમી પર મને સંપર્ક કરો!</string>
+  <string name="account_contact_me">白い熊 GNU Jami પર મને સંપર્ક કરો!</string>
   <string name="update_account">એકાઉન્ટ અપડેટ કરો</string>
-  <string name="account_migration">તમારું જમ્મી એકાઉન્ટ અપડેટ કરી શકાય છે. કૃપા કરીને તમારો પાસવર્ડ દાખલ કરો.</string>
-  <string name="ring_account">જમી એકાઉન્ટ</string>
+  <string name="account_migration">તમારું 白い熊 GNU Jami એકાઉન્ટ અપડેટ કરી શકાય છે. કૃપા કરીને તમારો પાસવર્ડ દાખલ કરો.</string>
+  <string name="ring_account">白い熊 GNU Jami એકાઉન્ટ</string>
   <string name="sip_account">એસઆઈપી ખાતું</string>
   <string name="ring_account_identity">ઓળખ</string>
   <string name="account_migration_title_dialog">એકાઉન્ટ સ્થળાંતર</string>
@@ -138,7 +138,7 @@
   <string name="account_tv_advance_settings_header">અદ્યતન સેટિંગ્સ</string>
   <string name="account_tv_add_contact">સંપર્ક ઉમેરો</string>
   <string name="account_tv_advanced_settings">સામાન્ય સેટિંગ્સ બદલો</string>
-  <string name="account_tv_about">જમી વિશે</string>
+  <string name="account_tv_about">白い熊 GNU Jami વિશે</string>
   <string name="tv_about_version">આવૃત્તિ</string>
   <string name="tv_about_license">લાઇસન્સ</string>
   <string name="tv_about_author">લેખક અધિકારો</string>
@@ -146,7 +146,7 @@
   <string name="account_link_device">અન્ય ઉપકરણથી કનેક્ટ કરો</string>
   <string name="account_link_button">નેટવર્કથી કનેક્ટ</string>
   <string name="account_link_archive_button">બેકઅપ થી કનેક્ટ</string>
-  <string name="account_new_button">Jami એકાઉન્ટ બનાવો</string>
+  <string name="account_new_button">白い熊 GNU Jami એકાઉન્ટ બનાવો</string>
   <string name="account_link_export_button">લિંક નવી ઉપકરણ</string>
   <string name="account_link_show_button">%d વધુ જોડાયેલ ઉપકરણ બતાવો</string>
   <string name="account_link_hide_button">જોડાયેલ ઉપકરણ છુપાવો</string>
@@ -174,9 +174,9 @@
   <string name="account_status_offline">ઑફલાઇન</string>
   <string name="account_status_error">ભૂલ</string>
   <!--Create account-->
-  <string name="account_creation_home">જમીમાં આપનું સ્વાગત છે</string>
+  <string name="account_creation_home">白い熊 GNU Jamiમાં આપનું સ્વાગત છે</string>
   <string name="account_creation_profile">તમારી પ્રોફાઇલ બનાવો</string>
-  <string name="account_creation_ring">તમારું જમ્મી એકાઉન્ટ બનાવો</string>
+  <string name="account_creation_ring">તમારું 白い熊 GNU Jami એકાઉન્ટ બનાવો</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">ખાતરી કરવા માટે પાસવર્ડ દાખલ કરો</string>

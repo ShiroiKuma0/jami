@@ -11,9 +11,9 @@
   <string name="no_browser_app_installed">വെബ് ബ്രൗസർ ഒന്നും കാണാനില്ല, ഈ പേജ് കാണുവാൻ ഒന്ന് ഇൻസ്റ്റാൾ ചെയ്യുക.</string>
   <string name="website_chooser_title">വെബ്സൈറ്റ് കാണുക.</string>
   <string name="license">ഈ സോഫ്റ്റ്‍വെയർ യാതൊരു തരത്തിലുള്ള ഗ്യാരണ്ടിയും ഇല്ലാതെ \"അത് പോലെ തന്നെ\" നൽകുന്നു. വിശദാംശങ്ങൾക്കായി, <u>GNU ജനറൽ പബ്ലിക് ലൈസൻസ് പതിപ്പ് 3 അല്ലെങ്കിൽ അതിനുശേഷമുള്ളത്</u> കാണുക</string>
-  <string name="description">ജാമി എന്നത് സാർവത്രിക ആശയവിനിമയത്തിനുള്ള ഒരു സ്വതന്ത്ര സോഫ്റ്റ്‍വെയർ ആണ്. അത് ഉപയോക്താക്കളുടെ സ്വാതന്ത്ര്യവും സ്വകാര്യതയും ബഹുമാനിക്കുന്നു.</string>
+  <string name="description">白い熊 GNU Jami എന്നത് സാർവത്രിക ആശയവിനിമയത്തിനുള്ള ഒരു സ്വതന്ത്ര സോഫ്റ്റ്‍വെയർ ആണ്. അത് ഉപയോക്താക്കളുടെ സ്വാതന്ത്ര്യവും സ്വകാര്യതയും ബഹുമാനിക്കുന്നു.</string>
   <string name="credits">ക്രെഡിറ്റുകൾ</string>
-  <string name="pip_title">ജാമി കോൺഫെറൻസ്</string>
+  <string name="pip_title">白い熊 GNU Jami കോൺഫെറൻസ്</string>
   <string name="call_service_description">താങ്കളുടെ കോളുകൾ ഫോർഗ്രൗണ്ടിൽ പ്രവർത്തിക്കുന്നതിന് ഈ സേവനം ആവശ്യമാണ്. കോളുകളുടെ സമയത്ത് മാത്രമേ ഇതു പ്രവർത്തിക്കൂ.</string>
   <string name="data_transfer_service_description">ഫയൽ കൈമാറ്റങ്ങളുടെ സമയത്ത് സ്ഥിരമായ അറിയിപ്പുകൾ പ്രദർശിപ്പിക്കുന്നതിന് ഈ സേവനം ആവശ്യമാണ്. ഫയൽ കൈമാറ്റങ്ങളുടെ സമയത്ത് മാത്രമേ ഇത് പ്രവർത്തിക്കൂ.</string>
   <!--About dialog-->
@@ -37,7 +37,7 @@
   <string name="menu_item_account_settings">അക്കൌണ്ട് ക്രമീകരണങ്ങൾ</string>
   <string name="menu_item_extension_list">എക്സ്റ്റൻഷനുകളുടെ സെറ്റിങ്സ്</string>
   <string name="menu_item_share">എന്റെ അക്കൌണ്ട് പങ്കുവെക്കുക</string>
-  <string name="menu_item_about">ജാമിയെ കുറിച്ച്</string>
+  <string name="menu_item_about">白い熊 GNU Jamiയെ കുറിച്ച്</string>
   <string name="video_setting_title">വീഡിയോ ക്രമീകരണങ്ങൾ</string>
   <!--Dialing Fragment-->
   <string name="dial_number">നമ്പർ ഡയൽ ചെയ്യുക</string>
@@ -74,7 +74,7 @@
   <string name="notif_channel_background_service_descr">ഏതു സമയത്തും കോളുകളും സന്ദേശങ്ങളും സ്വീകരിക്കാൻ അനുവദിക്കുന്നു.</string>
   <string name="notif_group_calls">വിളി</string>
   <string name="notif_inprogress_group_call">കോൾ നടക്കുന്നു</string>
-  <string name="notif_background_service">ജാമി ഇപ്പോൾ ബാക്ക്ഗ്രൗണ്ടിൽ പ്രവർത്തിക്കുന്നു</string>
+  <string name="notif_background_service">白い熊 GNU Jami ഇപ്പോൾ ബാക്ക്ഗ്രൗണ്ടിൽ പ്രവർത്തിക്കുന്നു</string>
   <string name="notif_mark_as_read">വായിക്കുന്നതു പോലെ അടയാളപ്പെടുത്തുക</string>
   <string name="notif_dismiss">വിസമ്മതിക്കുക</string>
   <string name="notif_reply">മറുപടി</string>
@@ -101,7 +101,7 @@
   <string name="hist_in_call">%1$s എന്ന പേരിൽ വരുന്ന കോൾ</string>
   <string name="hist_out_call">%1$s എന്നതിന്റെ ഔട്ട്ഗോയിംഗ് കോൾ</string>
   <string name="call_duration">%s നീണ്ടുനിന്നു</string>
-  <string name="start_error_title">ജാമി തുറക്കാൻ കഴിയുന്നില്ല</string>
+  <string name="start_error_title">白い熊 GNU Jami തുറക്കാൻ കഴിയുന്നില്ല</string>
   <string name="action_call_accept">കോൾ സ്വീകരിക്കുക</string>
   <string name="action_call_accept_audio">ഓഡിയൊ വഴി സ്വീകരിക്കുക</string>
   <string name="action_call_accept_video">വീഡിയൊ വഴി സ്വീകരിക്കുക</string>
@@ -122,7 +122,7 @@
   <string name="write_a_message">സന്ദേശം എഴുതുക</string>
   <string name="scan_qr">ക്യുആർ കോഡ് സ്കാൻ ചെയ്യുക</string>
   <string name="qr_code">ക്യുആർ കോഡ്</string>
-  <string name="qr_code_not_contact">ഒരു ജാമി കോണ്ടാക്ടിന്റെ QR കോഡല്ല</string>
+  <string name="qr_code_not_contact">ഒരു 白い熊 GNU Jami കോണ്ടാക്ടിന്റെ QR കോഡല്ല</string>
   <string name="new_group">പുതിയ ഗ്രൂപ്പ് നിർമ്മിക്കുക</string>
   <string name="ab_action_flipcamera">ഫ്ലിപ്പ് ക്യാമറ</string>
   <string name="ab_action_hidepreview">പ്രിവ്യൂ മറയ്ക്കുക</string>
@@ -152,11 +152,11 @@
   <string name="ringtone_error_size_too_big">ഈ ഫയൽ വളരെ വലുതാണ്. പരമാവധി വലുപ്പം %1$dkB ആണ്.</string>
   <string name="ringtone_custom_prompt">ഇഷ്ടാനുസൃത റിംഗ്ടോൺ സജ്ജമാക്കുക</string>
   <string name="ringtone_custom_label">കസ്റ്റംസ്</string>
-  <string name="ringtone_jami_tones">ജാമി റിങ്ടോണുകൾ</string>
+  <string name="ringtone_jami_tones">白い熊 GNU Jami റിങ്ടോണുകൾ</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">ജാമിക്ക് “Read contacts” അനുമതി ആവശ്യമാണ്. ഈ സവിശേഷത ഉപയോഗിക്കാനായി ഡിവൈസ് സെറ്റിങ്സിൽ അതു സാധ്യമാക്കുക.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jamiക്ക് “Read contacts” അനുമതി ആവശ്യമാണ്. ഈ സവിശേഷത ഉപയോഗിക്കാനായി ഡിവൈസ് സെറ്റിങ്സിൽ അതു സാധ്യമാക്കുക.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">ജാമിക്ക് “Write call log” അനുമതി ആവശ്യമാണ്. ഈ സവിശേഷത ഉപയോഗിക്കാനായി ഡിവൈസ് സെറ്റിങ്സിൽ അതു സാധ്യമാക്കുക.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jamiക്ക് “Write call log” അനുമതി ആവശ്യമാണ്. ഈ സവിശേഷത ഉപയോഗിക്കാനായി ഡിവൈസ് സെറ്റിങ്സിൽ അതു സാധ്യമാക്കുക.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_open_settings">തുറന്ന ക്രമീകരണങ്ങൾ</string>
   <string name="permission_dialog_later">പിന്നീട്</string>
@@ -219,7 +219,7 @@
   <string name="video_not_found">വീഡിയോ ഫയൽ കാണുന്നില്ല</string>
   <string name="conversation_preference_color">സംഭാഷണ നിറം</string>
   <string name="conversation_preference_emoji">സംഭാഷണ ഇമോജി</string>
-  <string name="conversation_type_contact">ജാമി കോൺടാക്ട്</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami കോൺടാക്ട്</string>
   <string name="conversation_type_private">സ്വകാര്യ</string>
   <string name="conversation_type_group">ഗ്രൂപ്പ്</string>
   <string name="conversation_contact_invited">%1$s സംഭാഷണത്തിൽ ചേരാനായി ക്ഷണിക്കപ്പെട്ടിട്ടുണ്ട്.</string>
@@ -251,11 +251,11 @@
   <string name="prompt_new_password">പുതിയ പാസ്വേഡ്</string>
   <string name="prompt_new_password_optional">പുതിയ പാസ്വേഡ് (ഓപ്ഷണൽ)</string>
   <string name="prompt_new_password_repeat">പുതിയ പാസ്വേഡ് സ്ഥിരീകരിക്കുക</string>
-  <string name="account_create_title">ജാമി അക്കൌണ്ട് സൃഷ്ടിക്കുക</string>
+  <string name="account_create_title">白い熊 GNU Jami അക്കൌണ്ട് സൃഷ്ടിക്കുക</string>
   <string name="prompt_new_username">പുതിയ ഉപയോക്തൃനാമം നൽകുക</string>
   <string name="prompt_hint_username">ഉപയോക്തൃനാമം</string>
-  <string name="help_password_choose">ജാമി അക്കൌണ്ട് പരിരക്ഷിക്കുന്നതിന് നിങ്ങള് ക്ക് ഓർമ്മയുണ്ടാകുന്ന ശക്തമായ പാസ്വേഡ് തിരഞ്ഞെടുക്കുക.</string>
-  <string name="help_password_enter">നിങ്ങളുടെ പ്രധാന ജാമി അക്കൌണ്ട് പാസ്വേഡ് നൽകുക.</string>
+  <string name="help_password_choose">白い熊 GNU Jami അക്കൌണ്ട് പരിരക്ഷിക്കുന്നതിന് നിങ്ങള് ക്ക് ഓർമ്മയുണ്ടാകുന്ന ശക്തമായ പാസ്വേഡ് തിരഞ്ഞെടുക്കുക.</string>
+  <string name="help_password_enter">നിങ്ങളുടെ പ്രധാന 白い熊 GNU Jami അക്കൌണ്ട് പാസ്വേഡ് നൽകുക.</string>
   <string name="help_server_enter">മാനേജ്മെന്റ് സെർവറിന്റെ URL നൽകുക.</string>
   <string name="pin_copied">ഒതന്റിക്കേഷൻ കോഡ് ക്ലിപ്ബോർഡിലേക്ക് കോപ്പി ചെയ്തു.</string>
   <string name="copied_clipboard">ക്ലിപ്‍ബോർഡിലേക്ക് കോപ്പി ചെയ്യുക.</string>
@@ -287,7 +287,7 @@
   <string name="devices">ബന്ധിപ്പിച്ച ഉപകരണങ്ങൾ</string>
   <string name="total_devices">മൊത്തം ഉപകരണങ്ങള്: </string>
   <!--Share fragment-->
-  <string name="share_message">ജാമിയുമായി ഈ കോഡ് സ്കാൻ ചെയ്യുക</string>
+  <string name="share_message">白い熊 GNU Jamiയുമായി ഈ കോഡ് സ്കാൻ ചെയ്യുക</string>
   <string name="share_message_no_account">പങ്കുവയ്ക്കാൻ ഒരു അക്കൌണ്ട് തിരഞ്ഞെടുക്കുക.</string>
   <string name="share_your_account_information">എന്റെ ബന്ധപ്പെടാനുള്ള വിവരങ്ങൾ പങ്കുവെക്കുക</string>
   <string name="share_contact_information">കോണ്ടാക്റ്റ് ചെയ്യാനുള്ള വിവരങ്ങൾ പങ്കിടുക</string>
@@ -426,7 +426,7 @@
   <string name="dialog_hint_description">വിവരണം</string>
   <string name="picker_title">കോൺടാക്റ്റുകൾ തിരഞ്ഞെടുക്കുക</string>
   <string name="picker_btn">കോൺടാക്റ്റുകൾ തിരഞ്ഞെടുക്കുക</string>
-  <string name="bottomsheet_contact">ജാമി %1$s നെ ബന്ധപ്പെടുക</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami %1$s നെ ബന്ധപ്പെടുക</string>
   <string name="bottomsheet_block">അംഗത്തെ തടയുക</string>
   <string name="bottomsheet_unblock">അംഗത്തിനുള്ള തടസം മാറ്റുക</string>
   <string name="group_admin">അഡ്മിൻ</string>
@@ -436,15 +436,15 @@
   <string name="jami_id_validate">ഉപയോക്തൃനാമം രജിസ്റ്റർ ചെയ്യുക</string>
   <string name="jami_id_choose_username">ഒരു ഉപയോക്തൃനാമം തിരഞ്ഞെടുക്കുക</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">ജാമിയിൽ സ്വാഗതം</string>
-  <string name="welcome_jami_description">കൂടുതൽ എളുപ്പത്തിൽ ബന്ധപ്പെടുവാനായി താങ്കളുടെ ജാമി ഐഡന്റിഫയർ പങ്കിടു!</string>
+  <string name="welcome_jami_title">白い熊 GNU Jamiയിൽ സ്വാഗതം</string>
+  <string name="welcome_jami_description">കൂടുതൽ എളുപ്പത്തിൽ ബന്ധപ്പെടുവാനായി താങ്കളുടെ 白い熊 GNU Jami ഐഡന്റിഫയർ പങ്കിടു!</string>
   <!--Conversation details-->
   <string name="details">വിശദാംശങ്ങള്</string>
   <string name="swarm_type">സംഭാഷണ ടൈപ്പ്</string>
   <string name="Private">സ്വകാര്യ</string>
   <string name="mute_conversation">നിശബ്ദ സംഭാഷണം</string>
   <!--Donation-->
-  <string name="donation_card_description">താങ്കൾ ജാമി ഉപയോഗിക്കാൻ ഇഷ്ടപ്പെടുന്നുണ്ടെങ്കിൽ, ഞങ്ങളുടെ ദൗത്യത്തിൽ വിശ്വസിക്കുന്നുണ്ടെങ്കിൽ, ഈ സംരഭത്തിലേക്കു സംഭാവന ചെയ്യുവാൻ താത്പര്യമുണ്ടോ?</string>
+  <string name="donation_card_description">താങ്കൾ 白い熊 GNU Jami ഉപയോഗിക്കാൻ ഇഷ്ടപ്പെടുന്നുണ്ടെങ്കിൽ, ഞങ്ങളുടെ ദൗത്യത്തിൽ വിശ്വസിക്കുന്നുണ്ടെങ്കിൽ, ഈ സംരഭത്തിലേക്കു സംഭാവന ചെയ്യുവാൻ താത്പര്യമുണ്ടോ?</string>
   <string name="donation_card_not_now">ഇപ്പോൾ വേണ്ട</string>
   <string name="donation_donate">സംഭാവന ചെയ്യുക</string>
   <!--Extension-->

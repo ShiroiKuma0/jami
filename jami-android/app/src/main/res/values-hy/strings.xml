@@ -8,9 +8,9 @@
   <string name="version_section">Վարկած</string>
   <string name="website_chooser_title">Տեսնել կայքը օգտագործելով...</string>
   <string name="license">Այս ծրագրային ապահովումը տրամադրվում է \"ինչպես կա\", առանց որեւէ երաշխիքի: Մասնավորապես, տես GNU General Public License տարբերակը 3 կամ ավելի ուշ</string>
-  <string name="description">Jami- ն ազատ ծրագրային ապահովում է համընդհանուր հաղորդակցության համար, որը հարգում է օգտատերերի ազատությունները եւ գաղտնիությունը:</string>
+  <string name="description">白い熊 GNU Jami- ն ազատ ծրագրային ապահովում է համընդհանուր հաղորդակցության համար, որը հարգում է օգտատերերի ազատությունները եւ գաղտնիությունը:</string>
   <string name="credits">Վարկեր</string>
-  <string name="pip_title">Ջամիի համաժողով</string>
+  <string name="pip_title">白い熊 GNU Jamiի համաժողով</string>
   <string name="call_service_description">Այս ծառայությունը անհրաժեշտ է ձեր զանգերի առաջատարում պահելու համար: Այն գործում է միայն զանգերի ժամանակ:</string>
   <string name="data_transfer_service_description">Այս ծառայությունը անհրաժեշտ է ֆայլերի փոխանցումների ժամանակ մշտական ծանուցումներ ցուցադրելու համար: Այն գործում է միայն ֆայլերի փոխանցումների ժամանակ:</string>
   <!--About dialog-->
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">Կարգավորումներ</string>
   <string name="menu_item_account_settings">Հաշվեի կարգավորումները</string>
   <string name="menu_item_share">Կիսվեք իմ հաշիվով</string>
-  <string name="menu_item_about">Ջամիի մասին</string>
+  <string name="menu_item_about">白い熊 GNU Jamiի մասին</string>
   <string name="video_setting_title">Տեսանյութերի կարգավորումները</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -184,7 +184,7 @@
   <string name="conversation_reply_you">Դուք</string>
   <string name="conversation_preference_color">Զրույցի գույնը</string>
   <string name="conversation_preference_emoji">Զրույցի էմոգի</string>
-  <string name="conversation_type_contact">Ջամիի շփումը</string>
+  <string name="conversation_type_contact">白い熊 GNU Jamiի շփումը</string>
   <string name="conversation_type_private">Անձնական</string>
   <string name="conversation_search_hint">Հետազոտական զրույց</string>
   <string name="audio_recording_in_progress">Գրանցում...</string>
@@ -199,11 +199,11 @@
   <string name="prompt_new_password">Նոր գաղտնաբառ</string>
   <string name="prompt_new_password_optional">Նոր գաղտնաբառ (ընտրանքային)</string>
   <string name="prompt_new_password_repeat">Համոզվեք նոր գաղտնաբառը</string>
-  <string name="account_create_title">Ստեղծեք Jami հաշիվ</string>
+  <string name="account_create_title">Ստեղծեք 白い熊 GNU Jami հաշիվ</string>
   <string name="prompt_new_username">Նշեք նոր օգտատերու անուն</string>
   <string name="prompt_hint_username">Օգտագործողի անունը</string>
-  <string name="help_password_choose">Ընտրեք ուժեղ գաղտնաբառ, որը կհիշեք ձեր Ջամի հաշիվը պաշտպանելու համար:</string>
-  <string name="help_password_enter">Տեղադրել ձեր հիմնական Ջամի հաշիվի գաղտնաբառը:</string>
+  <string name="help_password_choose">Ընտրեք ուժեղ գաղտնաբառ, որը կհիշեք ձեր 白い熊 GNU Jami հաշիվը պաշտպանելու համար:</string>
+  <string name="help_password_enter">Տեղադրել ձեր հիմնական 白い熊 GNU Jami հաշիվի գաղտնաբառը:</string>
   <string name="help_server_enter">Գտեք կառավարման սերվերի URL- ը:</string>
   <string name="copied_clipboard">Պատճենվեց սեղմատախտակին։</string>
   <string name="wizard_next">Հաջորդը</string>
@@ -229,7 +229,7 @@
   <string name="devices">Կապակցված սարքեր</string>
   <string name="total_devices">Համակարգերի ընդհանուր թիվը. </string>
   <!--Share fragment-->
-  <string name="share_message">Սկանիր այս կոդը Ջամիի հետ</string>
+  <string name="share_message">Սկանիր այս կոդը 白い熊 GNU Jamiի հետ</string>
   <string name="share_message_no_account">Խնդրում ենք ընտրել հաշիվ, որը ցանկանում եք կիսել:</string>
   <string name="share_your_account_information">Համագործակցեք իմ կոնտակտային տեղեկություններով</string>
   <string name="share_label">Մասնակից</string>
@@ -335,7 +335,7 @@
   <string name="dialog_hint_description">Բացատրություն</string>
   <string name="picker_title">Ընտրեք կոնտակտները</string>
   <string name="picker_btn">Ընտրեք կոնտակտները</string>
-  <string name="bottomsheet_contact">Հաղորդակցիր Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Հաղորդակցիր 白い熊 GNU Jami\n%1$s</string>
   <string name="bottomsheet_block">Արգելափակել անդամին</string>
   <string name="bottomsheet_unblock">Ապաարգելափակել անդամին</string>
   <string name="group_member_blocked">Արգելափակված</string>
@@ -344,15 +344,15 @@
   <string name="jami_id_validate">Գրանցել օգտվողի անունը</string>
   <string name="jami_id_choose_username">Ընտրեք օգտատերու անուն</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Բարի գալուստ Ջամի:</string>
-  <string name="welcome_jami_description">Համօգտագործեք ձեր Jami նույնացուցիչը՝ ավելի հեշտ կապ հաստատելու համար։</string>
+  <string name="welcome_jami_title">Բարի գալուստ 白い熊 GNU Jami:</string>
+  <string name="welcome_jami_description">Համօգտագործեք ձեր 白い熊 GNU Jami նույնացուցիչը՝ ավելի հեշտ կապ հաստատելու համար։</string>
   <!--Conversation details-->
   <string name="details">Մասնավորապես</string>
   <string name="swarm_type">Զրույցի տեսակ</string>
   <string name="Private">Անձնական</string>
   <string name="mute_conversation">Լռական զրույց</string>
   <!--Donation-->
-  <string name="donation_card_description">Եթե ձեզ դուր է գալիս օգտագործել Jami-ն և հավատում եք մեր առաքելությանը, ցանկանո՞ւմ եք նվիրատվություն կատարել։</string>
+  <string name="donation_card_description">Եթե ձեզ դուր է գալիս օգտագործել 白い熊 GNU Jami-ն և հավատում եք մեր առաքելությանը, ցանկանո՞ւմ եք նվիրատվություն կատարել։</string>
   <string name="donation_card_not_now">Ոչ հիմա</string>
   <string name="donation_donate">Նվիրաբերել</string>
   <!--Extension-->

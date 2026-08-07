@@ -29,7 +29,7 @@
     <string name="sk_exim_export">Export</string>
 
     <!-- categories -->
-    <string name="sk_cat_accounts">Accounts (Jami archives)</string>
+    <string name="sk_cat_accounts">Accounts (白い熊 GNU Jami archives)</string>
     <string name="sk_cat_chat_texts">Chats — messages &amp; history</string>
     <string name="sk_cat_chat_files">Chats — received &amp; sent files</string>
     <string name="sk_cat_fonts">Fonts &amp; sizes</string>
@@ -114,7 +114,7 @@
     <string name="sk_rep_no_space">Not enough free space: %1$s needed, %2$s available.</string>
 
     <!-- account wizard -->
-    <string name="sk_wizard_import">Restore from a 白い熊 Jami export</string>
+    <string name="sk_wizard_import">Restore from a 白い熊 GNU Jami export</string>
     <string name="sk_exim_phase_verify">Verifying archive</string>
     <string name="sk_rep_verified">Verified: %1$d entries, no damage</string>
     <string name="sk_rep_corrupt">DAMAGED: %1$d entries failed verification — do not rely on this backup</string>
