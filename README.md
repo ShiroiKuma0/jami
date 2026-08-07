@@ -22,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260731-01.2026-08-03.g8746fd4b+011`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260731-01.2026-08-06.g5926177b+012`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -250,9 +250,12 @@ recycled**, and the self-restarting callback is gone — it was redundant, since
 indicator's three bounce animations already loop forever on their own. Verified with a contact
 actively typing: **0.5–3.9 wakes/s, against 64/s minutes earlier on the same phone**.
 
-This one is **stock GNU Jami**, not something this fork introduced — the same code is on upstream
-master. It needs only a chatty contact and a few hours of uptime, so it likely affects every Android
-Jami user.
+This one was **stock GNU Jami**, not something this fork introduced — it needed only a chatty contact
+and a few hours of uptime, so it affected every Android Jami user. Found here, filed upstream as
+[Gerrit 35522](https://review.jami.net/c/jami-client-android/+/35522), and **merged into GNU Jami on
+2026-08-07** (`af3fbe15f`). As of `+012` this fork carries no patch of its own for it — it simply runs
+upstream's fix. Listed here because the investigation happened in this fork, not because it is still
+a difference from stock.
 
 ---
 
