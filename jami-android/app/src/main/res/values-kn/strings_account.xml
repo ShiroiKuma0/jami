@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">ಖಾತೆಯನ್ನು ಸೇರಿಸಿ</string>
   <string name="add_sip_account_title">SIP ಖಾತೆಯನ್ನು ಸೇರಿಸಿ</string>
-  <string name="ring_account_default_name">ಜಾಮಿ ಖಾತೆ %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami ಖಾತೆ %1$s</string>
   <string name="prompt_alias">ಅಲಿಯಾಸ್</string>
   <string name="prompt_hostname">ಆತಿಥೇಯ ಹೆಸರು</string>
   <string name="prompt_username">ಬಳಕೆದಾರ ಹೆಸರು</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">ಖಾತೆಯನ್ನು ನವೀಕರಿಸುವುದು</string>
   <string name="dialog_wait_update_details">ದಯವಿಟ್ಟು ನಿಮ್ಮ ಹೊಸ ಖಾತೆಯನ್ನು ನವೀಕರಿಸುವವರೆಗೆ ಕಾಯಿರಿ.</string>
   <string name="account_type_ip2ip">ಐಪಿ ಖಾತೆ</string>
-  <string name="help_ring">ಜಾಮಿ ಖಾತೆಯು ಸಂಪೂರ್ಣ ವಿತರಿಸಿದ ನೆಟ್ವರ್ಕ್ ಮೂಲಕ ಸುರಕ್ಷಿತವಾಗಿ ಪೀರ್-ಟು-ಪೀರ್ ಜನರೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ನಿಮಗೆ ಅನುಮತಿಸುತ್ತದೆ.</string>
+  <string name="help_ring">白い熊 GNU Jami ಖಾತೆಯು ಸಂಪೂರ್ಣ ವಿತರಿಸಿದ ನೆಟ್ವರ್ಕ್ ಮೂಲಕ ಸುರಕ್ಷಿತವಾಗಿ ಪೀರ್-ಟು-ಪೀರ್ ಜನರೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ನಿಮಗೆ ಅನುಮತಿಸುತ್ತದೆ.</string>
   <string name="help_sip_title">SIP ಖಾತೆಯನ್ನು ಸೇರಿಸಿ</string>
   <string name="help_sip">ಅಸ್ತಿತ್ವದಲ್ಲಿರುವ SIP ಖಾತೆ ಕಾನ್ಫಿಗರ್ ಮಾಡಿ</string>
   <string name="create_sip_account">SIP ಖಾತೆ ಕಾನ್ಫಿಗರ್ ಮಾಡಿ</string>
@@ -127,10 +127,10 @@
   <string name="account_export_file">ಬ್ಯಾಕಪ್ ಖಾತೆ</string>
   <string name="account_export_file_summary">ನಿಮ್ಮ ಖಾತೆಯನ್ನು ನಿಮ್ಮ ಸಾಧನದಲ್ಲಿ ಬ್ಯಾಕಪ್ ಮಾಡಿ ನಂತರ ಅದನ್ನು ಮರುಸ್ಥಾಪಿಸಿ.</string>
   <string name="account_enter_password">ಪಾಸ್ವರ್ಡ್ ನಮೂದಿಸಿ</string>
-  <string name="account_contact_me">ಜಾಮಿ ಬಗ್ಗೆ ನನ್ನನ್ನು ಸಂಪರ್ಕಿಸಿ!</string>
+  <string name="account_contact_me">白い熊 GNU Jami ಬಗ್ಗೆ ನನ್ನನ್ನು ಸಂಪರ್ಕಿಸಿ!</string>
   <string name="update_account">ಖಾತೆಯನ್ನು ನವೀಕರಿಸಿ</string>
-  <string name="account_migration">ನಿಮ್ಮ ಜಾಮಿ ಖಾತೆಯನ್ನು ನವೀಕರಿಸಬಹುದು. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪಾಸ್ವರ್ಡ್ ನಮೂದಿಸಿ.</string>
-  <string name="ring_account">ಜಾಮಿ ಖಾತೆ</string>
+  <string name="account_migration">ನಿಮ್ಮ 白い熊 GNU Jami ಖಾತೆಯನ್ನು ನವೀಕರಿಸಬಹುದು. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪಾಸ್ವರ್ಡ್ ನಮೂದಿಸಿ.</string>
+  <string name="ring_account">白い熊 GNU Jami ಖಾತೆ</string>
   <string name="sip_account">ಎಸ್ಐಪಿ ಖಾತೆ</string>
   <string name="ring_account_identity">ಗುರುತಿನ</string>
   <string name="account_migration_title_dialog">ಖಾತೆ ವಲಸೆ</string>
@@ -145,7 +145,7 @@
   <string name="account_tv_advance_settings_header">ಸುಧಾರಿತ ಸೆಟ್ಟಿಂಗ್ಗಳು</string>
   <string name="account_tv_add_contact">ಸಂಪರ್ಕವನ್ನು ಸೇರಿಸಿ</string>
   <string name="account_tv_advanced_settings">ಸಾಮಾನ್ಯ ಸೆಟ್ಟಿಂಗ್ಗಳನ್ನು ಬದಲಾಯಿಸಿ</string>
-  <string name="account_tv_about">ಜಾಮಿ ಬಗ್ಗೆ</string>
+  <string name="account_tv_about">白い熊 GNU Jami ಬಗ್ಗೆ</string>
   <string name="tv_about_version">ಆವೃತ್ತಿ</string>
   <string name="tv_about_license">ಪರವಾನಗಿ</string>
   <string name="tv_about_author">ಲೇಖಕ ಹಕ್ಕುಗಳು</string>
@@ -153,7 +153,7 @@
   <string name="account_link_device">ಮತ್ತೊಂದು ಸಾಧನದಿಂದ ಸಂಪರ್ಕ</string>
   <string name="account_link_button">ನೆಟ್ವರ್ಕ್ನಿಂದ ಸಂಪರ್ಕ</string>
   <string name="account_link_archive_button">ಬ್ಯಾಕ್ಅಪ್ನಿಂದ ಸಂಪರ್ಕ</string>
-  <string name="account_new_button">ಜಾಮಿ ಖಾತೆಯನ್ನು ರಚಿಸಿ</string>
+  <string name="account_new_button">白い熊 GNU Jami ಖಾತೆಯನ್ನು ರಚಿಸಿ</string>
   <string name="account_link_export_button">ಹೊಸ ಸಾಧನ ಲಿಂಕ್</string>
   <string name="account_link_show_button">%d ಹೆಚ್ಚು ಸಂಪರ್ಕಿತ ಸಾಧನವನ್ನು ತೋರಿಸಿ</string>
   <string name="account_link_hide_button">ಸಂಪರ್ಕಿತ ಸಾಧನವನ್ನು ಮರೆಮಾಡಿ</string>
@@ -182,9 +182,9 @@
   <string name="account_status_offline">ಆಫ್ಲೈನ್</string>
   <string name="account_status_error">ದೋಷ</string>
   <!--Create account-->
-  <string name="account_creation_home">ಜಾಮಿಗೆ ಸ್ವಾಗತ</string>
+  <string name="account_creation_home">白い熊 GNU Jamiಗೆ ಸ್ವಾಗತ</string>
   <string name="account_creation_profile">ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಅನ್ನು ರಚಿಸಿ</string>
-  <string name="account_creation_ring">ನಿಮ್ಮ ಜಾಮಿ ಖಾತೆಯನ್ನು ರಚಿಸಿ</string>
+  <string name="account_creation_ring">ನಿಮ್ಮ 白い熊 GNU Jami ಖಾತೆಯನ್ನು ರಚಿಸಿ</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">ಖಚಿತಪಡಿಸಲು ಪಾಸ್ವರ್ಡ್ ನಮೂದಿಸಿ</string>

@@ -69,7 +69,7 @@
     <string name="probe_already_running">Inbound test already running.</string>
 
     <!-- Auto-recovery notifications -->
-    <string name="notif_recover_title">白い熊 Jami · auto-recovery</string>
+    <string name="notif_recover_title">白い熊 GNU Jami · auto-recovery</string>
     <string name="notif_storm_smart">Error storm detected → smart recover (%s)</string>
     <string name="notif_storm_hard">Error storm again → hard reset (%s)</string>
     <string name="notif_deaf_smart">Account silent %1$d min → recover (%2$s)</string>

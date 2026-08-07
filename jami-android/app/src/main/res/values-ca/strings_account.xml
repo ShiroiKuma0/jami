@@ -8,7 +8,7 @@
   <string name="account_selection">Selecciona el compte</string>
   <string name="add_ring_account_title">Afegeix un compte</string>
   <string name="add_sip_account_title">Afegeix un compte SIP</string>
-  <string name="ring_account_default_name">Compte de Jami %1$s</string>
+  <string name="ring_account_default_name">Compte de 白い熊 GNU Jami %1$s</string>
   <string name="account_creation_error">S\'ha produït un error en crear el compte.</string>
   <string name="prompt_alias">Àlies</string>
   <string name="prompt_hostname">Nom d\'amfitrió</string>
@@ -28,7 +28,7 @@
         Només podreu fer i rebre trucades IP directes.
         Podeu editar el compte més tard</string>
   <string name="account_type_ip2ip">Compte IP</string>
-  <string name="help_ring">Un compte de Jami et permet comunicar amb gent de forma segura punt a punt mitjançant una xarxa completament distribuïda.</string>
+  <string name="help_ring">Un compte de 白い熊 GNU Jami et permet comunicar amb gent de forma segura punt a punt mitjançant una xarxa completament distribuïda.</string>
   <string name="help_sip_title">Ajuda compte SIP</string>
   <string name="help_sip">Configura un compte SIP existent</string>
   <string name="create_sip_account">Configura un compte SIP</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Copia de seguretat del compte al dispositiu per restablir-lo més tard.</string>
   <string name="account_export_end_decryption_message">Contrasenya incorrecta. Torneu-ho a provar amb la contrasenya correcta.</string>
   <string name="account_enter_password">Introduïu la contrasenya</string>
-  <string name="account_share_body">Contacteu amb mi mitjançant «%1$s» a la plataforma de comunicació distribuïda Jami: %2$s</string>
-  <string name="account_share_body_with_username">Contacteu amb mi mitjançant «%1$s» o el meu nom d\'usuari públic «%2$s» a la plataforma de comunicació distribuïda Jami: %3$s</string>
-  <string name="account_contact_me">Contacta amb mi en Jami!</string>
+  <string name="account_share_body">Contacteu amb mi mitjançant «%1$s» a la plataforma de comunicació distribuïda 白い熊 GNU Jami: %2$s</string>
+  <string name="account_share_body_with_username">Contacteu amb mi mitjançant «%1$s» o el meu nom d\'usuari públic «%2$s» a la plataforma de comunicació distribuïda 白い熊 GNU Jami: %3$s</string>
+  <string name="account_contact_me">Contacta amb mi en 白い熊 GNU Jami!</string>
   <string name="update_account">Actualitza el compte</string>
-  <string name="account_migration">El seu compte Jami es pot actualitzar.\nPer favor, escrigui la seva la contrasenya.</string>
-  <string name="ring_account">Compte Jami</string>
+  <string name="account_migration">El seu compte 白い熊 GNU Jami es pot actualitzar.\nPer favor, escrigui la seva la contrasenya.</string>
+  <string name="ring_account">Compte 白い熊 GNU Jami</string>
   <string name="sip_account">Conta SIP</string>
   <string name="ring_account_identity">Identitat</string>
   <string name="account_migration_title_dialog">Migració de compte</string>
   <string name="account_migration_message_dialog">Cal actualitzar els comptes. Voleu anar a la pantalla de gestió de comptes per dur a terme aquesta operació?</string>
   <string name="account_update_needed">Es necessita actualitzar</string>
   <string name="account_cannot_be_found_title">Error del compte</string>
-  <string name="account_cannot_be_found_message">No s\'ha pogut trobar el compte a la xarxa Jami. Assegureu-vos que es va exportar al Jami des d\'un dispositiu existent i que les credencials proporcionades són correctes.</string>
+  <string name="account_cannot_be_found_message">No s\'ha pogut trobar el compte a la xarxa 白い熊 GNU Jami. Assegureu-vos que es va exportar al 白い熊 GNU Jami des d\'un dispositiu existent i que les credencials proporcionades són correctes.</string>
   <string name="jams_account_cannot_be_found_message">S\'ha produït un error en connectar el compte. Comproveu les credencials i torneu-ho a provar.</string>
   <string name="account_sip_cannot_be_registered_message">Podeu continuar amb el procés de creació del compte o editar la vostra informació aquí. L\'edició encara és possible més endavant a les preferències del compte.</string>
   <string name="account_no_network_title">Error de xarxa</string>
-  <string name="account_no_network_message">S\'ha produït un error de connectivitat en afegir el compte de Jami a la xarxa distribuïda. Comproveu la connectivitat del dispositiu.</string>
+  <string name="account_no_network_message">S\'ha produït un error de connectivitat en afegir el compte de 白い熊 GNU Jami a la xarxa distribuïda. Comproveu la connectivitat del dispositiu.</string>
   <string name="account_device_added_title">S\'ha afegit el dispositiu del compte</string>
-  <string name="account_device_added_message">El compte de Jami s\'ha configurat correctament en aquest dispositiu.</string>
+  <string name="account_device_added_message">El compte de 白い熊 GNU Jami s\'ha configurat correctament en aquest dispositiu.</string>
   <string name="account_device_updated_title">S\'ha actualitzat el dispositiu del compte</string>
-  <string name="account_device_updated_message">El compte de Jami s\'ha actualitzat correctament.</string>
+  <string name="account_device_updated_message">El compte de 白い熊 GNU Jami s\'ha actualitzat correctament.</string>
   <string name="account_cannot_be_updated_message">S\'ha produït un error en actualitzar el compte. Comproveu la contrasenya del compte.</string>
   <string name="account_sip_success_title">Compte SIP registrat</string>
   <string name="account_sip_success_message">El compte SIP s\'ha registrat correctament.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Preferències avançades</string>
   <string name="account_tv_add_contact">Afegeix un contacte</string>
   <string name="account_tv_advanced_settings">Canvia les opcions generals</string>
-  <string name="account_tv_about">Sobre Jami...</string>
+  <string name="account_tv_about">Sobre 白い熊 GNU Jami...</string>
   <string name="tv_about_version">Versió</string>
   <string name="tv_about_license">Llicència</string>
   <string name="tv_about_author">Drets d\'autor</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Connecta des d\'un altre dispositiu</string>
   <string name="account_link_button">Connecta des de la xarxa</string>
   <string name="account_link_archive_button">Connecta des d\'una còpia de seguretat</string>
-  <string name="account_new_button">Creació de compte Jami</string>
+  <string name="account_new_button">Creació de compte 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Coneix el nou dispositiu</string>
   <string name="account_link_show_button">Mostra %d més dispositius enllaçats</string>
   <string name="account_link_hide_button">Amaga el dispositiu enllaçat</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Fora de línia</string>
   <string name="account_status_error">Error</string>
   <!--Create account-->
-  <string name="account_creation_home">Benvingut a Jami</string>
+  <string name="account_creation_home">Benvingut a 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Crei el seu perfil</string>
-  <string name="account_creation_ring">Crei el seu compte de Jami</string>
+  <string name="account_creation_ring">Crei el seu compte de 白い熊 GNU Jami</string>
   <string name="account_sip_cannot_be_registered">S\'ha produït un error en registrar el compte SIP.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Edita el perfil</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Si us plau espereu...</string>
   <string name="revoke_device_wait_message">Revocant dispositiu</string>
   <string name="rename_device_title">Canvia el nom d\'aquest dispositiu</string>
-  <string name="rename_device_message">Introduïu un nom de dispositiu per identificar aquest dispositiu al vostre compte de Jami</string>
+  <string name="rename_device_message">Introduïu un nom de dispositiu per identificar aquest dispositiu al vostre compte de 白い熊 GNU Jami</string>
   <string name="rename_device_button">Canvia el nom del dispositiu</string>
   <string name="account_rename_device_hint">Esculli nou nom de dispositiu</string>
   <string name="account_device_name_empty">El nom del dispositiu no pot estar buit.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">ID del dispositiu</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Aquest format no és compatible.</string>
-  <string name="account_link_info">A l\'aplicació Jami del dispositiu nou, escanegeu el codi QR o introduïu el codi d\'autenticació manualment.</string>
+  <string name="account_link_info">A l\'aplicació 白い熊 GNU Jami del dispositiu nou, escanegeu el codi QR o introduïu el codi d\'autenticació manualment.</string>
   <string name="account_link_device_title">Enllaça un nou dispositiu</string>
   <string name="account_link_password">Aquest compte està xifrat amb contrasenya; introduïu la contrasenya per generar el codi d\'autenticació.</string>
   <string name="account_link_generate_button">Genera</string>
   <string name="account_link_time_valid">El codi d\'autenticació deixarà de ser vàlid: %1$s.</string>
-  <string name="account_link_device_info">Trieu «Vincula un dispositiu nou» a l\'altra aplicació Jami per mostrar el codi QR o el codi d\'autenticació.</string>
+  <string name="account_link_device_info">Trieu «Vincula un dispositiu nou» a l\'altra aplicació 白い熊 GNU Jami per mostrar el codi QR o el codi d\'autenticació.</string>
   <string name="account_generate_export_device">A l\'altre dispositiu</string>
-  <string name="account_generate_export_info">Instal·leu i inicieu el Jami. Seleccioneu «Importa des d\'un altre dispositiu» i escanegeu el codi QR. Alternativament, introduïu el codi PIN manualment.</string>
+  <string name="account_generate_export_info">Instal·leu i inicieu el 白い熊 GNU Jami. Seleccioneu «Importa des d\'un altre dispositiu» i escanegeu el codi QR. Alternativament, introduïu el codi PIN manualment.</string>
   <string name="content_description_qr_generated">Codi QR del compte</string>
   <string name="account_generate_export_invalid">El codi d\'autenticació ja no és vàlid.\nIntroduïu la contrasenya i genereu-ne un altre per vincular el dispositiu nou.</string>
   <string name="account_generate_export_invalid_two">El codi d\'autenticació ja no és vàlid.\nGenereu-ne un altre per vincular el dispositiu nou.</string>
   <string name="help_pin_info">Necessari si el compte està xifrat amb contrasenya.</string>
   <string name="account_link_device_button">Connectar</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Desbloqueja el compte de Jami</string>
+  <string name="account_biometry_auth_title">Desbloqueja el compte de 白い熊 GNU Jami</string>
   <string name="account_biometry_auth_message">Utilitzeu la biometria per desbloquejar el compte</string>
   <string name="account_biometry_enroll_title">Voleu utilitzar l\'autenticació biomètrica?</string>
   <string name="account_biometry_enroll_message">El dispositiu admet l\'autenticació biomètrica segura.
-L\'autenticació biomètrica o del dispositiu afegeix una manera còmoda de desbloquejar localment l\'accés al compte de Jami. Encara podreu utilitzar la contrasenya.</string>
+L\'autenticació biomètrica o del dispositiu afegeix una manera còmoda de desbloquejar localment l\'accés al compte de 白い熊 GNU Jami. Encara podreu utilitzar la contrasenya.</string>
   <string name="account_biometry_enroll_accept">Utilitza la biometria</string>
   <string name="no_thanks">No, gràcies</string>
-  <string name="account_biometry_enroll_auth_title">Afegeix autenticació al compte de Jami</string>
+  <string name="account_biometry_enroll_auth_title">Afegeix autenticació al compte de 白い熊 GNU Jami</string>
   <string name="account_biometry_enroll_auth_message">Afegiu autenticació biomètrica o del dispositiu segura com a alternativa a la contrasenya</string>
   <string name="account_auth_error">Error d\'autenticació: %1$s</string>
   <string name="account_auth_success">Autenticació correcta</string>

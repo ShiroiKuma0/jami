@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">ఖాతా జోడించండి</string>
   <string name="add_sip_account_title">SIP ఖాతాను జోడించండి</string>
-  <string name="ring_account_default_name">జామి ఖాతా %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami ఖాతా %1$s</string>
   <string name="prompt_alias">అలియాస్</string>
   <string name="prompt_hostname">హోస్ట్ పేరు</string>
   <string name="prompt_username">వాడుకరి పేరు</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">ఖాతా నవీకరణ</string>
   <string name="dialog_wait_update_details">దయచేసి మీ కొత్త ఖాతా నవీకరించబడినప్పుడు వేచి ఉండండి.</string>
   <string name="account_type_ip2ip">ఐపి ఖాతా</string>
-  <string name="help_ring">జామి ఖాతా మీకు పూర్తిగా పంపిణీ చేయబడిన నెట్వర్క్ ద్వారా సురక్షితంగా పీర్-టు-పీర్ వ్యక్తులతో సంప్రదించడానికి అనుమతిస్తుంది.</string>
+  <string name="help_ring">白い熊 GNU Jami ఖాతా మీకు పూర్తిగా పంపిణీ చేయబడిన నెట్వర్క్ ద్వారా సురక్షితంగా పీర్-టు-పీర్ వ్యక్తులతో సంప్రదించడానికి అనుమతిస్తుంది.</string>
   <string name="help_sip_title">SIP ఖాతాను జోడించండి</string>
   <!--Strings related to account deletion-->
   <string name="account_delete_dialog_message">ఈ చర్యను తిరస్కరించలేము.</string>
@@ -120,10 +120,10 @@
   <string name="account_export_file">బ్యాకప్ ఖాతా</string>
   <string name="account_export_file_summary">మీ ఖాతాను మీ పరికరంలో బ్యాకప్ చేసి, తరువాత దాన్ని పునరుద్ధరించండి.</string>
   <string name="account_enter_password">పాస్వర్డ్ను నమోదు చేయండి</string>
-  <string name="account_contact_me">Jami వద్ద నాకు సంప్రదించండి!</string>
+  <string name="account_contact_me">白い熊 GNU Jami వద్ద నాకు సంప్రదించండి!</string>
   <string name="update_account">ఖాతా నవీకరణ</string>
-  <string name="account_migration">మీ జమీ ఖాతా నవీకరించబడుతుంది. దయచేసి మీ పాస్వర్డ్ను నమోదు చేయండి.</string>
-  <string name="ring_account">జామి ఖాతా</string>
+  <string name="account_migration">మీ 白い熊 GNU Jami ఖాతా నవీకరించబడుతుంది. దయచేసి మీ పాస్వర్డ్ను నమోదు చేయండి.</string>
+  <string name="ring_account">白い熊 GNU Jami ఖాతా</string>
   <string name="sip_account">SIP ఖాతా</string>
   <string name="ring_account_identity">గుర్తింపు</string>
   <string name="account_migration_title_dialog">ఖాతా వలస</string>
@@ -138,7 +138,7 @@
   <string name="account_tv_advance_settings_header">అధునాతన సెట్టింగులు</string>
   <string name="account_tv_add_contact">పరిచయం జోడించండి</string>
   <string name="account_tv_advanced_settings">సాధారణ సెట్టింగులను మార్చు</string>
-  <string name="account_tv_about">జామి గురించి</string>
+  <string name="account_tv_about">白い熊 GNU Jami గురించి</string>
   <string name="tv_about_version">వెర్షన్</string>
   <string name="tv_about_license">లైసెన్స్</string>
   <string name="tv_about_author">రచయిత హక్కులు</string>
@@ -146,7 +146,7 @@
   <string name="account_link_device">మరొక పరికరము నుండి కనెక్ట్</string>
   <string name="account_link_button">నెట్వర్క్ నుండి కనెక్ట్</string>
   <string name="account_link_archive_button">బ్యాకప్ నుండి కనెక్ట్</string>
-  <string name="account_new_button">జమి ఖాతాను సృష్టించు</string>
+  <string name="account_new_button">白い熊 GNU Jami ఖాతాను సృష్టించు</string>
   <string name="account_link_export_button">కొత్త పరికరానికి లింక్</string>
   <string name="account_link_show_button">%d మరింత లింక్ చేయబడిన పరికరాన్ని చూపించు</string>
   <string name="account_link_hide_button">లింక్ చేయబడిన పరికరాన్ని దాచండి</string>
@@ -174,9 +174,9 @@
   <string name="account_status_offline">ఆఫ్లైన్</string>
   <string name="account_status_error">తప్పు</string>
   <!--Create account-->
-  <string name="account_creation_home">జామికి స్వాగతం</string>
+  <string name="account_creation_home">白い熊 GNU Jamiకి స్వాగతం</string>
   <string name="account_creation_profile">మీ ప్రొఫైల్ను సృష్టించండి</string>
-  <string name="account_creation_ring">మీ జామి ఖాతాను సృష్టించండి</string>
+  <string name="account_creation_ring">మీ 白い熊 GNU Jami ఖాతాను సృష్టించండి</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">నిర్ధారించడానికి పాస్వర్డ్ను నమోదు చేయండి</string>
