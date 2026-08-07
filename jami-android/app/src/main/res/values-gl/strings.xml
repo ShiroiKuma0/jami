@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">Non se atopou ningún navegador web; instala un para ver esta páxina.</string>
   <string name="website_chooser_title">Ver sitio web utilizando...</string>
   <string name="license">Este software proporcionase \"tal como é\", sen garantía de ningún tipo: Ao detalle en <u>GNU General Public License versión 3 ou posterior</u></string>
-  <string name="description">Jami é software libre para comunicacións universais e que respecta as liberdades e privacidade das súas usuarias.</string>
+  <string name="description">白い熊 GNU Jami é software libre para comunicacións universais e que respecta as liberdades e privacidade das súas usuarias.</string>
   <string name="credits">Cŕedito</string>
-  <string name="pip_title">Conferencia en Jami</string>
+  <string name="pip_title">Conferencia en 白い熊 GNU Jami</string>
   <string name="call_service_description">Este servizo é preciso para manter as túas chamadas en marcha en primeiro plano. Só funciona durante as chamadas.</string>
   <string name="data_transfer_service_description">Este servizo é necesario para mostrar notificacións persistentes durante a transferencia de ficheiros. Só funciona durante as transferencias.</string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">Axustes da Conta</string>
   <string name="menu_item_extension_list">Configuración das extensións</string>
   <string name="menu_item_share">Compartir a miña conta</string>
-  <string name="menu_item_about">Acerca de Jami</string>
+  <string name="menu_item_about">Acerca de 白い熊 GNU Jami</string>
   <string name="video_setting_title">Configuración de vídeo</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Marcar número</string>
@@ -78,7 +78,7 @@
   <string name="notif_channel_background_service_descr">Permite recibir chamadas e mensaxes en todo momento.</string>
   <string name="notif_group_calls">Chamadas</string>
   <string name="notif_inprogress_group_call">Chamada en curso</string>
-  <string name="notif_background_service">Jami estase a executar en segundo plano</string>
+  <string name="notif_background_service">白い熊 GNU Jami estase a executar en segundo plano</string>
   <string name="notif_mark_as_read">Marcar como lido</string>
   <string name="notif_dismiss">Desbotar</string>
   <string name="notif_reply">Responder</string>
@@ -88,7 +88,7 @@
   <string name="notif_sync_title">Sincr. datos...</string>
   <string name="notif_location_title">Compartindo localización con %1$s</string>
   <string name="notif_channel_reconnect">Sincronización en segundo plano</string>
-  <string name="notif_reconnect_title">Jami estase a sincronizar…</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami estase a sincronizar…</string>
   <string name="location_share_contact">%1$s está compartindo a localización contigo</string>
   <string name="notif_location_multi_title">Compartindo a localización con %1$d contactos</string>
   <string name="notif_location_remaining">%1$d minutos restantes</string>
@@ -109,7 +109,7 @@
   <string name="hist_out_call">Chamada a %1$s</string>
   <string name="call_duration">Durou %s</string>
   <string name="call_on_hold">A chamada está en espera</string>
-  <string name="start_error_title">Non se puido iniciar Jami</string>
+  <string name="start_error_title">Non se puido iniciar 白い熊 GNU Jami</string>
   <string name="action_call_accept">Aceptar chamada</string>
   <string name="action_call_accept_audio">Aceptar con audio</string>
   <string name="action_call_accept_video">Aceptar con vídeo</string>
@@ -131,7 +131,7 @@
   <string name="write_a_message">Escribir mensaxe</string>
   <string name="scan_qr">Escanear código QR</string>
   <string name="qr_code">Código QR</string>
-  <string name="qr_code_not_contact">Non é un código QR de contacto de Jami</string>
+  <string name="qr_code_not_contact">Non é un código QR de contacto de 白い熊 GNU Jami</string>
   <string name="new_group">Crear novo grupo</string>
   <string name="ab_action_flipcamera">Cambiar de cámara</string>
   <string name="ab_action_hidepreview">Agochar vista previa</string>
@@ -161,15 +161,15 @@
   <string name="ringtone_error_size_too_big">Este ficheiro é moi grande. O tamaño máximo é de %1$d kB.</string>
   <string name="ringtone_custom_prompt">Establecer ton personalizado</string>
   <string name="ringtone_custom_label">Personalizar</string>
-  <string name="ringtone_jami_tones">Tons de chamada de Jami</string>
+  <string name="ringtone_jami_tones">Tons de chamada de 白い熊 GNU Jami</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">Jami require o permiso «Ler os contactos». Actívao na configuración do dispositivo para usar esta función.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jami require o permiso «Ler os contactos». Actívao na configuración do dispositivo para usar esta función.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">Jami require o permiso «Escribir o rexistro de chamadas». Actívao na configuración do dispositivo para usar esta función.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami require o permiso «Escribir o rexistro de chamadas». Actívao na configuración do dispositivo para usar esta función.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">Permitir as notificacións</string>
-  <string name="permission_dialog_post_notifications_message">Jami necesita o permiso de notificacións para avisarte de chamadas e mensaxes entrantes, mesmo cando a aplicación está en segundo plano. Sen el, podes perder chamadas.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">As notificacións están desactivadas para Jami. Sen elas, perderás chamadas e mensaxes entrantes. Activa as notificacións para Jami na configuración do dispositivo.</string>
+  <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami necesita o permiso de notificacións para avisarte de chamadas e mensaxes entrantes, mesmo cando a aplicación está en segundo plano. Sen el, podes perder chamadas.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">As notificacións están desactivadas para 白い熊 GNU Jami. Sen elas, perderás chamadas e mensaxes entrantes. Activa as notificacións para 白い熊 GNU Jami na configuración do dispositivo.</string>
   <string name="permission_dialog_open_settings">Abrir os axustes</string>
   <string name="permission_dialog_later">Máis tarde</string>
   <!--QRCode Scan-->
@@ -231,7 +231,7 @@
   <string name="video_not_found">Non se atopou o ficheiro de vídeo</string>
   <string name="conversation_preference_color">Cor da conversa</string>
   <string name="conversation_preference_emoji">Emojis da conversa</string>
-  <string name="conversation_type_contact">Contacto Jami</string>
+  <string name="conversation_type_contact">Contacto 白い熊 GNU Jami</string>
   <string name="conversation_type_private">Privado</string>
   <string name="conversation_type_group">Grupo</string>
   <string name="conversation_contact_invited">Convidouse a %1$s á conversa.</string>
@@ -282,11 +282,11 @@
   <string name="prompt_new_password">Novo contrasinal</string>
   <string name="prompt_new_password_optional">Novo contrasinal (optativo)</string>
   <string name="prompt_new_password_repeat">Confirmar a nova contrasinal</string>
-  <string name="account_create_title">Crea unha conta Jami</string>
+  <string name="account_create_title">Crea unha conta 白い熊 GNU Jami</string>
   <string name="prompt_new_username">Escribir novo nome de usuaria</string>
   <string name="prompt_hint_username">Nome de usuaria</string>
-  <string name="help_password_choose">Escolle un contrasinal forte e gárdao para protexer a túa conta Jami.</string>
-  <string name="help_password_enter">Escribe o contrasinal da conta Jami</string>
+  <string name="help_password_choose">Escolle un contrasinal forte e gárdao para protexer a túa conta 白い熊 GNU Jami.</string>
+  <string name="help_password_enter">Escribe o contrasinal da conta 白い熊 GNU Jami</string>
   <string name="help_server_enter">Escribe o URL do servidor de xestión.</string>
   <string name="pin_copied">Copiouse o código de autenticación no portapapeis.</string>
   <string name="copied_clipboard">Copiado ao portapapeis.</string>
@@ -318,7 +318,7 @@
   <string name="devices">Dispositivos ligados</string>
   <string name="total_devices">Total de dispositivos:</string>
   <!--Share fragment-->
-  <string name="share_message">Escanea este código con Jami</string>
+  <string name="share_message">Escanea este código con 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Escolle a conta a compartir.</string>
   <string name="share_your_account_information">Compartir a miña información de contacto</string>
   <string name="share_contact_information">Compartir a información do contacto</string>
@@ -410,8 +410,8 @@
   <string name="speech_recogniton_unavailable">O recoñecemento de voz non está dispoñible.</string>
   <string name="audio_permission_rationale_title">Requírese o permiso de audio</string>
   <string name="camera_permission_rationale_title">Requírese o permiso da cámara</string>
-  <string name="audio_permission_rationale_message">Jami require o permiso do micrófono para usar as funcións de voz a texto e de gravación de audio. Solicitarase no seguinte paso.</string>
-  <string name="camera_permission_rationale_message">Jami require o permiso da cámara para gravar vídeo e facer videochamadas. Solicitarase no seguinte paso.</string>
+  <string name="audio_permission_rationale_message">白い熊 GNU Jami require o permiso do micrófono para usar as funcións de voz a texto e de gravación de audio. Solicitarase no seguinte paso.</string>
+  <string name="camera_permission_rationale_message">白い熊 GNU Jami require o permiso da cámara para gravar vídeo e facer videochamadas. Solicitarase no seguinte paso.</string>
   <string name="unable_to_start_recorder">Non se puido iniciar a gravación de audio.</string>
   <string name="error_sharing_file">Produciuse un erro ao compartir o ficheiro.</string>
   <string name="error_opening_file">Produciuse un erro ao abrir o ficheiro.</string>
@@ -469,7 +469,7 @@
   <string name="picker_title">Elexir contactos</string>
   <string name="picker_btn">Elexir conctactos</string>
   <string name="no_contact_to_add">Non tes ningún contacto para engadir</string>
-  <string name="bottomsheet_contact">Contacta con Jami\n %1$s</string>
+  <string name="bottomsheet_contact">Contacta con 白い熊 GNU Jami\n %1$s</string>
   <string name="bottomsheet_block">Bloquear membro</string>
   <string name="bottomsheet_unblock">Desbloquear membro</string>
   <string name="error_open_no_app_found">Non atopamos unha aplicación para abrir o ficheiro: %1$s</string>
@@ -477,8 +477,8 @@
   <string name="group_admin">Administrador</string>
   <string name="group_member_blocked">Bloqueado</string>
   <string name="group_member_invited">Convocado</string>
-  <string name="share_contact_intent_title">Engade este contacto en Jami!</string>
-  <string name="share_contact_intent_body">Podes engadir este contacto «%1$s» na plataforma de comunicación distribuída Jami: %2$s</string>
+  <string name="share_contact_intent_title">Engade este contacto en 白い熊 GNU Jami!</string>
+  <string name="share_contact_intent_body">Podes engadir este contacto «%1$s» na plataforma de comunicación distribuída 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">Copiar Jamild</string>
   <string name="jami_id_share">Compartir Jamild</string>
@@ -489,8 +489,8 @@
   <string name="jami_id_looking_for_availability">Comprobando a dispoñibilidade do nome de usuario…</string>
   <string name="jami_id_choose_username">Escoller un nome de usuario</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Benvida/o a Jami</string>
-  <string name="welcome_jami_description">Comparte o teu identificador Jami para que te atopen máis facilmente!</string>
+  <string name="welcome_jami_title">Benvida/o a 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Comparte o teu identificador 白い熊 GNU Jami para que te atopen máis facilmente!</string>
   <!--Conversation details-->
   <string name="details">Detalles</string>
   <string name="secure_p2p_connection">Conexión segura punto a punto</string>
@@ -501,7 +501,7 @@
   <string name="show_certificate">Mostrar o certificado</string>
   <string name="mute_conversation">Acalar conversa</string>
   <!--Donation-->
-  <string name="donation_card_description">Se gozas usando Jami e cres na nosa misión, queres facer unha doazón?</string>
+  <string name="donation_card_description">Se gozas usando 白い熊 GNU Jami e cres na nosa misión, queres facer unha doazón?</string>
   <string name="donation_card_not_now">Agora non</string>
   <string name="donation_donate">Doar</string>
   <string name="donation_setting_title">Lembrar doazón</string>
@@ -573,11 +573,11 @@
   <string name="notif_channel_peer_tunnel">Servizos compartidos</string>
   <string name="notif_channel_peer_tunnel_descr">Móstrase mentres os túneles de servizos entre pares están activos en segundo plano.</string>
   <string name="notif_peer_tunnel_title">Servizos compartidos activos</string>
-  <string name="notif_peer_tunnel_text">Jami mantén activas as túas conexións de servizo en segundo plano</string>
+  <string name="notif_peer_tunnel_text">白い熊 GNU Jami mantén activas as túas conexións de servizo en segundo plano</string>
   <string name="notif_peer_tunnel_stop_all">Deter todo</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">Servizos compartidos</string>
-  <string name="shared_services_settings_description">Expoñer servizos locais aos usuarios de Jami</string>
+  <string name="shared_services_settings_description">Expoñer servizos locais aos usuarios de 白い熊 GNU Jami</string>
   <string name="shared_services_empty">Ningún servizo configurado</string>
   <string name="shared_services_add">Engadir servizo</string>
   <string name="shared_services_add_title">Engadir servizo compartido</string>
@@ -592,7 +592,7 @@
   <string name="shared_services_port_invalid">O porto debe estar entre 1 e 65535</string>
   <string name="shared_services_port">Porto: %d</string>
   <string name="shared_services_no_description">Sen descrición</string>
-  <string name="shared_services_empty_subtitle">Comparte ficheiros ou servizos locais cos usuarios de Jami</string>
+  <string name="shared_services_empty_subtitle">Comparte ficheiros ou servizos locais cos usuarios de 白い熊 GNU Jami</string>
   <string name="shared_services_more_options">Máis opcións</string>
   <string name="shared_services_open_in_browser">Abrir no navegador</string>
   <string name="shared_services_disconnect_all">Desconectar todo</string>

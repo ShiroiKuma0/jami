@@ -573,7 +573,7 @@ class ConnectionMonitorFragment: Fragment() {
             else -> "Not tested yet."
         }
         val body = state + "\n\n" +
-            "What is tested: one STUN binding request over plain UDP, and one bare TCP connect, both to Jami's TURN server. No Jami traffic; nothing a contact can see.\n\n" +
+            "What is tested: one STUN binding request over plain UDP, and one bare TCP connect, both to Jami's TURN server. No 白い熊 GNU Jami traffic; nothing a contact can see.\n\n" +
             "Why it matters: the full DHT rides UDP. Networks that block UDP — many hotel, café, campus and corporate Wi-Fi networks, and some carriers — break it completely, while DHT proxy keeps working over TCP.\n\n" +
             "Where UDP is fine, full DHT is the better default: no proxy server to depend on, nothing central seeing your subscriptions.\n\n" +
             "This screen only measures and advises. Switching modes is always the hexagon in the top bar."

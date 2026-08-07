@@ -8,7 +8,7 @@
   <string name="account_selection">Pasirinkite paskyrą</string>
   <string name="add_ring_account_title">Pridėti paskyrą</string>
   <string name="add_sip_account_title">Pridėti SIP paskyrą</string>
-  <string name="ring_account_default_name">Jami paskyra %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami paskyra %1$s</string>
   <string name="account_creation_error">Kuriant paskyrą įvyko klaida.</string>
   <string name="prompt_alias">Slapyvardis</string>
   <string name="prompt_hostname">Kompiuterio vardas</string>
@@ -28,7 +28,7 @@
         Galėsite atlikti ir priimti tik tiesioginius IP skambučius.
         Paskyrą galėsite redaguoti vėliau</string>
   <string name="account_type_ip2ip">IP paskyra</string>
-  <string name="help_ring">Jami paskyra leidžia jums saugiai pasiekti žmones per visiškai paskirstytą tinklą.</string>
+  <string name="help_ring">白い熊 GNU Jami paskyra leidžia jums saugiai pasiekti žmones per visiškai paskirstytą tinklą.</string>
   <string name="help_sip_title">Pridėti SIP paskyrą</string>
   <string name="help_sip">Konfigūruoti esamą SIP paskyrą</string>
   <string name="create_sip_account">Konfigūruoti SIP paskyrą</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Sukurkite paskyros atsarginę kopiją įrenginyje, kad galėtumėte ją atkurti vėliau.</string>
   <string name="account_export_end_decryption_message">Neteisingas slaptažodis. Bandykite dar kartą naudodami teisingą slaptažodį</string>
   <string name="account_enter_password">Įveskite slaptažodį</string>
-  <string name="account_share_body">Susisiekite su manimi naudodami „%1$s“ paskirstytoje Jami komunikacijos platformoje: %2$s</string>
-  <string name="account_share_body_with_username">Susisiekite su manimi naudodami „%1$s“ arba mano viešąjį naudotojo vardą „%2$s“ paskirstytoje Jami komunikacijos platformoje: %3$s</string>
-  <string name="account_contact_me">Susisiekite su manimi Jami!</string>
+  <string name="account_share_body">Susisiekite su manimi naudodami „%1$s“ paskirstytoje 白い熊 GNU Jami komunikacijos platformoje: %2$s</string>
+  <string name="account_share_body_with_username">Susisiekite su manimi naudodami „%1$s“ arba mano viešąjį naudotojo vardą „%2$s“ paskirstytoje 白い熊 GNU Jami komunikacijos platformoje: %3$s</string>
+  <string name="account_contact_me">Susisiekite su manimi 白い熊 GNU Jami!</string>
   <string name="update_account">Atnaujinti paskyrą</string>
-  <string name="account_migration">Jūsų Jami paskyra gali būti atnaujinta.\nĮveskite slaptažodį.</string>
-  <string name="ring_account">Jami paskyra</string>
+  <string name="account_migration">Jūsų 白い熊 GNU Jami paskyra gali būti atnaujinta.\nĮveskite slaptažodį.</string>
+  <string name="ring_account">白い熊 GNU Jami paskyra</string>
   <string name="sip_account">SIP paskyra</string>
   <string name="ring_account_identity">Tapatybė</string>
   <string name="account_migration_title_dialog">Paskyros perkėlimas</string>
   <string name="account_migration_message_dialog">Jūsų paskyras reikia atnaujinti. Ar norite pereiti į paskyrų valdymo ekraną, kad atliktumėte šią operaciją?</string>
   <string name="account_update_needed">Reikalingas atnaujinimas</string>
   <string name="account_cannot_be_found_title">Paskyros klaida</string>
-  <string name="account_cannot_be_found_message">Nepavyko rasti paskyros Jami tinkle. Įsitikinkite, kad ji buvo eksportuota Jami iš esamo įrenginio ir kad pateikti prisijungimo duomenys yra teisingi.</string>
+  <string name="account_cannot_be_found_message">Nepavyko rasti paskyros 白い熊 GNU Jami tinkle. Įsitikinkite, kad ji buvo eksportuota 白い熊 GNU Jami iš esamo įrenginio ir kad pateikti prisijungimo duomenys yra teisingi.</string>
   <string name="jams_account_cannot_be_found_message">Jungiant paskyrą įvyko klaida. Patikrinkite prisijungimo duomenis ir bandykite dar kartą.</string>
   <string name="account_sip_cannot_be_registered_message">Galite tęsti paskyros kūrimo procesą arba taisyti savo informaciją čia. Vėliau taisymas taip pat yra įmanomas paskyros nustatymuose.</string>
   <string name="account_no_network_title">Tinklo klaida</string>
-  <string name="account_no_network_message">Pridedant Jami paskyrą prie paskirstyto tinklo įvyko ryšio klaida. Patikrinkite įrenginio ryšį.</string>
+  <string name="account_no_network_message">Pridedant 白い熊 GNU Jami paskyrą prie paskirstyto tinklo įvyko ryšio klaida. Patikrinkite įrenginio ryšį.</string>
   <string name="account_device_added_title">Paskyros įrenginys pridėtas</string>
-  <string name="account_device_added_message">Šiame įrenginyje sėkmingai nustatyta Jami paskyra.</string>
+  <string name="account_device_added_message">Šiame įrenginyje sėkmingai nustatyta 白い熊 GNU Jami paskyra.</string>
   <string name="account_device_updated_title">Paskyros įrenginys atnaujintas</string>
-  <string name="account_device_updated_message">Jami paskyra sėkmingai atnaujinta.</string>
+  <string name="account_device_updated_message">白い熊 GNU Jami paskyra sėkmingai atnaujinta.</string>
   <string name="account_cannot_be_updated_message">Atnaujinant paskyrą įvyko klaida. Patikrinkite paskyros slaptažodį.</string>
   <string name="account_sip_success_title">SIP paskyra užregistruota</string>
   <string name="account_sip_success_message">SIP paskyra sėkmingai užregistruota.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Išplėstiniai nustatymai</string>
   <string name="account_tv_add_contact">Pridėti adresatą</string>
   <string name="account_tv_advanced_settings">Keisti bendrus nustatymus</string>
-  <string name="account_tv_about">Apie Jami</string>
+  <string name="account_tv_about">Apie 白い熊 GNU Jami</string>
   <string name="tv_about_version">Versija</string>
   <string name="tv_about_license">Licencija</string>
   <string name="tv_about_author">Autorių teisės</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Prisijungti iš kito įrenginio</string>
   <string name="account_link_button">Prijungti iš tinklo</string>
   <string name="account_link_archive_button">Prijungti iš atsarginės kopijos</string>
-  <string name="account_new_button">Susikurkite Jami paskyrą</string>
+  <string name="account_new_button">Susikurkite 白い熊 GNU Jami paskyrą</string>
   <string name="account_link_export_button">Susieti naują įrenginį</string>
   <string name="account_link_show_button">Rodyti dar %d susietą įrenginį</string>
   <string name="account_link_hide_button">Slėpti susietą įrenginį</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Atsijungęs</string>
   <string name="account_status_error">Klaida</string>
   <!--Create account-->
-  <string name="account_creation_home">Sveiki atvykę į Jami</string>
+  <string name="account_creation_home">Sveiki atvykę į 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Susikurkite profilį</string>
-  <string name="account_creation_ring">Susikurkite Jami paskyrą</string>
+  <string name="account_creation_ring">Susikurkite 白い熊 GNU Jami paskyrą</string>
   <string name="account_sip_cannot_be_registered">Registruojant SIP paskyrą įvyko klaida.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Taisyti profilį</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Prašome palaukti...</string>
   <string name="revoke_device_wait_message">Panaikinamas įrenginys</string>
   <string name="rename_device_title">Pervadinti šį įrenginį</string>
-  <string name="rename_device_message">Įveskite įrenginio pavadinimą, kad atpažintumėte šį įrenginį savo Jami paskyroje</string>
+  <string name="rename_device_message">Įveskite įrenginio pavadinimą, kad atpažintumėte šį įrenginį savo 白い熊 GNU Jami paskyroje</string>
   <string name="rename_device_button">Pervadinti įrenginį</string>
   <string name="account_rename_device_hint">Pasirinkti naują įrenginio pavadinimą</string>
   <string name="account_device_name_empty">Įrenginio pavadinimas negali būti tuščias.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">Įrenginio ID</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Šis formatas yra nepalaikomas.</string>
-  <string name="account_link_info">Naujo įrenginio Jami programoje nuskaitykite QR kodą arba įveskite tapatybės nustatymo kodą rankiniu būdu.</string>
+  <string name="account_link_info">Naujo įrenginio 白い熊 GNU Jami programoje nuskaitykite QR kodą arba įveskite tapatybės nustatymo kodą rankiniu būdu.</string>
   <string name="account_link_device_title">Susieti naują įrenginį</string>
   <string name="account_link_password">Ši paskyra yra apsaugota slaptažodžiu, įveskite slaptažodį norėdami sugeneruoti tapatybės nustatymo kodą.</string>
   <string name="account_link_generate_button">Generuoti</string>
   <string name="account_link_time_valid">Tapatybės nustatymo kodas taps negaliojantis: %1$s.</string>
-  <string name="account_link_device_info">Kitoje Jami programoje pasirinkite „Susieti naują įrenginį“, kad būtų rodomas QR kodas arba tapatybės nustatymo kodas.</string>
+  <string name="account_link_device_info">Kitoje 白い熊 GNU Jami programoje pasirinkite „Susieti naują įrenginį“, kad būtų rodomas QR kodas arba tapatybės nustatymo kodas.</string>
   <string name="account_generate_export_device">Kitame įrenginyje</string>
-  <string name="account_generate_export_info">Įdiekite ir paleiskite Jami. Pasirinkite „Importuoti iš kito įrenginio“ ir nuskaitykite QR kodą. Arba įveskite PIN kodą rankiniu būdu.</string>
+  <string name="account_generate_export_info">Įdiekite ir paleiskite 白い熊 GNU Jami. Pasirinkite „Importuoti iš kito įrenginio“ ir nuskaitykite QR kodą. Arba įveskite PIN kodą rankiniu būdu.</string>
   <string name="content_description_qr_generated">Paskyros QR kodas</string>
   <string name="account_generate_export_invalid">Tapatybės nustatymo kodas daugiau nebegalioja.\nNorėdami susieti naują įrenginį įveskite slaptažodį ir sugeneruokite kitą kodą.</string>
   <string name="account_generate_export_invalid_two">Tapatybės nustatymo kodas daugiau nebegalioja.\nNorėdami susieti naują įrenginį sugeneruokite kitą kodą.</string>
   <string name="help_pin_info">Būtinas, jei paskyra yra apsaugota slaptažodžiu.</string>
   <string name="account_link_device_button">Prisijungti</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Atrakinti Jami paskyrą</string>
+  <string name="account_biometry_auth_title">Atrakinti 白い熊 GNU Jami paskyrą</string>
   <string name="account_biometry_auth_message">Naudokite biometriją paskyrai atrakinti</string>
   <string name="account_biometry_enroll_title">Naudoti biometrinį tapatybės nustatymą?</string>
   <string name="account_biometry_enroll_message">Jūsų įrenginys palaiko saugų biometrinį tapatybės nustatymą.
-Biometrinis arba įrenginio tapatybės nustatymas suteikia patogų būdą vietoje atrakinti prieigą prie Jami paskyros. Vis tiek galėsite naudoti slaptažodį.</string>
+Biometrinis arba įrenginio tapatybės nustatymas suteikia patogų būdą vietoje atrakinti prieigą prie 白い熊 GNU Jami paskyros. Vis tiek galėsite naudoti slaptažodį.</string>
   <string name="account_biometry_enroll_accept">Naudoti biometriją</string>
   <string name="no_thanks">Ne, ačiū</string>
-  <string name="account_biometry_enroll_auth_title">Pridėti tapatybės nustatymą prie Jami paskyros</string>
+  <string name="account_biometry_enroll_auth_title">Pridėti tapatybės nustatymą prie 白い熊 GNU Jami paskyros</string>
   <string name="account_biometry_enroll_auth_message">Pridėkite saugų biometrinį arba įrenginio tapatybės nustatymą kaip slaptažodžio alternatyvą</string>
   <string name="account_auth_error">Tapatybės nustatymo klaida: %1$s</string>
   <string name="account_auth_success">Tapatybė sėkmingai nustatyta</string>

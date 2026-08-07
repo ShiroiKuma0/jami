@@ -8,9 +8,9 @@
   <string name="version_section">Bertsioa</string>
   <string name="website_chooser_title">Ikusi webgunea hau erabiliz…</string>
   <string name="license">Software hau \"den moduan\" eskaintzen da, inolako bermeik gabe. Xehetasunetarako ikusi <u>General Public License lizentzia, 3. bertsioa edo berriagoa</u></string>
-  <string name="description">Jami komunikazio unibertsalerako software librea da, erabiltzaileek askatasunak eta pribatutasuna aintzat hartzen dituena</string>
+  <string name="description">白い熊 GNU Jami komunikazio unibertsalerako software librea da, erabiltzaileek askatasunak eta pribatutasuna aintzat hartzen dituena</string>
   <string name="credits">Kredituak</string>
-  <string name="pip_title">Jami Konferentzia</string>
+  <string name="pip_title">白い熊 GNU Jami Konferentzia</string>
   <string name="call_service_description">Zerbitzu hau ezinbestekoa da zure deiak lehen planoan abian mantentzeko. Deietan zehar ari da soilik.</string>
   <string name="data_transfer_service_description">Zerbitzu hau ezinbestekoa da fitxategi transferentzien zehar jakinarazpen iraunkorrak bistaratzeko. Fitxategi transferentzietan zehar ari da soilik.</string>
   <!--About dialog-->
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">Ezarpenak</string>
   <string name="menu_item_account_settings">Kontuaren ezarpenak</string>
   <string name="menu_item_share">partekatu nire kontua</string>
-  <string name="menu_item_about">Jamiri buruz</string>
+  <string name="menu_item_about">白い熊 GNU Jamiri buruz</string>
   <string name="video_setting_title">Bideoaren ezarpenak</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -184,7 +184,7 @@
   <string name="conversation_reply_you">Zuk</string>
   <string name="conversation_preference_color">Elkarrizketaren kolorea</string>
   <string name="conversation_preference_emoji">Elkarrizketaren emojia</string>
-  <string name="conversation_type_contact">Jami kontaktua</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami kontaktua</string>
   <string name="conversation_type_private">Pribatua</string>
   <string name="conversation_search_hint">Bilaketa elkarrizketa</string>
   <string name="audio_recording_in_progress">Grabatzen...</string>
@@ -199,11 +199,11 @@
   <string name="prompt_new_password">Pasahitz berria</string>
   <string name="prompt_new_password_optional">Pasahitz berria (aukerakoa)</string>
   <string name="prompt_new_password_repeat">Baieztatu pasahitza berria</string>
-  <string name="account_create_title">Jarri kontu bat Jami-n</string>
+  <string name="account_create_title">Jarri kontu bat 白い熊 GNU Jami-n</string>
   <string name="prompt_new_username">Sartu erabiltzaile-izen berria</string>
   <string name="prompt_hint_username">Erabiltzaile-izena</string>
-  <string name="help_password_choose">Hautatu gogoratuko duzun pasahitz sendo bat zure Jami kontua babesteko.</string>
-  <string name="help_password_enter">Sartu zure Jami kontuaren pasahitza.</string>
+  <string name="help_password_choose">Hautatu gogoratuko duzun pasahitz sendo bat zure 白い熊 GNU Jami kontua babesteko.</string>
+  <string name="help_password_enter">Sartu zure 白い熊 GNU Jami kontuaren pasahitza.</string>
   <string name="help_server_enter">Sartu kudeaketa zerbitzariaren URLa</string>
   <string name="copied_clipboard">Arbelera kopiatu da.</string>
   <string name="wizard_next">Hurrengoa</string>
@@ -229,7 +229,7 @@
   <string name="devices">Estekatuta dauden gailuak</string>
   <string name="total_devices">Gailuak:</string>
   <!--Share fragment-->
-  <string name="share_message">Eskaneatu kode hau Jami erabiliz</string>
+  <string name="share_message">Eskaneatu kode hau 白い熊 GNU Jami erabiliz</string>
   <string name="share_message_no_account">Hautatu kontu bat partekatzeko.</string>
   <string name="share_your_account_information">Partekatu nire kontaktu-informazioa</string>
   <string name="share_label">Partekatu</string>
@@ -335,7 +335,7 @@
   <string name="dialog_hint_description">Deskripzioa</string>
   <string name="picker_title">Kontaktua hautatu</string>
   <string name="picker_btn">Kontaktua hautatu</string>
-  <string name="bottomsheet_contact">Jarri harremanetan Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Jarri harremanetan 白い熊 GNU Jami\n%1$s</string>
   <string name="bottomsheet_block">Blokeatu kidea</string>
   <string name="bottomsheet_unblock">Desblokeatu kidea</string>
   <string name="group_member_blocked">Blokeatuta</string>
@@ -344,15 +344,15 @@
   <string name="jami_id_validate">Erabiltzaile izena erregistratzea</string>
   <string name="jami_id_choose_username">Erabiltzaile izena aukeratu</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Ongi etorri Jamira</string>
-  <string name="welcome_jami_description">Partekatu zure Jami identifikatzailea errazago kontaktatua izateko!</string>
+  <string name="welcome_jami_title">Ongi etorri 白い熊 GNU Jamira</string>
+  <string name="welcome_jami_description">Partekatu zure 白い熊 GNU Jami identifikatzailea errazago kontaktatua izateko!</string>
   <!--Conversation details-->
   <string name="details">Xehetasunak</string>
   <string name="swarm_type">Elkarrizketa-mota</string>
   <string name="Private">Pribatua</string>
   <string name="mute_conversation">Hitz egin isilduta.</string>
   <!--Donation-->
-  <string name="donation_card_description">Jami erabiltzea gustatzen bazaizu eta gure misioan sinesten baduzu, dohaintza bat egin nahi duzu?</string>
+  <string name="donation_card_description">白い熊 GNU Jami erabiltzea gustatzen bazaizu eta gure misioan sinesten baduzu, dohaintza bat egin nahi duzu?</string>
   <string name="donation_card_not_now">Orain ez</string>
   <string name="donation_donate">Egin dohaintza</string>
   <!--Extension-->

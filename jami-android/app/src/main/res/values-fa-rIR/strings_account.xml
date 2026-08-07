@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">افزودن حساب</string>
   <string name="add_sip_account_title">افزودن حساب SIP</string>
-  <string name="ring_account_default_name">حساب جمی %1$s</string>
+  <string name="ring_account_default_name">حساب 白い熊 GNU Jami %1$s</string>
   <string name="prompt_alias">نام مستعار</string>
   <string name="prompt_hostname">نام میزبان</string>
   <string name="prompt_username">نام کاربری</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">در حال به‌روزرسانی حساب</string>
   <string name="dialog_wait_update_details">لطفا صبر کنید تا حساب جدیدتان به‌روز شود…</string>
   <string name="account_type_ip2ip">حساب IP</string>
-  <string name="help_ring">حساب جمی به شما اجازه می‌دهد از درون یک شبکه کاملا توزیع‌شده، به صورت امن با افراد در تماس باشید.</string>
+  <string name="help_ring">حساب 白い熊 GNU Jami به شما اجازه می‌دهد از درون یک شبکه کاملا توزیع‌شده، به صورت امن با افراد در تماس باشید.</string>
   <string name="help_sip_title">افزودن حساب SIP</string>
   <string name="help_sip">پیکربندی حساب SIP موجود</string>
   <string name="create_sip_account">پیکربندی حساب SIP</string>
@@ -127,10 +127,10 @@
   <string name="account_export_file">پشتیبان‌گیری حساب</string>
   <string name="account_export_file_summary">از حساب‌تان در دستگاه خود پشتیبان تهیه کنید تا بعدا آن را بازیابی کنید.</string>
   <string name="account_enter_password">ورود گذرواژه</string>
-  <string name="account_contact_me">با من روی جمی در تماس باشید!</string>
+  <string name="account_contact_me">با من روی 白い熊 GNU Jami در تماس باشید!</string>
   <string name="update_account">به‌روز‌رسانی حساب</string>
-  <string name="account_migration">حساب جمیتان می‌تواند به‌روز شود.\nلطفاً گذرواژه خود را وارد کنید.</string>
-  <string name="ring_account">حساب جمی</string>
+  <string name="account_migration">حساب 白い熊 GNU Jamiتان می‌تواند به‌روز شود.\nلطفاً گذرواژه خود را وارد کنید.</string>
+  <string name="ring_account">حساب 白い熊 GNU Jami</string>
   <string name="sip_account">حساب SIP</string>
   <string name="ring_account_identity">هویت</string>
   <string name="account_migration_title_dialog">انتقال حساب</string>
@@ -145,7 +145,7 @@
   <string name="account_tv_advance_settings_header">تنظیمات پیشرفته</string>
   <string name="account_tv_add_contact">افزودن مخاطب</string>
   <string name="account_tv_advanced_settings">تغییر تنظیمات کلی</string>
-  <string name="account_tv_about">درباره جمی</string>
+  <string name="account_tv_about">درباره 白い熊 GNU Jami</string>
   <string name="tv_about_version">نسخه</string>
   <string name="tv_about_license">مجوز</string>
   <string name="tv_about_author">حقوق مؤلف</string>
@@ -153,7 +153,7 @@
   <string name="account_link_device">اتصال از دستگاه دیگر</string>
   <string name="account_link_button">اتصال از طریق شبکه</string>
   <string name="account_link_archive_button">اتصال از طریق پشتیبان</string>
-  <string name="account_new_button">حساب Jami را ایجاد کنید</string>
+  <string name="account_new_button">حساب 白い熊 GNU Jami را ایجاد کنید</string>
   <string name="account_link_export_button">پیوند دستگاه جدید</string>
   <string name="account_link_show_button">نمایش %d دستگاه‌های پیوندیافته بیشتر</string>
   <string name="account_link_hide_button">مخفی‌کردن دستگاه پیوند‌داده‌شده</string>
@@ -183,9 +183,9 @@
   <string name="account_status_offline">آفلاین</string>
   <string name="account_status_error">خطا</string>
   <!--Create account-->
-  <string name="account_creation_home">به جمی خوش آمدید</string>
+  <string name="account_creation_home">به 白い熊 GNU Jami خوش آمدید</string>
   <string name="account_creation_profile">نمایه خود را بسازید</string>
-  <string name="account_creation_ring">حساب جمی خود را بسازید</string>
+  <string name="account_creation_ring">حساب 白い熊 GNU Jami خود را بسازید</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">گذرواژه خود را دوباره وارد کنید</string>

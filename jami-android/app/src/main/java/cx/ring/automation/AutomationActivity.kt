@@ -180,7 +180,7 @@ class AutomationActivity : ComponentActivity() {
 
     private fun reject(reason: String) {
         Log.w(TAG, "automation $reason")
-        Flash.show(applicationContext, "Jami automation $reason", Toast.LENGTH_SHORT)
+        Flash.show(applicationContext, "白い熊 GNU Jami automation $reason", Toast.LENGTH_SHORT)
     }
 
     companion object {

@@ -8,7 +8,7 @@
   <string name="account_selection">Account selecteren</string>
   <string name="add_ring_account_title">Account toevoegen</string>
   <string name="add_sip_account_title">SIP-account toevoegen</string>
-  <string name="ring_account_default_name">Jami-account %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami-account %1$s</string>
   <string name="account_creation_error">Er is een fout opgetreden bij het aanmaken van de account.</string>
   <string name="prompt_alias">Alias</string>
   <string name="prompt_hostname">Hostnaam</string>
@@ -28,7 +28,7 @@
         U kunt alleen directe IP-oproepen plaatsen en ontvangen.
         U kunt uw account later bewerken</string>
   <string name="account_type_ip2ip">IP-account</string>
-  <string name="help_ring">Een Jami-account stelt u in staat andere mensen veilig te bereiken in peer-to-peer middels een volledig gedistribueerd netwerk.</string>
+  <string name="help_ring">Een 白い熊 GNU Jami-account stelt u in staat andere mensen veilig te bereiken in peer-to-peer middels een volledig gedistribueerd netwerk.</string>
   <string name="help_sip_title">SIP-account toevoegen</string>
   <string name="help_sip">Bestaand SIP-account configureren</string>
   <string name="create_sip_account">SIP-account configureren</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Backup je account op je apparaat om het later te herstellen.</string>
   <string name="account_export_end_decryption_message">Onjuist wachtwoord. Probeer het opnieuw met het juiste wachtwoord.</string>
   <string name="account_enter_password">Voer wachtwoord in</string>
-  <string name="account_share_body">Neem contact met me op via “%1$s” op het gedistribueerde communicatieplatform Jami: %2$s</string>
-  <string name="account_share_body_with_username">Neem contact met me op via “%1$s” of mijn openbare gebruikersnaam “%2$s” op het gedistribueerde communicatieplatform Jami: %3$s</string>
-  <string name="account_contact_me">Contacteer me op Jami!</string>
+  <string name="account_share_body">Neem contact met me op via “%1$s” op het gedistribueerde communicatieplatform 白い熊 GNU Jami: %2$s</string>
+  <string name="account_share_body_with_username">Neem contact met me op via “%1$s” of mijn openbare gebruikersnaam “%2$s” op het gedistribueerde communicatieplatform 白い熊 GNU Jami: %3$s</string>
+  <string name="account_contact_me">Contacteer me op 白い熊 GNU Jami!</string>
   <string name="update_account">Account bijwerken</string>
-  <string name="account_migration">Uw Jami-account kan worden bijgewerkt.\nVoer uw wachtwoord in.</string>
-  <string name="ring_account">Jami-account</string>
+  <string name="account_migration">Uw 白い熊 GNU Jami-account kan worden bijgewerkt.\nVoer uw wachtwoord in.</string>
+  <string name="ring_account">白い熊 GNU Jami-account</string>
   <string name="sip_account">SIP-rekening</string>
   <string name="ring_account_identity">Identiteit</string>
   <string name="account_migration_title_dialog">Accountmigratie</string>
   <string name="account_migration_message_dialog">Uw accounts moeten worden bijgewerkt. Wilt u naar het scherm voor accountbeheer gaan om deze bewerking uit te voeren?</string>
   <string name="account_update_needed">Update vereist</string>
   <string name="account_cannot_be_found_title">Accountfout</string>
-  <string name="account_cannot_be_found_message">Kan de account niet vinden op het Jami-netwerk. Zorg ervoor dat deze in Jami is geëxporteerd vanaf een bestaand apparaat en dat de opgegeven inloggegevens correct zijn.</string>
+  <string name="account_cannot_be_found_message">Kan de account niet vinden op het 白い熊 GNU Jami-netwerk. Zorg ervoor dat deze in 白い熊 GNU Jami is geëxporteerd vanaf een bestaand apparaat en dat de opgegeven inloggegevens correct zijn.</string>
   <string name="jams_account_cannot_be_found_message">Er is een fout opgetreden bij het verbinden van de account. Controleer de inloggegevens en probeer het opnieuw.</string>
   <string name="account_sip_cannot_be_registered_message">U kunt doorgaan met het aanmaken van uw account, of uw gegevens hier aanpassen. Aanpassen is later ook mogelijk vanuit de accountinstellingen.</string>
   <string name="account_no_network_title">Netwerkfout</string>
-  <string name="account_no_network_message">Er is een verbindingsfout opgetreden bij het toevoegen van de Jami-account aan het gedistribueerde netwerk. Controleer de verbinding van uw apparaat.</string>
+  <string name="account_no_network_message">Er is een verbindingsfout opgetreden bij het toevoegen van de 白い熊 GNU Jami-account aan het gedistribueerde netwerk. Controleer de verbinding van uw apparaat.</string>
   <string name="account_device_added_title">Accountapparaat toegevoegd</string>
-  <string name="account_device_added_message">Jami-account succesvol ingesteld op dit apparaat.</string>
+  <string name="account_device_added_message">白い熊 GNU Jami-account succesvol ingesteld op dit apparaat.</string>
   <string name="account_device_updated_title">Accountapparaat bijgewerkt</string>
-  <string name="account_device_updated_message">Jami-account succesvol bijgewerkt.</string>
+  <string name="account_device_updated_message">白い熊 GNU Jami-account succesvol bijgewerkt.</string>
   <string name="account_cannot_be_updated_message">Er is een fout opgetreden bij het bijwerken van de account. Controleer het accountwachtwoord.</string>
   <string name="account_sip_success_title">SIP-account geregistreerd</string>
   <string name="account_sip_success_message">SIP-account succesvol geregistreerd.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Geavanceerde instellingen</string>
   <string name="account_tv_add_contact">Voeg contact toe</string>
   <string name="account_tv_advanced_settings">Verander de algemene instellingen</string>
-  <string name="account_tv_about">Over Jami</string>
+  <string name="account_tv_about">Over 白い熊 GNU Jami</string>
   <string name="tv_about_version">Versie</string>
   <string name="tv_about_license">Licentie</string>
   <string name="tv_about_author">Schrijverrechten</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Dit apparaat koppelen</string>
   <string name="account_link_button">Verbinden uit netwerk</string>
   <string name="account_link_archive_button">Verbinden uit back-up</string>
-  <string name="account_new_button">Maak een account op Jami</string>
+  <string name="account_new_button">Maak een account op 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Nieuw apparaat koppelen</string>
   <string name="account_link_show_button">Toon %d meer gekoppelde apparaten</string>
   <string name="account_link_hide_button">Gekoppelde apparaten verbergen</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Offline</string>
   <string name="account_status_error">Fout</string>
   <!--Create account-->
-  <string name="account_creation_home">Welkom bij Jami</string>
+  <string name="account_creation_home">Welkom bij 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Maak uw profiel aan</string>
-  <string name="account_creation_ring">Maak uw Jami-account aan</string>
+  <string name="account_creation_ring">Maak uw 白い熊 GNU Jami-account aan</string>
   <string name="account_sip_cannot_be_registered">Er is een fout opgetreden bij het registreren van de SIP-account.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Profiel bewerken</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Even geduld…</string>
   <string name="revoke_device_wait_message">Apparaat wordt ingetrokken</string>
   <string name="rename_device_title">Dit apparaat hernoemen</string>
-  <string name="rename_device_message">Voer een apparaatnaam in om dit apparaat in uw Jami-account te identificeren</string>
+  <string name="rename_device_message">Voer een apparaatnaam in om dit apparaat in uw 白い熊 GNU Jami-account te identificeren</string>
   <string name="rename_device_button">Apparaat hernoemen</string>
   <string name="account_rename_device_hint">Kies een nieuwe apparaatnaam</string>
   <string name="account_device_name_empty">Apparaatnaam mag niet leeg zijn.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">Apparaat-ID</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Dit formaat wordt niet ondersteund.</string>
-  <string name="account_link_info">Scan in de Jami-app op het nieuwe apparaat de QR-code of voer de authenticatiecode handmatig in.</string>
+  <string name="account_link_info">Scan in de 白い熊 GNU Jami-app op het nieuwe apparaat de QR-code of voer de authenticatiecode handmatig in.</string>
   <string name="account_link_device_title">Een nieuw apparaat koppelen</string>
   <string name="account_link_password">Deze account is met een wachtwoord versleuteld; voer het wachtwoord in om de authenticatiecode te genereren.</string>
   <string name="account_link_generate_button">Genereren</string>
   <string name="account_link_time_valid">De authenticatiecode wordt ongeldig: %1$s.</string>
-  <string name="account_link_device_info">Kies “Een nieuw apparaat koppelen” in de andere Jami-app om de QR-code of de authenticatiecode te tonen.</string>
+  <string name="account_link_device_info">Kies “Een nieuw apparaat koppelen” in de andere 白い熊 GNU Jami-app om de QR-code of de authenticatiecode te tonen.</string>
   <string name="account_generate_export_device">Op het andere apparaat</string>
-  <string name="account_generate_export_info">Installeer en start Jami. Selecteer “Importeren vanaf een ander apparaat” en scan de QR-code. U kunt ook de PIN-code handmatig invoeren.</string>
+  <string name="account_generate_export_info">Installeer en start 白い熊 GNU Jami. Selecteer “Importeren vanaf een ander apparaat” en scan de QR-code. U kunt ook de PIN-code handmatig invoeren.</string>
   <string name="content_description_qr_generated">Account-QR-code</string>
   <string name="account_generate_export_invalid">De authenticatiecode is niet langer geldig.\nVoer het wachtwoord in en genereer een nieuwe om het nieuwe apparaat te koppelen.</string>
   <string name="account_generate_export_invalid_two">De authenticatiecode is niet langer geldig.\nGenereer een nieuwe om het nieuwe apparaat te koppelen.</string>
   <string name="help_pin_info">Vereist als de account met een wachtwoord is versleuteld.</string>
   <string name="account_link_device_button">Verbinden</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Jami-account ontgrendelen</string>
+  <string name="account_biometry_auth_title">白い熊 GNU Jami-account ontgrendelen</string>
   <string name="account_biometry_auth_message">Gebruik biometrie om uw account te ontgrendelen</string>
   <string name="account_biometry_enroll_title">Biometrische authenticatie gebruiken?</string>
   <string name="account_biometry_enroll_message">Uw apparaat ondersteunt veilige biometrische authenticatie.
-Biometrische of apparaatauthenticatie biedt een handige manier om de toegang tot uw Jami-account lokaal te ontgrendelen. U kunt nog steeds uw wachtwoord gebruiken.</string>
+Biometrische of apparaatauthenticatie biedt een handige manier om de toegang tot uw 白い熊 GNU Jami-account lokaal te ontgrendelen. U kunt nog steeds uw wachtwoord gebruiken.</string>
   <string name="account_biometry_enroll_accept">Biometrie gebruiken</string>
   <string name="no_thanks">Nee, bedankt</string>
-  <string name="account_biometry_enroll_auth_title">Authenticatie toevoegen voor uw Jami-account</string>
+  <string name="account_biometry_enroll_auth_title">Authenticatie toevoegen voor uw 白い熊 GNU Jami-account</string>
   <string name="account_biometry_enroll_auth_message">Voeg veilige biometrische of apparaatauthenticatie toe als alternatief voor uw wachtwoord</string>
   <string name="account_auth_error">Authenticatiefout: %1$s</string>
   <string name="account_auth_success">Authenticatie geslaagd</string>
