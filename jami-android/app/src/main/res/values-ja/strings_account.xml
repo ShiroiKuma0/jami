@@ -8,7 +8,7 @@
   <string name="account_selection">アカウントを選択</string>
   <string name="add_ring_account_title">アカウントを追加</string>
   <string name="add_sip_account_title">SIPアカウントを追加</string>
-  <string name="ring_account_default_name">Jamiアカウント %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jamiアカウント %1$s</string>
   <string name="account_creation_error">アカウントの作成中にエラーが発生しました。</string>
   <string name="prompt_alias">別名</string>
   <string name="prompt_hostname">ホスト名</string>
@@ -24,7 +24,7 @@
   <string name="dialog_wait_update">アカウントの更新</string>
   <string name="dialog_wait_update_details">アカウントを更新しています。しばらくお待ちください...</string>
   <string name="account_type_ip2ip">IPアカウント</string>
-  <string name="help_ring">Jamiアカウントを使って、完全に分散したネットワークを通じ、ピアツーピアで安全に連絡を取ることができます。</string>
+  <string name="help_ring">白い熊 GNU Jamiアカウントを使って、完全に分散したネットワークを通じ、ピアツーピアで安全に連絡を取ることができます。</string>
   <string name="help_sip_title">SIPアカウントを追加</string>
   <string name="help_sip">既存の SIP アカウントを設定</string>
   <string name="create_sip_account">SIP アカウントを設定</string>
@@ -130,16 +130,16 @@
   <string name="account_export_file">アカウントをバックアップ</string>
   <string name="account_export_file_summary">後から復旧できるようにアカウントをデバイスにバックアップします</string>
   <string name="account_enter_password">パスワードを入力してください</string>
-  <string name="account_contact_me">ジャミに連絡する!</string>
+  <string name="account_contact_me">白い熊 GNU Jamiに連絡する!</string>
   <string name="update_account">アカウントを更新</string>
-  <string name="account_migration">Jamiアカウントが更新可能です。\nあなたのパスワードを入力してください。</string>
-  <string name="ring_account">Jamiアカウント</string>
+  <string name="account_migration">白い熊 GNU Jamiアカウントが更新可能です。\nあなたのパスワードを入力してください。</string>
+  <string name="ring_account">白い熊 GNU Jamiアカウント</string>
   <string name="sip_account">SIPアカウント</string>
   <string name="ring_account_identity">ID</string>
   <string name="account_migration_title_dialog">アカウントの移行</string>
   <string name="account_update_needed">更新が必要です</string>
   <string name="account_cannot_be_found_title">アカウントエラー</string>
-  <string name="account_cannot_be_found_message">Jamiネットワークでアカウントが見つかりませんでした。既存のデバイスからJamiでエクスポートされていること、および入力した認証情報が正しいことを確認してください。</string>
+  <string name="account_cannot_be_found_message">白い熊 GNU Jamiネットワークでアカウントが見つかりませんでした。既存のデバイスから白い熊 GNU Jamiでエクスポートされていること、および入力した認証情報が正しいことを確認してください。</string>
   <string name="account_sip_cannot_be_registered_message">アカウント作成プロセスを続行するか、ここで情報を編集することができます。 アカウント設定で、後で編集することも可能です。</string>
   <string name="account_no_network_title">ネットワークエラー</string>
   <string name="account_device_added_title">アカウントデバイスが追加されました</string>
@@ -150,7 +150,7 @@
   <string name="account_tv_advance_settings_header">詳細設定</string>
   <string name="account_tv_add_contact">連絡先を追加</string>
   <string name="account_tv_advanced_settings">一般の設定を変更する</string>
-  <string name="account_tv_about">Jamiについて</string>
+  <string name="account_tv_about">白い熊 GNU Jamiについて</string>
   <string name="tv_about_version">バージョン</string>
   <string name="tv_about_license">ライセンス</string>
   <string name="tv_about_author">作者に許可される。</string>
@@ -158,7 +158,7 @@
   <string name="account_link_device">他のデバイスから接続する</string>
   <string name="account_link_button">ネットワークから接続</string>
   <string name="account_link_archive_button">バックアップから接続</string>
-  <string name="account_new_button">Jamiアカウントを作成する</string>
+  <string name="account_new_button">白い熊 GNU Jamiアカウントを作成する</string>
   <string name="account_link_export_button">新しいデバイスを連結する</string>
   <string name="account_link_show_button">さらに%d個のデバイスを表示</string>
   <string name="account_link_hide_button">リンクされたデバイスを隠す</string>
@@ -191,9 +191,9 @@
   <string name="account_status_offline">オフライン</string>
   <string name="account_status_error">エラー</string>
   <!--Create account-->
-  <string name="account_creation_home">Jamiへようこそ</string>
+  <string name="account_creation_home">白い熊 GNU Jamiへようこそ</string>
   <string name="account_creation_profile">プロフィールを作成する</string>
-  <string name="account_creation_ring">Jamiアカウントを作成</string>
+  <string name="account_creation_ring">白い熊 GNU Jamiアカウントを作成</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">確認の暗証語を入力</string>
@@ -210,7 +210,7 @@
   <!--Link a new device-->
   <string name="error_format_not_supported">この形式はサポートされていません。</string>
   <string name="account_link_device_title">新しいデバイスをリンク</string>
-  <string name="account_generate_export_info">Jamiをインストールして起動します。「別のデバイスからインポート」を選択し、QRコードをスキャンしてください。または、PINコードを手動で入力してください。</string>
+  <string name="account_generate_export_info">白い熊 GNU Jamiをインストールして起動します。「別のデバイスからインポート」を選択し、QRコードをスキャンしてください。または、PINコードを手動で入力してください。</string>
   <string name="account_link_device_button">接続</string>
   <!--Biometry-->
 </resources>

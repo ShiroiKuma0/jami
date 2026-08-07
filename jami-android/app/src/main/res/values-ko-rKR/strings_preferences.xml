@@ -11,7 +11,7 @@
   <string name="pref_category_extensions">확장</string>
   <string name="pref_category_video_settings">고급 영상 설정</string>
   <string name="pref_mobileData_title">모바일 데이터</string>
-  <string name="pref_mobileData_summary">Jami를 Wi-Fi 이외에 3G/LTE 네트워크에 사용할 수 있도록 허용</string>
+  <string name="pref_mobileData_summary">白い熊 GNU Jami를 Wi-Fi 이외에 3G/LTE 네트워크에 사용할 수 있도록 허용</string>
   <string name="pref_pushNotifications_title">푸시 알림</string>
   <string name="pref_pushNotifications_summary">Google 서버를 사용하여 배경에서 통화/메세지를 수신할 수 있습니다</string>
   <string name="pref_unifiedPush_summary">UnifiedPush 서비스를 사용하여 배경에서 통화/메세지를 수신할 수 있습니다</string>
@@ -26,16 +26,16 @@
   <string name="pref_videoResolution_summary">기본 출력 영상 해상도를 선택</string>
   <string name="pref_systemContacts_title">시스템 연락처를 사용</string>
   <string name="pref_systemContacts_summary">전화자의 세부 정보를 표시하기 위해 시스템 연락처를 사용하십시오.</string>
-  <string name="pref_systemDialer_title">Jami 를 사용하여 시스템 호출을 합니다</string>
+  <string name="pref_systemDialer_title">白い熊 GNU Jami 를 사용하여 시스템 호출을 합니다</string>
   <string name="pref_systemDialer_summary">가능하면 제미를 이용해 시스템 통화를 할 수 있어</string>
-  <string name="pref_startOnBoot_title">시작 시 Jami를 시작</string>
-  <string name="pref_startOnBoot_summary">시스템 시작 시 Jami를 백그라운드에서 시작합니다.</string>
+  <string name="pref_startOnBoot_title">시작 시 白い熊 GNU Jami를 시작</string>
+  <string name="pref_startOnBoot_summary">시스템 시작 시 白い熊 GNU Jami를 백그라운드에서 시작합니다.</string>
   <string name="pref_clearHistory_title">명확한 역사</string>
   <string name="pref_clearHistory_summary">모든 대화의 기록을 지웁니다. 이 작업은 취소할 수 없습니다.</string>
   <string name="pref_notification_title">알림의 가시성</string>
   <string name="pref_notification_summary">잠금 화면에 애플리케이션 알림의 가시성을 설정하십시오.</string>
   <string name="pref_connectivity_title">연결 모드</string>
-  <string name="pref_connectivity_summary">통화와 메시지를 받기 위해 Jami를 분산 시스템에 연결하는 방법을 선택하십시오.</string>
+  <string name="pref_connectivity_summary">통화와 메시지를 받기 위해 白い熊 GNU Jami를 분산 시스템에 연결하는 방법을 선택하십시오.</string>
   <string name="pref_blackList_title">블록 목록</string>
   <string name="pref_blackList_summary">블록 리스트를 확인해</string>
   <string name="pref_delete_account_title">계정을 삭제</string>
@@ -43,7 +43,7 @@
   <string name="pref_persistNotification_title">백그라운드에서 실행</string>
   <string name="pref_persistNotification_summary">통화와 메시지를 받기 위해 백그라운드 실행을 허용합니다.</string>
   <string name="pref_newGroup_title">그룹 채팅을 활성화</string>
-  <string name="pref_newGroup_summary">Jami에서 그룹을 만들 수 있도록 한다.</string>
+  <string name="pref_newGroup_summary">白い熊 GNU Jami에서 그룹을 만들 수 있도록 한다.</string>
   <string name="pref_logs_title">진단 기록</string>
   <string name="pref_logs_summary">진단 로그 열 설정</string>
   <string name="pref_logs_start">로그링 시작</string>
@@ -66,7 +66,7 @@
   <string name="connectivity_google_services_title">구글 서비스</string>
   <string name="connectivity_google_services_description">푸시 알림을 받기 위해 Google Firebase와 DHT 프록시를 사용합니다.</string>
   <string name="connectivity_local_node_title">로컬 DHT 노드</string>
-  <string name="connectivity_local_node_description">다른 Jami 기기 및 연락처와 연결하기 위해 로컬 DHT 노드를 사용합니다.</string>
+  <string name="connectivity_local_node_description">다른 白い熊 GNU Jami 기기 및 연락처와 연결하기 위해 로컬 DHT 노드를 사용합니다.</string>
   <string name="connectivity_unified_push_description">푸시 알림을 받기 위해 사용자 지정 UnifiedPush 서버를 사용합니다.</string>
   <string name="connectivity_custom_title">관습</string>
   <string name="connectivity_custom_description">현재 사용 가능한 구성 사전 설정을 사용하고 있지 않습니다.</string>

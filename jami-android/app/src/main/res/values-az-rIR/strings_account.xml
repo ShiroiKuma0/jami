@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">حساب قوش</string>
   <string name="add_sip_account_title">SIP حسابي قوش</string>
-  <string name="ring_account_default_name">Jami حساب %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami حساب %1$s</string>
   <string name="prompt_alias">آلفا</string>
   <string name="prompt_hostname">آدی</string>
   <string name="prompt_username">ایستیفاده چی آد</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">حساب یئنیله دیل</string>
   <string name="dialog_wait_update_details">لطفاً تا حساب جدیدتون تازه میشه صبر کنین</string>
   <string name="account_type_ip2ip">IP حساب</string>
-  <string name="help_ring">جامی حسابی، تامامن یاییلمیش شبکه له برابر شخصلره آرخایینجا چاتماغا imkan وئریر.</string>
+  <string name="help_ring">白い熊 GNU Jami حسابی، تامامن یاییلمیش شبکه له برابر شخصلره آرخایینجا چاتماغا imkan وئریر.</string>
   <string name="help_sip_title">SIP حسابي قوش</string>
   <!--Strings related to account deletion-->
   <string name="account_delete_dialog_message">بو عملین ردّ اولونماسی اولماز.</string>
@@ -120,10 +120,10 @@
   <string name="account_export_file">پشتیبان حساب</string>
   <string name="account_export_file_summary">حسابينينين آرخايينلاشماسي اوچون آلېنماغېندا، اونو سونرا قاییتماق اوچون.</string>
   <string name="account_enter_password">رمز یازینی دن</string>
-  <string name="account_contact_me">جمي ايله باغلي اول!</string>
+  <string name="account_contact_me">白い熊 GNU Jami ايله باغلي اول!</string>
   <string name="update_account">حساب یئنیلشدیر</string>
-  <string name="account_migration">جمی حسابینیزی یئنیله ییرم.\\nلطفا رمزونو دن یات.</string>
-  <string name="ring_account">حساب جامی</string>
+  <string name="account_migration">白い熊 GNU Jami حسابینیزی یئنیله ییرم.\\nلطفا رمزونو دن یات.</string>
+  <string name="ring_account">حساب 白い熊 GNU Jami</string>
   <string name="sip_account">SIP حساب</string>
   <string name="ring_account_identity">هویت</string>
   <string name="account_migration_title_dialog">حساب کؤچمه سی</string>
@@ -138,7 +138,7 @@
   <string name="account_tv_advance_settings_header">آلتینده یئرلشمه</string>
   <string name="account_tv_add_contact">تماس قوش</string>
   <string name="account_tv_advanced_settings">عمومی تنظیماتلاری دَییشدیر</string>
-  <string name="account_tv_about">جامی حاقّيندا</string>
+  <string name="account_tv_about">白い熊 GNU Jami حاقّيندا</string>
   <string name="tv_about_version">نسخه</string>
   <string name="tv_about_license">رخصت</string>
   <string name="tv_about_author">حقون نويسنده</string>
@@ -146,7 +146,7 @@
   <string name="account_link_device">باشقا آلاتدان باغلانیب</string>
   <string name="account_link_button">شبکه دن باغلانیب</string>
   <string name="account_link_archive_button">پشتیبانلیکدن باغلانیب</string>
-  <string name="account_new_button">Jami حسابي يارادين</string>
+  <string name="account_new_button">白い熊 GNU Jami حسابي يارادين</string>
   <string name="account_link_export_button">یئنی آلینانی باغلا</string>
   <string name="account_link_show_button">%d داها باغلي اولان آلتی گؤرسهدیر</string>
   <string name="account_link_hide_button">باغلي اولان آلتی اؤرت</string>
@@ -174,9 +174,9 @@
   <string name="account_status_offline">آفلاین</string>
   <string name="account_status_error">خطای</string>
   <!--Create account-->
-  <string name="account_creation_home">\" جامي \" نين خوش آمديد</string>
+  <string name="account_creation_home">\" 白い熊 GNU Jami \" نين خوش آمديد</string>
   <string name="account_creation_profile">پروفایل یارانماق</string>
-  <string name="account_creation_ring">Jami حسابینی یارات</string>
+  <string name="account_creation_ring">白い熊 GNU Jami حسابینی یارات</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">تصدیق اوچون رمز یاز</string>

@@ -14,9 +14,9 @@
   <string name="no_browser_app_installed">Nerasta jokia saityno naršyklė, įdiekite ją norėdami peržiūrėti šį puslapį.</string>
   <string name="website_chooser_title">Rodyti svetainę naudojant...</string>
   <string name="license">Ši programinė įranga yra pateikiama „tokia, kokia yra“, be jokios garantijos. Išsamesnei informacijai, žiūrėkite <u>GNU Bendrąją Viešąją Licenciją, versiją 3 arba vėlesnę</u></string>
-  <string name="description">Jami yra visuotiniam bendravimui skirta laisva programinė įranga, kuri gerbia naudotojų laisves ir privatumą.</string>
+  <string name="description">白い熊 GNU Jami yra visuotiniam bendravimui skirta laisva programinė įranga, kuri gerbia naudotojų laisves ir privatumą.</string>
   <string name="credits">Padėkos</string>
-  <string name="pip_title">Jami konferencija</string>
+  <string name="pip_title">白い熊 GNU Jami konferencija</string>
   <string name="call_service_description">Ši tarnyba reikalinga, kad jūsų skambučiai galėtų veikti priekiniame plane. Ji veikia tik skambučių metu.</string>
   <string name="data_transfer_service_description">Ši tarnyba reikalinga, kad failų persiuntimo metu būtų rodomi pastovūs pranešimai. Ji veikia tik failų persiuntimo metu.</string>
   <!--About dialog-->
@@ -37,7 +37,7 @@
   <string name="menu_item_account_settings">Paskyros nustatymai</string>
   <string name="menu_item_extension_list">Plėtinių nustatymai</string>
   <string name="menu_item_share">Bendrinti mano paskyrą</string>
-  <string name="menu_item_about">Apie Jami</string>
+  <string name="menu_item_about">Apie 白い熊 GNU Jami</string>
   <string name="video_setting_title">Vaizdo nustatymai</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Rinkti numerį</string>
@@ -69,7 +69,7 @@
   <string name="notif_channel_background_service">Foninė tarnyba</string>
   <string name="notif_channel_background_service_descr">Leidžia bet kuriuo metu priimti skambučius ir gauti žinutes.</string>
   <string name="notif_group_calls">Skambučiai</string>
-  <string name="notif_background_service">Jami šiuo metu veikia fone</string>
+  <string name="notif_background_service">白い熊 GNU Jami šiuo metu veikia fone</string>
   <string name="notif_mark_as_read">Žymėti kaip skaitytą</string>
   <string name="notif_dismiss">Atmesti</string>
   <string name="notif_reply">Atsakyti</string>
@@ -78,7 +78,7 @@
   <string name="notif_incoming_picture">Paveikslas nuo %1$s</string>
   <string name="notif_sync_title">Sinchronizuojami duomenys…</string>
   <string name="notif_location_title">Vietovė bendrinama su %1$s</string>
-  <string name="notif_reconnect_title">Jami sinchronizuojama…</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami sinchronizuojama…</string>
   <string name="location_share_contact">%1$s bendrina su jumis savo vietovę</string>
   <string name="notif_location_multi_title">Vietovė bendrinama su %1$d adresatais</string>
   <string name="notif_location_remaining">Liko %1$d min.</string>
@@ -95,7 +95,7 @@
   <string name="hist_in_call">%1$s gaunamasis skambutis</string>
   <string name="hist_out_call">%1$s išsiunčiamasis skambutis</string>
   <string name="call_duration">Trukmė: %s</string>
-  <string name="start_error_title">Nepavyko paleisti Jami</string>
+  <string name="start_error_title">Nepavyko paleisti 白い熊 GNU Jami</string>
   <string name="action_call_accept">Atsiliepti</string>
   <string name="action_call_accept_audio">Atsiliepti su garsu</string>
   <string name="action_call_accept_video">Atsiliepti su vaizdu</string>
@@ -114,7 +114,7 @@
   <string name="write_a_message">Rašyti žinutę</string>
   <string name="scan_qr">Skenuoti QR kodą</string>
   <string name="qr_code">QR kodas</string>
-  <string name="qr_code_not_contact">Ne Jami adresato QR kodas</string>
+  <string name="qr_code_not_contact">Ne 白い熊 GNU Jami adresato QR kodas</string>
   <string name="new_group">Sukurti naują grupę</string>
   <string name="ab_action_flipcamera">Apversti kamerą</string>
   <string name="ab_action_hidepreview">Slėpti peržiūrą</string>
@@ -137,7 +137,7 @@
   <string name="ringtone_error_size_too_big">Šis failas yra per didelis. Didžiausias dydis yra %1$dkB.</string>
   <string name="ringtone_custom_prompt">Nustatyti tinkintą skambučio melodiją</string>
   <string name="ringtone_custom_label">Tinkinta</string>
-  <string name="ringtone_jami_tones">Jami skambučio melodijos</string>
+  <string name="ringtone_jami_tones">白い熊 GNU Jami skambučio melodijos</string>
   <!--Read contacts permission-->
   <!--Write call log permission-->
   <!--Post notifications permission-->
@@ -198,7 +198,7 @@
   <string name="video_not_found">Vaizdo įrašo failas nerastas</string>
   <string name="conversation_preference_color">Pokalbio spalva</string>
   <string name="conversation_preference_emoji">Pokalbio šypsenėlė</string>
-  <string name="conversation_type_contact">Jami adresatas</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami adresatas</string>
   <string name="conversation_type_private">Privatus</string>
   <string name="conversation_type_group">Grupė</string>
   <string name="conversation_contact_invited">%1$s buvo pakviesta(s) prisijungti prie pokalbio.</string>
@@ -223,10 +223,10 @@
   <string name="prompt_new_password">Naujas slaptažodis</string>
   <string name="prompt_new_password_optional">Naujas slaptažodis (nebūtina)</string>
   <string name="prompt_new_password_repeat">Pakartokite naują slaptažodį</string>
-  <string name="account_create_title">Susikurkite Jami paskyrą</string>
+  <string name="account_create_title">Susikurkite 白い熊 GNU Jami paskyrą</string>
   <string name="prompt_new_username">Įveskite naują naudotojo vardą</string>
   <string name="prompt_hint_username">Naudotojo vardas</string>
-  <string name="help_password_choose">Pasirinkite stiprų slaptažodį, kurį prisiminsite, kad apsaugotumėte savo Jami paskyrą.</string>
+  <string name="help_password_choose">Pasirinkite stiprų slaptažodį, kurį prisiminsite, kad apsaugotumėte savo 白い熊 GNU Jami paskyrą.</string>
   <string name="pin_copied">Tapatybės nustatymo kodas nukopijuotas į iškarpinę.</string>
   <string name="copied_clipboard">Nukopijuota į iškarpinę.</string>
   <string name="wizard_next">Kitas</string>
@@ -256,7 +256,7 @@
   <string name="devices">Susieti įrenginiai</string>
   <string name="total_devices">Iš viso įrenginių: </string>
   <!--Share fragment-->
-  <string name="share_message">Nuskenuokite šį kodą naudodami Jami</string>
+  <string name="share_message">Nuskenuokite šį kodą naudodami 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Pasirinkite paskyrą, kurią norite bendrinti.</string>
   <string name="share_your_account_information">Bendrinti mano kontaktinę informaciją</string>
   <string name="share_contact_information">Bendrinti kontaktinę informaciją</string>
@@ -381,7 +381,7 @@
   <string name="jami_id_not_available">Naudotojo vardas yra neprieinamas.</string>
   <string name="jami_id_looking_for_availability">Tikrinamas naudotojo vardo prieinamumas…</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Sveiki atvykę į Jami</string>
+  <string name="welcome_jami_title">Sveiki atvykę į 白い熊 GNU Jami</string>
   <!--Conversation details-->
   <string name="details">Išsamiau</string>
   <string name="secure_p2p_connection">Saugus lygiarangis ryšys</string>

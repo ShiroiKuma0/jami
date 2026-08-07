@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">Nebyla nalezena žádná aplikace webového prohlížeče. Chcete-li zobrazit tuto stránku, nainstalujte si ji.</string>
   <string name="website_chooser_title">Zobrazit stránku pomocí...</string>
   <string name="license">Tento program je poskytován tak, jak je, bez jakýchkoli záruk. Na podrobnosti se podívejte na znění licence <u>GNU General Public License ve verzi 3 nebo pozdější</u></string>
-  <string name="description">Jami je svobodný software určený k univerzální komunikaci, který respektuje svobody a práva uživatelů.</string>
+  <string name="description">白い熊 GNU Jami je svobodný software určený k univerzální komunikaci, který respektuje svobody a práva uživatelů.</string>
   <string name="credits">Zásluhy</string>
-  <string name="pip_title">Konference Jami</string>
+  <string name="pip_title">Konference 白い熊 GNU Jami</string>
   <string name="call_service_description">Tato služba je potřebná k tomu, aby vaše hovory mohly běžet na popředí. Je spuštěná jen během hovorů.</string>
   <string name="data_transfer_service_description">Tato služba je potřebná k zobrazení neustálých oznámení během přenosů souborů. Je spuštěná jen během přenosů souborů.</string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">Nastavení účtu</string>
   <string name="menu_item_extension_list">Nastavení rozšíření</string>
   <string name="menu_item_share">Sdílet můj účet</string>
-  <string name="menu_item_about">O Jami</string>
+  <string name="menu_item_about">O 白い熊 GNU Jami</string>
   <string name="video_setting_title">Nastavení videa</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Vytočit číslo</string>
@@ -80,7 +80,7 @@
   <string name="notif_channel_background_service_descr">Umožňuje příjem hovorů a zpráv kdykoli.</string>
   <string name="notif_group_calls">Hovory</string>
   <string name="notif_inprogress_group_call">Probíhá hovor</string>
-  <string name="notif_background_service">Jami nyní běží na pozadí</string>
+  <string name="notif_background_service">白い熊 GNU Jami nyní běží na pozadí</string>
   <string name="notif_mark_as_read">Označit jako přečtené</string>
   <string name="notif_dismiss">Odmítnout</string>
   <string name="notif_reply">Odpovědět</string>
@@ -90,7 +90,7 @@
   <string name="notif_sync_title">Synchronizuji data…</string>
   <string name="notif_location_title">Sdílení polohy s %1$s</string>
   <string name="notif_channel_reconnect">Synchronizace na pozadí</string>
-  <string name="notif_reconnect_title">Jami se synchronizuje…</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami se synchronizuje…</string>
   <string name="location_share_contact">%1$s s vámi sdílí polohu</string>
   <string name="notif_location_multi_title">Sdílení polohy s %1$d kontakty</string>
   <string name="notif_location_remaining">zbývá %1$d minut</string>
@@ -111,7 +111,7 @@
   <string name="hist_out_call">Odchozí hovor %1$s</string>
   <string name="call_duration">Trvalo %s</string>
   <string name="call_on_hold">Hovor je podržen</string>
-  <string name="start_error_title">Nelze spustit Jami!</string>
+  <string name="start_error_title">Nelze spustit 白い熊 GNU Jami!</string>
   <string name="action_call_accept">Přijmout hovor</string>
   <string name="action_call_accept_audio">Přijmout se zvukem</string>
   <string name="action_call_accept_video">Přijmout s obrazem</string>
@@ -133,7 +133,7 @@
   <string name="write_a_message">Napsat zprávu</string>
   <string name="scan_qr">Skenovat kód QR</string>
   <string name="qr_code">Kód QR</string>
-  <string name="qr_code_not_contact">Nejedná se o QR kód kontaktu Jami</string>
+  <string name="qr_code_not_contact">Nejedná se o QR kód kontaktu 白い熊 GNU Jami</string>
   <string name="new_group">Vytvořit novou skupinu</string>
   <string name="ab_action_flipcamera">Otočit kameru</string>
   <string name="ab_action_hidepreview">Skrýt náhled</string>
@@ -163,15 +163,15 @@
   <string name="ringtone_error_size_too_big">Tento soubor je příliš velký. Největší velikost je %1$dkB.</string>
   <string name="ringtone_custom_prompt">Nastavit vlastní vyzváněcí tón</string>
   <string name="ringtone_custom_label">Vlastní</string>
-  <string name="ringtone_jami_tones">Vyzváněcí tóny Jami</string>
+  <string name="ringtone_jami_tones">Vyzváněcí tóny 白い熊 GNU Jami</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">Jami vyžaduje oprávnění „Číst kontakty“. Povolte ho v nastavení zařízení, abyste mohli tuto funkci používat.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jami vyžaduje oprávnění „Číst kontakty“. Povolte ho v nastavení zařízení, abyste mohli tuto funkci používat.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">Jami vyžaduje oprávnění „Zapisovat seznam hovorů“. Povolte ho v nastavení zařízení, abyste mohli tuto funkci používat.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami vyžaduje oprávnění „Zapisovat seznam hovorů“. Povolte ho v nastavení zařízení, abyste mohli tuto funkci používat.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">Povolit oznámení</string>
-  <string name="permission_dialog_post_notifications_message">Jami potřebuje oprávnění k oznámením, aby vás upozornil na příchozí hovory a zprávy, i když je aplikace na pozadí. Bez něj můžete zmeškat hovory.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">Oznámení jsou pro Jami zakázána. Bez nich zmeškáte příchozí hovory a zprávy. Povolte oznámení pro Jami v nastavení zařízení.</string>
+  <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami potřebuje oprávnění k oznámením, aby vás upozornil na příchozí hovory a zprávy, i když je aplikace na pozadí. Bez něj můžete zmeškat hovory.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">Oznámení jsou pro 白い熊 GNU Jami zakázána. Bez nich zmeškáte příchozí hovory a zprávy. Povolte oznámení pro 白い熊 GNU Jami v nastavení zařízení.</string>
   <string name="permission_dialog_open_settings">Otevřít nastavení</string>
   <string name="permission_dialog_later">Později</string>
   <!--QRCode Scan-->
@@ -233,7 +233,7 @@
   <string name="video_not_found">Videosoubor nenalezen</string>
   <string name="conversation_preference_color">Barva konverzace</string>
   <string name="conversation_preference_emoji">Emoji konverzace</string>
-  <string name="conversation_type_contact">Kontakt na Jami</string>
+  <string name="conversation_type_contact">Kontakt na 白い熊 GNU Jami</string>
   <string name="conversation_type_private">Soukromý</string>
   <string name="conversation_type_group">Skupina</string>
   <string name="conversation_contact_invited">%1$s byl pozván do konverzace.</string>
@@ -284,11 +284,11 @@
   <string name="prompt_new_password">Nové heslo</string>
   <string name="prompt_new_password_optional">Nové heslo (volitelné)</string>
   <string name="prompt_new_password_repeat">Potvrďte nové heslo</string>
-  <string name="account_create_title">Vytvoři Jami účet</string>
+  <string name="account_create_title">Vytvoři 白い熊 GNU Jami účet</string>
   <string name="prompt_new_username">Zadejte nové uživatelské jméno</string>
   <string name="prompt_hint_username">Uživatelské jméno</string>
-  <string name="help_password_choose">K ochraně účtu Jami si zvolte silné heslo, které si dovedete zapamatovat.</string>
-  <string name="help_password_enter">Zadejte hlavní heslo ke svému účtu Jami.</string>
+  <string name="help_password_choose">K ochraně účtu 白い熊 GNU Jami si zvolte silné heslo, které si dovedete zapamatovat.</string>
+  <string name="help_password_enter">Zadejte hlavní heslo ke svému účtu 白い熊 GNU Jami.</string>
   <string name="help_server_enter">Zadejte adresu URL správcovského serveru.</string>
   <string name="pin_copied">Ověřovací kód zkopírován do schránky.</string>
   <string name="copied_clipboard">Zkopírováno do schránky.</string>
@@ -320,7 +320,7 @@
   <string name="devices">Připojená zařízení</string>
   <string name="total_devices">Celkově zařízení:</string>
   <!--Share fragment-->
-  <string name="share_message">Skenovat tento kód s Jami</string>
+  <string name="share_message">Skenovat tento kód s 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Vyberte, prosím, účet ke sdílení.</string>
   <string name="share_your_account_information">Sdílet mé kontaktní informace</string>
   <string name="share_contact_information">Sdílet informace o kontaktu</string>
@@ -412,8 +412,8 @@
   <string name="speech_recogniton_unavailable">Rozpoznávání řeči není k dispozici.</string>
   <string name="audio_permission_rationale_title"> Je vyžadováno oprávnění ke zvuku</string>
   <string name="camera_permission_rationale_title">Je vyžadováno oprávnění ke kameře</string>
-  <string name="audio_permission_rationale_message">Jami vyžaduje oprávnění k mikrofonu pro funkce převodu řeči na text a nahrávání zvuku. Bude vyžádáno v dalším kroku.</string>
-  <string name="camera_permission_rationale_message">Jami vyžaduje oprávnění ke kameře pro nahrávání videa a uskutečnění videohovoru. Bude vyžádáno v dalším kroku.</string>
+  <string name="audio_permission_rationale_message">白い熊 GNU Jami vyžaduje oprávnění k mikrofonu pro funkce převodu řeči na text a nahrávání zvuku. Bude vyžádáno v dalším kroku.</string>
+  <string name="camera_permission_rationale_message">白い熊 GNU Jami vyžaduje oprávnění ke kameře pro nahrávání videa a uskutečnění videohovoru. Bude vyžádáno v dalším kroku.</string>
   <string name="unable_to_start_recorder">Nelze spustit nahrávání zvuku.</string>
   <string name="error_sharing_file">Při sdílení souboru došlo k chybě.</string>
   <string name="error_opening_file">Při otevírání souboru došlo k chybě.</string>
@@ -471,12 +471,12 @@
   <string name="picker_title">Vybrat kontakt</string>
   <string name="picker_btn">Vybrat kontakt</string>
   <string name="no_contact_to_add">Nemáte žádný kontakt k přidání</string>
-  <string name="bottomsheet_contact">Kontaktovat Jami\n %1$s</string>
+  <string name="bottomsheet_contact">Kontaktovat 白い熊 GNU Jami\n %1$s</string>
   <string name="error_open_no_app_found">Nebyla nalezena žádná aplikace pro tento soubor: %1$s</string>
   <string name="swarm_detail_no_document">Zatím nemáte žádné dokumenty.</string>
   <string name="group_admin">Správce</string>
-  <string name="share_contact_intent_title">Přidejte tento kontakt v Jami!</string>
-  <string name="share_contact_intent_body">Tento kontakt „%1$s“ můžete přidat na distribuované komunikační platformě Jami: %2$s</string>
+  <string name="share_contact_intent_title">Přidejte tento kontakt v 白い熊 GNU Jami!</string>
+  <string name="share_contact_intent_body">Tento kontakt „%1$s“ můžete přidat na distribuované komunikační platformě 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">Kopírovat JamiId</string>
   <string name="jami_id_share">Sdílet JamiId</string>
@@ -487,8 +487,8 @@
   <string name="jami_id_looking_for_availability">Kontrola dostupnosti uživatelského jména…</string>
   <string name="jami_id_choose_username">Výberte uživatelské jméno</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Vítejte v Jami</string>
-  <string name="welcome_jami_description">Sdílejte svůj Jami identifikátor, abyste byli snáze kontaktováni!</string>
+  <string name="welcome_jami_title">Vítejte v 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Sdílejte svůj 白い熊 GNU Jami identifikátor, abyste byli snáze kontaktováni!</string>
   <!--Conversation details-->
   <string name="details">Detaily</string>
   <string name="secure_p2p_connection">Zabezpečené připojení peer-to-peer</string>
@@ -499,7 +499,7 @@
   <string name="show_certificate">Zobrazit certifikát</string>
   <string name="mute_conversation">Ztlumit konverzaci</string>
   <!--Donation-->
-  <string name="donation_card_description">Pokud vás baví používat Jami a věříte v naše poslání, chcete přispět?</string>
+  <string name="donation_card_description">Pokud vás baví používat 白い熊 GNU Jami a věříte v naše poslání, chcete přispět?</string>
   <string name="donation_card_not_now">Teď ne</string>
   <string name="donation_donate">Darovat</string>
   <string name="donation_setting_title">Připomenutí daru</string>
@@ -571,11 +571,11 @@
   <string name="notif_channel_peer_tunnel">Sdílené služby</string>
   <string name="notif_channel_peer_tunnel_descr">Zobrazeno, když jsou na pozadí aktivní tunely partnerských služeb.</string>
   <string name="notif_peer_tunnel_title">Sdílené služby aktivní</string>
-  <string name="notif_peer_tunnel_text">Jami udržuje vaše připojení služeb aktivní na pozadí</string>
+  <string name="notif_peer_tunnel_text">白い熊 GNU Jami udržuje vaše připojení služeb aktivní na pozadí</string>
   <string name="notif_peer_tunnel_stop_all">Zastavit vše</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">Sdílené služby</string>
-  <string name="shared_services_settings_description">Zpřístupnit místní služby uživatelům Jami</string>
+  <string name="shared_services_settings_description">Zpřístupnit místní služby uživatelům 白い熊 GNU Jami</string>
   <string name="shared_services_empty">Žádné služby nejsou nakonfigurovány</string>
   <string name="shared_services_add">Přidat službu</string>
   <string name="shared_services_add_title">Přidat sdílenou službu</string>
@@ -590,7 +590,7 @@
   <string name="shared_services_port_invalid">Port musí být mezi 1 a 65535</string>
   <string name="shared_services_port">Port: %d</string>
   <string name="shared_services_no_description">Žádný popis</string>
-  <string name="shared_services_empty_subtitle">Sdílejte místní soubory nebo služby s uživateli Jami</string>
+  <string name="shared_services_empty_subtitle">Sdílejte místní soubory nebo služby s uživateli 白い熊 GNU Jami</string>
   <string name="shared_services_more_options">Více možností</string>
   <string name="shared_services_open_in_browser">Otevřít v prohlížeči</string>
   <string name="shared_services_disconnect_all">Odpojit vše</string>

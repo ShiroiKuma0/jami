@@ -8,7 +8,7 @@
   <string name="account_selection">Vælg konto</string>
   <string name="add_ring_account_title">Tilføj konto</string>
   <string name="add_sip_account_title">Tilføj SIP-konto</string>
-  <string name="ring_account_default_name">Jami-konto %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami-konto %1$s</string>
   <string name="account_creation_error">Der opstod en fejl under oprettelse af kontoen.</string>
   <string name="prompt_alias">Alias</string>
   <string name="prompt_hostname">Værtsnavn</string>
@@ -28,7 +28,7 @@
         Du vil kun kunne foretage og modtage direkte IP-opkald.
         Du kan redigere din konto senere</string>
   <string name="account_type_ip2ip">IP-konto</string>
-  <string name="help_ring">En Jami-konto giver mulighed for at du kan være i kontakt med dine medmennesker sikkert. Det gøres ved at lave en enhed-til-enhed kommunikation igennem et fuldstændigt distribueret netværk.</string>
+  <string name="help_ring">En 白い熊 GNU Jami-konto giver mulighed for at du kan være i kontakt med dine medmennesker sikkert. Det gøres ved at lave en enhed-til-enhed kommunikation igennem et fuldstændigt distribueret netværk.</string>
   <string name="help_sip_title">Tilføj SIP-konto</string>
   <string name="help_sip">Konfigurer eksisterende SIP konto</string>
   <string name="create_sip_account">Konfigurer SIP konto</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Du kan sikkerhedskopiere din konto på din enhed for at genoprette den senere.</string>
   <string name="account_export_end_decryption_message">Forkert adgangskode. Prøv igen med den korrekte adgangskode.</string>
   <string name="account_enter_password">Indtast adgangskode</string>
-  <string name="account_share_body">Kontakt mig med “%1$s” på Jamis distribuerede kommunikationsplatform: %2$s</string>
-  <string name="account_share_body_with_username">Kontakt mig med “%1$s” eller mit offentlige brugernavn “%2$s” på Jamis distribuerede kommunikationsplatform: %3$s</string>
-  <string name="account_contact_me">Kontakt mig på Jami!</string>
+  <string name="account_share_body">Kontakt mig med “%1$s” på 白い熊 GNU Jamis distribuerede kommunikationsplatform: %2$s</string>
+  <string name="account_share_body_with_username">Kontakt mig med “%1$s” eller mit offentlige brugernavn “%2$s” på 白い熊 GNU Jamis distribuerede kommunikationsplatform: %3$s</string>
+  <string name="account_contact_me">Kontakt mig på 白い熊 GNU Jami!</string>
   <string name="update_account">Opdater konto</string>
-  <string name="account_migration">Din Jami-konto kan opdateres.\nSkriv venligst din adgangskode.</string>
-  <string name="ring_account">Jami-konto</string>
+  <string name="account_migration">Din 白い熊 GNU Jami-konto kan opdateres.\nSkriv venligst din adgangskode.</string>
+  <string name="ring_account">白い熊 GNU Jami-konto</string>
   <string name="sip_account">SIP-konto</string>
   <string name="ring_account_identity">Identitet</string>
   <string name="account_migration_title_dialog">Konto-migrering</string>
   <string name="account_migration_message_dialog">Dine konti skal opdateres. Vil du gå til skærmen for kontoadministration for at udføre denne handling?</string>
   <string name="account_update_needed">Opdatering nødvendig</string>
   <string name="account_cannot_be_found_title">Kontofejl</string>
-  <string name="account_cannot_be_found_message">Kan ikke finde kontoen på Jami-netværket. Sørg for, at den blev eksporteret på Jami fra en eksisterende enhed, og at de angivne legitimationsoplysninger er korrekte.</string>
+  <string name="account_cannot_be_found_message">Kan ikke finde kontoen på 白い熊 GNU Jami-netværket. Sørg for, at den blev eksporteret på 白い熊 GNU Jami fra en eksisterende enhed, og at de angivne legitimationsoplysninger er korrekte.</string>
   <string name="jams_account_cannot_be_found_message">Der opstod en fejl under forbindelse af kontoen. Kontrollér legitimationsoplysningerne, og prøv igen.</string>
   <string name="account_sip_cannot_be_registered_message">Du kan fortsætte med konto-oprettelsen eller redigere informationerne her. Du kan under alle omstændigheder lave ændringer senere under konti-indstillingerne.</string>
   <string name="account_no_network_title">Netværksfejl</string>
-  <string name="account_no_network_message">Der opstod en forbindelsesfejl under tilføjelse af Jami-kontoen til det distribuerede netværk. Kontrollér din enheds forbindelse.</string>
+  <string name="account_no_network_message">Der opstod en forbindelsesfejl under tilføjelse af 白い熊 GNU Jami-kontoen til det distribuerede netværk. Kontrollér din enheds forbindelse.</string>
   <string name="account_device_added_title">Enheds-konto tilføjet</string>
-  <string name="account_device_added_message">Jami-konto blev konfigureret korrekt på denne enhed.</string>
+  <string name="account_device_added_message">白い熊 GNU Jami-konto blev konfigureret korrekt på denne enhed.</string>
   <string name="account_device_updated_title">Enheds-konto opdateret</string>
-  <string name="account_device_updated_message">Jami-konto blev opdateret korrekt.</string>
+  <string name="account_device_updated_message">白い熊 GNU Jami-konto blev opdateret korrekt.</string>
   <string name="account_cannot_be_updated_message">Der opstod en fejl under opdatering af kontoen. Kontrollér kontoadgangskoden.</string>
   <string name="account_sip_success_title">SIP konto er registreret</string>
   <string name="account_sip_success_message">SIP-konto blev registreret korrekt.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Avancerede indstillinger</string>
   <string name="account_tv_add_contact">Tilføj en kontakt</string>
   <string name="account_tv_advanced_settings">Ændre de generelle indstillinger</string>
-  <string name="account_tv_about">Om Jami</string>
+  <string name="account_tv_about">Om 白い熊 GNU Jami</string>
   <string name="tv_about_version">Version</string>
   <string name="tv_about_license">Licens</string>
   <string name="tv_about_author">Ophavsret</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Forbindelse fra et andet udstyr</string>
   <string name="account_link_button">Opret forbindelse</string>
   <string name="account_link_archive_button">Forbindelse fra backup</string>
-  <string name="account_new_button">Oprette Jami-konto</string>
+  <string name="account_new_button">Oprette 白い熊 GNU Jami-konto</string>
   <string name="account_link_export_button">Tilknyt ny enhed</string>
   <string name="account_link_show_button">Vis %d flere tilknyttede enheder</string>
   <string name="account_link_hide_button">Skjul det tilkoblede anordning</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Ingen forbindelse</string>
   <string name="account_status_error">Fejl</string>
   <!--Create account-->
-  <string name="account_creation_home">Velkommen til Jami</string>
+  <string name="account_creation_home">Velkommen til 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Opret din profil</string>
-  <string name="account_creation_ring">Opret din Jami-konto</string>
+  <string name="account_creation_ring">Opret din 白い熊 GNU Jami-konto</string>
   <string name="account_sip_cannot_be_registered">Der opstod en fejl under registrering af SIP-kontoen.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Rediger profil</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Vent venligt...</string>
   <string name="revoke_device_wait_message">Tilbagetrækker enhed</string>
   <string name="rename_device_title">Omdøb denne enhed</string>
-  <string name="rename_device_message">Indtast et enhedsnavn for at identificere denne enhed i din Jami-konto</string>
+  <string name="rename_device_message">Indtast et enhedsnavn for at identificere denne enhed i din 白い熊 GNU Jami-konto</string>
   <string name="rename_device_button">Omdøb enhed</string>
   <string name="account_rename_device_hint">Vælg nyt enhedsnavn</string>
   <string name="account_device_name_empty">Enhedsnavn må ikke være tomt.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">Enheds ID</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Dette format understøttes ikke.</string>
-  <string name="account_link_info">I Jami-appen på den nye enhed skal du scanne QR-koden eller indtaste godkendelseskoden manuelt.</string>
+  <string name="account_link_info">I 白い熊 GNU Jami-appen på den nye enhed skal du scanne QR-koden eller indtaste godkendelseskoden manuelt.</string>
   <string name="account_link_device_title">Tilknyt en ny enhed</string>
   <string name="account_link_password">Denne konto er adgangskodekrypteret. Indtast adgangskoden for at generere godkendelseskoden.</string>
   <string name="account_link_generate_button">Generér</string>
   <string name="account_link_time_valid">Godkendelseskoden bliver ugyldig: %1$s.</string>
-  <string name="account_link_device_info">Vælg “Sammenkæd en ny enhed” i den anden Jami-app for at vise QR-koden eller godkendelseskoden.</string>
+  <string name="account_link_device_info">Vælg “Sammenkæd en ny enhed” i den anden 白い熊 GNU Jami-app for at vise QR-koden eller godkendelseskoden.</string>
   <string name="account_generate_export_device">På den anden enhed</string>
-  <string name="account_generate_export_info">Installér og start Jami. Vælg “Importér fra en anden enhed”, og scan QR-koden. Alternativt kan du indtaste PIN-koden manuelt.</string>
+  <string name="account_generate_export_info">Installér og start 白い熊 GNU Jami. Vælg “Importér fra en anden enhed”, og scan QR-koden. Alternativt kan du indtaste PIN-koden manuelt.</string>
   <string name="content_description_qr_generated">Konto-QR-kode</string>
   <string name="account_generate_export_invalid">Godkendelseskoden er ikke længere gyldig.\nIndtast adgangskoden, og generér en ny for at sammenkæde den nye enhed.</string>
   <string name="account_generate_export_invalid_two">Godkendelseskoden er ikke længere gyldig.\nGenerér en ny for at sammenkæde den nye enhed.</string>
   <string name="help_pin_info">Påkrævet, hvis kontoen er adgangskodekrypteret.</string>
   <string name="account_link_device_button">Køb</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Lås JAMI konto op</string>
+  <string name="account_biometry_auth_title">Lås 白い熊 GNU Jami konto op</string>
   <string name="account_biometry_auth_message">Brug biometri til at låse din konto op</string>
   <string name="account_biometry_enroll_title">Brug biometrisk godkendelse?</string>
   <string name="account_biometry_enroll_message">Din enhed understøtter sikker biometrisk godkendelse.
-Biometrisk godkendelse eller enhedsgodkendelse tilføjer en praktisk måde at låse adgang til din Jami-konto op lokalt. Du vil stadig kunne bruge din adgangskode.</string>
+Biometrisk godkendelse eller enhedsgodkendelse tilføjer en praktisk måde at låse adgang til din 白い熊 GNU Jami-konto op lokalt. Du vil stadig kunne bruge din adgangskode.</string>
   <string name="account_biometry_enroll_accept">Brug biometri</string>
   <string name="no_thanks">Nej tak</string>
-  <string name="account_biometry_enroll_auth_title">Tilføj godkendelse til din Jami-konto</string>
+  <string name="account_biometry_enroll_auth_title">Tilføj godkendelse til din 白い熊 GNU Jami-konto</string>
   <string name="account_biometry_enroll_auth_message">Tilføj sikker biometrisk godkendelse eller enhedsgodkendelse som et alternativ til din adgangskode</string>
   <string name="account_auth_error">Godkendelsesfejl: %1$s</string>
   <string name="account_auth_success">Godkendelse lykkedes</string>

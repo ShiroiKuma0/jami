@@ -8,7 +8,7 @@
   <string name="account_selection">Выберите аккаунт</string>
   <string name="add_ring_account_title">Добавить аккаунт</string>
   <string name="add_sip_account_title">Добавить SIP аккаунт</string>
-  <string name="ring_account_default_name">Jami аккаунт %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami аккаунт %1$s</string>
   <string name="account_creation_error">При создании аккаунта возникла ошибка.</string>
   <string name="prompt_alias">Псевдоним</string>
   <string name="prompt_hostname">Узел</string>
@@ -28,7 +28,7 @@
         Вы сможете совершать и принимать только прямые IP-вызовы.
         Вы сможете изменить настройки своего аккаунта позже</string>
   <string name="account_type_ip2ip">IP аккаунт</string>
-  <string name="help_ring">Учетная запись Jami позволяет вам безопасно общаться с людьми в одноранговой сети через полностью распределенную сеть.</string>
+  <string name="help_ring">Учетная запись 白い熊 GNU Jami позволяет вам безопасно общаться с людьми в одноранговой сети через полностью распределенную сеть.</string>
   <string name="help_sip_title">Добавить SIP аккаунт</string>
   <string name="help_sip">Настройте существующую учетную запись SIP</string>
   <string name="create_sip_account">Настроить аккаунт SIP</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Сделать резервную копию своей учетной записи на устройстве, чтобы восстановить ее позже.</string>
   <string name="account_export_end_decryption_message">Неправильный пароль. Пожалуйста, попробуйте еще раз с правильным паролем.</string>
   <string name="account_enter_password">Введите пароль</string>
-  <string name="account_share_body">Свяжитесь со мной используя “%1$s” на платформе распределенной коммуникации Jami: %2$s</string>
-  <string name="account_share_body_with_username">Свяжитесь со мной используя “%1$s” или мой публичный логин “%2$s” на платформе распределенной коммуникации Jami: %3$s</string>
-  <string name="account_contact_me">Свяжитесь со мной в Jami!</string>
+  <string name="account_share_body">Свяжитесь со мной используя “%1$s” на платформе распределенной коммуникации 白い熊 GNU Jami: %2$s</string>
+  <string name="account_share_body_with_username">Свяжитесь со мной используя “%1$s” или мой публичный логин “%2$s” на платформе распределенной коммуникации 白い熊 GNU Jami: %3$s</string>
+  <string name="account_contact_me">Свяжитесь со мной в 白い熊 GNU Jami!</string>
   <string name="update_account">Обновление аккаунта</string>
-  <string name="account_migration">Ваш аккаунт Jami может быть обновлен.\nПожалуйста, введите свой пароль</string>
-  <string name="ring_account">Jami аккаунт</string>
+  <string name="account_migration">Ваш аккаунт 白い熊 GNU Jami может быть обновлен.\nПожалуйста, введите свой пароль</string>
+  <string name="ring_account">白い熊 GNU Jami аккаунт</string>
   <string name="sip_account">SIP-аккаунт</string>
   <string name="ring_account_identity">Идентификация</string>
   <string name="account_migration_title_dialog">Миграция аккаунта</string>
   <string name="account_migration_message_dialog">Ваши аккаунты требуют обновления. Хотите перейти на экран управления аккаунтами, чтобы обновить их?</string>
   <string name="account_update_needed">Необходимо обновиться</string>
   <string name="account_cannot_be_found_title">Ошибка аккаунта</string>
-  <string name="account_cannot_be_found_message">Не удалось найти аккаунт в сети Jami. Убедитесь, что он был экспортирован из Jami с другого устройства, и что предоставленные учетные данные верны.</string>
+  <string name="account_cannot_be_found_message">Не удалось найти аккаунт в сети 白い熊 GNU Jami. Убедитесь, что он был экспортирован из 白い熊 GNU Jami с другого устройства, и что предоставленные учетные данные верны.</string>
   <string name="jams_account_cannot_be_found_message">Произошла ошибка при подключении учетной записи. Проверьте учетные данные и повторите попытку.</string>
   <string name="account_sip_cannot_be_registered_message">Вы можете продолжить процесс создания учетной записи или изменить свою информацию здесь. Редактирование все еще возможно позже в настройках аккаунта.</string>
   <string name="account_no_network_title">Ошибка сети</string>
-  <string name="account_no_network_message">При добавлении учетной записи Jami в распределенную сеть возникла ошибка подключения. Проверьте подключение вашего устройства.</string>
+  <string name="account_no_network_message">При добавлении учетной записи 白い熊 GNU Jami в распределенную сеть возникла ошибка подключения. Проверьте подключение вашего устройства.</string>
   <string name="account_device_added_title">Аккаунт устройства добавлен</string>
-  <string name="account_device_added_message">Учетная запись Jami успешно установлена на это устройство.</string>
+  <string name="account_device_added_message">Учетная запись 白い熊 GNU Jami успешно установлена на это устройство.</string>
   <string name="account_device_updated_title">Аккаунт устройства обновлён</string>
-  <string name="account_device_updated_message">Учетная запись Jami успешно обновлена.</string>
+  <string name="account_device_updated_message">Учетная запись 白い熊 GNU Jami успешно обновлена.</string>
   <string name="account_cannot_be_updated_message">При обновлении учетной записи произошла ошибка. Проверьте свой пароль.</string>
   <string name="account_sip_success_title">SIP-аккаунт зарегистрирован</string>
   <string name="account_sip_success_message">SIP-аккаунт зарегистрирован успешно.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Дополнительные настройки</string>
   <string name="account_tv_add_contact">Добавить контакт</string>
   <string name="account_tv_advanced_settings">Изменить основные настройки</string>
-  <string name="account_tv_about">О Jami</string>
+  <string name="account_tv_about">О 白い熊 GNU Jami</string>
   <string name="tv_about_version">Версия</string>
   <string name="tv_about_license">Лицензия</string>
   <string name="tv_about_author">Авторские права</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Подключиться с другого устройства</string>
   <string name="account_link_button">Подключиться из сети</string>
   <string name="account_link_archive_button">Подключиться через резервную копию</string>
-  <string name="account_new_button">Создать учетную запись Jami</string>
+  <string name="account_new_button">Создать учетную запись 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Привязать новое устройство</string>
   <string name="account_link_show_button">Показать еще %d привязанных устройств</string>
   <string name="account_link_hide_button">Скрыть привязанное устройство</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Не в сети</string>
   <string name="account_status_error">Ошибка</string>
   <!--Create account-->
-  <string name="account_creation_home">Добро пожаловать в Jami</string>
+  <string name="account_creation_home">Добро пожаловать в 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Создать свой профиль</string>
-  <string name="account_creation_ring">Создать свой Jami аккаунт</string>
+  <string name="account_creation_ring">Создать свой 白い熊 GNU Jami аккаунт</string>
   <string name="account_sip_cannot_be_registered">При регистрации SIP-аккаунта произошла ошибка.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Редактировать профиль</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Пожалуйста, ждите...</string>
   <string name="revoke_device_wait_message">Сбросить устройство</string>
   <string name="rename_device_title">Переименовать это устройство</string>
-  <string name="rename_device_message">Введите имя устройства, чтобы идентифицировать его в вашей учетной записи Jami</string>
+  <string name="rename_device_message">Введите имя устройства, чтобы идентифицировать его в вашей учетной записи 白い熊 GNU Jami</string>
   <string name="rename_device_button">Переименовать устройство</string>
   <string name="account_rename_device_hint">Выберите новое имя для устройства</string>
   <string name="account_device_name_empty">Необходимо указать название устройства.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">Идентификатор устройства</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Этот формат не поддерживается.</string>
-  <string name="account_link_info">В приложении Jami на новом устройстве отсканируйте QR-код или введите код аутентификации вручную.</string>
+  <string name="account_link_info">В приложении 白い熊 GNU Jami на новом устройстве отсканируйте QR-код или введите код аутентификации вручную.</string>
   <string name="account_link_device_title">Привязать новое устройство</string>
   <string name="account_link_password">Этот аккаунт зашифрован паролем, введите пароль для генерации кода аутентификации.</string>
   <string name="account_link_generate_button">Сгенерировать</string>
   <string name="account_link_time_valid">Код аутентификации станет недействительным: %1$s.</string>
-  <string name="account_link_device_info">Выберите «Привязать новое устройство» в другом приложении Jami, чтобы показать QR-код или код аутентификации.</string>
+  <string name="account_link_device_info">Выберите «Привязать новое устройство» в другом приложении 白い熊 GNU Jami, чтобы показать QR-код или код аутентификации.</string>
   <string name="account_generate_export_device">На другом устройстве</string>
-  <string name="account_generate_export_info">Установите и запустите Jami. Выберите «Импортировать с другого устройства» и отсканируйте QR-код. Либо введите PIN-код вручную.</string>
+  <string name="account_generate_export_info">Установите и запустите 白い熊 GNU Jami. Выберите «Импортировать с другого устройства» и отсканируйте QR-код. Либо введите PIN-код вручную.</string>
   <string name="content_description_qr_generated">QR-код аккаунта</string>
   <string name="account_generate_export_invalid">Код аутентификации больше недействителен.\nВведите пароль и сгенерируйте новый, чтобы привязать новое устройство.</string>
   <string name="account_generate_export_invalid_two">Код аутентификации больше недействителен.\nСгенерируйте новый, чтобы привязать новое устройство.</string>
   <string name="help_pin_info">Требуется, если аккаунт зашифрован паролем.</string>
   <string name="account_link_device_button">Соединение...</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Разблокировать аккаунт Jami</string>
+  <string name="account_biometry_auth_title">Разблокировать аккаунт 白い熊 GNU Jami</string>
   <string name="account_biometry_auth_message">Используйте биометрию для разблокировки вашего аккаунта</string>
   <string name="account_biometry_enroll_title">Использовать биометрическую аутентификацию?</string>
   <string name="account_biometry_enroll_message">Ваше устройство поддерживает защищенную биометрическую аутентификацию.
-Биометрическая или аутентификация устройства добавляет удобный способ локально разблокировать доступ к вашей учетной записи Jami. Возможность использования пароля сохранится.</string>
+Биометрическая или аутентификация устройства добавляет удобный способ локально разблокировать доступ к вашей учетной записи 白い熊 GNU Jami. Возможность использования пароля сохранится.</string>
   <string name="account_biometry_enroll_accept">Использовать биометрику</string>
   <string name="no_thanks">Нет, спасибо</string>
-  <string name="account_biometry_enroll_auth_title">Добавить аутентификацию для вашего аккаунта Jami</string>
+  <string name="account_biometry_enroll_auth_title">Добавить аутентификацию для вашего аккаунта 白い熊 GNU Jami</string>
   <string name="account_biometry_enroll_auth_message">Добавить защищенную биометрию или аутентификацию устройства как альтернативу паролю</string>
   <string name="account_auth_error">Ошибка аутентификации: %1$s</string>
   <string name="account_auth_success">Аутентификация успешна</string>

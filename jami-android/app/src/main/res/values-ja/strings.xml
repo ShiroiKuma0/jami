@@ -9,9 +9,9 @@
   <string name="version_section">バージョン</string>
   <string name="website_chooser_title">Webサイトを表示…</string>
   <string name="license">このソフトウェアは、いかなる保証もなしに現状のまま提供されます。詳細については、<u>GNU General Public Licenseのversion 3以降</u>を参照してください。</string>
-  <string name="description">Jamiは世界中の利用者と繋がることができる自由ソフトウェアであり，利用者の自由と私事権とを尊重しています。</string>
+  <string name="description">白い熊 GNU Jamiは世界中の利用者と繋がることができる自由ソフトウェアであり，利用者の自由と私事権とを尊重しています。</string>
   <string name="credits">クレジット</string>
-  <string name="pip_title">Jami会議</string>
+  <string name="pip_title">白い熊 GNU Jami会議</string>
   <string name="call_service_description">このサービスは、通話をフォアグラウンドで実行し続けるために必要です。通話中にのみ実行されます。</string>
   <string name="data_transfer_service_description">このサービスは、ファイル転送中に持続的な通知を表示するために必要です。ファイル転送中にのみ実行されます。</string>
   <!--About dialog-->
@@ -188,7 +188,7 @@
   <string name="conversation_reply_you">自分</string>
   <string name="conversation_preference_color">会話の色</string>
   <string name="conversation_preference_emoji">会話の絵文字</string>
-  <string name="conversation_type_contact">Jamiの連絡先</string>
+  <string name="conversation_type_contact">白い熊 GNU Jamiの連絡先</string>
   <string name="conversation_type_private">プライベート</string>
   <string name="conversation_type_group">グループ</string>
   <string name="conversation_contact_invited">%1$s さんが会話に招待されました。</string>
@@ -209,11 +209,11 @@
   <string name="prompt_new_password">新しいパスワード</string>
   <string name="prompt_new_password_optional">新しいパスワード（オプション）</string>
   <string name="prompt_new_password_repeat">新しいパスワードを確認する</string>
-  <string name="account_create_title">Jamiアカウントを作成する</string>
+  <string name="account_create_title">白い熊 GNU Jamiアカウントを作成する</string>
   <string name="prompt_new_username">新しいユーザー名を入力してください</string>
   <string name="prompt_hint_username">ユーザー名</string>
-  <string name="help_password_choose">あなたのJamiアカウントを守るために強固なパスワードを設定してください。また、このパスワードを忘れないでください。</string>
-  <string name="help_password_enter">現在のJamiアカウントのパスワードを入力してください。</string>
+  <string name="help_password_choose">あなたの白い熊 GNU Jamiアカウントを守るために強固なパスワードを設定してください。また、このパスワードを忘れないでください。</string>
+  <string name="help_password_enter">現在の白い熊 GNU Jamiアカウントのパスワードを入力してください。</string>
   <string name="help_server_enter">管理サーバーのURLを入力してください。</string>
   <string name="copied_clipboard">クリップボードにコピーしました。</string>
   <string name="wizard_next">次へ</string>
@@ -241,7 +241,7 @@
   <string name="devices">リンクされたデバイス</string>
   <string name="total_devices">合計デバイス数：</string>
   <!--Share fragment-->
-  <string name="share_message">このコードをJamiでスキャンしてください</string>
+  <string name="share_message">このコードを白い熊 GNU Jamiでスキャンしてください</string>
   <string name="share_message_no_account">共有するアカウントを選択してください。</string>
   <string name="share_your_account_information">連絡先情報を共有</string>
   <string name="share_contact_information">連絡先情報を共有</string>
@@ -278,7 +278,7 @@
   <string name="menu_file_delete">ファイルを削除</string>
   <string name="menu_file_share">ファイルを共有</string>
   <string name="menu_message_copy">コピー</string>
-  <string name="menu_message_jami_share">「白い熊 Jami」で共有</string>
+  <string name="menu_message_jami_share">「白い熊 GNU Jami」で共有</string>
   <string name="menu_message_edit">メッセージ編集</string>
   <string name="menu_message_delete">メッセージを削除</string>
   <string name="menu_message_cancel">メッセージをキャンセル</string>
@@ -352,7 +352,7 @@
   <string name="dialog_hint_description">記述</string>
   <string name="picker_title">連絡先を選択</string>
   <string name="picker_btn">連絡先を選択</string>
-  <string name="bottomsheet_contact">Jamiに連絡をする\n%1$s</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jamiに連絡をする\n%1$s</string>
   <string name="bottomsheet_block">メンバーをブロック</string>
   <string name="bottomsheet_unblock">メンバーのブロックを解除</string>
   <string name="group_member_blocked">ブロック済み</string>
@@ -364,15 +364,15 @@
   <string name="jami_id_looking_for_availability">ユーザー名の利用可否を確認中…</string>
   <string name="jami_id_choose_username">ユーザー名を選択する</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Jamiへようこそ</string>
-  <string name="welcome_jami_description">より簡単に連絡を受けられるよう、Jami 識別子を共有しましょう！</string>
+  <string name="welcome_jami_title">白い熊 GNU Jamiへようこそ</string>
+  <string name="welcome_jami_description">より簡単に連絡を受けられるよう、白い熊 GNU Jami 識別子を共有しましょう！</string>
   <!--Conversation details-->
   <string name="details">詳細</string>
   <string name="swarm_type">会話の種類</string>
   <string name="Private">プライベート</string>
   <string name="mute_conversation">会話をミュートする</string>
   <!--Donation-->
-  <string name="donation_card_description">Jami の使用を楽しみ、私たちのミッションに共感していただけるなら、寄付をしませんか？</string>
+  <string name="donation_card_description">白い熊 GNU Jami の使用を楽しみ、私たちのミッションに共感していただけるなら、寄付をしませんか？</string>
   <string name="donation_card_not_now">後で</string>
   <string name="donation_donate">寄付</string>
   <!--Extension-->

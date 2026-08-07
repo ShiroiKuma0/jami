@@ -8,7 +8,7 @@
   <string name="account_selection">اختيار حساب</string>
   <string name="add_ring_account_title">أضف حساب</string>
   <string name="add_sip_account_title">إضافة حساب SIP</string>
-  <string name="ring_account_default_name">حساب جامي %1$s</string>
+  <string name="ring_account_default_name">حساب 白い熊 GNU Jami %1$s</string>
   <string name="account_creation_error">حدث خطأ أثناء إنشاء الحساب.</string>
   <string name="prompt_alias">الاسم المستعار</string>
   <string name="prompt_hostname">اسم المضيف</string>
@@ -24,7 +24,7 @@
   <string name="dialog_wait_update">تحديث الحساب</string>
   <string name="dialog_wait_update_details">يرجى الانتظار حتى يتم تحديث حسابك الجديد</string>
   <string name="account_type_ip2ip">حساب عنوان الانترنت</string>
-  <string name="help_ring">يسمح لك حساب جامي بالتواصل مع الآخرين بأمان عبر طريق الند للند من خلال شبكة موزعة بالكامل.</string>
+  <string name="help_ring">يسمح لك حساب 白い熊 GNU Jami بالتواصل مع الآخرين بأمان عبر طريق الند للند من خلال شبكة موزعة بالكامل.</string>
   <string name="help_sip_title">إضافة حساب SIP</string>
   <string name="help_sip">تكوين حساب SIP موجود</string>
   <string name="create_sip_account">تكوين حساب SIP</string>
@@ -130,16 +130,16 @@
   <string name="account_export_file">حساب احتياطي</string>
   <string name="account_export_file_summary">قم بإجراء نسخ احتياطي لحسابك على جهازك لاستعادته في وقت لاحق.</string>
   <string name="account_enter_password">أدخِل كلمة المرور</string>
-  <string name="account_contact_me">اتصل بي عن (جامي)!</string>
+  <string name="account_contact_me">اتصل بي عن (白い熊 GNU Jami)!</string>
   <string name="update_account">تحديث الحساب&lt;br&gt;</string>
-  <string name="account_migration">هناك تحديث لحساب جامي. \n يرجى إدخال كلمة المرور.</string>
-  <string name="ring_account">حساب جامي</string>
+  <string name="account_migration">هناك تحديث لحساب 白い熊 GNU Jami. \n يرجى إدخال كلمة المرور.</string>
+  <string name="ring_account">حساب 白い熊 GNU Jami</string>
   <string name="sip_account">حساب SIP</string>
   <string name="ring_account_identity">الهوية</string>
   <string name="account_migration_title_dialog">هجرة الحساب</string>
   <string name="account_update_needed">يلزم التحديث</string>
   <string name="account_cannot_be_found_title">خطأ في الحساب</string>
-  <string name="account_cannot_be_found_message">تعذّر العثور على الحساب على شبكة جامي. تأكّد من أنه تم تصديره على جامي من جهاز موجود، وأن بيانات الاعتماد المُقدّمة صحيحة.</string>
+  <string name="account_cannot_be_found_message">تعذّر العثور على الحساب على شبكة 白い熊 GNU Jami. تأكّد من أنه تم تصديره على 白い熊 GNU Jami من جهاز موجود، وأن بيانات الاعتماد المُقدّمة صحيحة.</string>
   <string name="account_sip_cannot_be_registered_message">يمكنك متابعة عملية إنشاء الحساب أو تحرير معلوماتك هنا. لا يزال الإصدار ممكنًا في وقت لاحق في إعدادات الحساب.</string>
   <string name="account_no_network_title">خطأ في الشبكة</string>
   <string name="account_device_added_title">تم اضافة حساب جهاز</string>
@@ -150,7 +150,7 @@
   <string name="account_tv_advance_settings_header">إعدادات متقدمة</string>
   <string name="account_tv_add_contact">إضافة جهة اتصال</string>
   <string name="account_tv_advanced_settings">تغيير الإعدادات العامة</string>
-  <string name="account_tv_about">حول جامي</string>
+  <string name="account_tv_about">حول 白い熊 GNU Jami</string>
   <string name="tv_about_version">الإصدار</string>
   <string name="tv_about_license">الرخصة</string>
   <string name="tv_about_author">حقوق المؤلف</string>
@@ -158,7 +158,7 @@
   <string name="account_link_device">اتصل من جهاز آخر</string>
   <string name="account_link_button">الاتصال من الشبكة</string>
   <string name="account_link_archive_button">الاتصال من النسخ الاحتياطي</string>
-  <string name="account_new_button">إعداد حساب جامي</string>
+  <string name="account_new_button">إعداد حساب 白い熊 GNU Jami</string>
   <string name="account_link_export_button">اربط جهاز جديد</string>
   <string name="account_link_show_button">إظهار %d المزيد من الأجهزة المرتبطة</string>
   <string name="account_link_hide_button">إخفاء الأجهزة المرتبطة</string>
@@ -191,9 +191,9 @@
   <string name="account_status_offline">خامل</string>
   <string name="account_status_error">خطأ</string>
   <!--Create account-->
-  <string name="account_creation_home">مرحبا بك في جامي</string>
+  <string name="account_creation_home">مرحبا بك في 白い熊 GNU Jami</string>
   <string name="account_creation_profile">أنشئ ملفك الشخصي</string>
-  <string name="account_creation_ring">أنشئ حساب چامى الخاص بك</string>
+  <string name="account_creation_ring">أنشئ حساب 白い熊 GNU Jami الخاص بك</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">أدخل كلمة المرور للتأكيد</string>
@@ -210,7 +210,7 @@
   <!--Link a new device-->
   <string name="error_format_not_supported">هذا التنسيق غير مدعوم.</string>
   <string name="account_link_device_title">ربط جهاز جديد</string>
-  <string name="account_generate_export_info">ثبّت جامي وشغّله. اختر «استيراد من جهاز آخر»، وامسح رمز QR. بدلًا من ذلك، أدخل رمز PIN يدويًا.</string>
+  <string name="account_generate_export_info">ثبّت 白い熊 GNU Jami وشغّله. اختر «استيراد من جهاز آخر»، وامسح رمز QR. بدلًا من ذلك، أدخل رمز PIN يدويًا.</string>
   <string name="account_link_device_button">إتصال</string>
   <!--Biometry-->
 </resources>

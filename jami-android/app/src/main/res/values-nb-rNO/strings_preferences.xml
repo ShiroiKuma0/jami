@@ -10,7 +10,7 @@
   <string name="pref_clearHistory_title">Slett historikk</string>
   <string name="pref_clearHistory_summary">Tøm historikken for alle samtaler. Denne handlingen kan ikke angres.</string>
   <string name="pref_connectivity_title">Tilkoblingsmodus</string>
-  <string name="pref_connectivity_summary">Velg hvordan Jami skal kobles til det distribuerte systemet for å motta samtaler og meldinger.</string>
+  <string name="pref_connectivity_summary">Velg hvordan 白い熊 GNU Jami skal kobles til det distribuerte systemet for å motta samtaler og meldinger.</string>
   <string name="pref_delete_account_title">Slett konto</string>
   <string name="pref_delete_account_summary">Slett konto fra denne enheten</string>
   <string name="pref_persistNotification_title">Kjør i bakgrunnen</string>
@@ -30,7 +30,7 @@
   <string name="connectivity_google_services_title">Google-tjenester</string>
   <string name="connectivity_google_services_description">Bruk Google Firebase og en DHT-proxy for å motta push-varsler.</string>
   <string name="connectivity_local_node_title">Lokal DHT-node</string>
-  <string name="connectivity_local_node_description">Bruk en lokal DHT-node for å koble til andre Jami-enheter og -kontakter.</string>
+  <string name="connectivity_local_node_description">Bruk en lokal DHT-node for å koble til andre 白い熊 GNU Jami-enheter og -kontakter.</string>
   <string name="connectivity_unified_push_description">Bruk en tilpasset UnifiedPush-server for å motta push-varsler.</string>
   <string name="connectivity_custom_title">Egendefinert</string>
   <string name="connectivity_custom_description">Bruker for øyeblikket ingen av de tilgjengelige konfigurasjonsforhåndsinnstillingene.</string>

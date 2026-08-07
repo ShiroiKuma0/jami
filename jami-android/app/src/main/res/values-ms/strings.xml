@@ -7,9 +7,9 @@
   <string name="version_section">Versi</string>
   <string name="website_chooser_title">വെബ്സൈറ്റ് കാണുക.</string>
   <string name="license">ഈ സോഫ്റ്റ്വെയർ \"അത് പോലെ തന്നെ\" നൽകുന്നു, യാതൊരു തരത്തിലുള്ള ഗ്യാരണ്ടിയും ഇല്ലാതെ. വിശദാംശങ്ങൾക്കായി, കാണുക <u>GNU ജനറൽ പബ്ലിക് ലൈസൻസ് പതിപ്പ് 3 അല്ലെങ്കിൽ അതിനുശേഷമുള്ളത്</u></string>
-  <string name="description">ജാമി എന്നത് സാർവത്രിക ആശയവിനിമയത്തിനുള്ള ഒരു സ്വതന്ത്ര സോഫ്റ്റ്വെയറാണ്. അത് ഉപയോക്താക്കളുടെ സ്വതന്ത്രതയും സ്വകാര്യതയും ബഹുമാനിക്കുന്നു.</string>
+  <string name="description">白い熊 GNU Jami എന്നത് സാർവത്രിക ആശയവിനിമയത്തിനുള്ള ഒരു സ്വതന്ത്ര സോഫ്റ്റ്വെയറാണ്. അത് ഉപയോക്താക്കളുടെ സ്വതന്ത്രതയും സ്വകാര്യതയും ബഹുമാനിക്കുന്നു.</string>
   <string name="credits">Kredit</string>
-  <string name="pip_title">ജാമി സമ്മേളനം</string>
+  <string name="pip_title">白い熊 GNU Jami സമ്മേളനം</string>
   <string name="call_service_description">നിങ്ങളുടെ കോളുകള് മുൻപന്തിയില് വയ്ക്കുന്നതിന് ഈ സേവനം ആവശ്യമാണ്. ഇത് കോളുകള് സമയത്ത് മാത്രം പ്രവർത്തിക്കുന്നു.</string>
   <string name="data_transfer_service_description">ഫയൽ കൈമാറ്റങ്ങൾ സമയത്ത് സ്ഥിരമായ അറിയിപ്പുകൾ പ്രദർശിപ്പിക്കുന്നതിന് ഈ സേവനം ആവശ്യമാണ്. ഫയൽ കൈമാറ്റങ്ങൾ സമയത്ത് മാത്രമേ ഇത് പ്രവർത്തിക്കൂ.</string>
   <!--About dialog-->
@@ -26,7 +26,7 @@
   <string name="menu_item_settings">Tetapan</string>
   <string name="menu_item_account_settings">അക്കൌണ്ട് ക്രമീകരണങ്ങൾ</string>
   <string name="menu_item_share">എന്റെ അക്കൌണ്ട് പങ്കുവെക്കുക</string>
-  <string name="menu_item_about">ജാമിയെ കുറിച്ച്</string>
+  <string name="menu_item_about">白い熊 GNU Jamiയെ കുറിച്ച്</string>
   <string name="video_setting_title">വീഡിയോ ക്രമീകരണങ്ങൾ</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -168,7 +168,7 @@
   <string name="conversation_reply_you">നീ</string>
   <string name="conversation_preference_color">സംഭാഷണ നിറം</string>
   <string name="conversation_preference_emoji">സംഭാഷണ ഇമോജി</string>
-  <string name="conversation_type_contact">ജാമി കോൺടാക്ട്</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami കോൺടാക്ട്</string>
   <string name="conversation_type_private">സ്വകാര്യ</string>
   <string name="conversation_type_group">Kumpulan</string>
   <string name="conversation_search_hint">തിരയൽ സംഭാഷണം</string>
@@ -184,11 +184,11 @@
   <string name="prompt_new_password">Kata laluan baharu</string>
   <string name="prompt_new_password_optional">പുതിയ പാസ്വേഡ് (ഓപ്ഷണൽ)</string>
   <string name="prompt_new_password_repeat">പുതിയ പാസ്വേഡ് സ്ഥിരീകരിക്കുക</string>
-  <string name="account_create_title">ജാമി അക്കൌണ്ട് സൃഷ്ടിക്കുക</string>
+  <string name="account_create_title">白い熊 GNU Jami അക്കൌണ്ട് സൃഷ്ടിക്കുക</string>
   <string name="prompt_new_username">Masukkan nama pengguna baharu</string>
   <string name="prompt_hint_username">Nama pengguna</string>
-  <string name="help_password_choose">ജാമി അക്കൌണ്ട് പരിരക്ഷിക്കുന്നതിന് നിങ്ങള് ക്ക് ഓർമ്മയുണ്ടാകുന്ന ശക്തമായ പാസ്വേഡ് തിരഞ്ഞെടുക്കുക.</string>
-  <string name="help_password_enter">നിങ്ങളുടെ പ്രധാന ജാമി അക്കൌണ്ട് പാസ്വേഡ് നൽകുക.</string>
+  <string name="help_password_choose">白い熊 GNU Jami അക്കൌണ്ട് പരിരക്ഷിക്കുന്നതിന് നിങ്ങള് ക്ക് ഓർമ്മയുണ്ടാകുന്ന ശക്തമായ പാസ്വേഡ് തിരഞ്ഞെടുക്കുക.</string>
+  <string name="help_password_enter">നിങ്ങളുടെ പ്രധാന 白い熊 GNU Jami അക്കൌണ്ട് പാസ്വേഡ് നൽകുക.</string>
   <string name="help_server_enter">മാനേജ്മെന്റ് സെർവറിന്റെ URL നൽകുക.</string>
   <string name="wizard_next">അടുത്തത്</string>
   <string name="wizard_back">തിരിച്ചുപോവുക</string>
@@ -213,7 +213,7 @@
   <string name="devices">ബന്ധിപ്പിച്ച ഉപകരണങ്ങൾ</string>
   <string name="total_devices">മൊത്തം ഉപകരണങ്ങള്: </string>
   <!--Share fragment-->
-  <string name="share_message">ജാമിയുമായി ഈ കോഡ് സ്കാൻ ചെയ്യുക</string>
+  <string name="share_message">白い熊 GNU Jamiയുമായി ഈ കോഡ് സ്കാൻ ചെയ്യുക</string>
   <string name="share_message_no_account">പങ്കുവയ്ക്കാൻ ഒരു അക്കൌണ്ട് തിരഞ്ഞെടുക്കുക.</string>
   <string name="share_your_account_information">Sila pilih akaun untuk dikongsi</string>
   <string name="share_label">പങ്കിടുക</string>
@@ -313,13 +313,13 @@
   <string name="dialog_hint_description">വിവരണം</string>
   <string name="picker_title">കോൺടാക്റ്റുകൾ തിരഞ്ഞെടുക്കുക</string>
   <string name="picker_btn">കോൺടാക്റ്റുകൾ തിരഞ്ഞെടുക്കുക</string>
-  <string name="bottomsheet_contact">ജാമി %1$s നെ ബന്ധപ്പെടുക</string>
+  <string name="bottomsheet_contact">白い熊 GNU Jami %1$s നെ ബന്ധപ്പെടുക</string>
   <string name="group_member_invited">ക്ഷണിച്ചവർ</string>
   <!--JamiId-->
   <string name="jami_id_validate">ഉപയോക്തൃനാമം രജിസ്റ്റർ ചെയ്യുക</string>
   <string name="jami_id_choose_username">ഒരു ഉപയോക്തൃനാമം തിരഞ്ഞെടുക്കുക</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">ജാമിയിൽ സ്വാഗതം</string>
+  <string name="welcome_jami_title">白い熊 GNU Jamiയിൽ സ്വാഗതം</string>
   <!--Conversation details-->
   <string name="details">Maklumat</string>
   <string name="Private">സ്വകാര്യ</string>

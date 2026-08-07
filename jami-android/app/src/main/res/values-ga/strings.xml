@@ -8,9 +8,9 @@
   <string name="version_section">An leagan</string>
   <string name="website_chooser_title">Féach ar an suíomh Gréasáin ag baint úsáide as...</string>
   <string name="license">Tá an bogearraí seo ar fáil "mar atá", gan ráthaíocht de chineál ar bith. Le haghaidh sonraí, féach GNU GNU Ceadúnas Poiblí Ginearálta leagan 3 nó níos déanaí&lt;/u&gt;</string>
-  <string name="description">Is bogearraí saor in aisce é Jami do chumarsáid uilethréimhseach a thugann urram do shaoirseanna agus do phríobháideacht a úsáideoirí.</string>
+  <string name="description">Is bogearraí saor in aisce é 白い熊 GNU Jami do chumarsáid uilethréimhseach a thugann urram do shaoirseanna agus do phríobháideacht a úsáideoirí.</string>
   <string name="credits">Crídeanna</string>
-  <string name="pip_title">Comhdháil Jami</string>
+  <string name="pip_title">Comhdháil 白い熊 GNU Jami</string>
   <string name="call_service_description">Tá an tseirbhís seo riachtanach chun do ghlaoí a choinneáil ag rith i d\'ard-scéal.</string>
   <string name="data_transfer_service_description">Tá an tseirbhís seo riachtanach chun fógraí leanúnacha a thaispeáint le linn aistriú comhaid.</string>
   <!--About dialog-->
@@ -31,7 +31,7 @@
   <string name="menu_item_settings">Cinntí</string>
   <string name="menu_item_account_settings">Cinntí cuntas</string>
   <string name="menu_item_share">Comhroinn mo chuntas</string>
-  <string name="menu_item_about">Maidir le Jami</string>
+  <string name="menu_item_about">Maidir le 白い熊 GNU Jami</string>
   <string name="video_setting_title">Suíomh-bhreathnú</string>
   <!--Dialing Fragment-->
   <!--History Fragment-->
@@ -110,7 +110,7 @@
   <string name="yesterday">An-dè</string>
   <!--Contacts-->
   <string name="prompt_new_password_repeat">Déan pasfhocal nua a dhearbhú</string>
-  <string name="account_create_title">Creidigh cuntas Jami</string>
+  <string name="account_create_title">Creidigh cuntas 白い熊 GNU Jami</string>
   <string name="prompt_hint_username">Ainm úsáideora</string>
   <string name="copied_clipboard">Cóipeáilte chuig an ngearrthaisce.</string>
   <string name="wizard_next">Next</string>
@@ -202,15 +202,15 @@
   <string name="jami_id_validate">Ainm úsáideora a chlárú</string>
   <string name="jami_id_choose_username">Roghnaigh ainm úsáideora</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Fáilte go Jami</string>
-  <string name="welcome_jami_description">Roinn d\'aitheantóir Jami chun teagmháil a dhéanamh leat níos éasca!</string>
+  <string name="welcome_jami_title">Fáilte go 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Roinn d\'aitheantóir 白い熊 GNU Jami chun teagmháil a dhéanamh leat níos éasca!</string>
   <!--Conversation details-->
   <string name="details">Níos mó</string>
   <string name="swarm_type">Cineál comhrá</string>
   <string name="Private">Priontáil</string>
   <string name="mute_conversation">Cainteas muice</string>
   <!--Donation-->
-  <string name="donation_card_description">Má bhaineann tú taitneamh as Jami a úsáid agus má chreideann tú inár misean, ar mhaith leat síntiús a thabhairt?</string>
+  <string name="donation_card_description">Má bhaineann tú taitneamh as 白い熊 GNU Jami a úsáid agus má chreideann tú inár misean, ar mhaith leat síntiús a thabhairt?</string>
   <string name="donation_card_not_now">Níos déanaí</string>
   <string name="donation_donate">Tabhair síntiús</string>
   <!--Extension-->

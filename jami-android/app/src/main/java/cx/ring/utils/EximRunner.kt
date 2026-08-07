@@ -550,7 +550,7 @@ class EximRunner(
         // the literal left every restored account showing "Jami account" (白い熊, 2026-07-28).
         details[ConfigKey.ACCOUNT_ALIAS.key] = m?.optString("registeredName").orEmpty()
             .ifBlank { m?.optString("alias").orEmpty() }
-            .ifBlank { "Jami account" }
+            .ifBlank { "白い熊 GNU Jami account" }
         details[ConfigKey.VIDEO_ENABLED.key] = true.toString()
         details[ConfigKey.ACCOUNT_DTMF_TYPE.key] = "sipinfo"
         details[ConfigKey.ACCOUNT_UPNP_ENABLE.key] = AccountConfig.TRUE_STR

@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">Nu a fost găsită o aplicație de navigare în internet. Instalează una pentru a vedea această pagină.</string>
   <string name="website_chooser_title">Vezi adresa de internet folosind...</string>
   <string name="license">Acest program este furnizat „așa cum este”, fără nicio garanție. Pentru detalii, vezi <u>GNU General Public License versiunea 3 sau ulterioară</u></string>
-  <string name="description">Jami este un program liber pentru comunicare universală care respectă libertățile și intimitatea utilizatorilor săi.</string>
+  <string name="description">白い熊 GNU Jami este un program liber pentru comunicare universală care respectă libertățile și intimitatea utilizatorilor săi.</string>
   <string name="credits">Merite</string>
-  <string name="pip_title">Conferința Jami</string>
+  <string name="pip_title">Conferința 白い熊 GNU Jami</string>
   <string name="call_service_description">Acest serviciu este necesar pentru a menține apelurile în prim-plan. Funcționează numai în timpul apelurilor.</string>
   <string name="data_transfer_service_description">Acest serviciu e necesar pentru a afișa notificări persistente în timpul transferurilor de fișiere. Funcționează numai în timpul transferurilor de fișiere.</string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">Reglările contului</string>
   <string name="menu_item_extension_list">Reglări Extensii</string>
   <string name="menu_item_share">Distribuie contul meu</string>
-  <string name="menu_item_about">Despre Jami</string>
+  <string name="menu_item_about">Despre 白い熊 GNU Jami</string>
   <string name="video_setting_title">Reglări video</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Formează numărul</string>
@@ -79,7 +79,7 @@
   <string name="notif_channel_background_service_descr">Permite mereu primirea de apeluri și mesaje.</string>
   <string name="notif_group_calls">Apeluri</string>
   <string name="notif_inprogress_group_call">Apelare în curs</string>
-  <string name="notif_background_service">Acum Jami funcționează ascuns</string>
+  <string name="notif_background_service">Acum 白い熊 GNU Jami funcționează ascuns</string>
   <string name="notif_mark_as_read">Bifează ca citit</string>
   <string name="notif_dismiss">Ignoră</string>
   <string name="notif_reply">Răspunde</string>
@@ -89,7 +89,7 @@
   <string name="notif_sync_title">Se sincronizează datele...</string>
   <string name="notif_location_title">Se distribuie poziția către %1$s</string>
   <string name="notif_channel_reconnect">Se sincronizează</string>
-  <string name="notif_reconnect_title">Jami se sincronizează…</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami se sincronizează…</string>
   <string name="location_share_contact">%1$s îți trimite poziția</string>
   <string name="notif_location_multi_title">Se distribuie poziția către %1$d contacte</string>
   <string name="notif_location_remaining">%1$d minute rămase</string>
@@ -110,7 +110,7 @@
   <string name="hist_out_call">Apel efectuat %1$s</string>
   <string name="call_duration">Durata %s</string>
   <string name="call_on_hold">Apelul e în așteptare</string>
-  <string name="start_error_title">Jami nu pornește</string>
+  <string name="start_error_title">白い熊 GNU Jami nu pornește</string>
   <string name="action_call_accept">Acceptă apelul</string>
   <string name="action_call_accept_audio">Răspunde vocal</string>
   <string name="action_call_accept_video">Răspunde video</string>
@@ -132,7 +132,7 @@
   <string name="write_a_message">Scrie un mesaj</string>
   <string name="scan_qr">Scanează codul QR</string>
   <string name="qr_code">Cod QR</string>
-  <string name="qr_code_not_contact">Nu este un cod QR de contact Jami</string>
+  <string name="qr_code_not_contact">Nu este un cod QR de contact 白い熊 GNU Jami</string>
   <string name="new_group">Creează un grup nou</string>
   <string name="ab_action_flipcamera">Schimbă camera</string>
   <string name="ab_action_hidepreview">Ascunde previzualizarea</string>
@@ -162,18 +162,18 @@
   <string name="ringtone_error_size_too_big">Fișierul este prea mare. Dimensiunea maximă este de %1$dkO.</string>
   <string name="ringtone_custom_prompt">Alege o sonerie personalizată</string>
   <string name="ringtone_custom_label">Personalizată</string>
-  <string name="ringtone_jami_tones">Sonerii Jami</string>
+  <string name="ringtone_jami_tones">Sonerii 白い熊 GNU Jami</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">Jami are nevoie de permisiunea de a citi contactele. Permisiunea trebuie dată din reglările sistemului.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jami are nevoie de permisiunea de a citi contactele. Permisiunea trebuie dată din reglările sistemului.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">Jami are nevoie de permisiunea de a scrie în jurnalul de apeluri. Permisiunea trebuie dată din reglările sistemului.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami are nevoie de permisiunea de a scrie în jurnalul de apeluri. Permisiunea trebuie dată din reglările sistemului.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">Permite notificările</string>
-  <string name="permission_dialog_post_notifications_message">Jami are nevoie de permisiunea pentru notificări ca să te anunțe despre apeluri și mesaje primite, chiar și atunci când aplicația rulează în fundal. Fără ea poți pierde apeluri.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">Notificările sunt dezactivate pentru Jami. Fără ele vei pierde apelurile și mesajele primite. Activează notificările pentru Jami în setările dispozitivului.</string>
+  <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami are nevoie de permisiunea pentru notificări ca să te anunțe despre apeluri și mesaje primite, chiar și atunci când aplicația rulează în fundal. Fără ea poți pierde apeluri.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">Notificările sunt dezactivate pentru 白い熊 GNU Jami. Fără ele vei pierde apelurile și mesajele primite. Activează notificările pentru 白い熊 GNU Jami în setările dispozitivului.</string>
   <string name="permission_dialog_local_network_title">Permite accesul la rețeaua locală</string>
-  <string name="permission_dialog_local_network_message">Jami are nevoie de acces la rețeaua locală pentru a stabili legături directe între aparatele din aceeași rețea. Altfel, apelurile pot trece printr-un server intermediar, ceea ce le poate reduce calitatea.</string>
-  <string name="permission_dialog_local_network_blocked_message">Accesul la rețeaua locală este dezactivat pentru Jami. Apelurile către aparatele din rețeaua ta pot trece printr-un server intermediar, ceea ce le poate reduce calitatea. Accesul la rețeaua locală pentru Jami poate fi activat din reglările aparatului.</string>
+  <string name="permission_dialog_local_network_message">白い熊 GNU Jami are nevoie de acces la rețeaua locală pentru a stabili legături directe între aparatele din aceeași rețea. Altfel, apelurile pot trece printr-un server intermediar, ceea ce le poate reduce calitatea.</string>
+  <string name="permission_dialog_local_network_blocked_message">Accesul la rețeaua locală este dezactivat pentru 白い熊 GNU Jami. Apelurile către aparatele din rețeaua ta pot trece printr-un server intermediar, ceea ce le poate reduce calitatea. Accesul la rețeaua locală pentru 白い熊 GNU Jami poate fi activat din reglările aparatului.</string>
   <string name="permission_dialog_open_settings">Deschide reglările</string>
   <string name="permission_dialog_later">Mai târziu</string>
   <!--QRCode Scan-->
@@ -235,7 +235,7 @@
   <string name="video_not_found">Fișierul video nu a fost găsit</string>
   <string name="conversation_preference_color">Culoarea conversației</string>
   <string name="conversation_preference_emoji">Emoji de conversație</string>
-  <string name="conversation_type_contact">Contact Jami</string>
+  <string name="conversation_type_contact">Contact 白い熊 GNU Jami</string>
   <string name="conversation_type_private">Privat</string>
   <string name="conversation_type_group">Grup</string>
   <string name="conversation_contact_invited">%1$s a fost invitat să participe la conversație.</string>
@@ -286,11 +286,11 @@
   <string name="prompt_new_password">Parola nouă</string>
   <string name="prompt_new_password_optional">Parola nouă (facultativ)</string>
   <string name="prompt_new_password_repeat">Confirmă parola nouă</string>
-  <string name="account_create_title">Creează un cont Jami</string>
+  <string name="account_create_title">Creează un cont 白い熊 GNU Jami</string>
   <string name="prompt_new_username">Introdu un nou nume de utilizator</string>
   <string name="prompt_hint_username">Nume de utilizator</string>
-  <string name="help_password_choose">Alege o parolă complexă pe care să ți-o amintești, pentru a proteja contul tău Jami.</string>
-  <string name="help_password_enter">Introdu parola contului tău principal Jami.</string>
+  <string name="help_password_choose">Alege o parolă complexă pe care să ți-o amintești, pentru a proteja contul tău 白い熊 GNU Jami.</string>
+  <string name="help_password_enter">Introdu parola contului tău principal 白い熊 GNU Jami.</string>
   <string name="help_server_enter">Introdu URL-ul serverului de administrare</string>
   <string name="pin_copied">Codul de autentificare a fost copiat.</string>
   <string name="copied_clipboard">Copiat în memorie.</string>
@@ -322,7 +322,7 @@
   <string name="devices">Aparate asociate</string>
   <string name="total_devices">Toate aparatele: </string>
   <!--Share fragment-->
-  <string name="share_message">Scanează acest cod cu Jami</string>
+  <string name="share_message">Scanează acest cod cu 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Alege un cont de distribuit.</string>
   <string name="share_your_account_information">Trimite datele mele de contact</string>
   <string name="share_contact_information">Trimite datele de contact</string>
@@ -414,8 +414,8 @@
   <string name="speech_recogniton_unavailable">Recunoașterea vorbirii nu este disponibilă.</string>
   <string name="audio_permission_rationale_title">Permisiunea audio este necesară</string>
   <string name="camera_permission_rationale_title">Este necesar accesul la cameră</string>
-  <string name="audio_permission_rationale_message">Jami are nevoie de acces la microfon pentru a transforma vorbirea în text și pentru a înregistra audio. Acesta va fi solicitat la pasul următor.</string>
-  <string name="camera_permission_rationale_message">Jami are nevoie de acces la cameră pentru a înregistra video și a efectua apeluri video. Acesta va fi solicitat la pasul următor.</string>
+  <string name="audio_permission_rationale_message">白い熊 GNU Jami are nevoie de acces la microfon pentru a transforma vorbirea în text și pentru a înregistra audio. Acesta va fi solicitat la pasul următor.</string>
+  <string name="camera_permission_rationale_message">白い熊 GNU Jami are nevoie de acces la cameră pentru a înregistra video și a efectua apeluri video. Acesta va fi solicitat la pasul următor.</string>
   <string name="unable_to_start_recorder">Nu se poate începe înregistrarea audio.</string>
   <string name="error_sharing_file">A apărut o eroare în timpul trimiterii fișierului.</string>
   <string name="error_opening_file">A apărut o eroare la deschiderea fișierului.</string>
@@ -479,7 +479,7 @@
   <string name="picker_title">Alege contacte</string>
   <string name="picker_btn">Alege contacte</string>
   <string name="no_contact_to_add">Nu ai niciun contact de adăugat</string>
-  <string name="bottomsheet_contact">Contactează Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Contactează 白い熊 GNU Jami\n%1$s</string>
   <string name="bottomsheet_block">Blochează membrul</string>
   <string name="bottomsheet_unblock">Deblochează membrul</string>
   <string name="error_open_no_app_found">Nu s-a găsit nicio aplicație care să gestioneze acest fișier: %1$s</string>
@@ -487,8 +487,8 @@
   <string name="group_admin">Administrator</string>
   <string name="group_member_blocked">Blocat</string>
   <string name="group_member_invited">Invitat</string>
-  <string name="share_contact_intent_title">Adaugă acest contact în Jami!</string>
-  <string name="share_contact_intent_body">Poți adăuga acest contact „%1$s” pe platforma de comunicare distribuită Jami: %2$s</string>
+  <string name="share_contact_intent_title">Adaugă acest contact în 白い熊 GNU Jami!</string>
+  <string name="share_contact_intent_body">Poți adăuga acest contact „%1$s” pe platforma de comunicare distribuită 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">Copiază JamiID</string>
   <string name="jami_id_share">Distribuie JamiID</string>
@@ -499,8 +499,8 @@
   <string name="jami_id_looking_for_availability">Caut disponibilitatea numelui de utilizator…</string>
   <string name="jami_id_choose_username">Alege un nume de utilizator</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Bine ai venit pe Jami</string>
-  <string name="welcome_jami_description">Împărtășește identificatorul tău Jami pentru a fi contactat mai ușor!</string>
+  <string name="welcome_jami_title">Bine ai venit pe 白い熊 GNU Jami</string>
+  <string name="welcome_jami_description">Împărtășește identificatorul tău 白い熊 GNU Jami pentru a fi contactat mai ușor!</string>
   <!--Conversation details-->
   <string name="details">Detalii</string>
   <string name="secure_p2p_connection">Conexiune sigură P2P</string>
@@ -511,7 +511,7 @@
   <string name="show_certificate">Arată certificatul</string>
   <string name="mute_conversation">Dezactivează notificările</string>
   <!--Donation-->
-  <string name="donation_card_description">Dacă îți place să folosești Jami și crezi că misiunea noastră este importantă, vrei să faci o donație?</string>
+  <string name="donation_card_description">Dacă îți place să folosești 白い熊 GNU Jami și crezi că misiunea noastră este importantă, vrei să faci o donație?</string>
   <string name="donation_card_not_now">Nu acum</string>
   <string name="donation_donate">Donează</string>
   <string name="donation_setting_title">Reamintire donații</string>
@@ -583,11 +583,11 @@
   <string name="notif_channel_peer_tunnel">Servicii partajate</string>
   <string name="notif_channel_peer_tunnel_descr">Afișat când tunelurile de servicii între parteneri sunt active în fundal.</string>
   <string name="notif_peer_tunnel_title">Servicii partajate active</string>
-  <string name="notif_peer_tunnel_text">Jami menține conexiunile serviciilor active în fundal</string>
+  <string name="notif_peer_tunnel_text">白い熊 GNU Jami menține conexiunile serviciilor active în fundal</string>
   <string name="notif_peer_tunnel_stop_all">Oprește tot</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">Servicii partajate</string>
-  <string name="shared_services_settings_description">Expune servicii locale utilizatorilor Jami</string>
+  <string name="shared_services_settings_description">Expune servicii locale utilizatorilor 白い熊 GNU Jami</string>
   <string name="shared_services_empty">Niciun serviciu configurat</string>
   <string name="shared_services_add">Adaugă serviciu</string>
   <string name="shared_services_add_title">Adaugă serviciu partajat</string>
@@ -602,7 +602,7 @@
   <string name="shared_services_port_invalid">Portul trebuie să fie între 1 și 65535</string>
   <string name="shared_services_port">Port: %d</string>
   <string name="shared_services_no_description">Nicio descriere</string>
-  <string name="shared_services_empty_subtitle">Partajează fișiere sau servicii locale cu utilizatorii Jami</string>
+  <string name="shared_services_empty_subtitle">Partajează fișiere sau servicii locale cu utilizatorii 白い熊 GNU Jami</string>
   <string name="shared_services_more_options">Alte opțiuni</string>
   <string name="shared_services_open_in_browser">Deschide în browser</string>
   <string name="shared_services_disconnect_all">Deconectează tot</string>

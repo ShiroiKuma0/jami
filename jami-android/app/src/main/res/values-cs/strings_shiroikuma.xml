@@ -19,7 +19,7 @@
     <string name="sk_exim_import">Obnovit</string>
     <string name="sk_exim_export">Uložit</string>
 
-    <string name="sk_cat_accounts">Účty (archivy Jami)</string>
+    <string name="sk_cat_accounts">Účty (archivy 白い熊 GNU Jami)</string>
     <string name="sk_cat_chat_texts">Konverzace — zprávy a historie</string>
     <string name="sk_cat_chat_files">Konverzace — přijaté a odeslané soubory</string>
     <string name="sk_cat_fonts">Písma a velikosti</string>
@@ -97,7 +97,7 @@
     <string name="sk_rep_not_ours">V tomto souboru nebyla nalezena záloha 白い熊 GNU Jami.</string>
     <string name="sk_rep_no_space">Nedostatek místa: potřeba %1$s, k dispozici %2$s.</string>
 
-    <string name="sk_wizard_import">Obnovit ze zálohy 白い熊 Jami</string>
+    <string name="sk_wizard_import">Obnovit ze zálohy 白い熊 GNU Jami</string>
     <string name="sk_exim_phase_verify">Ověřování zálohy</string>
     <string name="sk_rep_verified">Ověřeno: %1$d položek, bez poškození</string>
     <string name="sk_rep_corrupt">POŠKOZENO: %1$d položek neprošlo ověřením — na tuto zálohu se nespoléhejte</string>

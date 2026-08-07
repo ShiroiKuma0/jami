@@ -8,7 +8,7 @@
   <string name="account_selection">Vybrať účet</string>
   <string name="add_ring_account_title">Pridať účet</string>
   <string name="add_sip_account_title">Pridať SIP účet</string>
-  <string name="ring_account_default_name">Jami účet %1$s</string>
+  <string name="ring_account_default_name">白い熊 GNU Jami účet %1$s</string>
   <string name="account_creation_error">Pri vytváraní účtu sa vyskytla chyba.</string>
   <string name="prompt_alias">Alias</string>
   <string name="prompt_hostname">Názov hostiteľa</string>
@@ -28,7 +28,7 @@
         Budete môcť uskutočňovať a prijímať iba priame IP hovory.
         Účet môžete upraviť neskôr</string>
   <string name="account_type_ip2ip">IP účet</string>
-  <string name="help_ring">Jami účet vám umožňuje kontaktovať ľudí pomocou P2P pripojenia na plne distribuovanej sieti.</string>
+  <string name="help_ring">白い熊 GNU Jami účet vám umožňuje kontaktovať ľudí pomocou P2P pripojenia na plne distribuovanej sieti.</string>
   <string name="help_sip_title">Pridať SIP účet</string>
   <string name="help_sip">Konfigurovať existujúci SIP účet</string>
   <string name="create_sip_account">Konfigurovať SIP účet</string>
@@ -157,27 +157,27 @@
   <string name="account_export_file_summary">Zálohujte si účet na zariadenie, aby ste ho neskôr obnovili.</string>
   <string name="account_export_end_decryption_message">Nesprávne heslo. Skúste to znova so správnym heslom.</string>
   <string name="account_enter_password">Zadajte heslo</string>
-  <string name="account_share_body">Kontaktujte ma cez „%1$s“ na distribuovanej komunikačnej platforme Jami: %2$s</string>
-  <string name="account_share_body_with_username">Kontaktujte ma cez „%1$s“ alebo moje verejné používateľské meno „%2$s“ na distribuovanej komunikačnej platforme Jami: %3$s</string>
-  <string name="account_contact_me">Kontaktujte ma na Jami!</string>
+  <string name="account_share_body">Kontaktujte ma cez „%1$s“ na distribuovanej komunikačnej platforme 白い熊 GNU Jami: %2$s</string>
+  <string name="account_share_body_with_username">Kontaktujte ma cez „%1$s“ alebo moje verejné používateľské meno „%2$s“ na distribuovanej komunikačnej platforme 白い熊 GNU Jami: %3$s</string>
+  <string name="account_contact_me">Kontaktujte ma na 白い熊 GNU Jami!</string>
   <string name="update_account">Aktualizovať účet</string>
-  <string name="account_migration">Váš Jami účet môže byť aktualizovaný.\nZadajte vaše heslo.</string>
-  <string name="ring_account">Jami účet</string>
+  <string name="account_migration">Váš 白い熊 GNU Jami účet môže byť aktualizovaný.\nZadajte vaše heslo.</string>
+  <string name="ring_account">白い熊 GNU Jami účet</string>
   <string name="sip_account">Účet SIP</string>
   <string name="ring_account_identity">Identita</string>
   <string name="account_migration_title_dialog">Migrácia účtu</string>
   <string name="account_migration_message_dialog">Vaše účty je potrebné aktualizovať. Chcete prejsť na obrazovku správy účtov a vykonať túto operáciu?</string>
   <string name="account_update_needed">Vyžaduje sa aktualizácia</string>
   <string name="account_cannot_be_found_title">Chyba účtu</string>
-  <string name="account_cannot_be_found_message">Nie je možné nájsť účet v sieti Jami. Uistite sa, že bol exportovaný v Jami z existujúceho zariadenia a že poskytnuté prihlasovacie údaje sú správne.</string>
+  <string name="account_cannot_be_found_message">Nie je možné nájsť účet v sieti 白い熊 GNU Jami. Uistite sa, že bol exportovaný v 白い熊 GNU Jami z existujúceho zariadenia a že poskytnuté prihlasovacie údaje sú správne.</string>
   <string name="jams_account_cannot_be_found_message">Pri pripájaní účtu sa vyskytla chyba. Skontrolujte prihlasovacie údaje a skúste to znova.</string>
   <string name="account_sip_cannot_be_registered_message">Môžete pokračovať vo vytváraní alebo upraviť vaše údaje. Úprava bude tiež možná neskôr v nastaveniach.</string>
   <string name="account_no_network_title">Chyba siete</string>
-  <string name="account_no_network_message">Pri pridávaní účtu Jami do distribuovanej siete sa vyskytla chyba pripojenia. Skontrolujte pripojenie zariadenia.</string>
+  <string name="account_no_network_message">Pri pridávaní účtu 白い熊 GNU Jami do distribuovanej siete sa vyskytla chyba pripojenia. Skontrolujte pripojenie zariadenia.</string>
   <string name="account_device_added_title">Zariadenie pridané k účtu</string>
-  <string name="account_device_added_message">Účet Jami bol úspešne nastavený na tomto zariadení.</string>
+  <string name="account_device_added_message">Účet 白い熊 GNU Jami bol úspešne nastavený na tomto zariadení.</string>
   <string name="account_device_updated_title">Zariadenie účtu aktualizované</string>
-  <string name="account_device_updated_message">Účet Jami bol úspešne aktualizovaný.</string>
+  <string name="account_device_updated_message">Účet 白い熊 GNU Jami bol úspešne aktualizovaný.</string>
   <string name="account_cannot_be_updated_message">Pri aktualizácii účtu sa vyskytla chyba. Skontrolujte heslo účtu.</string>
   <string name="account_sip_success_title">Účet SIP zaregistrovaný</string>
   <string name="account_sip_success_message">Účet SIP bol úspešne zaregistrovaný.</string>
@@ -187,7 +187,7 @@
   <string name="account_tv_advance_settings_header">Pokročilé nastavenia</string>
   <string name="account_tv_add_contact">Pridať kontakt</string>
   <string name="account_tv_advanced_settings">Zmeniť všeobecné nastavenia</string>
-  <string name="account_tv_about">O programe Jami</string>
+  <string name="account_tv_about">O programe 白い熊 GNU Jami</string>
   <string name="tv_about_version">Verzia</string>
   <string name="tv_about_license">Licencia</string>
   <string name="tv_about_author">Právo autorov</string>
@@ -195,7 +195,7 @@
   <string name="account_link_device">Pripojenie z iného zariadenia</string>
   <string name="account_link_button">Pripojiť zo siete</string>
   <string name="account_link_archive_button">Pripojiť zo zálohy</string>
-  <string name="account_new_button">Vytvorte účet Jami</string>
+  <string name="account_new_button">Vytvorte účet 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Prepojiť nové zariadenie</string>
   <string name="account_link_show_button">Zobraziť %d ďalších prepojených zariadení</string>
   <string name="account_link_hide_button">Skryjte prepojené zariadenie</string>
@@ -231,9 +231,9 @@
   <string name="account_status_offline">Offline</string>
   <string name="account_status_error">Chyba</string>
   <!--Create account-->
-  <string name="account_creation_home">Vitajte v Jami</string>
+  <string name="account_creation_home">Vitajte v 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Vytvorte si váš profil</string>
-  <string name="account_creation_ring">Vytvorte si svoj Jami účet</string>
+  <string name="account_creation_ring">Vytvorte si svoj 白い熊 GNU Jami účet</string>
   <string name="account_sip_cannot_be_registered">Pri registrácii účtu SIP sa vyskytla chyba.</string>
   <!--Edit profile-->
   <string name="account_edit_profile">Upraviť profil</string>
@@ -245,7 +245,7 @@
   <string name="revoke_device_wait_title">Čakajte, prosím...</string>
   <string name="revoke_device_wait_message">Odoberanie zariadenia</string>
   <string name="rename_device_title">Premenovať toto zariadenie</string>
-  <string name="rename_device_message">Zadajte názov zariadenia na identifikáciu tohto zariadenia vo vašom účte Jami</string>
+  <string name="rename_device_message">Zadajte názov zariadenia na identifikáciu tohto zariadenia vo vašom účte 白い熊 GNU Jami</string>
   <string name="rename_device_button">Premenovať zariadenie</string>
   <string name="account_rename_device_hint">Zvoľte nový názov zariadenia</string>
   <string name="account_device_name_empty">Názov zariadenia nemôže byť prázdny.</string>
@@ -254,28 +254,28 @@
   <string name="account_device_id">ID zariadenia</string>
   <!--Link a new device-->
   <string name="error_format_not_supported">Tento formát nie je podporovaný.</string>
-  <string name="account_link_info">V aplikácii Jami na novom zariadení naskenujte QR kód alebo zadajte overovací kód manuálne.</string>
+  <string name="account_link_info">V aplikácii 白い熊 GNU Jami na novom zariadení naskenujte QR kód alebo zadajte overovací kód manuálne.</string>
   <string name="account_link_device_title">Prepojiť nové zariadenie</string>
   <string name="account_link_password">Tento účet je šifrovaný heslom, zadajte heslo na vygenerovanie overovacieho kódu.</string>
   <string name="account_link_generate_button">Vygenerovať</string>
   <string name="account_link_time_valid">Overovací kód bude neplatný: %1$s.</string>
-  <string name="account_link_device_info">Vyberte „Prepojiť nové zariadenie“ z druhej aplikácie Jami na zobrazenie QR kódu alebo overovacieho kódu.</string>
+  <string name="account_link_device_info">Vyberte „Prepojiť nové zariadenie“ z druhej aplikácie 白い熊 GNU Jami na zobrazenie QR kódu alebo overovacieho kódu.</string>
   <string name="account_generate_export_device">Na druhom zariadení</string>
-  <string name="account_generate_export_info">Nainštalujte a spustite Jami. Vyberte „Importovať z iného zariadenia“ a naskenujte QR kód. Prípadne zadajte kód PIN manuálne.</string>
+  <string name="account_generate_export_info">Nainštalujte a spustite 白い熊 GNU Jami. Vyberte „Importovať z iného zariadenia“ a naskenujte QR kód. Prípadne zadajte kód PIN manuálne.</string>
   <string name="content_description_qr_generated">QR kód účtu</string>
   <string name="account_generate_export_invalid">Overovací kód už nie je platný.\nZadajte heslo a vygenerujte ďalší na prepojenie nového zariadenia.</string>
   <string name="account_generate_export_invalid_two">Overovací kód už nie je platný.\nVygenerujte ďalší na prepojenie nového zariadenia.</string>
   <string name="help_pin_info">Vyžaduje sa, ak je účet šifrovaný heslom.</string>
   <string name="account_link_device_button">Pripojiť</string>
   <!--Biometry-->
-  <string name="account_biometry_auth_title">Odomknúť účet Jami</string>
+  <string name="account_biometry_auth_title">Odomknúť účet 白い熊 GNU Jami</string>
   <string name="account_biometry_auth_message">Použiť biometriu na odomknutie vášho účtu</string>
   <string name="account_biometry_enroll_title">Použiť biometrické overovanie?</string>
   <string name="account_biometry_enroll_message">Vaše zariadenie podporuje zabezpečené biometrické overovanie.
-Biometrické overovanie alebo overovanie zariadenia pridáva pohodlný spôsob lokálneho odomknutia prístupu k vášmu účtu Jami. Stále budete môcť používať svoje heslo.</string>
+Biometrické overovanie alebo overovanie zariadenia pridáva pohodlný spôsob lokálneho odomknutia prístupu k vášmu účtu 白い熊 GNU Jami. Stále budete môcť používať svoje heslo.</string>
   <string name="account_biometry_enroll_accept">Použiť biometriu</string>
   <string name="no_thanks">Nie, ďakujem</string>
-  <string name="account_biometry_enroll_auth_title">Pridať overovanie pre váš účet Jami</string>
+  <string name="account_biometry_enroll_auth_title">Pridať overovanie pre váš účet 白い熊 GNU Jami</string>
   <string name="account_biometry_enroll_auth_message">Pridať zabezpečené biometrické overovanie alebo overovanie zariadenia ako alternatívu k vášmu heslu</string>
   <string name="account_auth_error">Chyba overovania: %1$s</string>
   <string name="account_auth_success">Overovanie úspešné</string>

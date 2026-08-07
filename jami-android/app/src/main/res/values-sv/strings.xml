@@ -15,9 +15,9 @@
   <string name="no_browser_app_installed">Ingen webbläsarapp hittades; installera en för att visa den här sidan.</string>
   <string name="website_chooser_title">Visa webbsidan med...</string>
   <string name="license">Denna app tillhandahålles i \"befintligt skick\", utan några som helst garantier. För detaljerad info, se <u>GNU General Public License version 3 eller senare</u></string>
-  <string name="description">Jami är fri mjukvara för universell kommunikation, med respekt för användarens frihet och integritet.</string>
+  <string name="description">白い熊 GNU Jami är fri mjukvara för universell kommunikation, med respekt för användarens frihet och integritet.</string>
   <string name="credits">Tack till</string>
-  <string name="pip_title">Jami Konferens</string>
+  <string name="pip_title">白い熊 GNU Jami Konferens</string>
   <string name="call_service_description">Denna tjänst behövs för att kunna ringa. Den körs bara under ett samtal. </string>
   <string name="data_transfer_service_description">Denna tjänst är nödvändig för att visa notifikationer under filöverföring. Denna process körs endast under filöverföring. </string>
   <!--About dialog-->
@@ -41,7 +41,7 @@
   <string name="menu_item_account_settings">Kontoinställningar</string>
   <string name="menu_item_extension_list">Tilläggsinställningar</string>
   <string name="menu_item_share">Dela mitt konto</string>
-  <string name="menu_item_about">Om Jami</string>
+  <string name="menu_item_about">Om 白い熊 GNU Jami</string>
   <string name="video_setting_title">Videonställningar</string>
   <!--Dialing Fragment-->
   <string name="dial_number">Slå nummer</string>
@@ -78,7 +78,7 @@
   <string name="notif_channel_background_service_descr">Tillåt alltid inkommande samtal och meddelanden.</string>
   <string name="notif_group_calls">Samtal</string>
   <string name="notif_inprogress_group_call">Samtal pågår</string>
-  <string name="notif_background_service">Jami körs för närvarande i bakgrunden</string>
+  <string name="notif_background_service">白い熊 GNU Jami körs för närvarande i bakgrunden</string>
   <string name="notif_mark_as_read">Markera som läst</string>
   <string name="notif_dismiss">Avfärda</string>
   <string name="notif_reply">Svara</string>
@@ -88,7 +88,7 @@
   <string name="notif_sync_title">Synkroniserar data...</string>
   <string name="notif_location_title">Delar plats med %1$s</string>
   <string name="notif_channel_reconnect">Synkronisering i bakgrunden</string>
-  <string name="notif_reconnect_title">Jami synkroniserar…</string>
+  <string name="notif_reconnect_title">白い熊 GNU Jami synkroniserar…</string>
   <string name="location_share_contact">%1$sdelar sin position med dig</string>
   <string name="notif_location_multi_title">Dela plats med %1$d kontakt</string>
   <string name="notif_location_remaining">%1$d minuter kvar</string>
@@ -109,7 +109,7 @@
   <string name="hist_out_call">Utgående samtal av %1$s</string>
   <string name="call_duration">Varade %s</string>
   <string name="call_on_hold">Samtalet är parkerat</string>
-  <string name="start_error_title">Det går inte att starta Jami</string>
+  <string name="start_error_title">Det går inte att starta 白い熊 GNU Jami</string>
   <string name="action_call_accept">Acceptera samtal</string>
   <string name="action_call_accept_audio">Acceptera med ljud</string>
   <string name="action_call_accept_video">Acceptera med video</string>
@@ -131,7 +131,7 @@
   <string name="write_a_message">Skriv meddelande</string>
   <string name="scan_qr">Skanna QR-kod</string>
   <string name="qr_code">QR-kod</string>
-  <string name="qr_code_not_contact">Inte en QR-kod för en Jami-kontakt</string>
+  <string name="qr_code_not_contact">Inte en QR-kod för en 白い熊 GNU Jami-kontakt</string>
   <string name="new_group">Skapa ny grupp</string>
   <string name="ab_action_flipcamera">Vänd kameran</string>
   <string name="ab_action_hidepreview">Dölj förhandsvisningen</string>
@@ -161,15 +161,15 @@
   <string name="ringtone_error_size_too_big">Denna fil är för stor. Maximal storlek är %1$dkB.</string>
   <string name="ringtone_custom_prompt">Ställ in en anpassad ringsignal</string>
   <string name="ringtone_custom_label">Anpassad</string>
-  <string name="ringtone_jami_tones">Jami-ringsignaler</string>
+  <string name="ringtone_jami_tones">白い熊 GNU Jami-ringsignaler</string>
   <!--Read contacts permission-->
-  <string name="permission_dialog_read_contacts_message">Jami kräver tillståndet ”Läs kontakter”. Aktivera det i enhetsinställningarna för att använda den här funktionen.</string>
+  <string name="permission_dialog_read_contacts_message">白い熊 GNU Jami kräver tillståndet ”Läs kontakter”. Aktivera det i enhetsinställningarna för att använda den här funktionen.</string>
   <!--Write call log permission-->
-  <string name="permission_dialog_write_call_log_message">Jami kräver tillståndet ”Skriv samtalslogg”. Aktivera det i enhetsinställningarna för att använda den här funktionen.</string>
+  <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami kräver tillståndet ”Skriv samtalslogg”. Aktivera det i enhetsinställningarna för att använda den här funktionen.</string>
   <!--Post notifications permission-->
   <string name="permission_dialog_post_notifications_title">Tillåt aviseringar</string>
-  <string name="permission_dialog_post_notifications_message">Jami behöver aviseringstillståndet för att varna dig om inkommande samtal och meddelanden, även när appen är i bakgrunden. Utan det kan du missa samtal.</string>
-  <string name="permission_dialog_post_notifications_blocked_message">Aviseringar är inaktiverade för Jami. Utan dem missar du inkommande samtal och meddelanden. Aktivera aviseringar för Jami i enhetsinställningarna.</string>
+  <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami behöver aviseringstillståndet för att varna dig om inkommande samtal och meddelanden, även när appen är i bakgrunden. Utan det kan du missa samtal.</string>
+  <string name="permission_dialog_post_notifications_blocked_message">Aviseringar är inaktiverade för 白い熊 GNU Jami. Utan dem missar du inkommande samtal och meddelanden. Aktivera aviseringar för 白い熊 GNU Jami i enhetsinställningarna.</string>
   <string name="permission_dialog_open_settings">Öppna inställningar</string>
   <string name="permission_dialog_later">Senare</string>
   <!--QRCode Scan-->
@@ -231,7 +231,7 @@
   <string name="video_not_found">Videofilen hittades inte</string>
   <string name="conversation_preference_color">Konversationsfärg</string>
   <string name="conversation_preference_emoji">Konversations emoji</string>
-  <string name="conversation_type_contact">Jami kontakt</string>
+  <string name="conversation_type_contact">白い熊 GNU Jami kontakt</string>
   <string name="conversation_type_private">Privat</string>
   <string name="conversation_type_group">Grupp</string>
   <string name="conversation_contact_invited">%1$s bjöds in till konversationen.</string>
@@ -282,11 +282,11 @@
   <string name="prompt_new_password">Nytt lösenord</string>
   <string name="prompt_new_password_optional">Nytt lösenord (ej obligatoriskt)</string>
   <string name="prompt_new_password_repeat">Bekräfta nytt lösenord</string>
-  <string name="account_create_title">Skapa Jami-konto</string>
+  <string name="account_create_title">Skapa 白い熊 GNU Jami-konto</string>
   <string name="prompt_new_username">Ange nytt användarnamn</string>
   <string name="prompt_hint_username">Användarnamn</string>
-  <string name="help_password_choose">Välj ett starkt lösenord som du kommer ihåg, för att skydda ditt Jami-konto.</string>
-  <string name="help_password_enter">Ange ditt huvudlösenord till Jami. </string>
+  <string name="help_password_choose">Välj ett starkt lösenord som du kommer ihåg, för att skydda ditt 白い熊 GNU Jami-konto.</string>
+  <string name="help_password_enter">Ange ditt huvudlösenord till 白い熊 GNU Jami. </string>
   <string name="help_server_enter">Ange URL för tjänsteservern. </string>
   <string name="pin_copied">Autentiseringskoden kopierades till urklipp.</string>
   <string name="copied_clipboard">Kopierat till urklipp.</string>
@@ -318,7 +318,7 @@
   <string name="devices">Kopplade enheter</string>
   <string name="total_devices">Totalt antal enheter:</string>
   <!--Share fragment-->
-  <string name="share_message">Skanna den här koden med Jami</string>
+  <string name="share_message">Skanna den här koden med 白い熊 GNU Jami</string>
   <string name="share_message_no_account">Välj ett konto att dela.</string>
   <string name="share_your_account_information">Dela min kontaktinformation</string>
   <string name="share_contact_information">Dela kontaktinformation</string>
@@ -410,8 +410,8 @@
   <string name="speech_recogniton_unavailable">Taligenkänning är inte tillgänglig.</string>
   <string name="audio_permission_rationale_title">Ljudtillstånd krävs</string>
   <string name="camera_permission_rationale_title">Kameratillstånd krävs</string>
-  <string name="audio_permission_rationale_message">Jami kräver mikrofontillståndet för att använda funktionerna tal-till-text och ljudinspelning. Det kommer att efterfrågas i nästa steg.</string>
-  <string name="camera_permission_rationale_message">Jami kräver kameratillståndet för att spela in video och ringa videosamtal. Det kommer att efterfrågas i nästa steg.</string>
+  <string name="audio_permission_rationale_message">白い熊 GNU Jami kräver mikrofontillståndet för att använda funktionerna tal-till-text och ljudinspelning. Det kommer att efterfrågas i nästa steg.</string>
+  <string name="camera_permission_rationale_message">白い熊 GNU Jami kräver kameratillståndet för att spela in video och ringa videosamtal. Det kommer att efterfrågas i nästa steg.</string>
   <string name="unable_to_start_recorder">Det går inte att starta ljudinspelningen.</string>
   <string name="error_sharing_file">Ett fel uppstod när filen skulle delas.</string>
   <string name="error_opening_file">Ett fel uppstod när filen skulle öppnas.</string>
@@ -469,7 +469,7 @@
   <string name="picker_title">Välj kontakter</string>
   <string name="picker_btn">Välj kontakter</string>
   <string name="no_contact_to_add">Du har ingen kontakt att lägga till</string>
-  <string name="bottomsheet_contact">Kontakta Jami\n%1$s</string>
+  <string name="bottomsheet_contact">Kontakta 白い熊 GNU Jami\n%1$s</string>
   <string name="bottomsheet_block">Blockera medlem</string>
   <string name="bottomsheet_unblock">Avblockera medlem</string>
   <string name="error_open_no_app_found">Ingen app hittades för att hantera den här filen: %1$s</string>
@@ -477,8 +477,8 @@
   <string name="group_admin">Administratör</string>
   <string name="group_member_blocked">Blockerad</string>
   <string name="group_member_invited">Inbjudna</string>
-  <string name="share_contact_intent_title">Lägg till den här kontakten på Jami!</string>
-  <string name="share_contact_intent_body">Du kan lägga till den här kontakten ”%1$s” på den distribuerade kommunikationsplattformen Jami: %2$s</string>
+  <string name="share_contact_intent_title">Lägg till den här kontakten på 白い熊 GNU Jami!</string>
+  <string name="share_contact_intent_body">Du kan lägga till den här kontakten ”%1$s” på den distribuerade kommunikationsplattformen 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
   <string name="jami_id_copy">Kopiera JamiId</string>
   <string name="jami_id_share">Dela JamiId</string>
@@ -489,8 +489,8 @@
   <string name="jami_id_looking_for_availability">Kontrollerar användarnamnets tillgänglighet…</string>
   <string name="jami_id_choose_username">Välj ett användarnamn</string>
   <!--WelcomeJami-->
-  <string name="welcome_jami_title">Välkommen till Jami!</string>
-  <string name="welcome_jami_description">Dela din Jami-identifierare så att du lättare kan bli kontaktad!</string>
+  <string name="welcome_jami_title">Välkommen till 白い熊 GNU Jami!</string>
+  <string name="welcome_jami_description">Dela din 白い熊 GNU Jami-identifierare så att du lättare kan bli kontaktad!</string>
   <!--Conversation details-->
   <string name="details">Detaljer</string>
   <string name="secure_p2p_connection">Säker peer-to-peer-anslutning</string>
@@ -501,7 +501,7 @@
   <string name="show_certificate">Visa certifikat</string>
   <string name="mute_conversation">- Ett stillsamt samtal.</string>
   <!--Donation-->
-  <string name="donation_card_description">Om du tycker om att använda Jami och tror på vår mission, vill du göra en donation?</string>
+  <string name="donation_card_description">Om du tycker om att använda 白い熊 GNU Jami och tror på vår mission, vill du göra en donation?</string>
   <string name="donation_card_not_now">Inte nu</string>
   <string name="donation_donate">Donera</string>
   <string name="donation_setting_title">Donationspåminnelse</string>
@@ -573,11 +573,11 @@
   <string name="notif_channel_peer_tunnel">Delade tjänster</string>
   <string name="notif_channel_peer_tunnel_descr">Visas när peer-tjänsttunnlar är aktiva i bakgrunden.</string>
   <string name="notif_peer_tunnel_title">Delade tjänster aktiva</string>
-  <string name="notif_peer_tunnel_text">Jami håller dina tjänsteanslutningar vid liv i bakgrunden</string>
+  <string name="notif_peer_tunnel_text">白い熊 GNU Jami håller dina tjänsteanslutningar vid liv i bakgrunden</string>
   <string name="notif_peer_tunnel_stop_all">Stoppa alla</string>
   <!--Exposed/Hosted services-->
   <string name="shared_services_settings_title">Delade tjänster</string>
-  <string name="shared_services_settings_description">Exponera lokala tjänster för Jami-användare</string>
+  <string name="shared_services_settings_description">Exponera lokala tjänster för 白い熊 GNU Jami-användare</string>
   <string name="shared_services_empty">Inga tjänster konfigurerade</string>
   <string name="shared_services_add">Lägg till tjänst</string>
   <string name="shared_services_add_title">Lägg till delad tjänst</string>
@@ -592,7 +592,7 @@
   <string name="shared_services_port_invalid">Porten måste vara mellan 1 och 65535</string>
   <string name="shared_services_port">Port: %d</string>
   <string name="shared_services_no_description">Ingen beskrivning</string>
-  <string name="shared_services_empty_subtitle">Dela lokala filer eller tjänster med Jami-användare</string>
+  <string name="shared_services_empty_subtitle">Dela lokala filer eller tjänster med 白い熊 GNU Jami-användare</string>
   <string name="shared_services_more_options">Fler alternativ</string>
   <string name="shared_services_open_in_browser">Öppna i webbläsare</string>
   <string name="shared_services_disconnect_all">Koppla från alla</string>
