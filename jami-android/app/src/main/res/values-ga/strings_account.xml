@@ -7,7 +7,7 @@
   <!--Strings related to account creation-->
   <string name="add_ring_account_title">Cuid ar an cuntas</string>
   <string name="add_sip_account_title">Cuid SIP a chur leis</string>
-  <string name="ring_account_default_name">Cunntas Jami %1$s</string>
+  <string name="ring_account_default_name">Cunntas 白い熊 GNU Jami %1$s</string>
   <string name="prompt_alias">Aithne</string>
   <string name="prompt_hostname">Ainm óstála</string>
   <string name="prompt_username">Ainm úsáideora</string>
@@ -22,7 +22,7 @@
   <string name="dialog_wait_update">Cunntas nuashonrú</string>
   <string name="dialog_wait_update_details">Bíodh súil agat le do chuntas nua a nuashonrú...</string>
   <string name="account_type_ip2ip">Conta IP</string>
-  <string name="help_ring">Ligeann cuntas Jami duit daoine a bhaint amach go sábháilte in peer to peer trí líonra atá scaipthe go hiomlán.</string>
+  <string name="help_ring">Ligeann cuntas 白い熊 GNU Jami duit daoine a bhaint amach go sábháilte in peer to peer trí líonra atá scaipthe go hiomlán.</string>
   <string name="help_sip_title">Cuid SIP a chur leis</string>
   <string name="help_sip">Cumraigh cuntas SIP atá ann</string>
   <string name="create_sip_account">Cumraigh cuntas SIP</string>
@@ -126,10 +126,10 @@
   <string name="account_export_file">Cunntas cúltaca</string>
   <string name="account_export_file_summary">Cúltaca do chuntas ar do ghléas chun é a athshlánú níos déanaí.</string>
   <string name="account_enter_password">Cluiche Pasfhocal</string>
-  <string name="account_contact_me">Déan teagmháil liom ar Jami!</string>
+  <string name="account_contact_me">Déan teagmháil liom ar 白い熊 GNU Jami!</string>
   <string name="update_account">Cunntas nuashonrú</string>
-  <string name="account_migration">Is féidir do chuntas Jami a nuashonrú.\nLe do thoil cuir isteach do phasfhocal.</string>
-  <string name="ring_account">Cunntas Jami</string>
+  <string name="account_migration">Is féidir do chuntas 白い熊 GNU Jami a nuashonrú.\nLe do thoil cuir isteach do phasfhocal.</string>
+  <string name="ring_account">Cunntas 白い熊 GNU Jami</string>
   <string name="sip_account">Cuntas SIP</string>
   <string name="ring_account_identity">Úinéir</string>
   <string name="account_migration_title_dialog">Imirce cuntas</string>
@@ -144,7 +144,7 @@
   <string name="account_tv_advance_settings_header">Cinntí ar aghaidh</string>
   <string name="account_tv_add_contact">Cuir teagmháil</string>
   <string name="account_tv_advanced_settings">Athrú na socruithe ginearálta</string>
-  <string name="account_tv_about">Maidir le Jami</string>
+  <string name="account_tv_about">Maidir le 白い熊 GNU Jami</string>
   <string name="tv_about_version">An leagan</string>
   <string name="tv_about_license">Ceadúnas</string>
   <string name="tv_about_author">Cearta d\'ealaíontóirí</string>
@@ -152,7 +152,7 @@
   <string name="account_link_device">Déan nasc ó ghléas eile</string>
   <string name="account_link_button">Déan nasc ó líonra</string>
   <string name="account_link_archive_button">Déan nasc ó ghnóthach</string>
-  <string name="account_new_button">Creidigh cuntas Jami</string>
+  <string name="account_new_button">Creidigh cuntas 白い熊 GNU Jami</string>
   <string name="account_link_export_button">Déan nasc le feiste nua</string>
   <string name="account_link_show_button">Taispeánadh %d níos mó feiste ceangailte</string>
   <string name="account_link_hide_button">Iarrann an t-ionad ceangailte le críocha an Rialacháin seo</string>
@@ -181,9 +181,9 @@
   <string name="account_status_offline">Offline</string>
   <string name="account_status_error">Meas</string>
   <!--Create account-->
-  <string name="account_creation_home">Fáilte go Jami</string>
+  <string name="account_creation_home">Fáilte go 白い熊 GNU Jami</string>
   <string name="account_creation_profile">Cruthaigh do phróifíl</string>
-  <string name="account_creation_ring">Cruthaigh do chuntas Jami</string>
+  <string name="account_creation_ring">Cruthaigh do chuntas 白い熊 GNU Jami</string>
   <!--Edit profile-->
   <!--Devices-->
   <string name="account_revoke_device_hint">Cuir pasfhocal isteach chun a dhearbhú</string>
