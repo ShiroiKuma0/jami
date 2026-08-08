@@ -300,6 +300,11 @@ accounts (which were **35 %** of all transports). Everything else is upstream �
 
 ## Other build traps
 
+- **A DAEMON BUMP THAT MOVES A PATCHED CONTRIB PACKAGE (2026-08-08, the `20260731-01 → 20260807-01` sync). Three separate defects fired in one afternoon, each costing a build; all three are now fixed in the canonical block, and the fixes are worth understanding rather than trusting blindly.**
+  1. **`SK-PATCHSUM` was blind to the package's own version.** It hashes only *our* patch files, so when upstream bumped opendht `4.2.0 → 4.3.1` and dhtnet to a new commit, the gate passed and both OLD extracted trees survived with valid stamps. Diagnostic: compare the mtimes of `contrib/aarch64-linux-android/lib/lib{dhtnet,opendht}.a` — one fresh and one days old is the signature. The gate now hashes the `*_VERSION :=` lines from `rules.mak` too, and **the stamp writer at the end of the block must use the identical formula** or every build re-extracts.
+  2. **Dependency order decides which `rules.mak` a package is extracted with.** See the ORDERING RULE comment in the block. Short version: dhtnet depends on pjproject *and* opendht, `make .dhtnet` will pull either in, and a dependency-triggered build uses whatever exists at that moment. Anything we patch goes above whatever needs it.
+  3. **Patch failures are not fatal — the block has no `set -e` and cannot have one** (many guards legitimately return non-zero). A failed hunk plus a failed `make` scrolled past into gradle, heading for a link against the stale library. The **contrib sanity gate** before the SWIG step now asserts no `*.rej` anywhere and a build stamp per package, and exits non-zero otherwise. When driving a build from a monitor, still grep the log for `Hunk #… FAILED|saving rejects|make.*(Error|エラー)` — the gate catches the state, the grep catches it sooner.
+  - **When one of our patches loses hunks to a bumped package**, regenerate it: apply the preceding patches into a scratch tree, edit the SOURCE there, `diff -u`, and dry-run the result back onto a pristine extract. Never hand-edit the `.patch` body. If upstream moved the code your patch hooks into (2026-08-08: `shutdownAsync()` took over the write-error path), carry the *intent* to the new call path rather than dropping the hunk — a silently degraded diagnostic is worse than a loud failure.
 - **NDK 29 / CMake 4.1.2 are on the SDK beta channel.** Install with `sdkmanager --channel=1`; a stable-channel sdkmanager won't list them.
 - **`[CXX5304] … SDK XML versions up to 3 … version 4 was encountered`** (printed twice, once per native config pass) is an **environment toolchain mismatch** in the daemon's native build: the installed cmdline-tools/sdkmanager wrote a package `package.xml` at schema **v4**, but the NDK's bundled SDK-meta parser only understands **≤v3**. It is **harmless** and **NOT fixable in project config** — there is no Gradle/CMake suppression for it. It clears only by aligning the cmdline-tools and NDK versions (update or pin both via `sdkmanager`). Do not chase it and do not try to silence it in the build files.
 - **Host-lib contamination is a class, not a one-off.** The desktop has more dev libraries than upstream's clean CI container, so other contrib packages can pick up host libs the same way gnutls did. If a new contrib package fails on a missing Android-sysroot header for something the host has, the fix is the same shape: disable that feature in the package's `rules.mak` configure line.
@@ -401,13 +406,23 @@ r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls
 # re-extracted, so rules.mak re-applies the whole chain from the tarball. Stamps are written ONLY
 # after a fully successful build (see the end of the block) — a failed build must re-extract again
 # next time rather than record "up to date" for code that never compiled.
+#
+# THE SUM MUST ALSO COVER THE PACKAGE'S OWN VERSION (2026-08-08). The patch-file hash says nothing
+# about which upstream tarball is extracted, so when the 20260807-01 daemon bumped opendht
+# 4.2.0 -> 4.3.1 and dhtnet to a new commit, our patches were unchanged, the gate passed, and both
+# OLD extracted trees survived with valid stamps. `make` skipped them and the new daemon was about
+# to link a two-day-old libdhtnet.a built against opendht 4.2.0 — the +163 stale-library failure
+# again, from the opposite direction. The version lines live in each package's rules.mak and are
+# NOT touched by our $(APPLY) edits, so they are safe to hash (hashing the whole rules.mak would
+# re-extract on every build, because this block appends to it after the gate has run).
 sk_sum() { cat "$@" 2>/dev/null | md5sum | cut -d" " -f1; }
+sk_ver() { grep -hE '^[A-Z0-9_]+_VERSION[[:space:]]*:=' "daemon/contrib/src/$1/rules.mak" 2>/dev/null; }
 sk_gate() {  # $1=pkg, rest=patch files
   local pkg=$1; shift
   local d=daemon/contrib/build-aarch64-linux-android
-  local sum; sum=$(sk_sum "$@")
+  local sum; sum=$( { sk_ver "$pkg"; cat "$@" 2>/dev/null; } | md5sum | cut -d" " -f1)
   if [ -d "$d/$pkg" ] && [ "$(cat "$d/.sk-patchsum-$pkg" 2>/dev/null)" != "$sum" ]; then
-    echo ">>> $pkg patch set changed — forcing re-extract"
+    echo ">>> $pkg patch set or upstream version changed — forcing re-extract"
     rm -rf "$d/$pkg" "$d/.$pkg" "$d/.dep-$pkg"
   fi
 }
@@ -415,12 +430,23 @@ r sk_gate dhtnet    patches/dhtnet-*.patch
 r sk_gate pjproject patches/pjproject-*.patch
 r sk_gate opendht   patches/opendht-*.patch
 
-# pjproject FIRST — it is a build dependency of dhtnet (contrib/src/pjproject/rules.mak:71).
-# The block used to have dhtnet first, which was only safe while pjproject was never wiped. Once
-# SK-PATCHSUM can re-extract it, `make .dhtnet` pulls `.pjproject` in as a dependency and its
-# autoconf configure runs WITHOUT the NDK cross env exported inside the pjproject block — dying
-# with the "C compiler cannot create executables" already documented for a bare `make .pjproject`.
-# The documented gotcha and the block's own ordering were quietly incompatible. Cost one build.
+# ORDERING RULE — EVERY PACKAGE WE PATCH IS SET UP BEFORE ANYTHING THAT DEPENDS ON IT.
+# dhtnet depends on BOTH pjproject and opendht, so `make .dhtnet` will pull either in as a
+# dependency, and a dependency-triggered build uses whatever rules.mak and environment exist AT
+# THAT MOMENT — not what a later section of this block would have set up. Hence: pjproject, then
+# opendht, then dhtnet. Both instances of this bug cost a build:
+#
+#   pjproject (2026-08-06): pulled in as a dependency, its autoconf configure ran WITHOUT the NDK
+#     cross env exported inside the pjproject block — the "C compiler cannot create executables"
+#     already documented for a bare `make .pjproject`.
+#   opendht (2026-08-08): pulled in as a dependency while opendht/rules.mak still had NO $(APPLY)
+#     lines, so a PRISTINE opendht was extracted and built. The direct guards further down then
+#     applied 2 of our 5 patches onto it out of order — push-refetch expects subscription-diag's
+#     context — double-applying one (SK-PUSHGET x6 where one application belongs, SK-SUBREFRESH
+#     and connectDeadlineFired at ZERO) and leaving dht_proxy_client.cpp unable to compile.
+#
+# This was written as a fact about pjproject and was really a fact about dependency order. If a
+# future daemon adds another patched contrib dependency, it goes ABOVE the package that needs it.
 # pjproject stuck-epoll eviction (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/; grep -q pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch|\t\$(APPLY) \$(SRC)/pjproject/0001-android.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|" daemon/contrib/src/pjproject/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q "SK-EPOLLQUIET" "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
@@ -441,6 +467,30 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.pjprojec
   export AS="$CC -c" AR="$TOOLCHAIN/bin/llvm-ar" RANLIB="$TOOLCHAIN/bin/llvm-ranlib" STRIP="$TOOLCHAIN/bin/llvm-strip" LD="$TOOLCHAIN/bin/ld"
   rm -f "$d/.pjproject" && make -C "$d" .pjproject
 fi'
+
+# opendht rules.mak $(APPLY) coverage (2026-08-06). opendht/rules.mak carried ZERO $(APPLY) lines
+# while FIVE of our patches were live in the extracted tree — they survived only because the
+# working tree persists, so a fresh clone or a forced re-extract dropped every one of them silently.
+# Same hole that was closed for dhtnet on 2026-08-05. ORDER IS LOAD-BEARING and was verified against
+# a pristine 4.2.0 tarball: connect-resilience, subscription-refresh, subscription-diag,
+# push-refetch-hardening, dht-message-stats-diag. Moving subscription-diag ahead of
+# subscription-refresh makes it FAIL outright and silently loses a hunk (SK-PROXYDIAG 10 not 11).
+r bash -c 'om=daemon/contrib/src/opendht/rules.mak
+cp patches/opendht-proxy-connect-resilience.patch daemon/contrib/src/opendht/
+grep -q opendht-proxy-connect-resilience.patch "$om" || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/opendht/opendht-proxy-connect-resilience.patch\n\t\$(MOVE)|" "$om"
+prev=opendht-proxy-connect-resilience
+for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag; do
+  cp "patches/$p.patch" daemon/contrib/src/opendht/
+  grep -q "$p.patch" "$om" || sed -i "s|^\t\$(APPLY) \$(SRC)/opendht/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/opendht/$p.patch|" "$om"
+  prev=$p
+done'
+
+# opendht push-refetch hardening (SK-PUSHGET): coalesce post-push gets, sweep the value cache only
+# on a SUCCESSFUL get (a failed one used to expire every cached value = mass false-offline), and
+# per-key byte attribution for gets. rules.mak carries the $(APPLY); this also heals an existing tree.
+r bash -c 'cp patches/opendht-push-refetch-hardening.patch daemon/contrib/src/opendht/'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q "SK-PUSHGET" "$d/opendht/src/dht_proxy_client.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-push-refetch-hardening.patch && rm -f "$d/.opendht"; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.opendht" ]; then echo ">>> opendht missing/changed — rebuilding"; make -C "$d" .opendht; fi'
 
 # dhtnet LAN-interface fix (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
 r bash -c 'cp patches/dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-prefer-lan-interface.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-prefer-lan-interface.patch\n\t\$(MOVE)|" daemon/contrib/src/dhtnet/rules.mak'
@@ -495,29 +545,6 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # operator-precedence family as the `pgrep -f` self-match invariant in CLAUDE.md.
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" ] || [ -n "$(find "$d/dhtnet/src" \( -name "*.cpp" -o -name "*.h" \) -newer "$d/.dhtnet" 2>/dev/null | head -1)" ]; then echo ">>> dhtnet sources changed — rebuilding"; rm -f "$d/.dhtnet" && make -C "$d" .dhtnet; fi'
 
-# opendht rules.mak $(APPLY) coverage (2026-08-06). opendht/rules.mak carried ZERO $(APPLY) lines
-# while FIVE of our patches were live in the extracted tree — they survived only because the
-# working tree persists, so a fresh clone or a forced re-extract dropped every one of them silently.
-# Same hole that was closed for dhtnet on 2026-08-05. ORDER IS LOAD-BEARING and was verified against
-# a pristine 4.2.0 tarball: connect-resilience, subscription-refresh, subscription-diag,
-# push-refetch-hardening, dht-message-stats-diag. Moving subscription-diag ahead of
-# subscription-refresh makes it FAIL outright and silently loses a hunk (SK-PROXYDIAG 10 not 11).
-r bash -c 'om=daemon/contrib/src/opendht/rules.mak
-cp patches/opendht-proxy-connect-resilience.patch daemon/contrib/src/opendht/
-grep -q opendht-proxy-connect-resilience.patch "$om" || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/opendht/opendht-proxy-connect-resilience.patch\n\t\$(MOVE)|" "$om"
-prev=opendht-proxy-connect-resilience
-for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag; do
-  cp "patches/$p.patch" daemon/contrib/src/opendht/
-  grep -q "$p.patch" "$om" || sed -i "s|^\t\$(APPLY) \$(SRC)/opendht/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/opendht/$p.patch|" "$om"
-  prev=$p
-done'
-
-# opendht push-refetch hardening (SK-PUSHGET): coalesce post-push gets, sweep the value cache only
-# on a SUCCESSFUL get (a failed one used to expire every cached value = mass false-offline), and
-# per-key byte attribution for gets. rules.mak carries the $(APPLY); this also heals an existing tree.
-r bash -c 'cp patches/opendht-push-refetch-hardening.patch daemon/contrib/src/opendht/'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q "SK-PUSHGET" "$d/opendht/src/dht_proxy_client.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-push-refetch-hardening.patch && rm -f "$d/.opendht"; fi'
-r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.opendht" ]; then echo ">>> opendht missing/changed — rebuilding"; make -C "$d" .opendht; fi'
 
 # de-list absent devices (SK-ABSENTNODE; idempotent; daemon's OWN source). Honours the presence
 # OFFLINE edge, which upstream discards, so an absent device leaves the speculative dial pool.
@@ -571,6 +598,38 @@ r bash -c 'find jami-android/app/build/intermediates/cxx -name libjami-core-jni.
 
 # SWIG import APIs (idempotent; daemon's OWN .i files — MUST precede make-swig.sh, it feeds it)
 r bash -c 'grep -q "const std::string& accountId" <(grep "^std::string addAccount" daemon/bin/jni/configurationmanager.i) || (cd daemon && patch -flp1) < patches/jami-swig-import-apis.patch'
+
+# CONTRIB SANITY GATE (2026-08-08) — MUST sit between the patch steps and the build.
+#
+# This block deliberately has NO `set -e`: many guards legitimately return non-zero (`[ -d … ] &&`
+# on an absent dir, `grep -q … ||` when a marker is missing), so aborting on any non-zero status
+# would break it. The cost is that a REAL failure scrolls past just as quietly. On 2026-08-08 a
+# patch lost 2 of 8 hunks and `make` returned an error for the dhtnet target; the block sailed on
+# into gradle, which would have linked the stale libdhtnet.a still sitting in the install prefix.
+# Nothing in the output distinguished that from a good run — it was caught only because a monitor
+# happened to be grepping for "Hunk … FAILED".
+#
+# So assert the two things that are true of every good contrib run, and stop if either fails:
+# no reject files anywhere, and a build stamp for each package we patch.
+sk_contrib_ok() {
+  local d=daemon/contrib/build-aarch64-linux-android bad=0 rej pkg
+  rej=$(find "$d/dhtnet" "$d/opendht" "$d/pjproject" daemon/src daemon/bin -name "*.rej" 2>/dev/null)
+  if [ -n "$rej" ]; then
+    echo -e "\033[1;31m>>> REJECTED HUNKS — a patch did not apply to this source:\033[0m"
+    echo -e "\033[1;31m$rej\033[0m"; bad=1
+  fi
+  for pkg in pjproject opendht dhtnet; do
+    [ -f "$d/.$pkg" ] || { echo -e "\033[1;31m>>> contrib $pkg has NO build stamp — it did not build\033[0m"; bad=1; }
+  done
+  [ "$bad" = 0 ]
+}
+if ! sk_contrib_ok; then
+  echo -e "\033[1;31m>>> ABORTING before the build: contrib is not in a shippable state.\033[0m"
+  echo -e "\033[1;33m    Regenerate the failing patch against the new source (never hand-edit the\033[0m"
+  echo -e "\033[1;33m    .patch body), then rm -rf the package dir AND its stamps and re-run.\033[0m"
+  exit 1
+fi
+echo -e "\033[1;36m>>> contrib sanity OK (no rejects, all packages stamped)\033[0m"
 
 # SWIG JNI bindings (compile.sh's prerequisite step)
 ( cd daemon/bin/jni && PACKAGEDIR="$HOME/git/shiroikuma-jami/jami-android/libjamiclient/src/main/java" ./make-swig.sh )
@@ -626,7 +685,10 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
     # SK-PATCHSUM stamps — written ONLY here, after a fully successful build. Writing them at gate
     # time would record "up to date" for code that never compiled, so a failed build would not
     # re-extract on the next run. That is the whole point of the gate.
-    r bash -c 'd=daemon/contrib/build-aarch64-linux-android; cd ~/git/shiroikuma-jami; for pkg in dhtnet pjproject opendht; do cat patches/$pkg-*.patch 2>/dev/null | md5sum | cut -d" " -f1 > "$d/.sk-patchsum-$pkg"; done'
+    #
+    # The formula MUST match sk_gate exactly — version lines first, then the patch files. If the
+    # two ever drift apart the stamp never matches and every build re-extracts all of contrib.
+    r bash -c 'd=daemon/contrib/build-aarch64-linux-android; cd ~/git/shiroikuma-jami; for pkg in dhtnet pjproject opendht; do { grep -hE "^[A-Z0-9_]+_VERSION[[:space:]]*:=" "daemon/contrib/src/$pkg/rules.mak" 2>/dev/null; cat patches/$pkg-*.patch 2>/dev/null; } | md5sum | cut -d" " -f1 > "$d/.sk-patchsum-$pkg"; done'
 
     # local backup FIRST, unconditionally — a missing cable never costs the build
     r bash -c "mkdir -p ~/tmp && cp /tmp/jami-signed.apk ~/tmp/\"$apk_name\""
