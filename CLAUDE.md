@@ -65,12 +65,27 @@ These are the things that cost real time when forgotten. Do not violate them wit
   changes; stamps (`.sk-patchsum-<pkg>`) are written ONLY after a fully successful build, so a
   failed build re-extracts next time instead of recording "up to date" for code that never
   compiled. The marker approach failed twice in two days (dhtnet 08-05, pjproject 08-06).
-- **`pjproject` must be built BEFORE `dhtnet` in the canonical block.** dhtnet depends on it
-  (`contrib/src/pjproject/rules.mak:71`), so if pjproject is absent, `make .dhtnet` pulls it in as
-  a dependency and its autoconf runs WITHOUT the exported NDK cross env — the documented
-  "C compiler cannot create executables". This never surfaced while pjproject was never wiped; the
-  moment `SK-PATCHSUM` could re-extract it, the block's own ordering and its own documented gotcha
-  turned out to be incompatible. Cost one build on 2026-08-06.
+  **The sum MUST also cover the package's own `*_VERSION :=` line (added 2026-08-08).** Hashing only
+  our patch files says nothing about which upstream tarball is extracted: the `20260807-01` daemon
+  bumped opendht 4.2.0 → 4.3.1 and dhtnet to a new commit, our patches were untouched, the gate
+  passed, and both OLD trees survived with valid stamps — one build away from linking a two-day-old
+  `libdhtnet.a` built against the previous opendht. Tell-tale: one of `lib{dhtnet,opendht}.a` fresh
+  and the other days old. The stamp writer at the end of the block must use the IDENTICAL formula,
+  or every build re-extracts all of contrib.
+- **EVERY patched contrib package is set up BEFORE anything that depends on it.** dhtnet depends on
+  both `pjproject` and `opendht`, so `make .dhtnet` will pull either in as a dependency — and a
+  dependency-triggered build uses whatever `rules.mak` and environment exist AT THAT MOMENT, not
+  what a later section of the block would have set up. Order: pjproject → opendht → dhtnet. Both
+  instances cost a build: **pjproject 2026-08-06** (autoconf ran without the exported NDK cross env
+  → "C compiler cannot create executables"), and **opendht 2026-08-08** (extracted while its
+  `rules.mak` still had no `$(APPLY)` lines → a pristine tree, onto which the later direct guards
+  applied 2 of 5 patches out of order, double-applying one and breaking the compile). This was
+  written as a fact about pjproject when it is really a fact about dependency order.
+- **Patch failures in the build block are NOT fatal, and it cannot take `set -e`** (many guards
+  legitimately return non-zero). A failed hunk and a failed `make` both scroll past into gradle.
+  The **contrib sanity gate** before the SWIG step asserts no `*.rej` anywhere and a build stamp per
+  package, and exits non-zero otherwise — do not remove it. When driving a build from a monitor,
+  also grep the log for `Hunk #… FAILED|saving rejects|make.*(Error|エラー)`.
 - **A guard marker must be unique to the version it guards.** The per-build re-apply guards grep for
   a marker; when a patch is REGENERATED, any marker the old version also contained still satisfies
   the guard, so the step is skipped and the stale code ships silently — the +163 stale-libdhtnet
