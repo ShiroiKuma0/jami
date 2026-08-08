@@ -1,5 +1,20 @@
---- a/src/multiplexed_socket.cpp
-+++ b/src/multiplexed_socket.cpp
+diff -ruN base/src/connectionmanager.cpp work/src/connectionmanager.cpp
+--- a/src/connectionmanager.cpp	2026-08-08 12:50:05.603168430 +0200
++++ b/src/connectionmanager.cpp	2026-08-08 12:50:05.610991189 +0200
+@@ -1194,6 +1194,10 @@
+                 return;
+             if (logger)
+                 logger->warn("[channel {}] Timeout waiting for channel reply", name);
++            // SK-ICEDIAG: this kills the ENTIRE peer connection, not just the channel, and Jami
++            // arms it at 3 s for every "sip" request (jamiaccount.cpp:4216). Prime suspect for the
++            // 45 s median connection life. dhtnet's own warn() above is silent in release builds.
++            SK_CM("channel-timeout-kill channel=%s", name.c_str());
+             if (auto sock = wSock.lock())
+                 sock->shutdown();
+         });
+diff -ruN base/src/multiplexed_socket.cpp work/src/multiplexed_socket.cpp
+--- a/src/multiplexed_socket.cpp	2026-08-06 22:27:44.000000000 +0200
++++ b/src/multiplexed_socket.cpp	2026-08-08 12:50:23.611783206 +0200
 @@ -50,6 +50,18 @@
      MSGPACK_DEFINE_MAP(v)
  };
@@ -19,16 +34,16 @@
  namespace dhtnet {
  
  using clock = std::chrono::steady_clock;
-@@ -88,7 +100,7 @@
+@@ -92,7 +104,7 @@
          if (!isShutdown_) {
              if (endpoint)
                  endpoint->setOnStateChange({});
 -            shutdown();
 +            shutdown({}, "join-last-reference");
          } else {
-             clearSockets();
-         }
-@@ -112,11 +124,12 @@
+             std::error_code ec;
+             {
+@@ -121,11 +133,12 @@
          }
      }
  
@@ -42,16 +57,34 @@
          shutdownEc_ = std::move(ec);
          stop.store(true);
          beaconTimer_.cancel();
-@@ -250,7 +263,7 @@
+@@ -148,14 +161,14 @@
+     // shutdown() runs a user callback on every channel, so it must not run on a thread that is
+     // already inside one of them - which is exactly the case for a write failing from a receive
+     // callback. Mark the socket unusable now and tear it down elsewhere.
+-    void shutdownAsync(std::error_code ec)
++    void shutdownAsync(std::error_code ec, const char* skWhy = "unspecified")
+     {
+         stop.store(true);
+         if (shutdownPosted_.exchange(true))
+             return;
+-        dht::ThreadPool::io().run([w = parent_.weak_from_this(), ec] {
++        dht::ThreadPool::io().run([w = parent_.weak_from_this(), ec, skWhy] {
+             if (auto shared = w.lock())
+-                shared->pimpl_->shutdown(ec);
++                shared->pimpl_->shutdown(ec, skWhy);
+         });
+     }
+ 
+@@ -274,7 +287,7 @@
          if (state == tls::TlsSessionState::SHUTDOWN && !this_.isShutdown_) {
              if (this_.logger_)
                  this_.logger_->debug("[device {}] Tls endpoint is down, shutdown multiplexed socket", this_.deviceId);
 -            this_.shutdown();
 +            this_.shutdown({}, "tls-state-shutdown");
-             return false;
          }
-         return true;
-@@ -270,12 +283,12 @@
+     });
+     sendVersion();
+@@ -292,12 +305,12 @@
          if (size < 0) {
              if (ec && logger_)
                  logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
@@ -66,7 +99,7 @@
              break;
          }
  
-@@ -355,7 +368,7 @@
+@@ -377,7 +390,7 @@
                  if (shared->pimpl_->logger_)
                      shared->pimpl_->logger_->error("[device {}] Beacon doesn't get any response. Stopping socket",
                                                     shared->pimpl_->deviceId);
@@ -75,16 +108,16 @@
              }
          }
      });
-@@ -730,7 +743,7 @@
+@@ -762,7 +775,7 @@
      if (ec) {
          if (pimpl_->logger_)
              pimpl_->logger_->error("[device {}] Error when writing on socket: {:s}", pimpl_->deviceId, ec.message());
--        pimpl_->shutdown(ec);
-+        pimpl_->shutdown(ec, "write-error");
+-        pimpl_->shutdownAsync(ec);
++        pimpl_->shutdownAsync(ec, "write-error");
      }
      return res;
  }
-@@ -747,7 +760,12 @@
+@@ -779,7 +792,12 @@
  void
  MultiplexedSocket::shutdown()
  {
@@ -98,16 +131,3 @@
  }
  
  bool
---- a/src/connectionmanager.cpp
-+++ b/src/connectionmanager.cpp
-@@ -1194,6 +1194,10 @@
-                 return;
-             if (logger)
-                 logger->warn("[channel {}] Timeout waiting for channel reply", name);
-+            // SK-ICEDIAG: this kills the ENTIRE peer connection, not just the channel, and Jami
-+            // arms it at 3 s for every "sip" request (jamiaccount.cpp:4216). Prime suspect for the
-+            // 45 s median connection life. dhtnet's own warn() above is silent in release builds.
-+            SK_CM("channel-timeout-kill channel=%s", name.c_str());
-             if (auto sock = wSock.lock())
-                 sock->shutdown();
-         });
