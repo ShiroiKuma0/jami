@@ -1,40 +1,59 @@
-# 白い熊 GNU Jami — `20260731-01.2026-08-06.g5926177b+012`
+# 白い熊 GNU Jami — `20260807-01.2026-08-07.g46f48193+001`
 
 A downstream fork of [GNU Jami](https://github.com/savoirfairelinux/jami-client-android) for Android. Installs **side-by-side** with official Jami (app id `shiroikuma.jami`, label 白い熊 GNU Jami). Everything below is built on top of stock.
 
-An upstream sync whose main effect is **subtraction**: a fix this fork has been carrying since `+008` is now part of GNU Jami, so the fork stops carrying it. The patch stack is one commit shorter than it was yesterday, and nothing was lost.
+An upstream sync: **`20260731-01 → 20260807-01`** (versionCode 502 → 503). Two client commits carrying **24 daemon commits**, including an **opendht minor bump (4.2.0 → 4.3.1)** and a new dhtnet. That is the most invasive daemon move since this fork's patch stack was built, and getting it to build honestly took three attempts — each failing a different way, each worth writing down.
 
 ---
 
-## 🔁 The typing-indicator fix is upstream's now, not ours
+## ⬆️ What upstream brought
 
-`+008` shipped a fix for an animator leak in the typing indicator, and its release notes described it as this fork's work. That is no longer accurate, and this entry corrects it.
+Real fixes, in areas this fork has spent time on:
 
-The bug was **stock GNU Jami**: `configureForTypingIndicator` built a fresh `AnimatedVectorDrawableCompat` on every bind and registered a callback that restarted it from `onAnimationEnd`. Nothing ever stopped one — an `AnimatedVectorDrawable` is only stopped by an explicit `stop()`, and recycling the row, detaching the view and backgrounding the app all do not. Every typing indicator ever shown therefore left an immortal animator requesting Choreographer frames at the panel's refresh rate, for the life of the process. Measured on a 90 Hz device, backgrounded, screen off: **up to 93 main-thread wakes/s and 12–76 % of a core**, growing over hours, cleared only by force-stopping.
+- **A UPnP mapping leaked on every registration** (`c45b6a74b`), and **UPnP is now restored after re-enable** (`29d77e8b9`). Both land squarely on the port-mapping behaviour this fork already carries a circuit breaker for.
+- **A message connection is requested once per device, not per message** (`7dafdb454`) — connection-count efficiency, the same territory as our per-device transport work.
+- **Clone backoff honoured on all retry paths** (`90cbdbef3`), and **every device tracked in `startFetch`** (`5afbf8926`).
+- **`IncomingTrustRequest` had its signal arguments in the wrong order** (`4f604a7de`).
+- Video: **stops retrying forever on a busy device** (`eb12578c1`) and **won't open a device being released** (`e0472313f`).
+- git transport: RAII lifecycle, the libgit2 stream contract honoured, and a bounded P2P read timeout.
 
-It was found here, filed upstream as [Gerrit 35522](https://review.jami.net/c/jami-client-android/+/35522), and **merged into GNU Jami on 2026-08-07** as `af3fbe15f` — Code-Review +2, Verified +1.
-
-So this release **drops the fork's copy** (`e3145b7b5`) and runs upstream's. The two versions were verified equivalent line by line before dropping ours — identical logic down to the `if (anim != null && !anim.isRunning) anim.start()` guard, differing only in comment wording and one local variable's name. Every Android Jami user gets this now, which was the point of sending it up.
-
----
-
-## ⬆️ Synced to upstream `5926177b`
-
-Two upstream commits, one of them the merge above. The other is a documentation correction in upstream's own README: the pkg-config rebuild instruction is now `./bootstrap && make .pkg-config` rather than `./bootstrap && make`.
-
-**Upstream's version string did not move** — still `20260731-01`, still versionCode 502. This is exactly the case the commit pin exists for: without it this build and `+011` would be indistinguishable from their names alone. The pin advances instead:
-
-```
-20260731-01.2026-08-06.g5926177b+012
-             └ base date ┘└ base ┘└ build ┘
-```
-
-Note what did **not** happen: the build counter did not reset. It keys off the upstream *version name*, which stood still, so it went 11 → 12. Had it reset to 1 while `upstreamVersionCode` stayed at 502, the computed `versionCode` would have gone **backwards** — an update Android refuses to install. The pin orders the name; the counter guarantees the code; they move independently on purpose.
-
-The daemon submodule did not move either, so the C++ daemon and its contrib were not rebuilt.
+The client side was two commits: the version bump and the daemon pointer.
 
 ---
 
-## 🌐 Carried forward from `+011`
+## 🩹 One of our patches had to be re-derived
 
-The full-locale rebrand shipped in the previous release and is unchanged here: every user-visible mention of the app reads **白い熊 GNU Jami** across all 100 locales — including the ~25 that transliterate the name into their own script, and Bulgarian, which was still shipping the app's pre-2018 name "Ring". See the `+011` notes for the detail.
+`dhtnet-shutdown-reason-diag` — which names *why* a peer connection was torn down — lost two of its eight hunks against the new dhtnet. Upstream had:
+
+- dropped the `return false;`/`return true;` framing the TLS-shutdown handler, so the hunk's context no longer matched, and
+- **added `shutdownAsync()`**, rerouting the write-error path through it, because `shutdown()` runs a user callback on every channel and must not run on a thread already inside one.
+
+Regenerated against the new source rather than hand-edited — the preceding six patches applied into a scratch tree, the *source* edited there, `diff -u` taken, and the result dry-run back onto a pristine extract. `shutdownAsync` also gained the reason parameter and forwards it, so the write-error path still names itself instead of degrading to `unspecified`; that path is the exact case the diagnostic exists for.
+
+**Everything else survived**, including the three patches most at risk: `conversation.cpp`, `contact_list.cpp` and `jamiaccount.cpp` — the last at **+122/−104** — all applied clean, as did all five opendht patches against 4.3.1.
+
+---
+
+## 🏗 Two build-system defects this bump exposed
+
+Both were latent for months and needed exactly this combination to surface.
+
+**A version bump is invisible to the patch-checksum gate.** `SK-PATCHSUM` force-re-extracts a contrib package when *our patch set* changes. It has no notion of the package's own version — so with opendht and dhtnet both bumped and our patches untouched, the gate passed and the old extracted sources stayed. The evidence was unambiguous once looked at: `libopendht.a` rebuilt today, `libdhtnet.a` still dated two days earlier. Without catching it, the new daemon would have linked a dhtnet built against opendht 4.2.0 — the `+163` stale-library failure in new clothing.
+
+**Dependency order decides which `rules.mak` a package is extracted with.** dhtnet depends on opendht, so `make .dhtnet` pulls `.opendht` in as a dependency. With the opendht section sitting *after* dhtnet in the build block, that dependency-triggered extraction ran while `opendht/rules.mak` still had none of our `$(APPLY)` lines: a pristine opendht was extracted and built, and the later direct guards then applied 2 of our 5 patches onto it **out of order**. The marker census told the story — `SK-PUSHGET` six times where one application belongs, `SK-SUBREFRESH` and `connectDeadlineFired` at zero — and `dht_proxy_client.cpp` stopped compiling.
+
+The block already carried this rule for one package: *pjproject must be built before dhtnet*. It was written as a fact about pjproject rather than as what it is — **every package we patch must be set up before anything that depends on it**. opendht now precedes dhtnet, with the reasoning recorded in the block.
+
+A third, smaller one: `patch` failures inside the block do not stop it. There is no `set -e`, so a failed hunk and a failed `make` both scrolled past and the build continued toward a link against stale objects. That is why this release was caught at all — the build monitor was grepping for `Hunk … FAILED`, not relying on the exit status.
+
+---
+
+## 🔢 Versioning
+
+`upstreamVersionName` genuinely changed this time, so the build counter **resets** — `+012` → `+001`, with `versionCode` going `5020012 → 5030001`. Still strictly increasing, because the counter is multiplied by the upstream code: the pin orders the name, the counter guarantees the code, and they move independently by design.
+
+---
+
+## 🌐 Carried forward
+
+The full-locale rebrand from `+011` is unchanged: every user-visible mention of the app reads **白い熊 GNU Jami** across all 100 locales. The typing-indicator animator fix is now upstream's (merged as `af3fbe15f`), so this fork no longer carries a patch for it.
