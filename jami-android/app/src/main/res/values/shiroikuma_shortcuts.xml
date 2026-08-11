@@ -8,6 +8,7 @@
     <string name="shortcut_pick_kind">Shortcut type</string>
     <string name="shortcut_kind_chat">Open the chat</string>
     <string name="shortcut_kind_call">Place a call</string>
+    <string name="shortcut_kind_speaker_call">Place a call on speaker</string>
     <string name="shortcut_pick_search">Search</string>
 
     <!-- Entry point in the search-bar overflow menu -->
@@ -16,6 +17,7 @@
     <!-- Shortcut long labels (the short label is the contact name alone) -->
     <string name="shortcut_label_chat">Chat with %1$s</string>
     <string name="shortcut_label_call">Call %1$s</string>
+    <string name="shortcut_label_speaker_call">Call %1$s on speaker</string>
 
     <!-- Failures -->
     <string name="shortcut_error_accounts">Could not load the accounts</string>

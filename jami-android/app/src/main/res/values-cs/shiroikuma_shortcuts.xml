@@ -6,6 +6,7 @@
     <string name="shortcut_pick_kind">Typ zástupce</string>
     <string name="shortcut_kind_chat">Otevřít konverzaci</string>
     <string name="shortcut_kind_call">Zavolat</string>
+    <string name="shortcut_kind_speaker_call">Zavolat s hlasitým odposlechem</string>
     <string name="shortcut_pick_search">Hledat</string>
 
     <!-- Entry point in the search-bar overflow menu -->
@@ -14,6 +15,7 @@
     <!-- Shortcut long labels (the short label is the contact name alone) -->
     <string name="shortcut_label_chat">Konverzace s %1$s</string>
     <string name="shortcut_label_call">Zavolat %1$s</string>
+    <string name="shortcut_label_speaker_call">Zavolat %1$s s hlasitým odposlechem</string>
 
     <!-- Failures -->
     <string name="shortcut_error_accounts">Účty se nepodařilo načíst</string>

@@ -3,11 +3,13 @@
  *
  *  Entered from the home-screen launcher (ACTION_CREATE_SHORTCUT) or from the search-bar overflow
  *  (R.string.shortcut_create, which pins through ShortcutManagerCompat.requestPinShortcut instead of
- *  returning a result). Three steps: account → conversation → chat-or-call. The result is a pinned
- *  shortcut whose icon is the contact avatar badged with the Jami app icon (bottom right) and a
- *  yellow-traced chat or phone glyph (bottom left), and whose intent goes to
- *  [ShortcutLaunchActivity], which re-issues exactly the intent the in-app UI uses — ACTION_VIEW on
- *  HomeActivity for a chat, ACTION_CALL on CallActivity for a call.
+ *  returning a result). Three steps: account → conversation → kind (chat / call / speaker call).
+ *  The result is a pinned shortcut whose icon is the contact avatar badged with the Jami app icon
+ *  (bottom right) and a yellow-traced chat, handset or loudspeaker glyph (bottom left), and whose
+ *  intent goes to [ShortcutLaunchActivity], which re-issues exactly the intent the in-app UI uses —
+ *  ACTION_VIEW on HomeActivity for a chat, ACTION_CALL on CallActivity for either call kind. A
+ *  speaker call is an ordinary call plus CallFragment.KEY_WANT_SPEAKER, which routes it to the
+ *  loudspeaker as soon as the audio state offers one.
  *
  *  The badge colours are settable roles (ColorPrefs.SHORTCUT_ICON / SHORTCUT_FILL). The icon is a
  *  bitmap baked at creation time, so a later colour change only affects newly created shortcuts.
@@ -186,15 +188,34 @@ class ShortcutPickerActivity : AppCompatActivity() {
         )
     }
 
-    // --- step 3: chat or call --------------------------------------------------------------
+    // --- step 3: chat, call or speaker call -------------------------------------------------
+
+    /**
+     * What a shortcut does when tapped. Each kind owns its own shortcut id prefix, so the three can
+     * coexist for the same conversation without one replacing another on the home screen.
+     */
+    private enum class Kind(
+        val idPrefix: String,
+        @androidx.annotation.StringRes val pickLabel: Int,
+        @androidx.annotation.StringRes val longLabel: Int,
+        @androidx.annotation.DrawableRes val glyph: Int
+    ) {
+        CHAT("sk-chat:", R.string.shortcut_kind_chat, R.string.shortcut_label_chat,
+            R.drawable.baseline_chat_24),
+        CALL("sk-call:", R.string.shortcut_kind_call, R.string.shortcut_label_call,
+            R.drawable.outline_call_24),
+        SPEAKER_CALL("sk-spkcall:", R.string.shortcut_kind_speaker_call,
+            R.string.shortcut_label_speaker_call, R.drawable.baseline_volume_up_24);
+
+        val isCall: Boolean get() = this != CHAT
+    }
 
     private fun chooseAction(vm: ConversationItemViewModel) {
+        val kinds = Kind.entries
         DialogTheme.builder(this)
             .setTitle(R.string.shortcut_pick_kind)
-            .setItems(arrayOf<CharSequence>(
-                getString(R.string.shortcut_kind_chat), getString(R.string.shortcut_kind_call))
-            ) { _, which ->
-                deliver(vm, call = which == 1)
+            .setItems(kinds.map { getString(it.pickLabel) as CharSequence }.toTypedArray()) { _, which ->
+                deliver(vm, kinds[which])
             }
             .setOnCancelListener { finish() }
             .showThemed()
@@ -202,18 +223,17 @@ class ShortcutPickerActivity : AppCompatActivity() {
 
     // --- the shortcut itself ---------------------------------------------------------------
 
-    private fun deliver(vm: ConversationItemViewModel, call: Boolean) {
+    private fun deliver(vm: ConversationItemViewModel, kind: Kind) {
         val path = ConversationPath(vm.accountId, vm.uri)
         // Distinct from the dynamic share shortcuts' id (which is path.toKey()): those are wiped by
         // HomeActivity's removeAllDynamicShortcuts on every refresh, and a shared id would drag the
         // pinned one along with them.
-        val id = (if (call) "sk-call:" else "sk-chat:") + path.toKey()
+        val id = kind.idPrefix + path.toKey()
         val shortcut = ShortcutInfoCompat.Builder(this, id)
             .setShortLabel(vm.title)
-            .setLongLabel(getString(
-                if (call) R.string.shortcut_label_call else R.string.shortcut_label_chat, vm.title))
-            .setIcon(IconCompat.createWithBitmap(buildIcon(vm, call)))
-            .setIntent(launchIntent(vm, call))
+            .setLongLabel(getString(kind.longLabel, vm.title))
+            .setIcon(IconCompat.createWithBitmap(buildIcon(vm, kind)))
+            .setIntent(launchIntent(vm, kind))
             .build()
 
         if (pinMode) {
@@ -235,7 +255,7 @@ class ShortcutPickerActivity : AppCompatActivity() {
      * inability to start a non-exported activity). The peer to ring is resolved here, at creation
      * time, so the trampoline needs no contact lookup.
      */
-    private fun launchIntent(vm: ConversationItemViewModel, call: Boolean): Intent {
+    private fun launchIntent(vm: ConversationItemViewModel, kind: Kind): Intent {
         // 1:1 calls the peer directly; a group call targets the swarm uri (as goToGroupCall does).
         val peers = vm.contacts.filter { !it.contact.isUser }
         val target = if (peers.size == 1) peers[0].contact.uri else vm.uri
@@ -244,7 +264,8 @@ class ShortcutPickerActivity : AppCompatActivity() {
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtras(ConversationPath.toBundle(vm.accountId, vm.uri))
             .putExtra(Intent.EXTRA_PHONE_NUMBER, target.uri)
-            .putExtra(ShortcutLaunchActivity.KEY_CALL, call)
+            .putExtra(ShortcutLaunchActivity.KEY_CALL, kind.isCall)
+            .putExtra(ShortcutLaunchActivity.KEY_SPEAKER, kind == Kind.SPEAKER_CALL)
             .putExtra(ShortcutLaunchActivity.KEY_TOKEN, ShortcutPrefs.issue(this))
     }
 
@@ -279,8 +300,8 @@ class ShortcutPickerActivity : AppCompatActivity() {
             .withPresence(false)   // a launcher icon must not freeze a presence dot
             .build(this)
 
-    /** Contact avatar + Jami badge (bottom right corner) + chat/phone trace (bottom left edge). */
-    private fun buildIcon(vm: ConversationItemViewModel, call: Boolean): android.graphics.Bitmap {
+    /** Contact avatar + Jami badge (bottom right corner) + kind trace (bottom left edge). */
+    private fun buildIcon(vm: ConversationItemViewModel, kind: Kind): android.graphics.Bitmap {
         val size = iconSize
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
@@ -294,16 +315,17 @@ class ShortcutPickerActivity : AppCompatActivity() {
         val dj = size * 0.268f
         drawJamiBadge(canvas, size - dj / 2f, size - dj / 2f, dj)
         val g = size * 0.28f
-        drawActionGlyph(canvas, 0f, size - size * 0.015f - g, g, call)
+        drawActionGlyph(canvas, 0f, size - size * 0.015f - g, g, kind)
         return bitmap
     }
 
     /**
-     * The bare yellow trace of a phone / message — no disc, no ring — with a thin black rim so it
-     * still reads over a light photo. The rim is the same glyph drawn 12% larger underneath.
+     * The bare yellow trace of the kind's glyph — message, handset or loudspeaker; no disc, no ring
+     * — with a thin black rim so it still reads over a light photo. The rim is the same glyph drawn
+     * 12% larger underneath.
      */
-    private fun drawActionGlyph(canvas: Canvas, left: Float, top: Float, g: Float, call: Boolean) {
-        val res = if (call) R.drawable.outline_call_24 else R.drawable.baseline_chat_24
+    private fun drawActionGlyph(canvas: Canvas, left: Float, top: Float, g: Float, kind: Kind) {
+        val res = kind.glyph
         val big = g * 1.12f
         val inset = (big - g) / 2f
         ContextCompat.getDrawable(this, res)?.mutate()?.apply {
