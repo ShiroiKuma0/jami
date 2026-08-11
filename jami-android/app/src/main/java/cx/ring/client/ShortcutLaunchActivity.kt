@@ -52,7 +52,12 @@ class ShortcutLaunchActivity : Activity() {
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtras(ConversationPath.toBundle(path.accountId, path.conversationId))
                 .putExtra(Intent.EXTRA_PHONE_NUMBER, peer)
-                .putExtra(CallFragment.KEY_HAS_VIDEO, false))
+                .putExtra(CallFragment.KEY_HAS_VIDEO, false)
+                // A speaker shortcut differs from a plain call shortcut in this one extra: the
+                // call is placed identically, then routed to the loudspeaker as soon as the
+                // audio state offers it (CallFragment.applyPendingSpeakerRequest).
+                .putExtra(CallFragment.KEY_WANT_SPEAKER,
+                    intent.getBooleanExtra(KEY_SPEAKER, false)))
         } else {
             // Same intent every Jami notification uses — HomeActivity switches account, then opens.
             startActivity(Intent(Intent.ACTION_VIEW, path.toUri(), this, HomeActivity::class.java)
@@ -63,6 +68,8 @@ class ShortcutLaunchActivity : Activity() {
     companion object {
         private val TAG = ShortcutLaunchActivity::class.java.simpleName
         const val KEY_CALL = "shortcut_call"
+        /** Only meaningful together with [KEY_CALL]: place the call on the loudspeaker. */
+        const val KEY_SPEAKER = "shortcut_speaker"
         const val KEY_TOKEN = "shortcut_token"
     }
 }
