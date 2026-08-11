@@ -244,9 +244,11 @@ class CallPresenter @Inject constructor(
         mHardwareService.toggleSpeakerphone(conference, checked)
     }
 
-    fun selectAudioOutput(output: AudioOutput) {
-        val conference = mConference ?: return
+    /** @return false when there is no conference yet, i.e. the choice could not be dispatched. */
+    fun selectAudioOutput(output: AudioOutput): Boolean {
+        val conference = mConference ?: return false
         mHardwareService.selectAudioOutput(conference, output)
+        return true
     }
 
     /**

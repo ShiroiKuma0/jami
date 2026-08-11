@@ -117,7 +117,9 @@ class CallActivity : AppCompatActivity() {
         when (action) {
             Intent.ACTION_CALL -> {
                 val contactId = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER)
-                val callFragment = CallFragment.newInstance(action, fromIntent(intent), contactId, wantVideo, acceptOption)
+                // shiroikuma: a speaker-call launcher shortcut asks for the loudspeaker up front.
+                val wantSpeaker = intent.getBooleanExtra(CallFragment.KEY_WANT_SPEAKER, false)
+                val callFragment = CallFragment.newInstance(action, fromIntent(intent), contactId, wantVideo, acceptOption, wantSpeaker)
                 supportFragmentManager.beginTransaction()
                     .replace(R.id.main_call_layout, callFragment, CALL_FRAGMENT_TAG)
                     .commitNow()
