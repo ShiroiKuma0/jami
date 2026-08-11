@@ -144,6 +144,10 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
      *  could only ever play in the earpiece. Keeping it available during outgoing ringing lets the
      *  speaker be selected before the other side picks up. */
     private var outgoingRinging = false
+    /** shiroikuma: set by a speaker-call launcher shortcut ([KEY_WANT_SPEAKER]) — route the call to
+     *  the loudspeaker as soon as the audio state offers it. A one-shot latch: it is cleared the
+     *  moment the selection is issued, so the speaker button stays a free toggle afterwards. */
+    private var pendingSpeakerRequest = false
     /** shiroikuma: output to restore when un-muting (see [audioMuteClicked]). */
     private var lastNonMuteOutputType: HardwareService.AudioOutputType = HardwareService.AudioOutputType.INTERNAL
     private var extensionsAdapter: ExtensionsAdapter? = null
@@ -161,6 +165,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     override fun initPresenter(presenter: CallPresenter) {
         val args = requireArguments()
         presenter.wantVideo = args.getBoolean(KEY_HAS_VIDEO, false)
+        pendingSpeakerRequest = args.getBoolean(KEY_WANT_SPEAKER, false)   // shiroikuma
         args.getString(KEY_ACTION)?.let { action ->
             if (action == Intent.ACTION_CALL) {
                 prepareCall(false)
@@ -889,7 +894,27 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     override fun updateAudioState(state: AudioState, hasVideo: Boolean) {
         currentAudioState = state
         currentAudioHasVideo = hasVideo
+        applyPendingSpeakerRequest(state)   // shiroikuma
         renderAudioOutputState(state, hasVideo)
+    }
+
+    /**
+     * shiroikuma: honour a speaker-call shortcut. Fires on the first audio state that actually
+     * offers a loudspeaker output — earlier is not possible, the route list only exists once the
+     * system connection is up. The selection is issued even when the state already reads SPEAKERS,
+     * because a route the app never asked for is only the implicit one: it is
+     * [HardwareServiceImpl.mUserSelectedOutput] that makes the choice survive RINGING -> CURRENT.
+     */
+    private fun applyPendingSpeakerRequest(state: AudioState) {
+        if (!pendingSpeakerRequest) return
+        val speaker = state.availableOutputs
+            .firstOrNull { it.type == HardwareService.AudioOutputType.SPEAKERS } ?: return
+        // Only disarm once the choice was really dispatched — with no conference yet the presenter
+        // drops it, and clearing the latch there would lose the speaker for the whole call.
+        if (selectAudioOutput(speaker)) {
+            pendingSpeakerRequest = false
+            Log.w(TAG, "speaker-call shortcut: routed to the loudspeaker")
+        }
     }
 
     override fun updateTime(duration: Long) {
@@ -1530,9 +1555,8 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         }
     }
 
-    private fun selectAudioOutput(output: AudioOutput) {
+    private fun selectAudioOutput(output: AudioOutput): Boolean =
         presenter.selectAudioOutput(output)
-    }
 
     private fun showAudioOutputBottomSheet(outputs: List<AudioOutput>, currentOutput: AudioOutput) {
         val context = requireContext()
@@ -1722,12 +1746,14 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         val TAG = CallFragment::class.simpleName!!
         const val KEY_ACTION = "action"
         const val KEY_HAS_VIDEO = "HAS_VIDEO"
+        /** shiroikuma: start this outgoing call on the loudspeaker (speaker-call shortcut). */
+        const val KEY_WANT_SPEAKER = "WANT_SPEAKER"
         private const val REQUEST_CODE_ADD_PARTICIPANT = 6
         private const val REQUEST_PERMISSION_INCOMING = 1003
         private const val REQUEST_PERMISSION_OUTGOING = 1004
         private const val REQUEST_CODE_SCREEN_SHARE = 7
 
-        fun newInstance(action: String, path: ConversationPath?, contactId: String?, hasVideo: Boolean, option: String? = null): CallFragment =
+        fun newInstance(action: String, path: ConversationPath?, contactId: String?, hasVideo: Boolean, option: String? = null, wantSpeaker: Boolean = false): CallFragment =
             CallFragment().apply {
                 arguments = Bundle().apply {
                     putString(KEY_ACTION, action)
@@ -1735,6 +1761,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                     path?.toBundle(this)
                     putString(Intent.EXTRA_PHONE_NUMBER, contactId)
                     putBoolean(KEY_HAS_VIDEO, hasVideo)
+                    putBoolean(KEY_WANT_SPEAKER, wantSpeaker)   // shiroikuma
                 }
             }
 
