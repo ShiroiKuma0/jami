@@ -14,7 +14,7 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
 too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
-meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat or a call, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
+meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat, a call, or a **hands-free call on speaker**, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
 setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
 picture, with a **soft delete** that frees your space without touching anybody else's chat, and a
@@ -22,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260807-01.2026-08-07.g46f48193+001`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260807-01.2026-08-07.g46f48193+002`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -146,11 +146,14 @@ promising something that would be refused.
 
 ## 🔗 Home-screen shortcuts
 
-Add a shortcut from the launcher and pick account → contact → **chat or call**. The icon is the
-contact's avatar badged with the Jami mark and a yellow-traced chat or phone glyph, so the two kinds
-are told apart at a glance; the badge colours are settable like everything else. Tapping opens that
-conversation or places the call directly. Also available in-app from the search-bar overflow, and the
-picker speaks English, Japanese and Czech by system locale.
+Add a shortcut from the launcher and pick account → contact → **chat, call, or call on speaker**. The
+icon is the contact's avatar badged with the Jami mark and a yellow-traced chat, handset or
+loudspeaker glyph, so the three kinds are told apart at a glance; the badge colours are settable like
+everything else. Tapping opens that conversation or places the call directly — and the speaker kind
+rings with the phone **already on the loudspeaker**, which survives the callee answering rather than
+snapping back to the earpiece the way a route chosen while ringing normally would. Each kind has its
+own identity, so one contact can hold all three pinned side by side. Also available in-app from the
+search-bar overflow, and the picker speaks English, Japanese and Czech by system locale.
 
 ---
 
