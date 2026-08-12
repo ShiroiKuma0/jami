@@ -6,6 +6,7 @@ import java.io.BufferedReader
 // to compile with "Unresolved reference 'time'".
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -71,8 +72,10 @@ android {
         // custom not yet rebased). It therefore moves only on an upstream sync.
         val upstreamBaseSha = gitOutput("git", "merge-base", "HEAD", "master").take(8)
 
-        // That commit's committer date, so versions sort chronologically -- a bare sha orders them
-        // at random. Never build time: every build on one upstream base must share a pin.
+        // That commit's committer timestamp, so versions sort chronologically -- a bare sha orders
+        // them at random, and a bare DATE ties whenever two syncs land on one day, handing the
+        // ordering straight back to that random sha. Hence HH-MM (白い熊, 2026-08-12). Never build
+        // time: every build on one upstream base must share a pin.
         //
         // In UTC, and NOT in the commit's own timezone (git's `--date=format:`), because the pin
         // has to agree character for character with what an update watcher reads from the GitHub
@@ -81,22 +84,25 @@ android {
         // upstream's commits; the watcher would then report an update no rebase could satisfy.
         // Formatting the raw epoch (%ct) also keeps the pin independent of the build host's own
         // timezone, which `--date=format-local:` would not.
-        val upstreamBaseDate = if (upstreamBaseSha.length == 8) {
+        val upstreamBaseStamp = if (upstreamBaseSha.length == 8) {
             gitOutput("git", "show", "-s", "--format=%ct", upstreamBaseSha).toLongOrNull()?.let {
                 Instant.ofEpochSecond(it)
                     .atZone(ZoneOffset.UTC)
-                    .toLocalDate()
-                    .toString()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd.HH-mm"))
             } ?: ""
         } else {
             ""
         }
 
-        // The build must never fail over a missing sha or date; it degrades instead.
+        // `+` opens each top-level group -- upstream's version, the pin, our counter -- while the
+        // pin's own date, time and sha stay dot-joined, all three describing one commit. Never `~`:
+        // git rejects it in a refname, it sorts above every digit, and dpkg reads it as a
+        // pre-release marker. The build must never fail over a missing sha or timestamp; it
+        // degrades instead.
         val upstreamPin = when {
             upstreamBaseSha.length != 8 -> ""
-            upstreamBaseDate.length == 10 -> ".$upstreamBaseDate.g$upstreamBaseSha"
-            else -> ".g$upstreamBaseSha"
+            upstreamBaseStamp.length == 16 -> "+$upstreamBaseStamp.g$upstreamBaseSha"
+            else -> "+g$upstreamBaseSha"
         }
 
         versionCode = upstreamVersionCode * 10000 + shiroikumaBuild
