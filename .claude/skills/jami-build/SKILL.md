@@ -647,8 +647,15 @@ if [ ${#pin_sha} -eq 8 ]; then
   # UTC, from the raw epoch -- must match build.gradle.kts character for character, and the GitHub
   # API normalises committer dates to Z. Measured: 3 of upstream's last 60 commits fall on a
   # different day in UTC than in their own timezone.
-  pin_date=$(date -u -d @"$(git -C ~/git/shiroikuma-jami show -s --format=%ct "$pin_sha" 2>/dev/null)" +%Y-%m-%d 2>/dev/null)
-  if [ ${#pin_date} -eq 10 ]; then pin=".$pin_date.g$pin_sha"; else pin=".g$pin_sha"; fi
+  #
+  # HH-MM since 2026-08-12 (白い熊): a bare date ties whenever two syncs land on one day and hands
+  # the ordering back to the random sha. `+` opens each top-level group -- upstream's version, the
+  # pin, our counter -- while the pin's own date, time and sha stay dot-joined, all three describing
+  # one commit. This block and build.gradle.kts MUST be changed together: the format moved there in
+  # f34e9618b while this one was missed, which would have named the APK differently from the
+  # versionName inside it.
+  pin_stamp=$(date -u -d @"$(git -C ~/git/shiroikuma-jami show -s --format=%ct "$pin_sha" 2>/dev/null)" +%Y-%m-%d.%H-%M 2>/dev/null)
+  if [ ${#pin_stamp} -eq 16 ]; then pin="+$pin_stamp.g$pin_sha"; else pin="+g$pin_sha"; fi
 fi
 stored_vn=""; stored_n=0
 [ -f "$counter" ] && read stored_vn stored_n < "$counter"
