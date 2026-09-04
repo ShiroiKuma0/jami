@@ -13,7 +13,7 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
-too), **in-app message forwarding**, token-gated **automation intents** plus **保存復元 batch-backup automation**, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
+too), **in-app message forwarding**, **automation intents** (sending and calling still token-gated) plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat, a call, or a **hands-free call on speaker**, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
 setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
@@ -22,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260807-01+2026-08-17.17-36.gf0c774eb+003`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260807-01+2026-08-17.17-36.gf0c774eb+004`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -359,15 +359,31 @@ pick the target conversation (with search and a content preview), and the messag
 that chat's composer. The long-press menu itself is black/yellow, colour-settable, and pinned in
 place so background sync can no longer make it dance.
 
-## 🤖 Automation intents & 保存復元 batch backup
+## 🤖 Automation intents & the 保存復元 data door
 
-Token-gated, exported **send / call / open** intents let external scripts and automation apps drive
-Jami headlessly — send a message, place a call, or open a conversation from anywhere on the device,
-guarded by a secret token so only your own automations can trigger them. The same token also gates
-the **保存復元 state-export contract**: an external backup orchestrator can list the export
-categories and trigger a full headless backup (real-count progress broadcasts, a broadcast reply
-with the written path and size), producing the exact same restorable zip as the Export/Import
-panel — with the token itself never travelling inside any backup.
+Exported **send / call / open** intents let external scripts and automation apps drive Jami
+headlessly — send a message, place a call, or open a conversation from anywhere on the device. The
+same surface carries the **保存復元 contract**: an external orchestrator can list the export
+categories and trigger a full headless backup, with real-count progress and a reply naming the
+written path and size, producing the exact same restorable zip as the Export/Import panel.
+
+**Backups no longer need a pasted secret.** A pasted token cannot survive a wipe, and restoring a
+clean phone is exactly the case where nothing has been configured yet — so automation answers out
+of the box, and the token is an extra you can switch on rather than the gate. A token sent to the
+app when it is not asking for one is quietly ignored, never refused. The token itself still never
+travels inside any backup.
+
+**Sending a message and placing a call always require the token anyway**, whatever the switches
+say. Those act as *you* — a message sent that way is indistinguishable from one you typed — and
+that is a different thing from reading data. Opening a conversation is not, so it relaxes with the
+rest.
+
+**And the app can now be backed up with its data.** A `ContentProvider` lets a backup manager export
+Jami's state, and restore it, through a file descriptor it opens itself — so a wiped phone can get
+the app *and its accounts and chats* back, not just the APK. That door identifies its caller three
+ways before it opens: an exact package name, a uid cross-check the kernel answers, and a pinned
+signing certificate. Restoring into Jami wants the app launched once first: an import drives the
+daemon throughout, so a never-started process would half-restore and call it success.
 
 ## 🔎 Registered-name resolution
 
