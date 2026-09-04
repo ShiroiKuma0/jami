@@ -727,10 +727,30 @@ class FontsSettingsFragment : Fragment() {
             layoutParams = matchWrap()
             setPadding(dp(72f), 0, dp(16f), dp(6f))
         }
+        // Contract v2 (2026-09-04): three rows — the master switch (default ON), the token
+        // requirement (default OFF), and the token itself, shown ONLY while it is being asked for.
+        // A 48-character secret sitting under an off switch invites 白い熊 to paste it somewhere it
+        // will do nothing.
         autoBox.addView(orSwitchRow("Automation — external control & 保存復元 backups", AutomationPrefs.isEnabled(ctx)) {
             AutomationPrefs.setEnabled(ctx, it)
         })
-        autoBox.addView(orMini("Secret token — tap to copy"))
+
+        // The token rows, grouped so row 2 can hide them as one.
+        val tokenBox = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            visibility = if (AutomationPrefs.isTokenRequired(ctx)) View.VISIBLE else View.GONE
+        }
+
+        autoBox.addView(orSwitchRow("Use authorization token?", AutomationPrefs.isTokenRequired(ctx)) {
+            AutomationPrefs.setTokenRequired(ctx, it)
+            tokenBox.visibility = if (it) View.VISIBLE else View.GONE
+        })
+        autoBox.addView(orMini("Off: any sister app may drive backups and restores. On: a caller " +
+            "must also present the token. Either way the data door checks the caller's package and " +
+            "signature — and sending a message or placing a call ALWAYS needs the token."))
+
+        tokenBox.addView(orMini("Secret token — tap to copy"))
         val tokenTv = TextView(ctx).apply {
             text = AutomationPrefs.getToken(ctx)
             setTextColor(yellow)
@@ -743,11 +763,12 @@ class FontsSettingsFragment : Fragment() {
                 Flash.show(ctx, "Token copied")
             }
         }
-        autoBox.addView(tokenTv)
-        autoBox.addView(orTapRow("Regenerate token") {
+        tokenBox.addView(tokenTv)
+        tokenBox.addView(orTapRow("Regenerate token") {
             tokenTv.text = AutomationPrefs.regenerateToken(ctx)
             Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
         })
+        autoBox.addView(tokenBox)
         autoBox.addView(orTapRow("Automation details & usage  ⓘ") {
             (parentFragment as? SettingsFragment)?.goToAutomationSettings()
         })
