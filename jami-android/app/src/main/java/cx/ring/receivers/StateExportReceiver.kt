@@ -51,7 +51,7 @@ class StateExportReceiver : BroadcastReceiver() {
         // nothing is running is a no-op by design: 自由作業盤 fires this whenever 白い熊 presses
         // 中止, without knowing how far the export got.
         if (kind == Kind.CANCEL) {
-            if (AutomationPrefs.isEnabled(app) && AutomationPrefs.isAuthorized(app, token)) {
+            if (AutomationPrefs.refuse(app, token) == null) {
                 runCatching {
                     app.startService(Intent(app, StateExportService::class.java)
                         .setAction(StateExportService.ACTION_CANCEL))
@@ -74,9 +74,12 @@ class StateExportReceiver : BroadcastReceiver() {
             runCatching { resultData = result }
         }
 
+        // v2: one gate for the whole surface. The token is ignored unless this app asks for one,
+        // and nothing reachable from this receiver acts as 白い熊 — it exports Jami's own data to
+        // where it was told to and reports what it did.
+        val refusal = AutomationPrefs.refuse(app, token)
         when {
-            !AutomationPrefs.isEnabled(app) -> reply("ERROR:automation disabled")
-            !AutomationPrefs.isAuthorized(app, token) -> reply("ERROR:bad token")
+            refusal != null -> reply(refusal)
             replyAction.isNullOrEmpty() || replyPackage.isNullOrEmpty() || replyId.isNullOrEmpty() ->
                 reply("ERROR:missing reply extras")
 
