@@ -99,6 +99,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         android:name="android.hardware.type.pc"
         android:required="false" />
 
+    <!-- shiroikuma fork: package visibility for the automation contract (v2 §4, 2026-09-04).
+
+         WITHOUT THIS ELEMENT EVERY REPLY IS SILENTLY DISCARDED on Android 11+. The 保存復元
+         receivers answer with sendBroadcast(...).setPackage(replyPackage), and setPackage to a
+         package this app cannot see is filtered with no error anywhere: the export runs, writes
+         correctly, and is simply never heard of. This fork had NO <queries> element at all until
+         now, so its §1 replies had been going nowhere since the feature shipped (2026-07-25) —
+         the same defect the v2 rollout found in shiroikuma-gauguin.
+
+         BOTH callers, always: 応用管理 drives the data door in §2a, 自由作業盤 drives the §1
+         backup batch. Listing only one answers that caller and stays inaudible to the other. -->
+    <queries>
+        <package android:name="shiroikuma.oyokanri" />
+        <package android:name="shiroikuma.jiyusagyoban" />
+    </queries>
+
     <application
         android:appCategory="social"
         android:icon="@mipmap/ic_launcher"
@@ -590,6 +606,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:name=".tv.contact.more.TVContactMoreActivity"
             android:exported="false"
             android:theme="@style/LeanbackPreferences" />
+
+        <!-- shiroikuma fork: the automation data door (contract v2 §2a, 2026-09-04).
+
+             A ContentProvider rather than another broadcast action because a broadcast cannot tell
+             you who sent it, and with the token off by default that would mean any app on the phone
+             could harvest every sister app's data. The caller is identified by the framework and
+             checked three ways in AutomationCallers — exact package name (never a prefix), a uid
+             cross-check, and a pinned signing certificate.
+
+             No android:permission, deliberately: a custom permission would have to be "normal"
+             (any app may hold it) or "signature" (impossible — every app in this family has its own
+             keystore), and neither buys anything the caller check does not. -->
+        <provider
+            android:name=".automation.AutomationProvider"
+            android:authorities="${applicationId}.automation"
+            android:exported="true" />
+
+        <!-- dataSync, not specialUse: it is accurate for streaming an archive, needs no subtype
+             property, and FOREGROUND_SERVICE_DATA_SYNC is already declared above — specialUse would
+             need a permission this app does not hold. -->
+        <service
+            android:name=".automation.AutomationDataService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Capability discovery. Read with MATCH_UNINSTALLED_PACKAGES|MATCH_DISABLED_COMPONENTS,
+             so 応用管理 can answer "can this app be backed up" for an app 白い熊 has frozen —
+             a frozen app cannot be asked anything, which is why this is metadata and not a query
+             intent. An app without these entries is simply never offered for data backup. -->
+        <meta-data android:name="shiroikuma.automation.contract" android:value="2" />
+        <meta-data android:name="shiroikuma.automation.format" android:value="1" />
+        <meta-data android:name="shiroikuma.automation.min_format" android:value="1" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
