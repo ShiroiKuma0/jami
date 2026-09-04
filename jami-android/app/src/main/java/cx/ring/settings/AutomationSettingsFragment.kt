@@ -52,9 +52,12 @@ class AutomationSettingsFragment : Fragment() {
 
         root.addView(header("Automation"))
         root.addView(body(
-            "Let external automation — Tasker, OpenTasker, or the `am` shell — send messages and " +
-            "place calls through this app. Every request must carry the secret token below. Turn " +
-            "this off to block all automation."))
+            "Let external automation — Tasker, OpenTasker, the `am` shell, or a sister app — drive " +
+            "this app. Backups and restores are open by default so a wiped phone can be restored " +
+            "before anything has been configured; the data door still checks the calling app's " +
+            "package name, uid and signing certificate. Sending a message or placing a call ALWAYS " +
+            "requires the token below, whatever the switches say, because those act as you rather " +
+            "than read data. Turn the first switch off to block all automation."))
 
         // Enable switch
         val switchRow = LinearLayout(ctx).apply {
@@ -74,8 +77,36 @@ class AutomationSettingsFragment : Fragment() {
         })
         root.addView(switchRow)
 
+        // Row 2 — the token requirement (contract v2, default OFF).
+        val requireRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4f), 0, dp(8f))
+        }
+        requireRow.addView(TextView(ctx).apply {
+            text = "Use authorization token?"
+            setTextColor(yellow)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        // The token block, hidden while nothing is asking for it: a 48-character secret under an
+        // off switch invites 白い熊 to paste it somewhere it will do nothing.
+        val tokenBox = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = if (AutomationPrefs.isTokenRequired(ctx)) View.VISIBLE else View.GONE
+        }
+        requireRow.addView(MaterialSwitch(ctx).apply {
+            isChecked = AutomationPrefs.isTokenRequired(ctx)
+            setOnCheckedChangeListener { _, checked ->
+                AutomationPrefs.setTokenRequired(ctx, checked)
+                tokenBox.visibility = if (checked) View.VISIBLE else View.GONE
+            }
+        })
+        root.addView(requireRow)
+        root.addView(tokenBox)
+
         // Token
-        root.addView(miniLabel("Secret token"))
+        tokenBox.addView(miniLabel("Secret token"))
         tokenView = TextView(ctx).apply {
             text = AutomationPrefs.getToken(ctx)
             setTextColor(yellow)
@@ -84,7 +115,7 @@ class AutomationSettingsFragment : Fragment() {
             setTextIsSelectable(true)
             setPadding(0, dp(4f), 0, dp(10f))
         }
-        root.addView(tokenView)
+        tokenBox.addView(tokenView)
 
         val buttons = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(ctx).apply {
@@ -102,7 +133,7 @@ class AutomationSettingsFragment : Fragment() {
                 Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
             }
         })
-        root.addView(buttons)
+        tokenBox.addView(buttons)
 
         // Accounts — the otherwise-hidden <account> id; or pass "default" for the current one.
         root.addView(miniLabel("Your accounts (use the id as <account>, or \"default\")"))
