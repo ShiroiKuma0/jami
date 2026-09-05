@@ -79,24 +79,18 @@ class AutomationActivity : ComponentActivity() {
 
         // --- authorization gate (all other ops) ---
         //
-        // Contract v2 turned the token off by default so a wiped phone can be restored without
-        // anything having been pasted anywhere. That reasoning covers reading and restoring an
-        // app's own data completely, and it has NO force here: restoring a wiped phone never
-        // requires sending a message from it.
+        // One gate for the whole surface, and no exception for the operations that act AS 白い熊.
+        // An earlier version of this build required the token for SEND, CALL and VIDEO regardless
+        // of the switch; 白い熊 was shown the full surface and the exposure and settled it the
+        // other way on 2026-09-05 — no token necessary by default, everywhere.
         //
-        // SEND, CALL and VIDEO act AS 白い熊 rather than reading data. A message sent through this
-        // surface is indistinguishable from one 白い熊 typed; a call opens the microphone and rings
-        // a real contact. And the data door's caller verification does not reach this class at all
-        // — package/uid/signature checks live on AutomationProvider, while this is an exported
-        // Activity with no caller identity check of any kind. So those three require the token
-        // whatever the switch says; OPEN only brings a conversation to the foreground, neither
-        // speaking as 白い熊 nor handing anything back to the caller, so it relaxes with the rest.
+        // So with 「Use authorization token?」 off, ANY app on this device can send a message or
+        // place a call as 白い熊 through here. That is a deliberate choice, not an oversight: this
+        // is an exported Activity, so unlike AutomationProvider it has no caller identity to check
+        // — there is no middle setting between "open" and "token" available on this entry point.
         val token = deepLink?.getQueryParameter(KEY_TOKEN) ?: intent.getStringExtra(KEY_TOKEN)
-        val acting = op == Op.SEND || op == Op.CALL || op == Op.VIDEO
-        AutomationPrefs.refuse(this, token, acting = acting)?.let { refusal ->
-            reject(if (acting && refusal == "ERROR:bad token")
-                "rejected: this operation always requires the token"
-            else refusal.removePrefix("ERROR:"))
+        AutomationPrefs.refuse(this, token)?.let { refusal ->
+            reject(refusal.removePrefix("ERROR:"))
             return
         }
 
