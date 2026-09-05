@@ -13,7 +13,7 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
-too), **in-app message forwarding**, **automation intents** (sending and calling still token-gated) plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
+too), **in-app message forwarding**, **automation intents** plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat, a call, or a **hands-free call on speaker**, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
 setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
@@ -22,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260807-01+2026-08-17.17-36.gf0c774eb+004`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260807-01+2026-08-17.17-36.gf0c774eb+005`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -373,10 +373,11 @@ of the box, and the token is an extra you can switch on rather than the gate. A 
 app when it is not asking for one is quietly ignored, never refused. The token itself still never
 travels inside any backup.
 
-**Sending a message and placing a call always require the token anyway**, whatever the switches
-say. Those act as *you* — a message sent that way is indistinguishable from one you typed — and
-that is a different thing from reading data. Opening a conversation is not, so it relaxes with the
-rest.
+**Openness has a reach worth knowing.** With the token off it is not only backups that are open:
+any app on the device can also send a message or place a call as you through the same surface.
+Those entry points are exported activities and receivers, so unlike the data door below there is no
+caller identity for them to check — the token switch is the only gate they have, and turning it on
+gates the whole surface at once.
 
 **And the app can now be backed up with its data.** A `ContentProvider` lets a backup manager export
 Jami's state, and restore it, through a file descriptor it opens itself — so a wiped phone can get
