@@ -53,11 +53,13 @@ class AutomationSettingsFragment : Fragment() {
         root.addView(header("Automation"))
         root.addView(body(
             "Let external automation — Tasker, OpenTasker, the `am` shell, or a sister app — drive " +
-            "this app. Backups and restores are open by default so a wiped phone can be restored " +
-            "before anything has been configured; the data door still checks the calling app's " +
-            "package name, uid and signing certificate. Sending a message or placing a call ALWAYS " +
-            "requires the token below, whatever the switches say, because those act as you rather " +
-            "than read data. Turn the first switch off to block all automation."))
+            "this app. Automation is open by default so a wiped phone can be restored before " +
+            "anything has been configured. That openness is not limited to backups: with the token " +
+            "switch off, any app on this device can also send a message or place a call as you. " +
+            "The backup/restore door is the exception — it checks the calling app's package name, " +
+            "uid and signing certificate either way, because it can see who is calling. Turn the " +
+            "token on to require it across the whole surface, or the first switch off to block " +
+            "automation entirely."))
 
         // Enable switch
         val switchRow = LinearLayout(ctx).apply {

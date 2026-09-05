@@ -59,9 +59,10 @@ class AutomationProvider : ContentProvider() {
             is AutomationCallers.Verdict.Refused -> return fail(verdict.why)
             AutomationCallers.Verdict.Allowed -> Unit
         }
-        // Then this app's own switches. `acting` is deliberately NOT set: everything reachable here
-        // reads or restores Jami's own data, and the identity of the caller has already been proved
-        // three ways. The operations that act AS 白い熊 live on the Activity, never on this door.
+        // Then this app's own switches. Note that this door is the ONLY part of the automation
+        // surface with a caller identity behind it — the three checks above have already proved
+        // who is asking. The broadcast and Activity entry points cannot do that, which is why the
+        // token is the only gate they have.
         AutomationPrefs.refuse(ctx, extras?.getString(KEY_TOKEN))?.let { return fail(it) }
 
         return when (method) {
