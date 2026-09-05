@@ -746,9 +746,10 @@ class FontsSettingsFragment : Fragment() {
             AutomationPrefs.setTokenRequired(ctx, it)
             tokenBox.visibility = if (it) View.VISIBLE else View.GONE
         })
-        autoBox.addView(orMini("Off: any sister app may drive backups and restores. On: a caller " +
-            "must also present the token. Either way the data door checks the caller's package and " +
-            "signature — and sending a message or placing a call ALWAYS needs the token."))
+        autoBox.addView(orMini("Off: any app on this device may drive this app's automation — " +
+            "including sending a message and placing a call as you. On: a caller must present the " +
+            "token. The backup/restore door additionally checks the caller's package, uid and " +
+            "signing certificate, whichever way this is set."))
 
         tokenBox.addView(orMini("Secret token — tap to copy"))
         val tokenTv = TextView(ctx).apply {

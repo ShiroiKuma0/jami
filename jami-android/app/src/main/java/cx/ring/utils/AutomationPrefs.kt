@@ -21,22 +21,21 @@ import java.security.SecureRandom
  * token itself is unchanged — still 24 `SecureRandom` bytes hex-encoded, still generated lazily,
  * still never in an export.
  *
- * ## The one exception: operations that ACT AS 白い熊
+ * ## No exceptions — settled by 白い熊, 2026-09-05
  *
- * The contract's justification for defaulting the token off is clean-phone restore, and it covers
- * reading and restoring this app's own data completely. It has **no force** for sending a message
- * or placing a call: restoring a wiped phone never requires sending a message from it.
+ * An earlier version of this build carved out the operations that act AS 白い熊 — `SEND_MESSAGE`,
+ * `PLACE_CALL`, `PLACE_VIDEO_CALL` — and required the token for them regardless of the switch, on
+ * the reasoning that restoring a wiped phone never requires sending a message from it. 白い熊 was
+ * shown the full surface and the consequence below, and chose **no token necessary by default**
+ * across the board. The carve-out and its `acting` flag are gone; [refuse] is now the contract's
+ * canonical two-argument form and every entry point is gated identically.
  *
- * That matters more here than in any other app in the family. A message sent through the
- * automation surface is indistinguishable from one 白い熊 typed, and a placed call opens the
- * microphone and rings a real contact — that is impersonation, not data access. Nor does §2a's
- * caller verification reach those paths: package name, uid and pinned-certificate checks live on
- * the [cx.ring.automation.AutomationProvider], while the acting operations arrive at an exported
- * Activity and an exported receiver, which have no caller identity check of any kind.
- *
- * Hence [refuse]'s `acting` flag: those operations require the token **regardless** of the switch,
- * so relaxing the gate for backups never quietly opens a channel that speaks as 白い熊.
- * See [cx.ring.automation.AutomationActivity] for which operations set it.
+ * **The consequence, recorded rather than buried.** With the token off, any app on the device can
+ * send a Jami message or place a call as 白い熊. §2a's caller verification does not narrow this:
+ * package-name, uid and pinned-certificate checks live on [cx.ring.automation.AutomationProvider],
+ * while these operations arrive at an exported Activity that has no caller identity check of any
+ * kind. Turning 「Use authorization token?」 on restores the gate for the whole surface at once,
+ * and the master switch still closes the app off entirely.
  */
 object AutomationPrefs {
     private const val PREFS = "shiroikuma_automation"
@@ -84,13 +83,10 @@ object AutomationPrefs {
      * a caller still sending one — because it was configured last year, or because another app on
      * the batch does want one — must be served. Refusing it would turn "白い熊 turned a switch off"
      * into "half the batch mysteriously fails", which is the friction the switch exists to remove.
-     *
-     * @param acting the request would act as 白い熊 (send a message, place a call) rather than read
-     *   or restore this app's own data. Those always require the token — see the class note.
      */
-    fun refuse(c: Context, candidate: String?, acting: Boolean = false): String? = when {
+    fun refuse(c: Context, candidate: String?): String? = when {
         !isEnabled(c) -> "ERROR:automation disabled"
-        (acting || isTokenRequired(c)) && !isTokenValid(c, candidate) -> "ERROR:bad token"
+        isTokenRequired(c) && !isTokenValid(c, candidate) -> "ERROR:bad token"
         else -> null
     }
 
