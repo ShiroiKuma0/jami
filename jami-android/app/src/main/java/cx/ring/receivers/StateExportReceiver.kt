@@ -94,7 +94,7 @@ class StateExportReceiver : BroadcastReceiver() {
             // validating the list costs nothing and the caller gets its error immediately.
             !itemsValid(items) -> reply("ERROR:unknown category in items: $items")
 
-            else -> {
+            else -> try {
                 ContextCompat.startForegroundService(app,
                     Intent(app, StateExportService::class.java).apply {
                         putExtra("path", intent.getStringExtra("path"))
@@ -105,6 +105,20 @@ class StateExportReceiver : BroadcastReceiver() {
                         putExtra("reply_id", replyId)
                     })
                 // No reply here: the service sends the ONE terminal reply when it is done.
+            } catch (t: Throwable) {
+                // A broadcast IS a background start on API 31+. The foreground-start allowance comes
+                // from recent interaction, so every hands-on test has one and the unattended batch
+                // this contract exists for does not — the call then throws
+                // ForegroundServiceStartNotAllowedException, and an exception escaping onReceive
+                // takes the whole process down. The failure is inversely correlated with how closely
+                // anyone is watching, which is why the v2 rollout only found it on the binder path.
+                //
+                // Catching is only half of it: a silent no-export makes a working app
+                // indistinguishable from one that never implemented the contract, since the caller
+                // just waits out its timeout. So the refusal is ANSWERED, and 保存中核 renders it.
+                // Only the platform's own message leaves the app here — never account, contact or
+                // conversation state. Same guard, same wording as AutomationProvider.start.
+                reply("ERROR:foreground service start refused: ${t.message ?: t.javaClass.simpleName}")
             }
         }
     }
