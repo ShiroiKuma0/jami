@@ -22,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260807-01+2026-08-17.17-36.gf0c774eb+005`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260807-01+2026-08-17.17-36.gf0c774eb+006`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -91,7 +91,8 @@ family, weight and size**, *and* set its **text, fill and border colours**.
   too, and an **app-language override** lets you run the UI in a language independent of the phone
   locale.
 
-Reachable from the chat-list overflow (**UI fonts & colours**) and from **Settings → Appearance**.
+Reachable from the chat-list overflow (**UI fonts & colours**), from **Settings → Appearance**, and
+by **long-pressing the ⋮** in either the chat list or an open conversation.
 
 ## 💾 保存復元 — move to a new phone with your history intact
 
