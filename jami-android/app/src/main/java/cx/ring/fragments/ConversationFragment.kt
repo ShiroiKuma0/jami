@@ -1454,17 +1454,32 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         }
     }
 
+    /** Hoisted so the per-layout re-hook below allocates nothing. */
+    private val overflowLongPress = View.OnLongClickListener { openUiSettingsPage(); true }
+
     /** Long-press on the toolbar's ⋮ overflow button → the UI settings page (白い熊, 2026-07-25).
      *  The overflow ImageView is created lazily by the ActionMenuView; setting the listener is
-     *  idempotent, so this is safe to call on every toolbar layout pass. */
+     *  idempotent, so this is safe to call on every toolbar layout pass.
+     *
+     *  It carries no id to look up, and it must NOT be matched by class name: this used to test
+     *  `javaClass.simpleName == "OverflowMenuButton"`, which is true only in a debug build. Release
+     *  is minified, and R8 renames that class — mapping.txt of the shipped build has
+     *  `androidx.appcompat.widget.ActionMenuPresenter$OverflowMenuButton -> x6` — so the gesture
+     *  worked on a debug build and did nothing at all on the phone. Its content description is no
+     *  use either: `abc_action_menu_overflow_description` is absent from appcompat's public.txt, so
+     *  referencing it is a PrivateResource lint error and lintVital is fatal here.
+     *
+     *  Match it structurally instead, which nothing can rewrite: the overflow is the LAST child of
+     *  the ActionMenuView and the only ImageView among them, because ordinary action items are
+     *  ActionMenuItemView — a TextView subclass, not an ImageView. */
     private fun hookOverflowLongPress(toolbar: androidx.appcompat.widget.Toolbar) {
         for (i in 0 until toolbar.childCount) {
             val amv = toolbar.getChildAt(i) as? androidx.appcompat.widget.ActionMenuView ?: continue
-            for (j in 0 until amv.childCount) {
+            for (j in amv.childCount - 1 downTo 0) {
                 val b = amv.getChildAt(j)
-                if (b is android.widget.ImageView && b.javaClass.simpleName == "OverflowMenuButton") {
-                    b.setOnLongClickListener { openUiSettingsPage(); true }
-                }
+                if (b !is android.widget.ImageView) continue
+                b.setOnLongClickListener(overflowLongPress)
+                break
             }
         }
     }
