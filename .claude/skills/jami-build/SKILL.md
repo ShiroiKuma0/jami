@@ -417,13 +417,40 @@ r bash -c "grep -q -- '--without-idn --without-brotli' daemon/contrib/src/gnutls
 # re-extract on every build, because this block appends to it after the gate has run).
 sk_sum() { cat "$@" 2>/dev/null | md5sum | cut -d" " -f1; }
 sk_ver() { grep -hE '^[A-Z0-9_]+_VERSION[[:space:]]*:=' "daemon/contrib/src/$1/rules.mak" 2>/dev/null; }
+# A RE-EXTRACT IS NOT ENOUGH ON ITS OWN (2026-09-06, the 20260904-01 sync). The package's OLD
+# headers are still sitting in the contrib INSTALL PREFIX, and every contrib compile line puts
+# `-I<prefix>/include` BEFORE the package's own `-I../include`. So a bumped package compiles
+# against its own stale installed headers and dies on symbols its new source introduced:
+# pjproject e9c9ea65 -> 3a92a7ee added TCP-keepalive tuning to sock_bsd.c, whose PJ_TCP_KEEPALIVE_*
+# macros exist in the new config.h but NOT in the month-old copy installed in the prefix — "use of
+# undeclared identifier PJ_TCP_KEEPALIVE_IDLE", four errors, contrib dead. It reads exactly like a
+# broken patch and is not one. Tell-tale: the prefix header's mtime predates the tarball. So
+# whenever the gate re-extracts, purge that package's installed footprint too, and let its own
+# `make` reinstall. Purge ONLY the three packages we patch — never the whole prefix, which would
+# rebuild ffmpeg, gnutls and 35 others for hours.
+sk_purge_prefix() {  # $1=pkg
+  local p=daemon/contrib/aarch64-linux-android
+  case "$1" in
+    pjproject) rm -rf "$p"/include/pj "$p"/include/pjlib-util "$p"/include/pjnath \
+                      "$p"/include/pjmedia "$p"/include/pjmedia-audiodev "$p"/include/pjmedia-codec \
+                      "$p"/include/pjmedia-videodev "$p"/include/pjsip "$p"/include/pjsip-simple \
+                      "$p"/include/pjsip-ua "$p"/include/pjsua-lib "$p"/include/pjsua2 \
+                      "$p"/include/pj*.h "$p"/include/pjsua2.hpp \
+                      "$p"/lib/libpj*.a "$p"/lib/pkgconfig/libpjproject.pc ;;
+    opendht)   rm -rf "$p"/include/opendht "$p"/include/opendht.h "$p"/lib/libopendht.* \
+                      "$p"/lib/pkgconfig/opendht.pc "$p"/lib/cmake/opendht ;;
+    dhtnet)    rm -rf "$p"/include/dhtnet "$p"/lib/libdhtnet.* \
+                      "$p"/lib/pkgconfig/dhtnet.pc "$p"/lib/cmake/dhtnet* ;;
+  esac
+}
 sk_gate() {  # $1=pkg, rest=patch files
   local pkg=$1; shift
   local d=daemon/contrib/build-aarch64-linux-android
   local sum; sum=$( { sk_ver "$pkg"; cat "$@" 2>/dev/null; } | md5sum | cut -d" " -f1)
   if [ -d "$d/$pkg" ] && [ "$(cat "$d/.sk-patchsum-$pkg" 2>/dev/null)" != "$sum" ]; then
-    echo ">>> $pkg patch set or upstream version changed — forcing re-extract"
+    echo ">>> $pkg patch set or upstream version changed — forcing re-extract + prefix purge"
     rm -rf "$d/$pkg" "$d/.$pkg" "$d/.dep-$pkg"
+    sk_purge_prefix "$pkg"
   fi
 }
 r sk_gate dhtnet    patches/dhtnet-*.patch
@@ -571,7 +598,28 @@ r bash -c 'grep -q SK-CLIENTMODE daemon/src/jamidht/jamiaccount.cpp || (cd daemo
 # audio-path diagnostics (SK-AUDIODIAG; idempotent; daemon's OWN source — no rules.mak, no contrib
 # rebuild). Counts raw inbound RTP before decrypt, the peer's decoded RMS, our own captured RMS, and
 # logs the peer's voice_activity INFO, which upstream parses and drops. Diagnostic only.
-r bash -c 'grep -q SK-AUDIODIAG daemon/src/media/audio/audio_rtp_session.cpp || (cd daemon && patch -flp1) < patches/jami-audio-rtp-diag.patch'
+#
+# THE GUARD CHECKS BOTH HALVES, and heals a half-applied tree before re-applying. This is the ONLY
+# patch of ours that CREATES a file (src/media/audio/sk_audio_diag.h), and that file is UNTRACKED in
+# the submodule — so its two halves can drift apart, in either direction, and a marker-only guard is
+# blind to both (2026-09-06, cost two builds):
+#   * An upstream sync needs `git reset --hard` in daemon/ for the submodule to advance. That
+#     reverts the nine tracked files and LEAVES the untracked header, so the patch rejects with
+#     "The next patch would create the file ... which already exists!".
+#   * Delete the header alone and you get the mirror image: the marker is still in
+#     audio_rtp_session.cpp, the guard skips the patch, and the native build dies four times over
+#     with "'sk_audio_diag.h' file not found".
+# Either half missing must re-apply BOTH halves, so revert the tracked nine first — patch would
+# otherwise refuse them as already applied. No other patch touches those files, so the revert is safe.
+r bash -c 'if ! grep -q SK-AUDIODIAG daemon/src/media/audio/audio_rtp_session.cpp || [ ! -f daemon/src/media/audio/sk_audio_diag.h ]; then
+  echo ">>> SK-AUDIODIAG half-applied or absent — reverting its files and re-applying whole"
+  git -C daemon checkout -- src/media/audio/audio_receive_thread.cpp src/media/audio/audio_receive_thread.h \
+    src/media/audio/audio_rtp_session.cpp src/media/audio/audio_rtp_session.h \
+    src/media/audio/audio_sender.cpp src/media/audio/audio_sender.h \
+    src/media/socket_pair.cpp src/media/socket_pair.h src/sip/sipcall.cpp 2>/dev/null
+  rm -f daemon/src/media/audio/sk_audio_diag.h
+  (cd daemon && patch -flp1) < patches/jami-audio-rtp-diag.patch
+fi'
 
 # capture-silence fallback (SK-CAPTUREZERO; idempotent; daemon's OWN source). 5 s of exact-zero raw
 # capture on a low-latency MMAP VOICE_COMMUNICATION stream => re-open on VOICE_RECOGNITION +
