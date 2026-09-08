@@ -74,6 +74,25 @@ These are the things that cost real time when forgotten. Do not violate them wit
   `libdhtnet.a` built against the previous opendht. Tell-tale: one of `lib{dhtnet,opendht}.a` fresh
   and the other days old. The stamp writer at the end of the block must use the IDENTICAL formula,
   or every build re-extracts all of contrib.
+- **A re-extract is NOT enough — PURGE THE INSTALL PREFIX too (`sk_purge_prefix`, 2026-09-06).**
+  Every contrib compile line puts `-I<prefix>/include` **before** the package's own `-I../include`,
+  so a bumped package compiles against its own **stale installed headers** and fails on symbols its
+  new source introduced. The `20260904-01` sync moved pjproject to `3a92a7ee`, which added
+  TCP-keepalive tuning to `sock_bsd.c`; the `PJ_TCP_KEEPALIVE_*` macros are in the new `config.h`
+  but not in the month-old copy sitting in the prefix → "use of undeclared identifier
+  PJ_TCP_KEEPALIVE_IDLE", four errors, contrib dead. **It reads exactly like a broken patch and is
+  not one** — tell-tale: the prefix header's mtime predates the tarball. `sk_gate` now purges the
+  re-extracted package's installed headers/libs. Purge ONLY the three packages we patch; never the
+  whole prefix, which rebuilds ffmpeg, gnutls and ~35 others for hours.
+- **A guard on a patch that CREATES a file must check the FILE, not just the marker (2026-09-06,
+  cost two builds).** `jami-audio-rtp-diag.patch` is the only one of ours that adds a new file
+  (`daemon/src/media/audio/sk_audio_diag.h`), and that file is **untracked** in the submodule, so
+  its two halves drift apart in either direction and a marker-only guard is blind to both. An
+  upstream sync needs `git reset --hard` in `daemon/` for the submodule to advance: that reverts the
+  nine tracked files and leaves the header → the patch rejects with "which already exists!". Delete
+  the header alone and the mirror image happens: the marker survives in `audio_rtp_session.cpp`, the
+  guard skips the patch, and the native build dies four times with "'sk_audio_diag.h' file not
+  found". The guard now tests **both** halves and reverts the tracked nine before re-applying.
 - **EVERY patched contrib package is set up BEFORE anything that depends on it.** dhtnet depends on
   both `pjproject` and `opendht`, so `make .dhtnet` will pull either in as a dependency — and a
   dependency-triggered build uses whatever `rules.mak` and environment exist AT THAT MOMENT, not
