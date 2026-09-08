@@ -17,7 +17,7 @@
       */
 --- a/src/dht_proxy_client.cpp
 +++ b/src/dht_proxy_client.cpp
-@@ -43,6 +43,10 @@
+@@ -45,6 +45,10 @@
      CacheValueCallback cb;
      Sp<OperationState> opstate;
      std::shared_ptr<http::Request> request;
@@ -26,9 +26,9 @@
 +    bool getPending {false};
 +    std::chrono::system_clock::time_point pendingSendTime {};  // system_clock, as sendTime
  #ifdef OPENDHT_PUSH_NOTIFICATIONS
-     std::unique_ptr<asio::steady_timer> refreshSubscriberTimer;
+     std::unique_ptr<asio::system_timer> refreshSubscriberTimer;
  #endif
-@@ -407,12 +411,20 @@
+@@ -409,12 +413,20 @@
  
          auto opstate = std::make_shared<OperationState>();
  
@@ -49,7 +49,7 @@
              try {
                  rxBuf->append(at, length);
                  // one value per body line
-@@ -446,7 +458,10 @@
+@@ -448,7 +460,10 @@
                  opstate->ok.store(false);
              }
          });
@@ -61,7 +61,7 @@
              if (response.status_code != 200) {
                  if (logger_)
                      logger_->error("[proxy:client] [get {}] failed with code={}", key.to_view(), response.status_code);
-@@ -1212,7 +1227,7 @@
+@@ -1214,7 +1229,7 @@
              // 2026-07-25: + per-request byte/key accounting — a fat (landfilled) key shows up here
              // as a huge bytes= on its SUBSCRIBE/RESUBSCRIBE, key= names it directly.
              diagListenEnded_++;
@@ -70,7 +70,7 @@
                  SK_DIAG("[%s] listen req #%llu ENDED code=%u aborted=%d bytes=%llu key=%s (sent=%llu ended=%llu)",
                          proxyUrl_.c_str(), (unsigned long long) reqid,
                          (unsigned) response.status_code, (int) response.aborted,
-@@ -1346,6 +1361,65 @@
+@@ -1348,6 +1363,80 @@
      }
  }
  
@@ -86,10 +86,15 @@
 +                        CacheValueCallback cb,
 +                        std::vector<Sp<Value>> oldValues)
 +{
++    auto receivedIds = std::make_shared<std::set<Value::Id>>();
 +    get(
 +        key,
-+        [cb, sendTime](const std::vector<Sp<Value>>& vals) { return cb(vals, false, sendTime); },
-+        [this, key, token, cb, oldValues, sendTime](bool ok) {
++        [cb, sendTime, receivedIds](const std::vector<Sp<Value>>& vals) {
++            for (const auto& v : vals)
++                receivedIds->insert(v->id);
++            return cb(vals, false, sendTime);
++        },
++        [this, key, token, cb, oldValues, sendTime, receivedIds](bool ok) {
 +            // SK-PUSHGET (ok-guard): sweep ONLY on a successful get. Stock ignored `ok` and
 +            // replayed oldValues as expired unconditionally, so a get that failed (non-200, no
 +            // body, parse error) decremented every cached value with no compensating adds —
@@ -103,8 +108,18 @@
 +            // milder than the mass false-expiry it replaces. Undoing the partial adds instead
 +            // would round-trip them as add-then-expire, i.e. exactly the presence blip this is
 +            // meant to prevent, so it is not the better trade.
-+            if (ok)
-+                cb(oldValues, true, sendTime);
++            // opendht 4.4.0 narrowed this itself: expire only the values the fresh get did
++            // NOT return, rather than replaying the whole old set. Adopted here — it is
++            // strictly better than the blanket sweep and removes the missed-expiry residual
++            // the previous note described. The ok-guard below is the part that is still ours.
++            if (ok) {
++                std::vector<Sp<Value>> toExpire;
++                for (const auto& v : oldValues)
++                    if (receivedIds->find(v->id) == receivedIds->end())
++                        toExpire.emplace_back(v);
++                if (not toExpire.empty())
++                    cb(toExpire, true, sendTime);
++            }
 +
 +            CacheValueCallback ncb;
 +            std::vector<Sp<Value>> nold;
@@ -136,8 +151,8 @@
  PushNotificationResult
  DhtProxyClient::pushNotificationReceived([[maybe_unused]] const std::map<std::string, std::string>& notification)
  {
-@@ -1412,6 +1486,21 @@
-             }
+@@ -1414,6 +1503,21 @@
+             auto key = InfoHash(notification.at("key"));
              auto& search = searches_.at(key);
              auto expired = notification.find("exp");
 +            {
@@ -158,19 +173,31 @@
              for (auto& list : search.listeners) {
                  if (list.second.opstate->stop)
                      continue;
-@@ -1420,16 +1509,23 @@
+@@ -1422,28 +1526,23 @@
                  auto token = list.first;
                  auto opstate = list.second.opstate;
                  if (expired == notification.end()) {
 -                    auto cb = list.second.cb;
 -                    auto oldValues = list.second.cache.getValues();
+-                    auto receivedIds = std::make_shared<std::set<Value::Id>>();
 -                    get(
 -                        key,
--                        [cb, sendTime](const std::vector<Sp<Value>>& vals) { return cb(vals, false, sendTime); },
--                        [cb, oldValues, sendTime](bool /*ok*/) {
+-                        [cb, sendTime, receivedIds](const std::vector<Sp<Value>>& vals) {
+-                            for (const auto& v : vals)
+-                                receivedIds->insert(v->id);
+-                            return cb(vals, false, sendTime);
+-                        },
+-                        [cb, oldValues, sendTime, receivedIds](bool ok) {
+-                            if (!ok)
+-                                return;
 -                            // Decrement old values refcount to expire values not
 -                            // present in the new list
--                            cb(oldValues, true, sendTime);
+-                            std::vector<Sp<Value>> toExpire;
+-                            for (const auto& v : oldValues)
+-                                if (receivedIds->find(v->id) == receivedIds->end())
+-                                    toExpire.emplace_back(v);
+-                            if (!toExpire.empty())
+-                                cb(toExpire, true, sendTime);
 -                        });
 +                    // SK-PUSHGET (coalesce): a peer that re-registers mints a whole set of new
 +                    // value ids at once, and each one is a separate push. Stock answers EVERY push
