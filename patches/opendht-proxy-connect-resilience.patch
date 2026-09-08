@@ -9,10 +9,10 @@
 +     * as timed_out instead of operation_aborted. */
 +    bool connectDeadlineFired() const;
 +
-     void close();
- 
- private:
-@@ -127,6 +132,13 @@
+     /**
+      * Close the underlying socket.
+      * Safe to call from any thread: the actual close is dispatched to
+@@ -134,6 +139,13 @@
      std::shared_ptr<asio::ssl::context> ssl_ctx_;
      std::unique_ptr<ssl_socket_t> ssl_socket_;
  
@@ -31,7 +31,7 @@
 @@ -7,6 +7,15 @@
  #include "base64.h"
  #include "compat/os_cert.h"
-
+ 
 +// SK-PROXYDIAG (2026-07-25): the connect-deadline event must be visible in a release build —
 +// logger_ is null there (the daemon only wires a logger at dhtLogLevel>0). Log directly.
 +#ifdef __ANDROID__
@@ -44,7 +44,7 @@
  #include <asio.hpp>
  #include <restinio/impl/tls_socket.hpp>
  #include <llhttp.h>
-@@ -604,10 +604,49 @@
+@@ -625,10 +634,49 @@
      }
      auto& base = ssl_socket_ ? ssl_socket_->lowest_layer() : *socket_;
  
@@ -94,7 +94,7 @@
          if (!ec) {
              local_address_ = base.local_endpoint().address();
              // Once connected, set a keep alive on the TCP socket with 30 seconds delay
-@@ -626,6 +663,13 @@
+@@ -647,6 +695,13 @@
          asio::async_connect(*socket_, std::move(endpoints), wrapCallback(std::move(wcb)));
  }
  
@@ -108,7 +108,7 @@
  void
  Connection::async_handshake(HandlerCb cb)
  {
-@@ -1394,12 +1438,19 @@
+@@ -1414,12 +1469,19 @@
      // try to connect to any until one works
      std::weak_ptr<Request> wthis = shared_from_this();
      conn_->async_connect(std::move(endpoints),
@@ -131,7 +131,7 @@
                                   return;
 --- a/src/dht_proxy_client.cpp
 +++ b/src/dht_proxy_client.cpp
-@@ -135,18 +135,29 @@
+@@ -137,18 +137,29 @@
      }
      // run http client
      httpClientThread_ = std::thread([this]() {
