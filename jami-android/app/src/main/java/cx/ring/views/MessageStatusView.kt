@@ -17,7 +17,6 @@
 package cx.ring.views
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.view.View
 import android.widget.ImageView
@@ -25,7 +24,6 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import androidx.annotation.IdRes
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import cx.ring.R
 import net.jami.model.ContactViewModel
@@ -44,9 +42,6 @@ class MessageStatusView @JvmOverloads constructor(
     @IdRes
     private var attachedMessage: Int = View.NO_ID
     private var iconSize = resources.getDimensionPixelSize(R.dimen.conversation_status_icon_size)
-    private val iconTint: ColorStateList =
-        ColorStateList.valueOf(ContextCompat.getColor(context, R.color.grey_500))
-
     enum class IconState { NONE, SENDING, SUCCESS, DISPLAYED }
     var iconState = IconState.NONE
         private set
@@ -135,8 +130,11 @@ class MessageStatusView @JvmOverloads constructor(
         resize(1)
         (getChildAt(0) as ImageView).apply {
             setImageResource(R.drawable.sent)
-            ImageViewCompat.setImageTintList(this, if (cx.ring.utils.ColorPrefs.isSet(context, cx.ring.utils.ColorPrefs.STATUS_SENDING))
-                android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.STATUS_SENDING)) else iconTint)
+            // Always tinted from the role. It used to be isSet-gated so an unset role kept the
+            // drawable's intrinsic grey, but the role now carries a real default (白い熊, 2026-09-08),
+            // and a gate would have made that default unreachable.
+            ImageViewCompat.setImageTintList(this,
+                android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.STATUS_SENDING)))
             iconState = IconState.SENDING
         }
         visibility = View.VISIBLE
@@ -146,8 +144,9 @@ class MessageStatusView @JvmOverloads constructor(
         resize(1)
         (getChildAt(0) as ImageView).apply {
             setImageResource(R.drawable.receive)
-            ImageViewCompat.setImageTintList(this, if (cx.ring.utils.ColorPrefs.isSet(context, cx.ring.utils.ColorPrefs.STATUS_SUCCESS))
-                android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.STATUS_SUCCESS)) else null)
+            // Always tinted, for the same reason as updateSending above.
+            ImageViewCompat.setImageTintList(this,
+                android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.STATUS_SUCCESS)))
             iconState = IconState.SUCCESS
         }
         visibility = View.VISIBLE
