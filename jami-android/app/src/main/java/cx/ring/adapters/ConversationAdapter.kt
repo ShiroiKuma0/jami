@@ -1386,7 +1386,12 @@ class ConversationAdapter(
                 viewHolder.mFileTitle?.text = file.displayName
                 viewHolder.mFileTitle?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_NAME))
                 viewHolder.mFileSize?.setTextColor(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_NAME))
-                viewHolder.mFileDownloadButton?.imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_ARROW))
+                // FILE_ARROW used to tint mFileDownloadButton, the separate download button.
+                // Upstream 82a939279 deleted that view and made the file icon itself the download
+                // button, so the role follows the arrow to its new home — same glyph, same colour,
+                // and the setting stays live. Applied after upstream's file_icon_out line so ours
+                // wins; both are #FFFF00 in this fork, so an unset role looks identical.
+                viewHolder.mIcon?.imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.utils.ColorPrefs.getColor(context, cx.ring.utils.ColorPrefs.FILE_ARROW))
                 applyCardColors(viewHolder.mFileInfoLayout, cx.ring.utils.ColorPrefs.FILE_CARD_FILL, cx.ring.utils.ColorPrefs.FILE_CARD_BORDER)
                 viewHolder.mFileInfoLayout?.background?.setTintList(null)
                 viewHolder.mFileInfoLayout?.setOnClickListener(null)
