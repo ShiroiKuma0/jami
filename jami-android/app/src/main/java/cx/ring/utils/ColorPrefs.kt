@@ -83,11 +83,12 @@ object ColorPrefs {
     /** The original hardcoded palette colour for [role]; painter and settings UI both read this. */
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
-        PRESENCE_AVAILABLE -> ContextCompat.getColor(c, R.color.available_indicator)
+        PRESENCE_AVAILABLE -> 0xFF0000FF.toInt()   // blue (#0000FF) — announced on the DHT, no live pipe yet
         MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL, SHORTCUT_FILL -> BLACK
         CALL_TEXT, CALL_BORDER -> GREEN   // call-event pill: black fill, green text + border (settable)
         INFO_HEADING -> 0xFFFFFFFF.toInt()   // help-page section headings — white (readable on black; #0000FF was not)
-        STATUS_SENDING, STATUS_SUCCESS -> ContextCompat.getColor(c, R.color.grey_500)
+        STATUS_SENDING -> 0xFF399EFF.toInt()   // light blue (#399EFF) — in flight
+        STATUS_SUCCESS -> 0xFF0000FF.toInt()   // blue (#0000FF) — sent / delivered
         // Connection-dot defaults (settable): connected = yellow (falls through), connecting = blue,
         // disconnected / problem = red. Matches the presence convention and the monitor screen.
         STATUS_CONNECTING, DHT_PROXY -> 0xFF0000FF.toInt()      // blue (#0000FF) — connecting / recovering / proxy mode
