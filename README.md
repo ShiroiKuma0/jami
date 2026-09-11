@@ -22,7 +22,7 @@ worked-over **calling** experience: **call recording** that lands in the chat as
 visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260904-01+2026-09-04.22-30.ge3d1d428+002`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260904-01+2026-09-04.22-30.ge3d1d428+008`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -236,6 +236,31 @@ single APK — switch between them (or a local DHT node) at runtime. Firebase is
 **microG**, so you get Google-style push with **no Google Play Services**; UnifiedPush pairs with any
 distributor (e.g. [ntfy](https://ntfy.sh)), including a self-hosted one. Whichever you pick, the
 adaptive fallback above covers it when the push server fails.
+
+## 🚨 When push is impossible, the app says so
+
+A phone with no Google Play Services implementation — no microG, no GmsCore — cannot be issued a
+push token, so nothing can wake the app in the background. Stock Jami's only response was to
+**hide** the "Push notifications" row, which is to say the state announced itself by removing the
+one control that explained it. The single log line that named the cause is dropped by EMUI in
+release builds.
+
+That silence was expensive. With no push leg the accounts can never sleep, and the recovery
+watchdog's only way to acquit a quiet night — "a real push landed recently" — becomes unreachable,
+so ordinary night-time silence reads as a total outage. Measured over 48 h on a phone in exactly
+that state: **29 false wedge verdicts, 32 global recoveries, and 30 episodes with every account
+switched offline**, nine of them 4–9 minutes and one of 72.
+
+Now a **high-importance warning** names the fault and the remedy — microG, GmsCore + GSF, device
+registration, Cloud Messaging, and that Jami must be restarted because the token is only fetched at
+process start. It distinguishes "no Play Services installed" from "installed but issued no token",
+tells the connection dashboard to show the reason in red instead of a bare "no endpoint", writes an
+incident to the log, and cancels itself the moment a token appears. The watchdog also learned to
+acquit a quiet night on **proxy-delivery evidence** rather than needing a push, and to re-register
+when every account has been unregistered for two minutes — the state its own recovery used to
+create and then refuse to act on.
+
+---
 
 ## ⏳ A typing indicator that never stopped animating
 
