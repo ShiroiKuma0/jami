@@ -132,4 +132,13 @@
     <string name="info_b_data_landfill">古いアカウントほど高くつく理由：最も古いアカウントのキーには、2024〜2025年に公開された失効リストが約990件も残っています。永続かつ未署名で保存されているため、本アプリを含め誰も削除も上書きもできません。さらに代理はクライアントの絞り込み指定を無視するので、新規購読のたびに全件が送られてきます。保持しているマシンが再起動して初めて少しずつ消えます。新しいアカウントにはこれが一切ありません——同じWi-Fi上の2台の差は、ほぼこれだけです。</string>
     <string name="info_b_data_where">自分で測るには：このダッシュボード上部の「データ」から、実時間の計測（開始・停止・保存）と2つの記録——保存した計測と自動の毎時記録——を開けます。</string>
     <string name="info_b_dash_data">データ（ダッシュボード上部）——実時間のデータ計測と使用量の記録。接続モニタ画面にも同じ計測器があります。</string>
+
+    <!-- プッシュ提供元の警告（白い熊フォーク、2026-09-11） -->
+    <string name="push_warn_channel">プッシュ不可</string>
+    <string name="push_warn_title">⚠ 白い熊 GNU Jami · プッシュ通知なし</string>
+    <string name="push_warn_no_play_services">プッシュの送信元に Google (FCM) が選ばれていますが、この端末には Play サービスの実装が入っていないため、プッシュトークンは永久に発行されません。背景でアプリを起こす手段がなく、メッセージや着信は遅れるか届かず、アカウントは眠れず、監視機能は静かな夜を故障と取り違え続けます。microG（GmsCore と GSF、端末登録と Cloud Messaging を有効に）を導入し、Jami を再起動してください——トークンはプロセス起動時にしか取得しません。</string>
+    <string name="push_warn_no_token_fcm">プッシュの送信元に Google (FCM) が選ばれ、Play サービスも入っていますが、プッシュトークンが発行されていません（登録が拒否されたか未完了）。microG の端末登録（チェックイン）と Cloud Messaging が両方とも有効か、Jami が登録一覧に載っているかを確認し、Jami を再起動してください。</string>
+    <string name="push_warn_no_token_unified">プッシュの送信元に UnifiedPush が選ばれていますが、配信元から接続先が渡されていません。配信元（ntfy など）を導入して選ぶか、アプリ設定で送信元を Google に切り替えてください。その後 Jami を再起動してください。</string>
+    <string name="push_warn_short_no_play_services">Play サービス／microG なし——プッシュ不可</string>
+    <string name="push_warn_short_no_token">選択中の送信元からトークンなし</string>
 </resources>
