@@ -24,10 +24,10 @@
     <string name="sk_cat_chat_files">Konverzace — přijaté a odeslané soubory</string>
     <string name="sk_cat_fonts">Písma a velikosti</string>
     <string name="sk_cat_colors">Barvy</string>
-    <string name="sk_cat_ui">Chování rozhraní</string>
-    <string name="sk_cat_recovery">Obnova spojení a připojení</string>
+    <string name="sk_cat_connectivity">Připojení — push backend a režim DHT</string>
+    <string name="sk_cat_recovery">Obnova spojení</string>
     <string name="sk_cat_automation">Automatizace a chráněné kontakty</string>
-    <string name="sk_cat_app">Nastavení aplikace</string>
+    <string name="sk_cat_app">Nastavení Jami</string>
 
     <string name="sk_exim_loading">Načítání…</string>
     <string name="sk_exim_pick_backup">Vyberte zálohu</string>
