@@ -83,6 +83,11 @@ object ConnectionWatchdog {
     private const val BACKFILL_DEBOUNCE_MS = 90_000L       // min gap between backfills — a wedge storm must not churn connections continuously
     private const val NOTIF_CHANNEL = "shiroikuma_watchdog"
     private const val NOTIF_ID_BASE = 58_000
+    // Separate channel + a fixed id clear of NOTIF_ID_BASE's 58_000..58_019 rotation (and of the
+    // 57_999 the uniform-wedge notice uses), so the standing push-provider warning replaces itself
+    // rather than stacking, and can be silenced without silencing the recovery notices.
+    private const val NOTIF_CHANNEL_PUSH_WARN = "shiroikuma_pushwarn"
+    private const val NOTIF_ID_PUSH_WARN = 58_100
 
     // Uniform-deafness probe state (2026-07-23: all four proxy subscriptions wedged at once read as
     // "idle" for 20+ min — the differential detector needs a healthy sibling, and the old touch()
@@ -135,6 +140,8 @@ object ConnectionWatchdog {
     private const val PUSH_PROBE_PERIODIC_MS = 30 * 60_000L // standing cadence in proxy mode (~48 msgs/day worst case)
     private const val PUSH_ENDPOINT_GRACE_MS = 5 * 60_000L  // no push verdict while the distributor may still be registering
     @Volatile private var lastPushProbeMs = 0L
+    @Volatile private var lastTokenArrivalMs = 0L           // throttles the token-arrival adaptive exit
+    private const val TOKEN_ARRIVAL_THROTTLE_MS = 60_000L   // onNewToken can burst; one attempt a minute is plenty
     @Volatile private var pushLegDown: Boolean? = null      // null = never tested this process; drives DOWN→UP transition notices
     @Volatile private var noPushAdaptive = false            // push token cleared, proxy clients riding streaming LISTENs
     private const val REAL_PUSH_STARVATION_MS = 10 * 60_000L   // verified wedge + no real push this long = proxies' leg dead for us
@@ -178,6 +185,15 @@ object ConnectionWatchdog {
     @Volatile private var canaryInFlight = false
     @Volatile private var recovering = false
     @Volatile private var detectorsStoodDown = false   // logged once per transition, not per tick
+    @Volatile private var pushWarnSinceMs = 0L         // when the push provider was first found unusable
+    @Volatile private var lastPushWarnMs = 0L          // last time the LOUD no-push warning was raised
+    @Volatile private var pushWarnIncidentWritten = false
+    private const val PUSH_WARN_GRACE_MS = 10 * 60_000L      // let FCM / a distributor answer first
+    private const val PUSH_WARN_RENOTIFY_MS = 6 * 3600_000L  // re-raise this often while it stands
+    @Volatile private var zeroRegSinceMs = 0L          // when EVERY account went unregistered (0 = not now)
+    @Volatile private var lastZeroRegRecoverMs = 0L    // last recover fired by the all-unregistered rescue
+    private const val ZERO_REG_LIMIT_MS = 120_000L     // every account unregistered this long = act, wedge window or not
+    private const val ZERO_REG_RETRY_MS = 180_000L     // …and no oftener than this, so the rescue cannot hot-loop
 
     private fun now() = System.currentTimeMillis()
     private fun stamp() = hms.format(Date())
@@ -294,6 +310,12 @@ object ConnectionWatchdog {
             }
         }
         healInterruptedReregisters(c, accounts)
+        // Before any of the detectors run: is the push leg even POSSIBLE on this device? Placed
+        // ahead of the stand-down and the `active` gate on purpose — a missing push provider is a
+        // configuration fault that holds whether or not the recovery detectors are switched on,
+        // and it is the root cause the detectors below would otherwise spend all night mistaking
+        // for a wedge.
+        checkPushProvider(c)
         // Asleep BY DESIGN (2026-07-29). The background battery optimization deactivates every
         // proxy account while the app is backgrounded and the push leg is proven; a deactivated
         // account is unregistered and receives nothing until a push or a foreground return wakes
@@ -934,6 +956,72 @@ object ConnectionWatchdog {
     /** [fixedId] pins a notification to ONE slot that updates in place — used for the repeating
      *  uniform-wedge so a night of incidents is one evolving notification, not a rotation that
      *  overwrites the shade's history 20 IDs at a time (2026-07-25). */
+    /**
+     * LOUD warning: the selected push backend cannot produce a token on this device (白い熊,
+     * 2026-09-11 — "if we transfer to the new phone, no microG, then we should be told somewhere").
+     *
+     * This condition used to be entirely silent. The only trace was a `Log.w` that EMUI drops for
+     * release builds, and the UI's answer was to HIDE the "Push notifications" row — so the state
+     * announced itself by REMOVING the one control that explained it. Meanwhile the cost was
+     * severe and indirect: no push leg means the accounts never sleep, `lastRealPushMs` stays 0 so
+     * the uniform-wedge detector can never acquit a quiet night, and the watchdog tore down all
+     * four accounts ~15×/day for a week before anyone connected the two facts.
+     *
+     * Deliberately its own IMPORTANCE_HIGH channel, NOT the auto-recovery channel: this is a
+     * standing configuration fault needing a human, not a transient event, and it must be
+     * silenceable on its own. Not `setOngoing` — 白い熊 may choose to run a phone without Play
+     * Services, and an undismissable notification would punish a deliberate choice; instead it is
+     * re-raised every [PUSH_WARN_RENOTIFY_MS] while the fault stands, and cancelled the moment a
+     * token appears.
+     */
+    private fun checkPushProvider(c: Context) {
+        val t = now()
+        val verdict = PushProvider.verdict(c)
+        if (verdict == PushProvider.Verdict.DISABLED || verdict == PushProvider.Verdict.OK) {
+            if (pushWarnSinceMs != 0L) {
+                log(c, "push provider OK again (${UiPrefs.getPushBackend(c)}) — no-push warning cleared")
+                runCatching {
+                    (c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                        .cancel(NOTIF_ID_PUSH_WARN)
+                }
+                pushWarnSinceMs = 0L; lastPushWarnMs = 0L; pushWarnIncidentWritten = false
+            }
+            return
+        }
+        if (pushWarnSinceMs == 0L) pushWarnSinceMs = t
+        // Grace: Firebase and a UnifiedPush distributor both answer asynchronously after process
+        // start, and a cold start legitimately holds no token for a minute or two.
+        if (t - processStartMs < PUSH_WARN_GRACE_MS) return
+        if (lastPushWarnMs != 0L && t - lastPushWarnMs < PUSH_WARN_RENOTIFY_MS) return
+        lastPushWarnMs = t
+        val advice = PushProvider.advice(c) ?: return
+        log(c, "PUSH PROVIDER FAULT [$verdict] backend=${UiPrefs.getPushBackend(c)} — $advice")
+        if (!pushWarnIncidentWritten) {
+            pushWarnIncidentWritten = true
+            writeIncident(c, "push-provider-missing",
+                "[$verdict] selected backend=${UiPrefs.getPushBackend(c)} has no usable token " +
+                    "(${(t - pushWarnSinceMs) / 60_000}m) — $advice",
+                LogStormMonitor.recentLines())
+        }
+        runCatching {
+            val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(NotificationChannel(
+                NOTIF_CHANNEL_PUSH_WARN,
+                c.getString(cx.ring.R.string.push_warn_channel),
+                NotificationManager.IMPORTANCE_HIGH))
+            nm.notify(NOTIF_ID_PUSH_WARN,
+                NotificationCompat.Builder(c, NOTIF_CHANNEL_PUSH_WARN)
+                    .setSmallIcon(cx.ring.R.drawable.ic_ring_logo_white)
+                    .setContentTitle(c.getString(cx.ring.R.string.push_warn_title))
+                    .setContentText(advice)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(advice))
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_ERROR)
+                    .setAutoCancel(false)
+                    .build())
+        }
+    }
+
     private fun notifyUser(c: Context, text: String, fixedId: Int = -1) {
         runCatching {
             val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -1277,6 +1365,46 @@ object ConnectionWatchdog {
      *  adaptive mode had escaped it). */
     fun isNoPushAdaptive(): Boolean = noPushAdaptive
 
+    /**
+     * A push token reached the app while adaptive no-push was streaming — take the exit NOW if the
+     * hold has already expired, instead of waiting out the periodic probe (白い熊, 2026-09-11).
+     *
+     * Measured on the …441 phone the morning microG was installed: the startup probe ran at
+     * 10:15:40 and found no token; Firebase delivered one at 10:15:40.718. Lost by seven hundred
+     * milliseconds — and because the FCM exit is only retried on [PUSH_PROBE_PERIODIC_MS], that
+     * near-miss cost a full 30 minutes of streaming with a perfectly good token sitting in the
+     * app's own field, unregistered. The race is structural, not bad luck: `registerSelectedToken`
+     * deliberately defers while streaming, and nothing re-examined the decision when the reason for
+     * it went away.
+     *
+     * Scoped to FCM on purpose. The UnifiedPush exit is gated on a passed end-to-end self-test
+     * (PushProbe can POST to our own ntfy endpoint; it cannot POST to an FCM token), and exiting
+     * that path on a bare endpoint arrival would trade proof for a guess. FCM's exit is already
+     * "timed optimistic re-entry" by design, so doing it on the token's arrival rather than on a
+     * clock tick changes only the latency — the optimism was always there.
+     */
+    fun onPushTokenArrived(c: Context, accounts: AccountService) {
+        handler.post {
+            if (!noPushAdaptive) return@post
+            if (UiPrefs.isFullDhtMode(c)) return@post
+            if (UiPrefs.getPushBackend(c) != UiPrefs.PUSH_FCM) return@post
+            val t = now()
+            // Short, dedicated throttle: token arrivals are rare, but onNewToken can burst, and a
+            // burst must not drive repeated exit attempts or repeated log lines.
+            if (t - lastTokenArrivalMs < TOKEN_ARRIVAL_THROTTLE_MS) return@post
+            lastTokenArrivalMs = t
+            if (t < adaptiveHoldUntil) {
+                // The hold is a deliberate minimum streaming spell after a starvation; a new token
+                // is not evidence the leg recovered, so it does not cut the hold short.
+                log(c, "push token arrived while streaming — ${(adaptiveHoldUntil - t) / 60_000}m of hold left, re-entry deferred")
+                return@post
+            }
+            log(c, "push token arrived while streaming and the hold has expired → immediate push re-entry")
+            lastPushProbeMs = t   // the periodic probe has nothing left to do this window
+            exitNoPushAdaptive(c, accounts)
+        }
+    }
+
     /** May the app let the daemon's accounts be background-deactivated (2026-07-29)? Deactivating
      *  hands the entire wake responsibility to the push leg, so this must be a POSITIVE proof that
      *  the leg delivers — never a mere absence of complaints. Sleeping into a dead push leg is
@@ -1414,14 +1542,43 @@ object ConnectionWatchdog {
             val enabled = accounts.getAccounts().count { it.isJami && it.isEnabled }
             val sinceStart = t - processStartMs
             val cm = c.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            if (enabled > 0 && cm?.activeNetwork != null && sinceStart > STARTUP_STALL_GRACE_MS && !recentWedge(t)) {
+            val netUp = cm?.activeNetwork != null
+            if (zeroRegSinceMs == 0L) zeroRegSinceMs = t
+            val zeroFor = t - zeroRegSinceMs
+            // EVERY account unregistered is the worst state the app can be in — it is deaf AND mute,
+            // and it is what the user sees as "all my accounts switched themselves offline". Gating
+            // the remedy on `!recentWedge` was exactly inverted (2026-09-11): the commonest CAUSE of
+            // 0 registered is our own fullRecover a minute earlier — it calls sendRegister(id,false)
+            // on every account, so all four are genuinely disabled until the re-enable half lands —
+            // and recentWedge is true for the 10-30 min that follows. Measured on the …441 phone:
+            // 30 all-unregistered episodes in 48 h, nine of them 4-9 min and one 72 min, every one
+            // of them sitting inside the wedge window logging "no registered accounts" and doing
+            // nothing until the window expired. A recovery that cannot be re-fired while its own
+            // damage is on screen is not a recovery. So: the wedge window still suppresses the
+            // IMMEDIATE re-fire (the re-register needs time to land), but once the state has stood
+            // for ZERO_REG_LIMIT_MS it is acted on regardless, throttled by its own clock so it can
+            // never hot-loop.
+            val rescue = enabled > 0 && netUp && zeroFor >= ZERO_REG_LIMIT_MS &&
+                t - lastZeroRegRecoverMs >= ZERO_REG_RETRY_MS
+            if (enabled > 0 && netUp && sinceStart > STARTUP_STALL_GRACE_MS && !recentWedge(t)) {
                 log(c, "startup stall — $enabled account(s) enabled, none registered ${sinceStart / 1000}s → full-DHT re-register")
+                lastZeroRegRecoverMs = t
+                fullRecover(c, accounts)
+            } else if (rescue) {
+                log(c, "ALL $enabled account(s) unregistered for ${zeroFor / 1000}s" +
+                    (if (recentWedge(t)) " (inside the wedge linger — overriding it)" else "") +
+                    " → re-registering")
+                writeIncident(c, "all-unregistered",
+                    "every account ($enabled enabled) has been unregistered for ${zeroFor / 1000}s — the app is offline; forcing a re-register",
+                    LogStormMonitor.recentLines())
+                lastZeroRegRecoverMs = t
                 fullRecover(c, accounts)
             } else {
-                log(c, "base check — no registered accounts ($enabled enabled, ${sinceStart / 1000}s)")
+                log(c, "base check — no registered accounts ($enabled enabled, ${sinceStart / 1000}s, all-off ${zeroFor / 1000}s)")
             }
             return
         }
+        zeroRegSinceMs = 0L
 
         val positive = stuck.filter { it.presence == net.jami.model.Contact.PresenceStatus.CONNECTED }
         val nonOffline = stuck.filter { it.presence != net.jami.model.Contact.PresenceStatus.OFFLINE }
@@ -1542,6 +1699,24 @@ object ConnectionWatchdog {
                 // belong to one that answered, so a single-account wedge still stands.
                 uniformProbeFails = 0
                 log(c, "probe: ${silent.size}/${regd.size} silent, but a real push landed ${(t - PushEvidence.lastRealPushMs) / 1000}s ago — receive path alive, no recover")
+            } else if (silent.size == regd.size && !UiPrefs.isFullDhtMode(c) &&
+                (freshestProxyRxAgeMs(c, silent) ?: Long.MAX_VALUE) < PROXY_RX_ALIVE_MS) {
+                // Same acquittal as the push branch above, on the evidence that still EXISTS when
+                // there is no push leg to vouch for anything (2026-09-11). The charge this path
+                // lays is "every subscription is dead"; a proxy that delivered to one of these very
+                // accounts minutes ago falsifies it outright, and the per-account detector — which
+                // reads exactly this signal, per account — still convicts the ones whose own proxy
+                // really has gone quiet. Not a strike: a strike implies suspicion, and there is none.
+                //
+                // Measured on the …441 phone, which has NO push backend installed: at 04:53:33 all
+                // four proxies reported lastRx 121-126 s; at 04:54:32 this path declared
+                // "subscriptions presumed dead" and tore down all four accounts, which then sat
+                // unregistered for nine minutes. Twenty-nine such incidents in 48 h. A genuinely
+                // dead subscription reads very differently and is NOT vetoed here — dhtproxy3:90
+                // sat at lastRx=4138s with ended=12 on the same phone that same morning.
+                uniformProbeFails = 0
+                val age = freshestProxyRxAgeMs(c, silent) ?: 0L
+                log(c, "probe: ${silent.size}/${regd.size} silent, but a proxy delivered ${age / 1000}s ago — receive path alive, no recover")
             } else if (recentWedge(t)) {
                 log(c, "probe: ${silent.size}/${regd.size} still silent (${silent.joinToString { it.accountId.take(6) }}) but inside the wedge linger — standing by")
             } else if (uniformProbeFails >= UNIFORM_PROBE_FAIL_CAP) {
@@ -1600,6 +1775,24 @@ object ConnectionWatchdog {
      */
     private fun uniformPushAliveWindow(c: Context): Long =
         if (UiPrefs.isFullDhtMode(c)) UNIFORM_PROBE_VERDICT_MS + PROBE_PUSH_GRACE_MS else PROXY_ALIVE_MS
+
+    /**
+     * The freshest "my proxy delivered something" age across the given accounts, or null when no
+     * proxy has anything to say (diag patch absent, fresh process, full-DHT mode).
+     *
+     * This is the same evidence the PER-ACCOUNT detector has trusted since 2026-07-30 — see the long
+     * note at [askProxyBeforeRecovering]'s caller — read here for the uniform case, which never had
+     * it. The uniform path's only acquitting evidence was [PushEvidence.lastRealPushMs], and on a
+     * device with NO push backend installed at all (no UnifiedPush distributor, no GmsCore) that
+     * value is 0 for the life of the process, so the acquittal was structurally unreachable and a
+     * quiet night convicted every time.
+     */
+    private fun freshestProxyRxAgeMs(c: Context, accounts: List<Account>): Long? {
+        if (UiPrefs.isFullDhtMode(c)) return null
+        return accounts.mapNotNull { a ->
+            runCatching { ProxySubs.rxAgeMs(a.dhtProxyUsed.ifBlank { a.dhtProxy }) }.getOrNull()
+        }.minOrNull()
+    }
 
     /**
      * Proxy mode, every account silent through the probe, and no push recent enough to vouch for the
