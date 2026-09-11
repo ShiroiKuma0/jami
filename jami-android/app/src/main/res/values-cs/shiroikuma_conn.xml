@@ -132,4 +132,13 @@
     <string name="info_b_data_landfill">Proč starý účet stojí víc: klíč nejstaršího účtu stále nese asi 990 seznamů odvolaných certifikátů z let 2024–2025. Byly uloženy jako trvalé a nepodepsané, takže je nikdo — ani tato aplikace — nemůže smazat ani přepsat, a proxy ignoruje jakýkoli filtr, o který klient požádá, takže se při každém novém přihlášení posílají celé. Mizí jen tak, jak se restartují stroje, které je drží. Nový účet nic takového nemá — v tom je celý rozdíl mezi dvěma telefony na stejné Wi-Fi.</string>
     <string name="info_b_data_where">Jak si to změřit: dlaždice Data nahoře v tomto přehledu spustí živé měření (start, stop, uložit) a obsahuje oba záznamy — uložená měření i automatický hodinový záznam.</string>
     <string name="info_b_dash_data">Data (nahoře v přehledu) — živé měření dat a záznamy spotřeby. Stejný měřič je na stránce Monitor připojení.</string>
+
+    <!-- Varování o poskytovateli push (fork shiroikuma, 2026-09-11) -->
+    <string name="push_warn_channel">Push nedostupný</string>
+    <string name="push_warn_title">⚠ 白い熊 GNU Jami · ŽÁDNÁ PUSH OZNÁMENÍ</string>
+    <string name="push_warn_no_play_services">Jako push backend je vybrán Google (FCM), ale v tomto telefonu není nainstalována žádná implementace Play Services, takže push token nemůže být nikdy vydán. Aplikaci nemá co na pozadí probudit: zprávy a hovory chodí pozdě nebo vůbec, účty nemohou usnout a hlídač si tichou noc opakovaně plete s poruchou. Nainstalujte microG (GmsCore + GSF, se zapnutou registrací zařízení a Cloud Messaging) a poté Jami restartujte — token se načítá jen při startu procesu.</string>
+    <string name="push_warn_no_token_fcm">Jako push backend je vybrán Google (FCM) a Play Services jsou nainstalovány, ale nevydaly žádný push token — registrace byla odmítnuta nebo neproběhla. Zkontrolujte microG: musí být zapnutá registrace zařízení (checkin) i Cloud Messaging a Jami musí být v jeho seznamu registrací. Poté Jami restartujte.</string>
+    <string name="push_warn_no_token_unified">Jako push backend je vybrán UnifiedPush, ale žádný distributor nám nepředal koncový bod. Nainstalujte a vyberte distributora (např. ntfy), nebo v nastavení aplikace přepněte backend na Google. Poté Jami restartujte.</string>
+    <string name="push_warn_short_no_play_services">bez Play Services / microG — push nemožný</string>
+    <string name="push_warn_short_no_token">žádný token od vybraného backendu</string>
 </resources>
