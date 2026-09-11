@@ -63,11 +63,43 @@ object SettingsExport {
     private const val P_APP = "ring_settings"
     private const val P_VIDEO = "videoPrefs"
 
-    /** shiroikuma_ui carries settings AND runtime state — only these keys are real settings. */
-    private val UI_KEYS = setOf("split_view", "status_dot_scale", "monitor_fold_scale", "app_language")
+    // shiroikuma_ui carries settings AND runtime state, so it is never exported wholesale — only
+    // named keys travel. Those keys are now filed by WHAT THEY ARE rather than by which file they
+    // happen to live in (白い熊, 2026-09-11): the original split produced a category called "UI
+    // behaviour" holding four unrelated keys, two of which were sizes (belonging with the other
+    // sizes) and one a language (belonging with the app's own settings). It was the leftovers of
+    // this file after the recovery keys were carved out, not a concept.
+    //
+    // Splitting one store across three categories is safe because import is a per-key MERGE that
+    // applies the same filter (see importPrefs) — restoring one category can neither clear the
+    // file nor smuggle in another category's keys.
+    /** Display scales — sizes, so they ride with the other sizes in [Cat.FONTS]. */
+    private val FONT_SCALE_KEYS = setOf("status_dot_scale", "monitor_fold_scale")
+    /** Plain app preferences that happen to live in our own store; they ride with [Cat.APP]. */
+    private val APP_UI_KEYS = setOf("split_view", "app_language")
+    /** The watchdog's own tuning — safe to carry to any handset; it describes detectors, not links. */
     private val RECOVERY_KEYS = setOf(
         "recovery_base", "recovery_ping", "recovery_test_swarm", "recovery_test_account",
-        "recovery_tick_min", "recovery_prune_days", "full_dht_mode", "push_backend")
+        "recovery_tick_min", "recovery_prune_days")
+    /**
+     * The two MODE choices, split out of [RECOVERY_KEYS] on 2026-09-11 so a restore cannot impose
+     * them on a handset that cannot serve them.
+     *
+     * They were never recovery settings; they rode along because they live in the same prefs file.
+     * The damage is asymmetric and worth stating:
+     *  · `push_backend` — restoring a UnifiedPush choice onto a phone whose only working backend is
+     *    FCM via microG (or the reverse) leaves it unable to be woken. Since `+004` this at least
+     *    announces itself: PushProvider raises the no-push-provider warning when the selected
+     *    backend cannot mint a token.
+     *  · `full_dht_mode` — NOTHING announces this one. A restore silently flips the phone between
+     *    proxy and full DHT, and full DHT measured 145 pkt/s with the WiFi radio asleep 289 ms in
+     *    two hours (2026-07-29). The hub icon changes shape, which is visible if you look for it;
+     *    there is no alert. That asymmetry is the real reason this category exists.
+     *
+     * Left defaultOn: these keys travel today, so the split adds a CHOICE without changing what a
+     * restore does unless 白い熊 unticks it.
+     */
+    private val CONNECTIVITY_KEYS = setOf("full_dht_mode", "push_backend")
 
     /**
      * The selectable categories; [id] doubles as the JSON entry name inside the zip, and as the
@@ -80,7 +112,11 @@ object SettingsExport {
         CHAT_FILES("chat_files", R.string.sk_cat_chat_files, defaultOn = false),
         FONTS("fonts", R.string.sk_cat_fonts),
         COLORS("colors", R.string.sk_cat_colors),
-        UI("ui", R.string.sk_cat_ui),
+        // "ui" was RETIRED 2026-09-11 — its four keys went to FONTS (the two scales) and APP
+        // (split_view, app_language). Deliberately NOT aliased: 白い熊 is having 自由作業盤 and
+        // 応用管理 rebuilt against the new ids, so a caller still naming "ui" should fail loudly
+        // with ERROR:unknown category rather than silently restore a subset it did not ask for.
+        CONNECTIVITY("connectivity", R.string.sk_cat_connectivity),
         RECOVERY("recovery", R.string.sk_cat_recovery),
         AUTOMATION("automation", R.string.sk_cat_automation),
         APP("app_settings", R.string.sk_cat_app),
@@ -96,14 +132,14 @@ object SettingsExport {
     /** prefs-file name → key filter (null = every key) for one category. */
     private fun stores(cat: Cat): Map<String, ((String) -> Boolean)?> = when (cat) {
         Cat.ACCOUNTS, Cat.CHAT_TEXTS, Cat.CHAT_FILES -> emptyMap()  // payload, not prefs
-        Cat.FONTS -> mapOf(P_FONTS to null)
+        Cat.FONTS -> mapOf(P_FONTS to null, P_UI to { k: String -> k in FONT_SCALE_KEYS })
         Cat.COLORS -> mapOf(P_COLORS to null)
-        Cat.UI -> mapOf(P_UI to { k: String -> k in UI_KEYS })
+        Cat.CONNECTIVITY -> mapOf(P_UI to { k: String -> k in CONNECTIVITY_KEYS })
         Cat.RECOVERY -> mapOf(P_UI to { k: String -> k in RECOVERY_KEYS })
         // The automation token must NEVER travel in a backup ZIP (保存復元 contract §2) — it is a
         // live credential; a restored backup regenerates one lazily. Everything else exports.
         Cat.AUTOMATION -> mapOf(P_AUTOMATION to { k: String -> k != "token" }, P_PROTECTED to null)
-        Cat.APP -> mapOf(P_APP to null, P_VIDEO to null)
+        Cat.APP -> mapOf(P_APP to null, P_VIDEO to null, P_UI to { k: String -> k in APP_UI_KEYS })
     }
 
     // --- export -------------------------------------------------------------------------------
@@ -369,7 +405,10 @@ object SettingsExport {
             if (cat == Cat.FONTS) n += importFontFiles(c, src)
             any = true
             if (summary.isNotEmpty()) summary.append('\n')
-            summary.append(c.getString(cat.labelRes)).append(": ").append(n)
+            // Localized: this summary is read by 白い熊 in the "Restored" dialog and returned to
+            // automation callers, and `c` here is usually the application context — which below
+            // API 33 resolves in the SYSTEM locale, not the app's chosen one.
+            summary.append(UiPrefs.localized(c).getString(cat.labelRes)).append(": ").append(n)
         }
         return if (any) summary.toString() else null
     }
