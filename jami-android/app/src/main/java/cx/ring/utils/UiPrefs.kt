@@ -1,6 +1,9 @@
 package cx.ring.utils
 
 import android.content.Context
+import android.content.res.Configuration
+import androidx.appcompat.app.AppCompatDelegate
+import java.util.Locale
 
 /** Shiroikuma UI preferences (not part of the Jami account/settings model). */
 object UiPrefs {
@@ -263,6 +266,30 @@ object UiPrefs {
     // system per-app locale on a sideload update; JamiApplication re-asserts this on every start.
     fun getAppLanguage(c: Context): String? = p(c).getString("app_language", null)
     fun setAppLanguage(c: Context, tag: String) { p(c).edit().putString("app_language", tag).apply() }
+
+    /**
+     * A context whose resources resolve in the app's CHOSEN language — for any string that LEAVES
+     * the app or is built off the application context.
+     *
+     * `AppCompatDelegate.setApplicationLocales` does not reach `applicationContext` below API 33:
+     * the backport wraps ACTIVITY contexts, and the framework LocaleManager that would apply it
+     * process-wide only arrived in 33. So a BroadcastReceiver or ContentProvider calling
+     * `applicationContext.getString()` answers in the SYSTEM locale regardless of the user's choice.
+     *
+     * Measured 2026-09-11 on …441: system locale `en-JP`, SDK 31, app language Japanese — and the
+     * LIST_CATEGORIES listing went out to 自由作業盤's item picker in English while every visible
+     * surface of the app was Japanese. Labels are the only thing we publish that a human reads, so
+     * getting them in the wrong language is the whole cost of this being invisible.
+     */
+    fun localized(c: Context): Context = runCatching {
+        val tag = (getAppLanguage(c)
+            ?: AppCompatDelegate.getApplicationLocales().toLanguageTags())
+            .substringBefore(',').trim()
+        if (tag.isEmpty()) return@runCatching c
+        val cfg = Configuration(c.resources.configuration)
+        cfg.setLocale(Locale.forLanguageTag(tag))
+        c.createConfigurationContext(cfg)
+    }.getOrDefault(c)
 
     // One-time reset of the connection-dot colours: STATUS_ONLINE/OFFLINE changed meaning (account
     // online/offline icon → connection-dot connected/disconnected) with new yellow/red defaults, so a

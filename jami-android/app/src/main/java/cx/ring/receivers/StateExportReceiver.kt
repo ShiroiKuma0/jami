@@ -26,6 +26,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import cx.ring.utils.AutomationPrefs
 import cx.ring.utils.SettingsExport
+import cx.ring.utils.UiPrefs
 
 class StateExportReceiver : BroadcastReceiver() {
 
@@ -86,8 +87,14 @@ class StateExportReceiver : BroadcastReceiver() {
             // id ⇥ label ⇥ parent ⇥ on|off (保存復元 contract, LIST_CATEGORIES). The parent field is
             // empty — this app has no item groups — and the fourth field is the app stating whether
             // an item starts ticked, rather than the picker assuming.
-            kind == Kind.LIST -> reply("OK:" + SettingsExport.Cat.entries.joinToString("\n") {
-                "${it.id}\t${app.getString(it.labelRes)}\t\t${if (it.defaultOn) "on" else "off"}"
+            // Labels resolved through UiPrefs.localized, NOT off the application context: below
+            // API 33 AppCompat's per-app locale wraps ACTIVITY contexts only, so `app.getString`
+            // answers in the SYSTEM locale. On …441 (SDK 31, system locale en-JP) that sent this
+            // listing to 白い熊's item picker in English while the whole app was Japanese.
+            kind == Kind.LIST -> reply(UiPrefs.localized(app).let { loc ->
+                "OK:" + SettingsExport.Cat.entries.joinToString("\n") {
+                    "${it.id}\t${loc.getString(it.labelRes)}\t\t${if (it.defaultOn) "on" else "off"}"
+                }
             })
 
             // Reject an unknown category here rather than starting a service that would only fail:

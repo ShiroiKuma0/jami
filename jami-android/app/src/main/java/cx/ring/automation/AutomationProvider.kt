@@ -96,7 +96,11 @@ class AutomationProvider : ContentProvider() {
     private fun describe(ctx: Context): String {
         val pkg = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
         val cats = SettingsExport.defaultHeadlessCats()
-        val contains = cats.joinToString(",") { "\"" + ctx.getString(it.labelRes).replace("\"", "'") + "\"" }
+        // Same reason as StateExportReceiver's listing: a ContentProvider's context is not an
+        // Activity, so below API 33 it resolves in the SYSTEM locale rather than the app's chosen
+        // one. These labels are read by a human in another app's UI.
+        val loc = cx.ring.utils.UiPrefs.localized(ctx)
+        val contains = cats.joinToString(",") { "\"" + loc.getString(it.labelRes).replace("\"", "'") + "\"" }
         return "OK:" + """
             {"app_id":"${ctx.packageName}",
              "version_code":${@Suppress("DEPRECATION") pkg.versionCode},
