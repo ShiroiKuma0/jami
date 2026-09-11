@@ -1384,6 +1384,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         // Push-leg surface: which backend/endpoint the accounts are registered against and when a
         // real push last arrived — the verification line for endpoint switches (e.g. self-hosted
         // ntfy) and for judging the leg at a glance.
+        // "no endpoint" alone never said WHY, and the why is the whole difference between "quiet"
+        // and "this phone can never receive a push" (2026-09-11). Same text, plus the reason and
+        // in red when the leg is impossible rather than merely idle.
+        val pushReason = cx.ring.utils.PushProvider.shortReason(ctx)
         container.addView(text(ctx.getString(R.string.conn_dash_push, run {
             val app = cx.ring.application.JamiApplication.instance
             val endpoint = app?.pushToken?.first?.takeIf { it.isNotEmpty() }?.let {
@@ -1391,8 +1395,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             } ?: ctx.getString(R.string.conn_dash_push_none)
             val last = cx.ring.utils.PushEvidence.lastRealPushMs
             val age = if (last == 0L) "—" else "${(System.currentTimeMillis() - last) / 1000}s"
-            "${app?.pushPlatform ?: "?"} · $endpoint · rx $age"
-        }), grey, sizeSp = 12f))
+            "${app?.pushPlatform ?: "?"} · $endpoint · rx $age" +
+                (pushReason?.let { "\n⚠ $it" } ?: "")
+        }), if (pushReason != null) red else grey, sizeSp = 12f))
         for (da in ranked) {
             val ac = da.ac
             val health = healthOf(da)
