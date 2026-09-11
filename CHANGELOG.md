@@ -7,6 +7,50 @@ listed is built on top of stock.
 
 ---
 
+## `20260904-01+2026-09-08.19-39.g3c0b6ad1+009` — 2026-09-11
+
+An upstream-sync release, and nothing else. The fork's own code is **unchanged from `+008`** — no
+feature, no fix, no behaviour change. What moved is the upstream commit our stack is rebased on, and
+therefore the base pin in the version string: `ge3d1d428` (2026-09-04) → `g3c0b6ad1` (2026-09-08).
+
+### 🔄 Rebased onto upstream `3c0b6ad1`
+
+Upstream advanced by exactly one commit, *docker: make cargo usable by any build uid*. It repairs
+their **containerised build images**: `CARGO_HOME` pointed at the toolchain install
+`/usr/local/cargo`, which is root-owned and deliberately read-only, so the `yffi` (Y-CRDT) contrib's
+cargo could not write its registry cache and every release build had failed since `yffi` landed. The
+`chown` meant to fix it lived only in the `test` stage, which the Play Store pipeline never runs, and
+moving it would not have helped either — cqfd runs the container under the host uid, which has no
+user in the image to chown to. Their fix keeps the toolchain read-only and points `CARGO_HOME` at
+`/tmp/cargo-home`, a directory any uid can write.
+
+**It changes nothing in this APK**, because we never build in their container: this fork compiles
+natively on the build host, and the same `yffi`/cargo problem was solved here a month ago with a
+`rustup` directory override pinned to toolchain 1.97.1. The commit touches two Dockerfiles and no
+other file.
+
+All 479 of our commits replayed onto the new base with **zero conflicts**.
+
+### 🧊 Identical native code
+
+The `daemon` submodule gitlink did not move (`ce493889c` before and after), so the C++ daemon and
+every contrib package — our patched `pjproject`, `opendht` and `dhtnet` among them — are byte-for-byte
+what `+008` shipped. Nothing was re-extracted and nothing recompiled; the patch-set checksum gate saw
+unchanged patches *and* unchanged upstream package versions and correctly did nothing.
+
+### 🔢 Version bookkeeping
+
+`upstreamVersionName` is still `20260904-01`, so the build counter **did not reset** — it advanced
+8 → 9, exactly as the pin/counter split requires. The pin orders releases by the upstream commit they
+sit on; the counter guarantees `versionCode` never goes backwards. Only the pin moved here.
+
+---
+
+**Asset:** `shiroikuma-jami_20260904-01+2026-09-08.19-39.g3c0b6ad1+009_arm64-v8a.apk` — `arm64-v8a`,
+`withUnifiedPush` flavour, signed release. Installs over `+008` in place; no uninstall needed.
+
+---
+
 ## `20260904-01+2026-09-04.22-30.ge3d1d428+008` — 2026-09-11
 
 Same upstream base as `+002` — no rebase, a pure fork delta. One day's work, all of it traced back
