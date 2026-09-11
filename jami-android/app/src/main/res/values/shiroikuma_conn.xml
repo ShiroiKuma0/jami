@@ -134,4 +134,15 @@
     <string name="info_b_data_landfill">Why an old account costs more: the oldest account\'s key still carries about 990 revocation lists published in 2024–2025. They were stored as permanent and unsigned, so nothing — not even this app — can delete or overwrite them, and the proxy ignores any filter a client asks for, so they are sent in full on every fresh subscription. They fade only as the machines holding them restart. A fresh account carries none of this: that is the whole difference between two phones on the same Wi-Fi.</string>
     <string name="info_b_data_where">Measuring it yourself: the Data pill at the top of this dashboard runs a live measurement (start, stop, save) and holds both logs — your saved sessions and the automatic hourly record.</string>
     <string name="info_b_dash_data">Data (top of the dashboard) — live data measurement plus the usage logs. The same meter is on the Connection monitor page.</string>
+
+    <!-- Push-provider warning (shiroikuma, 2026-09-11). Raised when the SELECTED push backend
+         cannot produce a token on this device — the state a phone swap leaves behind when the new
+         phone has no Play Services implementation on it. -->
+    <string name="push_warn_channel">プッシュ不可 · push unavailable</string>
+    <string name="push_warn_title">⚠ 白い熊 GNU Jami · NO PUSH NOTIFICATIONS</string>
+    <string name="push_warn_no_play_services">Google (FCM) is the selected push backend, but no Play Services implementation is installed on this phone, so no push token can ever be issued. Nothing can wake the app in the background: messages and calls arrive late or not at all, the accounts can never sleep, and the watchdog keeps mistaking a quiet night for a fault. Install microG (GmsCore + GSF, with device registration and Cloud Messaging enabled), then restart Jami — the token is only fetched at process start.</string>
+    <string name="push_warn_no_token_fcm">Google (FCM) is the selected push backend and Play Services is installed, but it has issued no push token — registration was refused or has not completed. Check microG: device registration (checkin) and Cloud Messaging must both be enabled, and Jami must appear in its push registration list. Then restart Jami.</string>
+    <string name="push_warn_no_token_unified">UnifiedPush is the selected push backend, but no distributor has given us an endpoint. Install and select a distributor (e.g. ntfy), or switch the backend to Google in App settings. Then restart Jami.</string>
+    <string name="push_warn_short_no_play_services">no Play Services / microG — push impossible</string>
+    <string name="push_warn_short_no_token">no token from the selected backend</string>
 </resources>

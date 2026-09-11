@@ -61,6 +61,13 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     fun registerSelectedToken() {
         if (cx.ring.utils.ConnectionWatchdog.isNoPushAdaptive()) {
             Log.d(TAG, "adaptive no-push active — token registration deferred")
+            // …but tell the watchdog a token now EXISTS. Deferring was right; leaving the decision
+            // unrevisited for up to PUSH_PROBE_PERIODIC_MS was not — the reason for the deferral
+            // (no token) has just gone away, and on 2026-09-11 that cost 30 minutes of streaming
+            // over a 0.7 s race between the startup probe and Firebase's answer.
+            runCatching {
+                cx.ring.utils.ConnectionWatchdog.onPushTokenArrived(applicationContext, mAccountService)
+            }
             return
         }
         val token = pushToken

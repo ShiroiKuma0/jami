@@ -113,6 +113,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <queries>
         <package android:name="shiroikuma.oyokanri" />
         <package android:name="shiroikuma.jiyusagyoban" />
+        <!-- Visibility ONLY (no permission, no access), so PushProvider can tell "microG/Play
+             Services is not installed" from "installed but issued no token". From API 30 package
+             visibility hides this package, and getPackageInfo would otherwise answer a confident,
+             WRONG "missing" on a phone where microG is present and merely unregistered. microG's
+             GmsCore uses Google's own package name, so this one entry covers both. -->
+        <package android:name="com.google.android.gms" />
     </queries>
 
     <application
