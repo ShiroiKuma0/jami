@@ -34,10 +34,10 @@
     <string name="sk_cat_chat_files">Chats — received &amp; sent files</string>
     <string name="sk_cat_fonts">Fonts &amp; sizes</string>
     <string name="sk_cat_colors">Colours</string>
-    <string name="sk_cat_ui">UI behaviour</string>
-    <string name="sk_cat_recovery">Online recovery &amp; connectivity</string>
+    <string name="sk_cat_connectivity">Connectivity — push backend &amp; DHT mode</string>
+    <string name="sk_cat_recovery">Online recovery</string>
     <string name="sk_cat_automation">Automation &amp; protected contacts</string>
-    <string name="sk_cat_app">App settings</string>
+    <string name="sk_cat_app">Jami settings</string>
 
     <!-- picking an archive, then what to restore from it -->
     <string name="sk_exim_loading">Reading…</string>
