@@ -145,4 +145,8 @@
     <string name="push_warn_no_token_unified">UnifiedPush is the selected push backend, but no distributor has given us an endpoint. Install and select a distributor (e.g. ntfy), or switch the backend to Google in App settings. Then restart Jami.</string>
     <string name="push_warn_short_no_play_services">no Play Services / microG — push impossible</string>
     <string name="push_warn_short_no_token">no token from the selected backend</string>
+    <string name="notif_stuck_toggle">Still stuck after a hard reset — switching the accounts off and on (%1$s)</string>
+    <string name="tip_account_toggle">Account on/off. Tap to switch this account off, tap again to switch it back on — the same switch as in the account settings. The dot shows the state of the account.</string>
+    <string name="conn_dash_acct_on">switched ON</string>
+    <string name="conn_dash_acct_off">switched OFF</string>
 </resources>

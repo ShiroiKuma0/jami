@@ -182,6 +182,7 @@ object ConnectionWatchdog {
     private const val BREADTH_QUIET_MS = 2 * 60_000L       // breadth trigger also needs this much inbound silence
     @Volatile private var lastWedgeFp: String? = null      // fingerprint of the evidence behind the last recover
     @Volatile private var wedgeEscalated = false           // the one hard-reset escalation already spent
+    @Volatile private var wedgeToggled = false             // the one account-registration toggle already spent
     @Volatile private var wedgeStandDownUntil = 0L
     @Volatile private var stuckAmbiguous = false           // AVAILABLE-presence stuck exists → deafness clock runs at half limit
     @Volatile private var stormAmbiguousUntil = 0L         // an uncorroborated error storm tightens the deafness limit until this time
@@ -1641,7 +1642,7 @@ object ConnectionWatchdog {
             t - InboundEvidence.lastMs > BREADTH_QUIET_MS
         val wedgeEvidence = positive.ifEmpty { if (breadth) nonOffline else emptyList() }
         if (stuck.isEmpty() && lastWedgeFp != null) {
-            lastWedgeFp = null; wedgeEscalated = false; wedgeStandDownUntil = 0L
+            lastWedgeFp = null; wedgeEscalated = false; wedgeToggled = false; wedgeStandDownUntil = 0L
             log(c, "stuck messages cleared — wedge ledger reset")
         }
 
@@ -1945,7 +1946,7 @@ object ConnectionWatchdog {
         val implicated = evidence.map { it.accountId }.distinct()
         val single = implicated.singleOrNull()?.takeIf { healthy > 0 }
         if (fp != lastWedgeFp) {
-            lastWedgeFp = fp; wedgeEscalated = false; wedgeStandDownUntil = 0L
+            lastWedgeFp = fp; wedgeEscalated = false; wedgeToggled = false; wedgeStandDownUntil = 0L
             if (single != null) {
                 // One account implicated while others are healthy: recover THAT account only. Same
                 // primitive the deafness detector already uses, and it restores itself after the
@@ -1965,9 +1966,29 @@ object ConnectionWatchdog {
             notifyUser(c, c.getString(cx.ring.R.string.notif_stuck_hard, stamp()))
             fullRecover(c, accounts)
             maybeDiagnoseTransport(c, accounts, "wedge persisted past recover")
+        } else if (!wedgeToggled) {
+            // LAST RESORT BEFORE GIVING UP (2026-09-15): switch the implicated accounts off and on
+            // together, which is what the account switches in Settings do. Added because that exact
+            // manual action fixed a three-day fault none of the automatic remedies above touched —
+            // sibling accounts on one phone refusing each other's device certificates, with nothing
+            // delivered between 白い熊's own accounts while external contacts were fine. The ladder
+            // used to end here with "giving up", so the one remedy known to work was never tried.
+            wedgeToggled = true
+            recovering = true; lastRecoverMs = t
+            val ids = accounts.getAccounts().filter { it.isJami && it.isEnabled }.map { it.accountId }
+            log(c, "wedge STILL unchanged ($who) → toggling ${ids.size} account(s) off/on (the remedy a manual switch performs)")
+            writeIncident(c, "acct-toggle", "wedge unresolved after hard reset ($who) — registration toggle of ${ids.size} account(s)", LogStormMonitor.recentLines())
+            notifyUser(c, c.getString(cx.ring.R.string.notif_stuck_toggle, stamp()))
+            accounts.toggleAccountsRegistration(ids) {
+                // Presence does not come back on its own after a re-register (see
+                // resubscribeAccountPresence's contract), so re-arm each account explicitly.
+                for (id in ids) accounts.resubscribeAccountPresence(id)
+                scheduleBackfill(c, accounts, "account toggle")
+            }
+            maybeDiagnoseTransport(c, accounts, "wedge account toggle")
         } else {
             wedgeStandDownUntil = t + WEDGE_STAND_DOWN_MS
-            log(c, "wedge STILL unchanged ($who) — giving up for ${WEDGE_STAND_DOWN_MS / 60_000}m (recipient likely unreachable)")
+            log(c, "wedge STILL unchanged ($who) after the account toggle — giving up for ${WEDGE_STAND_DOWN_MS / 60_000}m (recipient likely unreachable)")
             notifyUser(c, c.getString(cx.ring.R.string.notif_stuck_giveup, who, (WEDGE_STAND_DOWN_MS / 60_000).toInt()))
             maybeDiagnoseTransport(c, accounts, "wedge stand-down")
         }
