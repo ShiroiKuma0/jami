@@ -141,4 +141,8 @@
     <string name="push_warn_no_token_unified">Jako push backend je vybrán UnifiedPush, ale žádný distributor nám nepředal koncový bod. Nainstalujte a vyberte distributora (např. ntfy), nebo v nastavení aplikace přepněte backend na Google. Poté Jami restartujte.</string>
     <string name="push_warn_short_no_play_services">bez Play Services / microG — push nemožný</string>
     <string name="push_warn_short_no_token">žádný token od vybraného backendu</string>
+    <string name="notif_stuck_toggle">Stále zaseknuté i po tvrdém resetu — vypínám a zapínám účty (%1$s)</string>
+    <string name="tip_account_toggle">Účet zap/vyp. Klepnutím účet vypnete, dalším klepnutím zase zapnete — stejný přepínač jako v nastavení účtu. Tečka ukazuje stav účtu.</string>
+    <string name="conn_dash_acct_on">zapnuto</string>
+    <string name="conn_dash_acct_off">vypnuto</string>
 </resources>
