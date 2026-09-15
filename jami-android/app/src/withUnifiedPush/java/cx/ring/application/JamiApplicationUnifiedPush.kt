@@ -186,8 +186,32 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     private fun handleBackgroundWakeup(data: Map<String, String>) {
         if (isForeground) return
         val expired = PushWakeupClassifier.isExpiration(data)
+        // An expiry that NAMES a call/message type is the starvation signal measured in trial 6:
+        // while asleep it may be the only thing the proxy has left to send us. Classified here so
+        // the decision (and its rate limit) stays in one place, in JamiApplication.
+        val expiredNamed = expired && PushWakeupClassifier.mentionsCallOrMessage(data)
         val wakeup = if (expired) PushWakeup(false, false) else PushWakeupClassifier.classify(data)
-        onBackgroundPushReceived(wakeup.isCall, wakeup.isMessage, expired)
+        // SK-WAKE (2026-09-12, diagnostic): what the proxy actually sent, and what we made of it.
+        // The two ways a REAL message push becomes a no-op are both invisible without this: an
+        // "exp" field short-circuits the whole restore, and the seenMessageIds dedupe demotes a
+        // re-delivered id to noise, which the cooldown then drops.
+        wakeClassifyLog(data, expired, wakeup)
+        onBackgroundPushReceived(wakeup.isCall, wakeup.isMessage, expired, expiredNamed)
+    }
+
+    /** Records the raw classification inputs alongside the verdict. Field names only — `pt` is a
+     *  MIME-ish type, `ids` are opaque DHT value ids (counted, not listed), `key` a DHT hash that
+     *  SK-PROXYDIAG already logs. No message content passes through here. */
+    private fun wakeClassifyLog(data: Map<String, String>, expired: Boolean, wakeup: PushWakeup) = try {
+        cx.ring.utils.UiPrefs.appendRecoveryLog(
+            this,
+            "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())}" +
+                "  SK-WAKE classify pt=${data["pt"]?.take(80) ?: "-"}" +
+                " ids=${data["ids"]?.split(',')?.count { it.isNotBlank() } ?: 0}" +
+                " exp=${data.containsKey("exp")} keys=${data.keys.sorted().joinToString("|")}" +
+                " → call=${wakeup.isCall} msg=${wakeup.isMessage} expired=$expired")
+    } catch (e: Exception) {
+        Log.w(TAG, "wakeClassifyLog failed", e)
     }
 
     companion object {
