@@ -7,6 +7,78 @@ listed is built on top of stock.
 
 ---
 
+## `20260904-01+2026-09-08.19-39.g3c0b6ad1+014` — 2026-09-15
+
+Two connectivity fixes, both found by measurement rather than by reading, and both about the same
+distinction: telling a real failure apart from an account that is merely quiet. Builds `+010`
+through `+013` were diagnostic and experimental steps toward these and were never released — the
+code below is the whole delta from `+009`. The `daemon` submodule gitlink did not move, so the
+native side is byte-for-byte what `+009` shipped.
+
+### 📨 A sleeping account no longer starves for want of a wake-up
+
+**The bug.** With the background battery optimization on, every account is deactivated when the app
+is backgrounded. A deactivated client does not fetch, so the values on its own DHT key age out, so
+the proxy has nothing left to send it but **expiration** notices — and the push handler dropped every
+one of those before any restore. The sleep phase starved its own wake-up, and a message sent to such
+an account simply never arrived until the app was opened by hand.
+
+**How it was measured.** Twelve controlled trials, each with the receiving phone backgrounded and
+untouched for ten minutes after a send from the other phone. Eleven delivered in 3–88 s. The twelfth
+did not, and the new trace shows exactly why — in the ten minutes after that send: **62 pushes
+classified, all 62 flagged expired, ten of them carrying the real
+`application/im-gitmessage-id/<swarm>` type, 0 restores, 0 wakes.** The eleven that worked did so
+only because at least one push happened to arrive unexpired. That is the entire difference between
+working and not.
+
+**The fix.** `exp` genuinely means the value has left the DHT — opendht's proxy server sets it only
+when the value expired — so discarding it is correct in isolation. It is wrong while **asleep** and
+the expiry **names a call or message type**: there it is the only evidence we will ever get that the
+key changed. Such an expiry now spends exactly one restore, rate-limited to one per 10 minutes so a
+burst of 62 buys one wake rather than 62, and carries the ordinary 30-second message grace window
+because the fetch it exists to permit took 3–88 s across the trials.
+
+**Verified.** Six fresh trials after the fix: 6/6 delivered, the new path firing in five of them with
+the asleep count collapsing 4 → 0 on a single restore. Two days of ordinary use since: 17 expiry
+wakes, and hourly data unchanged at 0.6–2.4 MiB/h — the fix costs nothing measurable.
+
+### 🔴 The account dot now means a concluded wedge, not a suspicion
+
+`accountVerifiedDeaf()` read `strikes > 0`, so a **single** unanswered presence probe turned an
+account's dot red. That is precisely the evidence the recovery path discards — it requires a second
+strike before acting, calling one miss "often just bad luck, not a wedge" — while the accessor's own
+comment promised an immunity to quiet-evening false positives that the code did not have. The UI was
+stricter than the logic it claims to mirror.
+
+It now lights on an explicit flag, set only where the watchdog actually **concludes** a wedge and
+acts on it, and cleared wherever a strike clears. Deliberately not `strikes >= 2`: a message stuck to
+a peer that reads CONNECTED legitimately recovers on the first strike and is a real wedge. All five
+health surfaces read the one accessor, so they cannot disagree.
+
+Measured across the same two days: **7 strike-1 events over the four accounts, every one of them
+logging "nothing stuck to a reachable peer", against zero genuine stuck-message wedges.** Every red
+dot in that window was this false positive, and the new gate would have lit none of them.
+
+The per-account proxy-delivery evidence is now also consulted **before** the probe instead of only
+after one has failed, so a quiet-but-alive account never collects the strike nor pays for the
+resubscribe it triggers.
+
+### 🔬 `SK-WAKE` — the push→restore path is observable at last
+
+Every decision on that path is written to the **persistent** recovery log: what the proxy actually
+sent (`pt`, id count, whether `exp` is set, the full key set), how it was classified, which branch
+dropped it and on which of the three conditions, and how many accounts were asleep before and after
+each restore. EMUI discards this package's release logcat, and logcat on these phones rotates within
+about two minutes — which is why this path had never been observable on-device, and why both bugs
+above survived as long as they did.
+
+---
+
+**Asset:** `shiroikuma-jami_20260904-01+2026-09-08.19-39.g3c0b6ad1+014_arm64-v8a.apk` — `arm64-v8a`,
+`withUnifiedPush` flavour, signed release. Installs over `+013` in place; no uninstall needed.
+
+---
+
 ## `20260904-01+2026-09-08.19-39.g3c0b6ad1+009` — 2026-09-11
 
 An upstream-sync release, and nothing else. The fork's own code is **unchanged from `+008`** — no
