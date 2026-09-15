@@ -128,6 +128,23 @@ object ConnectionWatchdog {
         var nextCheckMs = 0L
         var probeInFlight = false
         var probeStartQuiet = 0L
+        /** The watchdog actually CONCLUDED this account is wedged (and acted on it) — not merely
+         *  suspected it. This, never the bare strike count, is what the UI paints red.
+         *
+         *  A first unanswered probe on a quiet account is explicitly "often just bad luck, not a
+         *  wedge" (see the corroboration comment in perAccountTick) and the recovery path refuses
+         *  to act on it — but accountVerifiedDeaf() read `strikes > 0`, so the dot went red on
+         *  exactly the evidence the recovery logic throws away.
+         *
+         *  Held back on 2026-09-12 rather than shipped, and that was right: at the time delivery
+         *  really WAS broken (sleeping accounts starved of wake-ups — see the EXPIRY WAKE block in
+         *  JamiApplication), so quieting the dot would have hidden a genuine fault. Shipped
+         *  2026-09-15 once that was fixed in +013 and two days of measurement separated the two:
+         *  7 strike-1 SUSPECT events across the four accounts (2 on torakuma), every one of them
+         *  logging "nothing stuck to a reachable peer", against ZERO genuine stuck-message wedges
+         *  in the same window. Every red dot in those two days was this false positive, and a
+         *  verifiedDeaf gate would have lit none of them — correctly. */
+        var verifiedDeaf = false
     }
     private val acctStates = java.util.concurrent.ConcurrentHashMap<String, AcctState>()
 
@@ -512,7 +529,7 @@ object ConnectionWatchdog {
                     // the deaf window are still sitting on their senders. Pull them now.
                     scheduleBackfill(c, accounts, "acct ${acc.accountId.take(6)} deaf cleared")
                 }
-                st.strikes = 0; st.nextCheckMs = 0L
+                st.strikes = 0; st.verifiedDeaf = false; st.nextCheckMs = 0L
             } else if (netUp && t >= st.nextCheckMs) anyQuiet = true
         }
         if (!anyQuiet || !netUp) return
@@ -538,6 +555,25 @@ object ConnectionWatchdog {
                     // A healthy-but-quiet client answers via the subscribe-response echoes (they ride
                     // the HTTP connection, not push, so a dead push leg does not fail the probe);
                     // a genuinely wedged client stays silent and recovers ~60 s later than before.
+                    //
+                    // ACQUIT BEFORE STRIKING (2026-09-12). The proxy-rx evidence below was only
+                    // consulted AFTER a probe had already failed, so a quiet-but-healthy account
+                    // still collected the strike on its way to being acquitted — and the strike is
+                    // what every health surface paints red. Ask the same question first: if THIS
+                    // account's own proxy connection delivered within PROXY_RX_ALIVE_MS, its receive
+                    // path is demonstrably alive and there is nothing to verify, so skip the probe
+                    // (and its resubscribe, which re-downloads the full value set of every key)
+                    // entirely. Null stays "don't know" and falls through to the probe, exactly as
+                    // in the post-probe check — never treat ignorance as death.
+                    val preRxAge = accountProxyRxAgeMs(c, accounts, id)
+                    if (preRxAge != null && preRxAge < PROXY_RX_ALIVE_MS) {
+                        if (st.strikes > 0 || st.verifiedDeaf)
+                            log(c, "acct ${id.take(6)}: quiet ${quiet / 60_000}m but its proxy delivered ${preRxAge / 1000}s ago — alive, no probe")
+                        st.strikes = 0
+                        st.verifiedDeaf = false
+                        st.nextCheckMs = t2 + IDLE_REARM_MS
+                        continue
+                    }
                     if (st.probeInFlight) continue
                     st.probeInFlight = true
                     st.probeStartQuiet = t2 - InboundEvidence.quietMs(id)   // lastMs snapshot
@@ -549,6 +585,7 @@ object ConnectionWatchdog {
                         if (lastNow > st.probeStartQuiet) {
                             log(c, "acct ${id.take(6)}: probe answered (${InboundEvidence.lastKind(id)}) — quiet but receiving, no recovery")
                             st.strikes = 0
+                            st.verifiedDeaf = false
                             st.nextCheckMs = now() + IDLE_REARM_MS
                         } else {
                             val t3 = now()
@@ -590,22 +627,24 @@ object ConnectionWatchdog {
                             // ProxySubs answers it properly, per account, because each account rides its
                             // own proxy. Null = no information (diag patch absent, or a fresh process):
                             // fall through to the old behaviour rather than veto on ignorance.
-                            val proxyRxAge = if (UiPrefs.isFullDhtMode(c)) null else runCatching {
-                                accounts.getAccount(id)?.let { acct ->
-                                    ProxySubs.rxAgeMs(acct.dhtProxyUsed.ifBlank { acct.dhtProxy })
-                                }
-                            }.getOrNull()
+                            // (Also checked BEFORE the probe now — see accountProxyRxAgeMs at the
+                            // call site above. This second look still earns its place: a tick can
+                            // land during the 60 s verdict window.)
+                            val proxyRxAge = accountProxyRxAgeMs(c, accounts, id)
                             val proxyDelivering = proxyRxAge != null && proxyRxAge < PROXY_RX_ALIVE_MS
                             if (!stuckToConnected && proxyDelivering) {
                                 // Positive evidence that the receive path for THIS account is alive.
                                 // Not a strike: a strike implies suspicion, and there is none.
                                 st.strikes = 0
+                                st.verifiedDeaf = false
                                 st.nextCheckMs = t3 + IDLE_REARM_MS
                                 log(c, "acct ${id.take(6)}: probe unanswered, but its proxy delivered ${proxyRxAge!! / 1000}s ago — quiet, NOT wedged; no recovery")
                             } else if (st.strikes < 2 && !stuckToConnected) {
                                 log(c, "acct ${id.take(6)}: probe unanswered but nothing stuck to a reachable peer — SUSPECT (strike ${st.strikes}), re-probe in ${WEDGE_RECOVER_BACKOFF_MS / 60_000}m")
                             } else {
                                 recovering = true; lastRecoverMs = t3
+                                // Concluded, not merely suspected: this is the point the UI may go red.
+                                st.verifiedDeaf = true
                                 // The wedged path depends on the mode — "proxy subscription" outside proxy mode was misleading.
                                 val path = if (UiPrefs.isFullDhtMode(c)) "DHT listen" else "proxy subscription"
                                 val why = if (stuckToConnected) "stuck→connected peer" else "probe unanswered ×${st.strikes}"
@@ -635,11 +674,24 @@ object ConnectionWatchdog {
                     // decides: an answered presence probe marks the accounts verified; an unanswered one
                     // recovers. Just quiet the strike state so this branch doesn't churn every tick.
                     if (st.strikes > 0) log(c, "acct ${id.take(6)}: quiet ${quiet / 60_000}m, all quiet — deferring to the uniform probe")
-                    st.strikes = 0; st.nextCheckMs = t2 + IDLE_REARM_MS
+                    // The per-account verdict is handed over wholesale, so it must not keep standing
+                    // (and keep the account red) while the uniform detector owns the question.
+                    st.strikes = 0; st.verifiedDeaf = false; st.nextCheckMs = t2 + IDLE_REARM_MS
                 }
             }
         }
     }
+
+    /** How long ago THIS account's own proxy connection last delivered anything, or null when we
+     *  cannot say (full-DHT mode, the opendht subscription-diag patch absent, or no tick seen yet
+     *  for its endpoint). Each account rides its own proxy, so this is the one per-account liveness
+     *  question the presence re-arm probe cannot answer. Null means "don't know", never "dead". */
+    private fun accountProxyRxAgeMs(c: Context, accounts: AccountService, id: String): Long? =
+        if (UiPrefs.isFullDhtMode(c)) null else runCatching {
+            accounts.getAccount(id)?.let { acct ->
+                ProxySubs.rxAgeMs(acct.dhtProxyUsed.ifBlank { acct.dhtProxy })
+            }
+        }.getOrNull()
 
     /** A quiet account with a verified-DOWN network (real outage) — or, when networkDown is false, a
      *  soft per-account wedge. Recovery cannot conjure a dead network, so on a down network we just
@@ -649,6 +701,7 @@ object ConnectionWatchdog {
         val t = now()
         val quiet = InboundEvidence.quietMs(id)
         st.strikes++
+        st.verifiedDeaf = true
         val backoff = (DEAF_LIMIT_MS shl (st.strikes - 1).coerceAtMost(3)).coerceAtMost(DEAF_BACKOFF_MAX_MS)
         st.nextCheckMs = t + backoff
         recovering = true; lastRecoverMs = t
@@ -1430,7 +1483,7 @@ object ConnectionWatchdog {
      *  strike count survives until real inbound clears it). This — never the bare quiet clock — is
      *  the metric the UI surfaces trust (2026-07-23: the bare clock false-positived every ~3 min on
      *  a quiet evening; "quiet" and "deaf" are different states, and only the probe tells them apart). */
-    fun accountVerifiedDeaf(accountId: String): Boolean = (acctStates[accountId]?.strikes ?: 0) > 0
+    fun accountVerifiedDeaf(accountId: String): Boolean = acctStates[accountId]?.verifiedDeaf == true
 
     /** A verification probe is currently in flight for this account (suspected, not yet judged). */
     fun accountProbing(accountId: String): Boolean = acctStates[accountId]?.probeInFlight == true
