@@ -141,4 +141,8 @@
     <string name="push_warn_no_token_unified">プッシュの送信元に UnifiedPush が選ばれていますが、配信元から接続先が渡されていません。配信元（ntfy など）を導入して選ぶか、アプリ設定で送信元を Google に切り替えてください。その後 Jami を再起動してください。</string>
     <string name="push_warn_short_no_play_services">Play サービス／microG なし——プッシュ不可</string>
     <string name="push_warn_short_no_token">選択中の送信元からトークンなし</string>
+    <string name="notif_stuck_toggle">ハードリセット後も解消せず — アカウントをオフ／オンします（%1$s）</string>
+    <string name="tip_account_toggle">アカウントのオン／オフ。タップでこのアカウントをオフに、もう一度タップでオンに戻します（アカウント設定のスイッチと同じ）。ドットはアカウントの状態を示します。</string>
+    <string name="conn_dash_acct_on">オンにしました</string>
+    <string name="conn_dash_acct_off">オフにしました</string>
 </resources>

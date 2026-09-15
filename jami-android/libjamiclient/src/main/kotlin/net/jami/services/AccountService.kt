@@ -1153,6 +1153,58 @@ class AccountService(
     }
 
     /**
+     * Unregister several accounts TOGETHER, hold them down, then register them again — the
+     * equivalent of switching each account off in Settings and back on (both call sendRegister).
+     *
+     * This exists because that manual toggle demonstrably fixes a state that every automatic
+     * recovery we have could not (白い熊, 2026-09-15). Over three days, sibling accounts on one
+     * phone refused each other's device certificates — "[TLS-SOCKET] Refusing peer certificate",
+     * nothing delivered between his own four accounts, external contacts unaffected. The watchdog
+     * detected it correctly and ran forceReconnectAccount, several verified-wedge recoveries and
+     * two hard resets against it; none worked. Toggling all four accounts off and on by hand
+     * cleared it immediately.
+     *
+     * Two things differ from [reconnectOne]'s nudge, and one of them is the reason:
+     *  · ALL implicated accounts are down at the same time, so no half of a sibling pair can keep
+     *    stale state alive while the other restarts. reconnectOne only ever touches one account.
+     *  · The down period is [offMs] (default 8 s) instead of 1.5 s.
+     * Which of the two matters is not yet known — measure before trimming either.
+     *
+     * Accounts that are DISABLED are skipped and never re-enabled: an account 白い熊 switched off
+     * himself must stay off, which is the standing complaint against fullRecover. The crash-safe
+     * re-register ledger is marked exactly as in [reconnectOne], since sendRegister(false)
+     * persists ACCOUNT_ENABLE and a process death inside the window would otherwise leave the
+     * accounts disabled on disk.
+     */
+    fun toggleAccountsRegistration(
+        accountIds: Collection<String>,
+        offMs: Long = 8_000L,
+        onDone: (() -> Unit)? = null,
+    ) {
+        mExecutor.execute {
+            val ids = accountIds.filter { id ->
+                mAccountList.firstOrNull { it.accountId == id }?.let { it.isJami && it.isEnabled } == true
+            }
+            if (ids.isEmpty()) { onDone?.invoke(); return@execute }
+            Log.w(TAG, "toggleAccountsRegistration: ${ids.size} account(s) down for ${offMs}ms")
+            for (id in ids) {
+                reregisterMarker?.invoke(id, true)   // mark BEFORE: sendRegister(false) persists
+                JamiService.sendRegister(id, false)
+            }
+            scheduler.scheduleDirect({
+                NotificationService.suppressNewMessageNotificationsUntil =
+                    System.currentTimeMillis() + 15_000L
+                for (id in ids) {
+                    JamiService.sendRegister(id, true)
+                    reregisterMarker?.invoke(id, false)
+                }
+                Log.w(TAG, "toggleAccountsRegistration: ${ids.size} account(s) back up")
+                onDone?.let { cb -> scheduler.scheduleDirect(cb, 1500, TimeUnit.MILLISECONDS) }
+            }, offMs, TimeUnit.MILLISECONDS)
+        }
+    }
+
+    /**
      * Sets the video activation state of all the accounts in the local cache
      */
     fun setAccountsVideoEnabled(isEnabled: Boolean) {

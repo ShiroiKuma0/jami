@@ -1028,6 +1028,28 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
      *  down network shows red even while registration still claims OK. A HOLLOW dot means the account
      *  is switched off (not attempting to connect), which is distinct from the red "should be up but
      *  isn't". All three colours are settable in "UI fonts & colours" → "Status & indicators". */
+    /** The status dot's look as a pure decision, shared by the search bar and the dashboard's
+     *  per-account on/off dot so the two can never drift apart (白い熊 asked for "the same account
+     *  connection dot" in both places, 2026-09-15). Hollow grey when the account is switched off,
+     *  else red for a problem, yellow when up, blue while connecting or recovering. */
+    private fun dotLook(ctx: android.content.Context, enabled: Boolean, problem: Boolean,
+                        online: Boolean, connecting: Boolean): Pair<Boolean, Int> = when {
+        !enabled   -> false to 0xFF888888.toInt()   // off / disabled → hollow grey
+        problem    -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)    // red
+        online     -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_ONLINE)     // yellow
+        connecting -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_CONNECTING) // blue
+        else       -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)    // red — enabled but not up
+    }
+
+    /** Per-account overload for the dashboard row, driven by that row's own health verdict rather
+     *  than the global alarm counters the search bar uses. */
+    private fun dotLook(ctx: android.content.Context, enabled: Boolean,
+                        health: cx.ring.utils.ConnectionHealth.Health): Pair<Boolean, Int> =
+        dotLook(ctx, enabled,
+            problem = cx.ring.utils.ConnectionHealth.isProblem(health),
+            online = health == cx.ring.utils.ConnectionHealth.Health.HEALTHY,
+            connecting = health == cx.ring.utils.ConnectionHealth.Health.CONNECTING)
+
     private fun applyStatusDot(online: Boolean) {
         val dot = mBinding?.searchBar?.menu?.findItem(R.id.menu_account_status)?.actionView as? ImageView ?: return
         val acc = mAccountService.currentAccount
@@ -1035,13 +1057,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val trying = acc?.isTrying ?: false
         val recovering = cx.ring.utils.ConnectionWatchdog.isRecovering()
         val problem = dotAlarmCount > 0 || dotDeaf   // stuck message, or any account deaf / network down
-        val (filled, color) = when {
-            !enabled            -> false to 0xFF888888.toInt()   // off / disabled → hollow grey
-            problem             -> true  to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)   // red
-            online              -> true  to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_ONLINE)    // yellow
-            trying || recovering -> true to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_CONNECTING) // blue
-            else                -> true  to cx.ring.utils.ColorPrefs.getColor(dot.context, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)   // red — enabled but not up
-        }
+        val (filled, color) = dotLook(dot.context, enabled, problem, online, trying || recovering)
         dot.setImageResource(if (filled) R.drawable.ic_status_online else R.drawable.ic_status_offline)
         dot.imageTintList = android.content.res.ColorStateList.valueOf(color)
         dot.background = null; dot.setPadding(0, 0, 0, 0)   // ring removed — the colour carries the state
@@ -1462,6 +1478,40 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                     cx.ring.utils.ConnectionWatchdog.recoverAccount(ctx, mAccountService, ac.accountId)
                     Flash.show(ctx, "${ac.name}: ${ctx.getString(R.string.conn_dash_recovering)}")
                     setColorFilter(0xFF66AAFF.toInt())
+                }
+            })
+            // Per-account on/off dot, beside the ⚡ and sized to match it (白い熊, 2026-09-15). It is
+            // the SAME dot as the search bar's — same drawables, same colour rules (dotLook below is
+            // shared with applyStatusDot) — but here a tap switches the account off and on, the
+            // manual remedy that on 2026-09-15 cleared a fault no automatic recovery could. An
+            // ADDITION: the ⚡ keeps its own tap (recover this account) untouched.
+            header.addView(ImageView(ctx).apply {
+                // 白い熊, 2026-09-15: 2x the first attempt, which drew an 18dp dot inside the ⚡'s
+                // 30dp frame — 2.5x was tried and read as too big. The DOT is what grows, so the
+                // inset shrinks as the box does not: 40dp box, 2dp inset, 36dp of actual dot,
+                // exactly twice the original and the same 40dp as the account avatar beside it.
+                val size = (40 * d).toInt()
+                layoutParams = android.widget.LinearLayout.LayoutParams(size, size).apply { marginStart = (4 * d).toInt() }
+                setPadding((2 * d).toInt(), (2 * d).toInt(), (2 * d).toInt(), (2 * d).toInt())
+                descTip(this, ctx.getString(R.string.tip_account_toggle))
+                // `ac` here is an AccountConnections view-model; the on/off flag lives on the
+                // real Account, so resolve it each time rather than caching a stale copy.
+                fun enabledNow() = mAccountService.getAccount(ac.accountId)?.isEnabled ?: ac.registered
+                fun render() {
+                    val (filled, colour) = dotLook(ctx, enabledNow(), health)
+                    setImageResource(if (filled) R.drawable.ic_status_online else R.drawable.ic_status_offline)
+                    imageTintList = android.content.res.ColorStateList.valueOf(colour)
+                }
+                render()
+                setOnClickListener {
+                    val turnOn = !enabledNow()
+                    mAccountService.setAccountEnabled(ac.accountId, turnOn)
+                    // Reflect it immediately: isEnabled is updated asynchronously from the daemon,
+                    // so paint from the intent rather than waiting for the account to catch up.
+                    mAccountService.getAccount(ac.accountId)?.isEnabled = turnOn
+                    render()
+                    Flash.show(ctx, "${ac.name}: ${ctx.getString(
+                        if (turnOn) R.string.conn_dash_acct_on else R.string.conn_dash_acct_off)}")
                 }
             })
             container.addView(header)
