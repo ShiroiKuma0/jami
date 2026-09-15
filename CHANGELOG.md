@@ -7,6 +7,65 @@ listed is built on top of stock.
 
 ---
 
+## `20260904-01+2026-09-08.19-39.g3c0b6ad1+017` — 2026-09-15
+
+One fault, one remedy, and the remedy in two places — automatic and manual. Builds `+015` and
+`+016` were sizing passes on the new control and were never released. The `daemon` submodule
+gitlink did not move, so the native side is byte-for-byte what `+014` shipped.
+
+### 🔌 The watchdog now switches the accounts off and on
+
+**The fault.** For three days the four accounts on one phone refused each other's device
+certificates — `[TLS-SOCKET] Refusing peer certificate`, nothing delivered between 白い熊's own
+accounts, conversations with real contacts entirely unaffected. In one log buffer: **6 connections
+established with external contacts, 9 certificate refusals between his own accounts, zero
+established.** Both the group chats involved were blamed in turn and neither was at fault.
+
+**Why it lasted three days.** The watchdog detected it correctly every time — the red dots and the
+`undelivered to reachable peer(s)` lines were right — and then applied `forceReconnectAccount`,
+several verified-wedge recoveries and two hard resets against it. None of them touched it. The
+escalation ladder ended at *"giving up for 60m"*. Switching all four accounts off and on by hand
+cleared it in seconds, and that action was not on the ladder.
+
+**The fix.** It now reads `recover → HARD reset → toggle all accounts off/on → give up`.
+`toggleAccountsRegistration()` performs exactly what the account switches in Settings perform —
+both call `sendRegister` — with the two properties the manual action had and the existing nudge
+does not:
+
+- **all implicated accounts are down at the same time**, so no half of a sibling pair can keep
+  stale state alive while the other restarts (the old path only ever touched one account);
+- **8 seconds down**, not 1.5.
+
+Which of the two is the operative one is not yet known, and the code says so rather than trimming
+either on a guess.
+
+Two safeguards. Accounts that are **disabled are skipped and never re-enabled** — an account
+switched off deliberately must stay off, which is the standing complaint against `fullRecover`.
+And the crash-safe re-register ledger is marked exactly as `reconnectOne` marks it, because
+`sendRegister(false)` persists `ACCOUNT_ENABLE` and a process death inside the window would
+otherwise leave accounts disabled on disk.
+
+### ⚫ A per-account on/off dot in the connection dashboard
+
+Beside each account's ⚡, a 36dp dot: tap to switch that account off, tap again to switch it back
+on, with a flash naming which — in all three locales, like the rest of the dashboard.
+
+It is the **same dot as the search bar's**, not a lookalike: the colour and shape decision now
+lives in a single `dotLook()` that both call, so the two cannot drift apart. Hollow grey when the
+account is switched off, red on a problem, blue while connecting or recovering, yellow when
+healthy. The dashboard's copy is driven by that row's own health verdict rather than the global
+alarm counters the search bar uses.
+
+The ⚡ keeps its own tap (recover just this account) untouched — this is a new control in a new
+slot, not a re-mapped one.
+
+---
+
+**Asset:** `shiroikuma-jami_20260904-01+2026-09-08.19-39.g3c0b6ad1+017_arm64-v8a.apk` — `arm64-v8a`,
+`withUnifiedPush` flavour, signed release. Installs over `+014` in place; no uninstall needed.
+
+---
+
 ## `20260904-01+2026-09-08.19-39.g3c0b6ad1+014` — 2026-09-15
 
 Two connectivity fixes, both found by measurement rather than by reading, and both about the same
