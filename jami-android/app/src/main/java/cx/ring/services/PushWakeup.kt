@@ -79,6 +79,31 @@ object PushWakeupClassifier {
     /** An "exp" key means the value already left the DHT: nothing to fetch or answer. */
     fun isExpiration(data: Map<String, String>): Boolean = data.containsKey("exp")
 
+    /**
+     * Does this payload's `pt` name a call or message type at all — ignoring both the expiry flag
+     * and the id dedupe?
+     *
+     * Measured 2026-09-12, trial 6: with the receiver's four accounts asleep, ALL 62 pushes in the
+     * ten minutes after a send arrived with `exp=true` and were dropped, 10 of them carrying the
+     * real `application/im-gitmessage-id/<swarm>` type. Nothing woke, and the message never landed.
+     * The failure is self-sustaining: a sleeping client does not fetch, so values on its key age
+     * out, so the proxy has nothing left to send it but expirations — the one thing we discard.
+     *
+     * An expiry on a key we listen to is still evidence that the key CHANGED. This predicate lets
+     * the caller spend one (rate-limited) wake on that evidence instead of starving.
+     */
+    fun mentionsCallOrMessage(data: Map<String, String>): Boolean {
+        val pushTypes = data["pt"] ?: return false
+        return pushTypes.splitToSequence(',').any {
+            val type = it.trim().lowercase(Locale.ROOT)
+            type == "audiocall" || type == "videocall" ||
+                type == "application/im-gitmessage-id" ||
+                type.startsWith("application/im-gitmessage-id/") ||
+                type == "application/invite" || type.startsWith("application/invite+") ||
+                type == "sync"
+        }
+    }
+
     // Value ids already handled by this process, to drop proxy catch-up re-deliveries.
     // Two bounded LRU caches so frequent message ids cannot evict call dedupe state.
     private const val SEEN_CALL_IDS_MAX = 256

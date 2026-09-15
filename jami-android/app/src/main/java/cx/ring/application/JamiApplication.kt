@@ -85,6 +85,14 @@ abstract class JamiApplication : Application() {
         private const val CALL_PUSH_GRACE_MS = 60_000L
         // Upper bound for one continuous background-active episode under sustained pushes.
         private const val MAX_BACKGROUND_ACTIVE_MS = 10 * 60_000L
+        // SK-WAKE: how long after invoking the restore to read back how many accounts are still
+        // asleep. Long enough for the account executor to have run it, short enough to sit inside
+        // the grace window.
+        private const val RESTORE_OBSERVE_MS = 4_000L
+        // Floor between two expiry-triggered wakes. Matched to NONCALL_RESTORE_COOLDOWN_MS so the
+        // new path can never cost more restores than the noise path it sits beside: trial 6's 62
+        // expirations in ten minutes buy exactly one.
+        private const val EXPIRY_WAKE_MIN_INTERVAL_MS = 10 * 60_000L
         // Minimum time deactivated before a non-call push may restore accounts again. This is the
         // SLEEP FLOOR, and the net saving grows monotonically with it: restore costs a fixed
         // ~1-2.5 MiB per cycle while staying awake costs 11-83 MiB/h, so break-even is a 1-7 min
@@ -142,6 +150,13 @@ abstract class JamiApplication : Application() {
          * Deliberately a plain `val`, not a `const val`: a compile-time constant would fold the
          * guards below into dead code and draw "condition is always false" warnings on a file that
          * is in the built variant's lintVital scope.
+         *
+         * Briefly set false on 2026-09-12 and put back the same day (白い熊): the delivery failures
+         * that prompted it surfaced only in the week of 2026-09-08, so a flag that has been true
+         * since 2026-07-31 cannot be assumed to be their cause. Left ON so the SK-WAKE trace below
+         * observes the duty cycle actually running. Measured that day, and still unexplained: with
+         * the receiver backgrounded, a message from the other phone was not fetched for two minutes
+         * while a push DID arrive; the foreground woke it and the message landed seconds later.
          */
         private val BACKGROUND_DEACTIVATION_ENABLED = true
     }
@@ -239,6 +254,10 @@ abstract class JamiApplication : Application() {
     // push may restore accounts again, breaking the restore/deactivate churn.
     private val lastBackgroundDeactivation = AtomicLong(0L)
 
+    // elapsedRealtime of the last expiry-triggered wake (0 if none). Rate-limits the EXPIRY WAKE
+    // path in onBackgroundPushReceived.
+    private val lastExpiryWake = AtomicLong(0L)
+
     private val deactivateRunnable = Runnable {
         // Belt to scheduleBackgroundDeactivation's braces: guard the act itself, not only the
         // scheduling, so no caller can reach a teardown by posting this runnable directly.
@@ -285,25 +304,75 @@ abstract class JamiApplication : Application() {
                 // passes (no episode) must not slide it forward.
                 if (episodeStart != 0L) lastBackgroundDeactivation.set(now)
                 backgroundActiveSince.set(0L)
+                wakeLog("deactivating accounts$capNote")
                 mAccountService.deactivateProxyAccountsForBackground()
             }
         }
     }
 
+    /** SK-WAKE diagnostic sink. Writes to the PERSISTENT recovery log rather than logcat, because
+     *  EMUI drops this package's release Log.d/w — the reason the push→restore path has never been
+     *  observable on-device. Timestamped here since appendRecoveryLog stores the line verbatim. */
+    private fun wakeLog(msg: String) = try {
+        cx.ring.utils.UiPrefs.appendRecoveryLog(
+            this,
+            "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())}  SK-WAKE $msg")
+    } catch (e: Exception) {
+        Log.w(TAG, "wakeLog failed", e)
+    }
+
+    /** How many accounts the background optimization currently has asleep. */
+    private fun asleepCount(): Int =
+        try { mAccountService.backgroundDeactivatedIds().size } catch (e: Exception) { -1 }
+
     /**
      * Handles a push received while backgrounded: opens the grace window, restores accounts
      * (and reconnects for call/message pushes), then re-arms the deactivation check.
      */
-    fun onBackgroundPushReceived(isCallPush: Boolean, isMessagePush: Boolean, isExpiration: Boolean = false) {
-        // Expired value: already gone from the DHT, nothing to fetch or answer.
-        if (isExpiration) return
+    fun onBackgroundPushReceived(
+        isCallPush: Boolean,
+        isMessagePush: Boolean,
+        isExpiration: Boolean = false,
+        /** The expiry names a call/message type — see the EXPIRY WAKE block below. */
+        isExpiredCallOrMessage: Boolean = false,
+    ) {
+        // SK-WAKE (2026-09-12, diagnostic): every decision on the push→restore path, to the
+        // PERSISTENT recovery log — EMUI drops this package's release logcat, which is why this
+        // path has never been observable on-device. Measured 2026-09-12: a backgrounded receiver
+        // did not fetch a message at all; the push arrived and the accounts stayed asleep.
+        wakeLog("push call=$isCallPush msg=$isMessagePush exp=$isExpiration asleep=${asleepCount()}")
+        // Expired value: normally there is nothing to fetch or answer, so it is dropped.
+        //
+        // EXCEPT when we are asleep and the expiry names a call/message type (SK-WAKE fix,
+        // 2026-09-12). Trial 6 measured the starvation this guards against: 62 pushes in ten
+        // minutes, every one exp=true, ten of them carrying the real gitmessage type, 0 restores,
+        // 0 wakes — the message never arrived. A sleeping client cannot fetch, so its key's values
+        // age out, so the proxy has only expirations left to send it, so it stays asleep. Spending
+        // ONE wake on that evidence breaks the loop; the rate limit keeps it from becoming the
+        // restore/deactivate churn that NONCALL_RESTORE_COOLDOWN_MS exists to stop (a stream of 62
+        // must still cost at most one restore).
+        var expiryWake = false
+        if (isExpiration) {
+            val nowMs = SystemClock.elapsedRealtime()
+            val last = lastExpiryWake.get()
+            val due = last == 0L || nowMs - last >= EXPIRY_WAKE_MIN_INTERVAL_MS
+            val asleep = asleepCount()
+            if (isExpiredCallOrMessage && asleep > 0 && due && lastExpiryWake.compareAndSet(last, nowMs)) {
+                expiryWake = true
+                wakeLog("  → EXPIRY WAKE: asleep=$asleep and the expiry names a call/message — spending one restore")
+            } else {
+                wakeLog("  → DROPPED: expiration (named=$isExpiredCallOrMessage asleep=$asleep due=$due)")
+                return
+            }
+        }
         // Background noise (neither call nor message): gated during the post-deactivation
         // cooldown to avoid re-feeding the reconnect churn. 0 means no deactivation yet.
-        if (!isCallPush && !isMessagePush) {
+        if (!isCallPush && !isMessagePush && !expiryWake) {
             val lastDeactivation = lastBackgroundDeactivation.get()
             if (lastDeactivation != 0L
                 && SystemClock.elapsedRealtime() - lastDeactivation < NONCALL_RESTORE_COOLDOWN_MS
             ) {
+                wakeLog("  → DROPPED: noise inside cooldown (${(NONCALL_RESTORE_COOLDOWN_MS - (SystemClock.elapsedRealtime() - lastDeactivation)) / 1000}s left, no restore)")
                 return
             }
         }
@@ -318,24 +387,35 @@ abstract class JamiApplication : Application() {
         // per 3 min asleep, i.e. 77% awake, at which point the optimization is break-even. The
         // restore cost is fixed per cycle while the awake cost is proportional to awake time, so
         // the objective is FEW, LONG sleeps — the opposite of what this produced.
-        if (isCallPush || isMessagePush) lastPushTime.set(now)
+        if (isCallPush || isMessagePush || expiryWake) lastPushTime.set(now)
         if (isCallPush) lastCallPushTime.set(now)
-        if (isMessagePush) lastMessagePushTime.set(now)
+        // An expiry wake gets the ordinary message grace window: the fetch it exists to allow took
+        // 3-54 s across the six trials, so a bare 5 s deactivation delay would re-sleep mid-fetch.
+        if (isMessagePush || expiryWake) lastMessagePushTime.set(now)
         backgroundActiveSince.compareAndSet(0L, now)
         backgroundHandler.removeCallbacks(deactivateRunnable)
         backgroundHandler.post {
             // Call pushes always restore/reconnect; non-call pushes keep the push-availability
             // gate so a stale delivery after push was disabled cannot reactivate accounts.
-            if (isCallPush
+            if (isCallPush || expiryWake
                 || (mPreferencesService.settings.enablePushNotifications && pushToken != null)
             ) {
+                val before = asleepCount()
+                wakeLog("  → restore invoked (asleep=$before)")
                 mAccountService.restoreProxyAccountsAfterBackground()
+                // The restore runs on the account executor, so read the result a moment later
+                // rather than inline — an unchanged count here is the interesting failure.
+                backgroundHandler.postDelayed({
+                    wakeLog("  → restore result: asleep $before → ${asleepCount()}")
+                }, RESTORE_OBSERVE_MS)
                 // No connectivityChanged() here. It was added in `+143` to rebuild sockets torn
                 // down by background deactivation; with [BACKGROUND_DEACTIVATION_ENABLED] false
                 // nothing tears them down, so there is nothing to rebuild — the premise expired.
                 // What it still did was cost: connectivityChanged(true) fires a beacon with a 3 s
                 // kill deadline on every peer socket of every account and re-maintains every
                 // conversation's DRT buckets, ~17 times an hour, for sockets that were already up.
+            } else {
+                wakeLog("  → NO restore: enablePush=${mPreferencesService.settings.enablePushNotifications} token=${pushToken != null} (asleep=${asleepCount()})")
             }
             backgroundHandler.removeCallbacks(deactivateRunnable)
             if (BACKGROUND_DEACTIVATION_ENABLED)
