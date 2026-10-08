@@ -201,6 +201,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                     if(isVideoMode) acceptClicked() else acceptAudioClicked()
                 }
                 b.callRefuseBtn.setOnClickListener { refuseClicked() }
+                b.callSilenceBtn.setOnClickListener { silenceClicked() }   // shiroikuma
                 b.callEndBtn.setOnClickListener { refuseClicked() }
                 b.callHngUpBtn.setOnClickListener { hangupClicked() }
                 b.callSpeakerBtn.setOnClickListener { speakerClicked() }
@@ -1258,6 +1259,11 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
             callBtnRow.isVisible = true
             callAcceptBtn.isVisible = true
             callRefuseBtn.isVisible = true
+            // shiroikuma: a new call rings again, so the Silence button starts armed.
+            callSilenceBtn.isEnabled = true
+            callSilenceBtn.alpha = 1f
+            callSilenceLabel.alpha = 1f
+            callSilenceLabel.setText(R.string.sk_call_silence)
             callEndBtn.isGone = true
             contactBubbleLayout.isVisible = true
             participantOverlayContainer.isVisible = false
@@ -1675,6 +1681,20 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
 
     fun refuseClicked() {
         presenter.refuseCall()
+    }
+
+    /**
+     * shiroikuma: stop ringing here without refusing — the caller keeps hearing it ring. One-way:
+     * there is nothing to un-silence, so the button dims and reads "Silenced".
+     */
+    private fun silenceClicked() {
+        presenter.silenceRinging()
+        binding?.apply {
+            callSilenceBtn.isEnabled = false
+            callSilenceBtn.alpha = 0.4f
+            callSilenceLabel.alpha = 0.4f
+            callSilenceLabel.setText(R.string.sk_call_silenced)
+        }
     }
 
     fun acceptAudioClicked() {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — the Decline circle on the incoming-call screen. Red stays red: it is the
+     one control on this screen that means "problem". -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/call_button_ripple">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/red_500" />
+        </shape>
+    </item>
+</ripple>
