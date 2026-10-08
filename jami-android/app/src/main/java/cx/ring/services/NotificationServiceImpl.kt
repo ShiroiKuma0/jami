@@ -29,6 +29,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.telecom.Connection
 import android.text.TextUtils
 import android.text.format.Formatter
@@ -99,6 +100,10 @@ class NotificationServiceImpl(
     private val currentCalls = LinkedHashMap<String, Conference>()
 
     private val callNotifications = ConcurrentHashMap<Int, Notification>()
+    /** shiroikuma: conference ids whose ringing alert the user silenced from the call screen. */
+    private val silencedCalls: MutableSet<String> = ConcurrentHashMap.newKeySet()
+    /** shiroikuma: conference ids whose full-screen incoming-call screen we already raised. */
+    private val raisedCallScreens: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private val dataTransferNotifications = ConcurrentHashMap<Int, Notification>()
     private val fileTransferNotificationWorker = Schedulers.io().createWorker()
     private var pendingNotificationActions = ArrayList<() -> Unit>()
@@ -123,6 +128,48 @@ class NotificationServiceImpl(
                 .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION))
     }
 
+    /**
+     * shiroikuma: raises our own full-screen incoming-call screen.
+     *
+     * Starting an activity from the background needs SYSTEM_ALERT_WINDOW on Android 10+. Without
+     * it the start is silently blocked by the system, so check first and leave the notification to
+     * do its job rather than logging a failure the user cannot act on from here.
+     */
+    private fun startIncomingCallScreen(callId: String) {
+        if (!Settings.canDrawOverlays(mContext)) {
+            Log.w(TAG, "Not raising the incoming call screen: \"display over other apps\" not granted")
+            return
+        }
+        try {
+            mContext.startActivity(Intent(Intent.ACTION_VIEW)
+                .putExtra(NotificationService.KEY_CALL_ID, callId)
+                .setClass(mContext.applicationContext, CallActivity::class.java)
+                .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION))
+        } catch (e: Exception) {
+            Log.w(TAG, "Can't raise the incoming call screen", e)
+        }
+    }
+
+    /**
+     * shiroikuma: stops the local alert for a ringing call without refusing it — the caller keeps
+     * hearing it ring. The daemon's ringtone is muted directly; the vibration belongs to the
+     * notification channel, so the notification is re-posted on the non-vibrating twin channel,
+     * in place and under the same id the call foreground service holds.
+     */
+    override fun silenceCallNotification(confId: String) {
+        if (!silencedCalls.add(confId)) return
+        mCallService.muteRingTone(true)
+        val conference = synchronized(currentCalls) { currentCalls[confId] } ?: return
+        buildCallNotification(conference)
+            .subscribe({ notification ->
+                try {
+                    notificationManager.notify(NOTIF_CALL_ID, notification)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Can't re-post the silenced call notification", e)
+                }
+            }, { e -> Log.w(TAG, "Can't build the silenced call notification", e) })
+    }
+
     private fun buildCallNotification(conference: Conference): Maybe<Notification> {
         val call = conference.firstCall ?: return Maybe.empty()
         val accountId = call.account
@@ -143,6 +190,7 @@ class NotificationServiceImpl(
                     .build()
 
                 val hasVideo = conference.hasVideo()
+                val silenced = conference.id in silencedCalls
 
                 val messageNotificationBuilder: NotificationCompat.Builder
                 if (conference.isOnGoing) {
@@ -172,7 +220,8 @@ class NotificationServiceImpl(
                             .setIsVideo(hasVideo))
                 } else if (conference.isRinging) {
                     if (conference.isIncoming) {
-                        messageNotificationBuilder = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_INCOMING_CALL)
+                        messageNotificationBuilder = NotificationCompat.Builder(mContext,
+                            if (silenced) NOTIF_CHANNEL_INCOMING_CALL_SILENT else NOTIF_CHANNEL_INCOMING_CALL)
                         messageNotificationBuilder.setContentTitle(mContext.getString(R.string.notif_incoming_call_title, contact.displayName))
                             .setPriority(NotificationCompat.PRIORITY_MAX)
                             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -180,6 +229,8 @@ class NotificationServiceImpl(
                             .setContentIntent(viewIntent)
                             .setSound(null)
                             .setVibrate(null)
+                            // shiroikuma: a silenced re-post must not re-alert on the way in.
+                            .setOnlyAlertOnce(silenced)
                             .setFullScreenIntent(viewIntent, true)
                             .setStyle(
                                 NotificationCompat.CallStyle.forIncomingCall(caller,
@@ -202,7 +253,7 @@ class NotificationServiceImpl(
                             val shouldMute = (ringerMode == AudioManager.RINGER_MODE_VIBRATE
                                     || ringerMode == AudioManager.RINGER_MODE_SILENT)
 
-                            mCallService.muteRingTone(shouldMute)
+                            mCallService.muteRingTone(shouldMute || silenced)
                         } catch (e: Exception) {
                             Log.w(TAG, "Error muting ringtone", e)
                         }
@@ -234,7 +285,10 @@ class NotificationServiceImpl(
                     .setSmallIcon(R.drawable.ic_ring_logo_white)
                 setContactPicture(contact, messageNotificationBuilder)
                 Maybe.just(messageNotificationBuilder.build().apply {
-                    if (conference.isRinging)
+                    // shiroikuma: FLAG_INSISTENT repeats the channel's vibration until the
+                    // notification is cancelled, so Silence has to drop it too — muting the
+                    // daemon's ringtone alone would leave the phone buzzing.
+                    if (conference.isRinging && conference.id !in silencedCalls)
                         flags = flags or NotificationCompat.FLAG_INSISTENT
                 })
         }
@@ -346,6 +400,16 @@ class NotificationServiceImpl(
         }
 
         val id = conference.id
+        // shiroikuma: upstream leaves the incoming-call screen to the notification's full-screen
+        // intent, which Android honours only on a locked device — unlocked it degrades to a
+        // heads-up notification, which is why a full-screen call screen never appeared. Raise it
+        // ourselves instead, once per call so pressing Home while it rings does not fight back.
+        if (remove) {
+            silencedCalls.remove(id)
+            raisedCallScreens.remove(id)
+        } else if (conference.isRinging && conference.isIncoming && raisedCallScreens.add(id)) {
+            startIncomingCallScreen(id)
+        }
         // remove+put is how the entry is moved to the end of the LinkedHashMap iteration order.
         // It must be atomic: the intermediate state is empty, and a concurrent chain reading
         // currentCalls.isEmpty() there would stop the call foreground service we just started.
@@ -1169,6 +1233,8 @@ class NotificationServiceImpl(
             notificationManager.cancel(NOTIF_CALL_ID)
             mNotificationBuilders.remove(NOTIF_CALL_ID)
             callNotifications.clear()
+            silencedCalls.clear()
+            raisedCallScreens.clear()
             true
         }
     }
@@ -1270,6 +1336,9 @@ class NotificationServiceImpl(
         private const val NOTIF_CHANNEL_CALL_IN_PROGRESS = "current_call"
         private const val NOTIF_CHANNEL_MISSED_CALL = "missed_calls"
         private const val NOTIF_CHANNEL_INCOMING_CALL = "incoming_call2"
+        // shiroikuma: twin of the above with vibration off. A channel's vibration cannot be
+        // changed once created, so silencing a ringing call means re-posting on this one.
+        private const val NOTIF_CHANNEL_INCOMING_CALL_SILENT = "incoming_call2_silent"
         private const val NOTIF_CHANNEL_MESSAGE = "messages"
         private const val NOTIF_CHANNEL_PROTECTED = "protected"
         private const val NOTIF_CHANNEL_REQUEST = "requests"
@@ -1312,6 +1381,19 @@ class NotificationServiceImpl(
                 setSound(null, null)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 1000, 1000)
+            })
+
+            // shiroikuma: silenced incoming call channel — same importance so the notification
+            // keeps its rank, but no vibration, which is the only way to stop a channel buzzing.
+            notificationManager.createNotificationChannel(NotificationChannel(
+                NOTIF_CHANNEL_INCOMING_CALL_SILENT,
+                context.getString(R.string.notif_channel_incoming_calls),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                group = NOTIF_CALL_GROUP
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setSound(null, null)
+                enableVibration(false)
             })
 
             // Call in progress channel

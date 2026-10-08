@@ -199,4 +199,12 @@
     <string name="sk_call_record_started">Recording this call</string>
     <string name="sk_call_record_stopped">Recording saved: %1$s</string>
     <string name="sk_call_record_no_call">No call to record</string>
+    <!-- full-screen incoming call (shiroikuma: upstream only ever posts a notification) -->
+    <string name="sk_call_silence">Silence</string>
+    <string name="sk_call_silenced">Silenced</string>
+    <string name="sk_call_silence_desc">Stop the ringtone without declining the call</string>
+    <string name="sk_overlay_title">Full-screen incoming calls</string>
+    <string name="sk_overlay_msg">To show the incoming-call screen instead of only a notification, 白い熊 GNU Jami needs “Display over other apps”. Android lets an app raise a call screen over whatever you are doing only when this is allowed.</string>
+    <string name="sk_overlay_open">Open settings</string>
+    <string name="sk_overlay_later">Not now</string>
 </resources>
