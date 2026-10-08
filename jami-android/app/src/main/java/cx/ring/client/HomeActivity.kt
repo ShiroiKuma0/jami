@@ -120,6 +120,8 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
 
     private var mBinding: ActivityHomeBinding? = null
     private var mMigrationDialog: AlertDialog? = null
+    private var mOverlayDialog: AlertDialog? = null                 // shiroikuma
+    private var mOverlaySettingsOpened = false                      // shiroikuma
     private val mDisposable = CompositeDisposable()
 
     private val conversationBackPressedCallback: OnBackPressedCallback =
@@ -480,6 +482,41 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
         }
     }
 
+    /**
+     * shiroikuma: our full-screen incoming-call screen is raised by starting an activity from the
+     * background, which Android 10+ allows only to an app holding "display over other apps".
+     * Without it an incoming call silently falls back to a bare notification — the very thing the
+     * screen exists to fix — and the grant can be withdrawn at any time, so it is checked on every
+     * open rather than once at install. The only moment the prompt is held back is the return trip
+     * from the settings screen it just opened, which would otherwise ask again immediately.
+     */
+    private fun checkOverlayPermission() {
+        if (Settings.canDrawOverlays(this)) {
+            mOverlaySettingsOpened = false
+            return
+        }
+        if (mOverlaySettingsOpened) {
+            mOverlaySettingsOpened = false
+            return
+        }
+        if (mOverlayDialog?.isShowing == true) return
+        mOverlayDialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.sk_overlay_title)
+            .setMessage(R.string.sk_overlay_msg)
+            .setIcon(R.drawable.baseline_warning_24)
+            .setPositiveButton(R.string.sk_overlay_open) { _: DialogInterface?, _: Int ->
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        AndroidUri.parse("package:$packageName")))
+                    mOverlaySettingsOpened = true
+                } catch (e: Exception) {
+                    Log.w(TAG, "Can't open the overlay permission settings", e)
+                }
+            }
+            .setNegativeButton(R.string.sk_overlay_later, null)
+            .showThemed()
+    }
+
     private fun showMigrationDialog() {
         if (mMigrationDialog != null) {
             return
@@ -513,6 +550,7 @@ class HomeActivity : AppCompatActivity(), ContactPickerFragment.OnContactedPicke
         Log.d(TAG, "onStart")
         super.onStart()
         applySplitViewPref()
+        checkOverlayPermission()   // shiroikuma
 
         mDisposable.add(
             mAccountService.observableAccountList

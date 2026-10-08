@@ -237,50 +237,87 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <com.google.android.material.button.MaterialButtonGroup
+            <!-- shiroikuma: the incoming-call controls. Was a MaterialButtonGroup of two text
+                 buttons; now three 72dp circles in denwa's geometry — Silence centred above,
+                 Decline left and Accept right — so an incoming call can be quietened without
+                 refusing it. The container keeps its id, its four constraints and its margins, so
+                 the window-insets listener and call_mode_toggle_btn's anchor are untouched. -->
+            <LinearLayout
                 android:id="@+id/call_btn_row"
-                style="@style/Widget.Material3.MaterialButtonGroup.Connected"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="20dp"
                 android:layout_marginBottom="@dimen/contact_bubble_bottom_margin"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
                 android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 tools:visibility="visible">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/call_refuse_btn"
-                    style="@style/Widget.Material3Expressive.Button.ElevatedButton"
+                <ImageView
+                    android:id="@+id/call_silence_btn"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/shiroikuma_call_silence_bg"
+                    android:clickable="true"
+                    android:contentDescription="@string/sk_call_silence_desc"
+                    android:focusable="true"
+                    android:padding="20dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/baseline_notifications_off_24"
+                    android:tint="@color/shiroikuma_call_yellow" />
+
+                <TextView
+                    android:id="@+id/call_silence_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:contentDescription="@string/action_call_decline"
-                    android:stateListAnimator="@animator/button_press_scale"
-                    android:text="@string/decline"
-                    android:textColor="@color/colorOnSurface"
-                    app:backgroundTint="@color/red_500"
-                    app:icon="@drawable/baseline_call_end_24"
-                    app:iconTint="@color/colorOnSurface"
-                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium"
-                    app:rippleColor="@color/call_button_ripple" />
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="20dp"
+                    android:text="@string/sk_call_silence"
+                    android:textColor="@color/shiroikuma_call_yellow"
+                    android:textSize="16sp" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/call_accept_btn"
-                    style="@style/Widget.Material3Expressive.Button.ElevatedButton"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:stateListAnimator="@animator/button_press_scale"
-                    android:text="@string/action_call_accept"
-                    android:textColor="@android:color/black"
-                    app:backgroundTint="@color/colorOnSurface"
-                    app:icon="@drawable/baseline_call_24"
-                    app:iconTint="@android:color/black"
-                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium"
-                    app:rippleColor="@color/call_button_ripple" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-            </com.google.android.material.button.MaterialButtonGroup>
+                    <ImageView
+                        android:id="@+id/call_refuse_btn"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/shiroikuma_call_decline_bg"
+                        android:clickable="true"
+                        android:contentDescription="@string/action_call_decline"
+                        android:focusable="true"
+                        android:padding="18dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/baseline_call_end_24"
+                        android:stateListAnimator="@animator/button_press_scale"
+                        android:tint="@android:color/white" />
+
+                    <ImageView
+                        android:id="@+id/call_accept_btn"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_marginStart="56dp"
+                        android:background="@drawable/shiroikuma_call_accept_bg"
+                        android:clickable="true"
+                        android:contentDescription="@string/action_call_accept"
+                        android:focusable="true"
+                        android:padding="18dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/baseline_call_24"
+                        android:stateListAnimator="@animator/button_press_scale"
+                        android:tint="@android:color/black" />
+
+                </LinearLayout>
+
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/call_mode_toggle_btn"

@@ -24,6 +24,8 @@ interface NotificationService {
     fun showCallNotification(notifId: Int): Any?
     fun tryCancelCallNotification(): Boolean
     fun removeCallNotification()
+    /** shiroikuma: stop the local ringtone and vibration for a ringing call, without refusing it. */
+    fun silenceCallNotification(confId: String)
     fun handleCallNotification(conference: Conference, remove: Boolean, startScreenshare: Boolean = false): Completable
     fun preparePendingScreenshare(conference: Conference, callback: () -> Unit)
     fun startPendingScreenshare(confId: String)

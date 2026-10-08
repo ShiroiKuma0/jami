@@ -332,6 +332,15 @@ class CallPresenter @Inject constructor(
         mConference?.let { mCallService.accept(it.accountId, it.id, hasVideo) }
     }
 
+    /**
+     * shiroikuma: silences a ringing incoming call — the ringtone and the vibration stop here
+     * while the call keeps ringing for the caller. Deliberately not a refusal.
+     */
+    fun silenceRinging() {
+        mCallService.muteRingTone(true)
+        mConference?.let { mNotificationService.silenceCallNotification(it.id) }
+    }
+
     fun hangupCall(hangupReason: HangupReason = HangupReason.LOCAL) {
         // Hang up the conference call if it exists.
         mConference?.let { conference ->

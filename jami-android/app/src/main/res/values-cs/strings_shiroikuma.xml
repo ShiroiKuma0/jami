@@ -188,4 +188,12 @@
     <string name="sk_call_record_started">Nahrávám tento hovor</string>
     <string name="sk_call_record_stopped">Nahrávka uložena: %1$s</string>
     <string name="sk_call_record_no_call">Není co nahrávat</string>
+    <!-- full-screen incoming call (shiroikuma: upstream only ever posts a notification) -->
+    <string name="sk_call_silence">Ztišit</string>
+    <string name="sk_call_silenced">Ztišeno</string>
+    <string name="sk_call_silence_desc">Zastaví vyzvánění bez odmítnutí hovoru</string>
+    <string name="sk_overlay_title">Příchozí hovory na celou obrazovku</string>
+    <string name="sk_overlay_msg">Aby se místo pouhého oznámení zobrazila obrazovka příchozího hovoru, potřebuje 白い熊 GNU Jami oprávnění „Zobrazování přes jiné aplikace“. Android dovolí aplikaci zobrazit obrazovku hovoru přes to, co právě děláte, jen s tímto oprávněním.</string>
+    <string name="sk_overlay_open">Otevřít nastavení</string>
+    <string name="sk_overlay_later">Teď ne</string>
 </resources>
