@@ -216,6 +216,13 @@ abstract class JamiApplication : Application() {
      *  flavor's active backend supports rotation (FCM does). */
     open fun rotatePushToken() {}
 
+    /** Re-announce the token we already hold to the daemon, without deleting anything. The cheap,
+     *  safe half of a push-leg repair: it fixes the case where the app's token is perfectly good
+     *  but the daemon never registered it (e.g. a rotation that landed while every account was
+     *  unregistered), and it costs nothing when the registration was fine all along. Only when
+     *  this cannot be the explanation is the destructive [rotatePushToken] worth reaching for. */
+    open fun refreshPushRegistration() {}
+
     var androidPhoneAccountHandle: PhoneAccountHandle? = null
 
     open fun activityInit(activityContext: Context) {}
