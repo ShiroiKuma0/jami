@@ -18,11 +18,12 @@ meter** with unattended logging, smarter **registered-name** lookups, **home-scr
 setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
 picture, with a **soft delete** that frees your space without touching anybody else's chat, and a
-worked-over **calling** experience: **call recording** that lands in the chat as a playable message, a
-visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
+worked-over **calling** experience: a **full-screen incoming-call screen** with a **Silence**
+button that stops the ringing without refusing the call, **call recording** that lands in the chat
+as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260904-01+2026-09-08.19-39.g3c0b6ad1+017`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260904-01+2026-09-08.19-39.g3c0b6ad1+020`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -441,6 +442,28 @@ very next second after the switch. Upstream has neither the detection nor a fall
 OpenSL layer was removed there is nothing left to fall back to.
 
 ---
+
+## 📞 A full-screen incoming-call screen
+
+Stock Jami announces an incoming call with a notification and nothing more. Not for want of
+plumbing: the permission, the full-screen intent and the lock-screen flags were all already
+there. It is what a full-screen intent actually promises — **full screen only when the device is
+locked or the screen is off, and a heads-up notification the rest of the time**, which is to say
+almost always.
+
+So the fork raises the screen itself on an incoming ring, exactly once per call, so stepping away
+while it rings does not drag you back. The caller's picture sits above a large centred name, and
+the controls are three circles: **Decline**, **Accept**, and **Silence**.
+
+**Silence is the one stock has no answer for.** It stops the ringtone *and* the vibration while
+the call goes on ringing for the caller — no rejection, no "I saw it and said no", just a quiet
+phone and a call still waiting. Doing that properly meant more than muting the ringtone: the
+buzzing comes from the notification channel rather than the audio layer, and a channel's vibration
+is fixed for the life of the channel, so a silenced call is re-posted on a silent twin in place.
+
+Raising a screen over whatever you are doing requires **"display over other apps"**, which Android
+grants only by hand — so the app asks for it on every open until it has it, and says plainly that
+calls fall back to a notification until then.
 
 ## 📼 Call recording, in the conversation
 
