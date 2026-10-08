@@ -113,6 +113,7 @@ object ConnectionWatchdog {
     @Volatile private var backfillCountHour = 0
     @Volatile private var lastTokenRotateMs = 0L         // FCM-token rotation throttle
     private const val TOKEN_ROTATE_MIN_GAP_MS = 6 * 60 * 60_000L
+    private const val MANUAL_TOKEN_ROTATE_GAP_MS = 10 * 60_000L   // a human pressing Recover may rotate far sooner than the automatic path — but not on every tap
     @Volatile private var manualProbeInFlight = false
 
     @Volatile private var lastStormMs = 0L                 // when a storm last triggered a reaction
@@ -162,6 +163,13 @@ object ConnectionWatchdog {
     @Volatile private var pushLegDown: Boolean? = null      // null = never tested this process; drives DOWN→UP transition notices
     @Volatile private var noPushAdaptive = false            // push token cleared, proxy clients riding streaming LISTENs
     private const val REAL_PUSH_STARVATION_MS = 10 * 60_000L   // verified wedge + no real push this long = proxies' leg dead for us
+    // Push-staleness windows (2026-09-24). A HEALTHY push leg delivers constantly, expiry pushes
+    // included: 99 measured inter-push gaps on 2026-09-21/22 ran 61–617 s (p50 142 s, p99 554 s).
+    // Both windows sit far above that worst case, and they differ on purpose, because what they
+    // authorise costs different things — a false positive on the first only keeps the radio awake,
+    // a false positive on the second clears the push token and turns the permanent service on.
+    private const val PUSH_EVIDENCE_STALE_MS = 45 * 60_000L    // push evidence older than this no longer authorises background sleep (~4× the worst healthy gap)
+    private const val PUSH_LEG_DEAD_MS = 90 * 60_000L          // …older than this and the leg is presumed dead: move to streaming LISTEN (~9× the worst gap)
     private const val ADAPTIVE_REENTRY_HOLD_MS = 2 * 60 * 60_000L // UP relapse after an exit → hold streaming this long
     private const val ADAPTIVE_RELAPSE_WINDOW_MS = 15 * 60_000L   // re-entry this soon after an exit counts as a relapse
     private const val ADAPTIVE_FCM_HOLD_BASE_MS = 15 * 60_000L    // FCM: stream at least this long before an optimistic push re-entry
@@ -349,6 +357,8 @@ object ConnectionWatchdog {
         }
         val active = UiPrefs.isRecoveryBaseEnabled(c) || UiPrefs.isRecoveryPingEnabled(c)
         if (!active) return   // recovery fully off → leave the proxy alone
+        // Deliberately OUTSIDE the `!asleep` guard below — see maybePushLegDead.
+        maybePushLegDead(c, accounts)
         if (active && !asleep) {
             if (UiPrefs.isRecoveryPingEnabled(c) && UiPrefs.isCanaryConfigured(c)) canaryTick(c, accounts)
             else heuristicTick(c, accounts)
@@ -820,6 +830,42 @@ object ConnectionWatchdog {
         enterNoPushAdaptive(c, accounts)
     }
 
+    /** Standing push-leg death watch (2026-09-24) — the detector the 2026-09-22 outage did not have.
+     *
+     *  FCM has no end-to-end self-test, so the only DOWN detector was
+     *  [maybeEnterAdaptiveOnStarvation], reachable ONLY from the uniform-wedge escalation — and
+     *  that path is vetoed on every pass by the proxy-rx acquittal, because the DHT proxies' HTTPS
+     *  listens stay perfectly healthy while push is dead. Those are two different legs: the proxy
+     *  answering a LISTEN says nothing about whether anything can still WAKE us. So the app logged
+     *  "no push for 108699s" and concluded "receive path alive, no recover", for 48 hours.
+     *
+     *  This asks the one question that matters — is anything still waking us? — from the push clock
+     *  alone. No proxy-health evidence can veto it, because none of it is evidence about this.
+     *
+     *  It runs even while the accounts are ASLEEP, which is the state it exists to break: once
+     *  `deactivateProxyAccountsForBackground()` has run, nothing reschedules the deactivation
+     *  check, so a sleeping app holding a dead token never re-examines anything. That is why the
+     *  call site sits outside the `!asleep` guard rather than beside the other detectors. */
+    private fun maybePushLegDead(c: Context, accounts: AccountService) {
+        if (UiPrefs.isFullDhtMode(c)) return          // full DHT does not ride push
+        if (noPushAdaptive) return                    // already streaming — nothing to conclude
+        if (!InboundEvidence.pushMode) return         // not riding the push leg at all
+        if (mPrefs(c)?.settings?.enablePushNotifications != true) return  // user chose always-connected
+        val t = now()
+        val ref = maxOf(PushEvidence.lastRealPushMs, processStartMs)
+        if (t - ref < PUSH_LEG_DEAD_MS) return
+        val mins = (t - ref) / 60_000
+        writeIncident(c, "push-leg-dead",
+            "no push of any kind for ${mins}m in push mode — the wake path is dead regardless of proxy health",
+            LogStormMonitor.recentLines())
+        log(c, "no push for ${mins}m (push mode) → push leg presumed DEAD → adaptive no-push (standing watch)")
+        pushLegDown = true
+        // Streaming LISTEN only works with live accounts; if the optimization already put them to
+        // sleep, wake them first or the re-register inside enterNoPushAdaptive rebuilds nothing.
+        accounts.restoreProxyAccountsAfterBackground()
+        enterNoPushAdaptive(c, accounts)
+    }
+
     /** Adaptive no-push proxy (2026-07-23). With the push leg dead, push-mode subscriptions are
      *  structurally deaf: SUBSCRIBE delivers new values ONLY via proxy→ntfy→app. The F-Droid
      *  (noPush-flavor) configuration needs no push at all — with NO device key the proxy client
@@ -1271,8 +1317,59 @@ object ConnectionWatchdog {
     /** The one manual Recover (flash tap / dashboard button): always the strong fix — full DHT +
      *  re-register + presence re-arm. No smart/light distinction (that's for the automatic path). */
     fun recoverNow(c: Context, accounts: AccountService) {
+        if (repairPushLegIfStale(c, accounts)) return
         log(c, "manual Recover — full DHT + re-register + presence re-arm")
         fullRecover(c, accounts)
+    }
+
+    /** Manual Recover's push-leg half (2026-09-24). Recover is the user's explicit "fix it now", but
+     *  everything it did — proxy off, re-register, presence re-arm — is the remedy for a wedged
+     *  PROXY leg, and none of it can touch the push leg.
+     *
+     *  2026-09-22 showed what that costs. A dead FCM token left the app deaf for 48 h while repeated
+     *  manual Recovers each restored inbound for one full-DHT linger (10 min, growing to a 30-min
+     *  cap) and then handed back the identical broken state, because full DHT rides no push leg at
+     *  all and nothing in this path ever re-examined the token. The rotation inside [fullRecover]
+     *  could not have helped either: its gate is `InboundEvidence.pushMode`, which is false the
+     *  moment the recover switches to full DHT.
+     *
+     *  Graded by how stale the leg is, cheapest first:
+     *   - fresh          → nothing to repair; the normal recover runs unchanged.
+     *   - stale          → re-announce the token we hold (non-destructive), then the normal recover.
+     *   - past dead      → the token itself is the prime suspect and only a delete+re-fetch can
+     *                      replace it; then go straight to streaming LISTEN, which restores inbound
+     *                      with no push leg at all, instead of making the user wait out the standing
+     *                      watch. The proxy cycle is skipped deliberately — it cannot fix this, and
+     *                      a fresh SUBSCRIBE re-downloads each key's whole value set to no purpose.
+     *
+     *  Returns true when it took the recovery over, false to fall through to [fullRecover]. */
+    private fun repairPushLegIfStale(c: Context, accounts: AccountService): Boolean {
+        if (UiPrefs.isFullDhtMode(c)) return false        // full DHT rides no push leg
+        if (noPushAdaptive) return false                  // already streaming — fullRecover is the right tool
+        if (mPrefs(c)?.settings?.enablePushNotifications != true) return false
+        val t = now()
+        val age = t - maxOf(PushEvidence.lastRealPushMs, processStartMs)
+        if (age < PUSH_EVIDENCE_STALE_MS) return false    // the leg is delivering; this is a proxy problem
+        val mins = age / 60_000
+        log(c, "manual Recover: no push for ${mins}m → re-announcing the push token to the daemon")
+        runCatching { cx.ring.application.JamiApplication.instance?.refreshPushRegistration() }
+        if (age < PUSH_LEG_DEAD_MS) return false          // …then the normal recover, unchanged
+        if (t - lastTokenRotateMs > MANUAL_TOKEN_ROTATE_GAP_MS) {
+            lastTokenRotateMs = t
+            log(c, "manual Recover: push leg dead ${mins}m → rotating the push token")
+            // Safe to reach for here in a way it was not before: the re-fetch now retries on a
+            // backoff and, when it cannot get a token at all, declares the old one lost instead of
+            // leaving a corpse behind that keeps passing every "is push usable?" check.
+            runCatching { cx.ring.application.JamiApplication.instance?.rotatePushToken() }
+        }
+        writeIncident(c, "push-leg-dead-manual",
+            "manual Recover with no push for ${mins}m — repairing the push leg instead of cycling the proxy",
+            LogStormMonitor.recentLines())
+        log(c, "manual Recover: push leg dead ${mins}m → streaming LISTEN now (a proxy cycle cannot fix a dead push leg)")
+        pushLegDown = true
+        accounts.restoreProxyAccountsAfterBackground()
+        enterNoPushAdaptive(c, accounts)
+        return true
     }
 
     /** Called right after the ⬡ mode toggle. Verify the NEW mode actually receives: probe once the
@@ -1477,7 +1574,21 @@ object ConnectionWatchdog {
         if (UiPrefs.isRestrictedNet(c)) return false
         if (recovering) return false
         if (lastRecoverMs != 0L && now() - lastRecoverMs < RECOVER_SETTLE_MS) return false
-        return PushEvidence.lastRealPushMs != 0L || pushLegDown == false
+        // The proof must be RECENT, not merely ever-present (2026-09-24). This used to read
+        // `lastRealPushMs != 0L`, which any push satisfies for as long as the process lives — so
+        // through the 09-22 token-rotation outage a two-day-old push went on authorising
+        // background deactivation for 48 h with nothing able to wake the accounts. That is exactly
+        // the "sleep into deafness" reliability failure the paragraph above says this function
+        // exists to prevent; "a real push seen by THIS process" was the right idea with no clock
+        // on it. Staying awake on a false positive costs battery; sleeping on a false negative
+        // costs every incoming message, so the trade is not symmetric and the window is generous.
+        val lastPush = PushEvidence.lastRealPushMs
+        if (lastPush != 0L) return now() - lastPush <= PUSH_EVIDENCE_STALE_MS
+        // No push seen yet this process: a passed end-to-end self-test may stand in for one, but
+        // only while it is itself fresh. The periodic probe runs every PUSH_PROBE_PERIODIC_MS
+        // (30 min) against a 45-min window, so a healthy UnifiedPush leg satisfies this
+        // continuously and a leg that stopped being tested goes stale like any other evidence.
+        return pushLegDown == false && now() - lastPushProbeMs <= PUSH_EVIDENCE_STALE_MS
     }
 
     /** Probe-VERIFIED deafness for one account: a 60-s presence-re-arm probe went unanswered (the

@@ -17,6 +17,8 @@
 package cx.ring.application
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
@@ -86,26 +88,79 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     /** Called from SettingsFragment (via the base hook) when the backend pref changes. */
     override fun onPushBackendChanged() = registerSelectedToken()
 
+    /** Watchdog manual-Recover path: re-announce the current token to the daemon. Non-destructive —
+     *  [registerSelectedToken] re-registers whatever we hold (or clears it if we hold nothing), so
+     *  it repairs a lost daemon-side registration without ever putting a working token at risk. */
+    override fun refreshPushRegistration() = registerSelectedToken()
+
     /** Watchdog repeat-wedge path: delete + re-fetch the FCM token so the accumulated stale
      *  server-side proxy subscriptions (every churn generation × ~80 keys, all pushing to the
      *  same token — measured 2–3 pushes/s, 2026-07-25) go orphaned at Google instead of flooding
      *  microG. The fresh token re-enters via [setFcmToken] → [registerSelectedToken], and the
      *  daemon re-subscribes everything against it. UnifiedPush backend: no rotation (endpoint
-     *  is distributor-managed), no-op. */
+     *  is distributor-managed), no-op.
+     *
+     *  RETRY + SAFE DEGRADATION (2026-09-24, after a 48-hour self-inflicted outage). This deleted
+     *  the working token unconditionally and gave the re-fetch no handler but a `Log.w` — and it
+     *  fires from `fullRecover()`, i.e. exactly when the network is already wedged and the
+     *  re-fetch is at its most likely to fail. On 2026-09-22 11:23:32 it did: the last push ever
+     *  received landed 65 s later and push stayed dead for two days, because nothing retried and
+     *  nothing noticed. FirebaseMessaging offers no "replace" — `getToken()` hands back the
+     *  existing token, so the delete genuinely must come first — but a failed re-fetch must not be
+     *  terminal. So: retry on a backoff, and when the retries are exhausted declare the token LOST
+     *  rather than keep holding a string that can never receive anything again. Holding it was the
+     *  real damage: `pushToken` stayed non-null, so every "is push usable?" check downstream —
+     *  above all `deactivateRunnable`'s — kept passing, and the accounts kept being put to sleep
+     *  with nothing able to wake them. */
     override fun rotatePushToken() {
         if (backend() != UiPrefs.PUSH_FCM) return
         try {
             FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener {
-                FirebaseMessaging.getInstance().token.addOnSuccessListener { token: String? ->
-                    Log.w(TAG, "FCM token rotated (${token?.take(12)}…)")
-                    setFcmToken(token)
-                }.addOnFailureListener { e ->
-                    Log.w(TAG, "FCM token re-fetch after rotation failed: ${e.message}")
-                }
+                refetchFcmToken(0)
             }
         } catch (e: Exception) {
             Log.e(TAG, "FCM token rotation failed", e)
+            declareFcmTokenLost("rotation threw: ${e.message}")
         }
+    }
+
+    /** One post-rotation re-fetch attempt; failures retry on [TOKEN_REFETCH_BACKOFF_MS]. */
+    private fun refetchFcmToken(attempt: Int) {
+        try {
+            FirebaseMessaging.getInstance().token.addOnSuccessListener { token: String? ->
+                if (token.isNullOrEmpty()) scheduleFcmRefetch(attempt, "empty token")
+                else {
+                    Log.w(TAG, "FCM token rotated (${token.take(12)}…) on attempt ${attempt + 1}")
+                    setFcmToken(token)
+                }
+            }.addOnFailureListener { e -> scheduleFcmRefetch(attempt, e.message ?: "unknown") }
+        } catch (e: Exception) {
+            scheduleFcmRefetch(attempt, "threw: ${e.message}")
+        }
+    }
+
+    private fun scheduleFcmRefetch(attempt: Int, why: String) {
+        if (attempt >= TOKEN_REFETCH_BACKOFF_MS.size) {
+            Log.e(TAG, "FCM token re-fetch failed on every attempt ($why) — declaring the token lost")
+            declareFcmTokenLost(why)
+            return
+        }
+        val delay = TOKEN_REFETCH_BACKOFF_MS[attempt]
+        Log.w(TAG, "FCM token re-fetch after rotation failed ($why) — retry ${attempt + 1} in ${delay / 1000}s")
+        tokenHandler.postDelayed({ refetchFcmToken(attempt + 1) }, delay)
+    }
+
+    /** Every re-fetch failed. The old token is already gone at Google's side, so clearing our copy
+     *  is not losing anything — it is making the loss VISIBLE: `setFcmToken(null)` runs
+     *  [registerSelectedToken]'s else branch, which clears the daemon's token and calls
+     *  `onPushTokenLost()`, so the accounts are restored and stop being deactivated. The watchdog's
+     *  standing push-leg watch then moves the proxy clients to streaming LISTEN, which is what
+     *  actually restores inbound delivery. Keep re-fetching in the background: the leg usually
+     *  returns with the network, and a token that arrives later re-enters by the normal path. */
+    private fun declareFcmTokenLost(why: String) {
+        Log.e(TAG, "FCM token declared LOST ($why) — clearing it so push stops looking usable")
+        setFcmToken(null)
+        tokenHandler.postDelayed({ if (fcmToken == null) refetchFcmToken(0) }, TOKEN_REFETCH_LONG_RETRY_MS)
     }
 
     // ---- FCM token intake (from JamiFirebaseMessagingService.onNewToken + the initial fetch) ----
@@ -214,9 +269,21 @@ class JamiApplicationUnifiedPush : JamiApplication() {
         Log.w(TAG, "wakeClassifyLog failed", e)
     }
 
+    /** Retries for the post-rotation token re-fetch. Main-looper: every hop is a short Firebase
+     *  call, and [setFcmToken] lands on the same thread the rest of the token path uses. */
+    private val tokenHandler = Handler(Looper.getMainLooper())
+
     companion object {
         private const val PLATFORM_FCM = "android"
         private const val PLATFORM_UP = "unifiedpush"
         private val TAG = JamiApplicationUnifiedPush::class.simpleName
+
+        /** Post-rotation re-fetch backoff. The rotation runs during a wedge, so the first attempts
+         *  are expected to fail; the spread reaches ~12 min, past most transient outages, before
+         *  the token is declared lost. */
+        private val TOKEN_REFETCH_BACKOFF_MS = longArrayOf(5_000L, 30_000L, 120_000L, 600_000L)
+
+        /** …and after that, keep asking at this cadence for as long as we hold no token. */
+        private const val TOKEN_REFETCH_LONG_RETRY_MS = 30 * 60_000L
     }
 }
