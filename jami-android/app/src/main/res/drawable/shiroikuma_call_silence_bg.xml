@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — the Silence circle on the incoming-call screen: same 72dp circle as the
+     decline/accept buttons, but black fill with a yellow ring, so it reads as a third control
+     rather than a third answer. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/call_button_ripple">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/black" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/shiroikuma_call_yellow" />
+        </shape>
+    </item>
+</ripple>
