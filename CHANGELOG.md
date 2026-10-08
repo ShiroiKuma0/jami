@@ -7,6 +7,71 @@ listed is built on top of stock.
 
 ---
 
+## `20260904-01+2026-09-08.19-39.g3c0b6ad1+020` — 2026-10-08
+
+A real incoming-call screen, and the end of a push outage the app inflicted on itself. Builds
+`+018` and `+019` carried the push-leg repairs and were never released, so they are folded in
+here. The `daemon` submodule gitlink did not move, so the native side is byte-for-byte what `+014`
+shipped.
+
+### 📞 A full-screen incoming-call screen, with a Silence button
+
+Until now an incoming call arrived as a notification and nothing else. The reflex explanation —
+a missing permission, a missing full-screen intent, a missing lock-screen flag — was wrong on
+every count: the manifest already declared `USE_FULL_SCREEN_INTENT`, the notification already
+carried `setFullScreenIntent(viewIntent, true)` on a high-importance `CATEGORY_CALL` channel, and
+the call activity already asked to show over the lock screen and turn the screen on.
+
+It was plain Android semantics. **A full-screen intent goes full-screen only when the device is
+locked or the screen is off; unlocked, it is documented to degrade to a heads-up notification** —
+and unlocked is the case one actually lives in. (The newer Android 13/14 restrictions on
+full-screen intents never applied here at all: this phone runs Android 12.)
+
+So the screen is now raised directly on an incoming ring, the way the Android TV path always did —
+once per call, so pressing Home while it rings does not fight back. That is a background activity
+start, which Android 10 and later allow only to an app holding **"display over other apps"**, so
+the fork now asks for it on every app open until it is granted; the grant can be withdrawn at any
+time, and without it a call falls silently back to the bare notification.
+
+The screen itself keeps the caller's picture above a large centred name and rebuilds the controls
+as three circles: **Decline** left, **Accept** right, and **Silence** centred above them.
+
+**Silence stops the ringing without refusing the call** — the caller keeps hearing it ring, which
+is the whole point. Muting the ringtone alone would not have done it: the buzzing comes from the
+notification channel, not from the audio layer, and a channel's vibration cannot be changed once
+the channel exists. So a silenced call is quietly re-posted on a non-vibrating twin channel, in
+place, under the same notification the call's foreground service is already holding.
+
+### 🔑 A failed token re-fetch no longer kills push for two days
+
+**The fault.** The repeat-wedge remedy deleted the FCM token and fetched a new one. It had to
+delete first — Firebase has no "replace", and asking for a token hands back the one you already
+have — but the re-fetch had no handler beyond a log line, and it runs from the recovery path,
+which is to say *exactly* when the network is already wedged and a re-fetch is at its most likely
+to fail. On 2026-09-22 it failed. The last push ever received landed 65 seconds later, and push
+stayed dead for **48 hours**.
+
+**Why it lasted.** Nothing retried, and nothing noticed. Worse, the app went on holding the
+deleted token: because `pushToken` stayed non-null, every "is push usable?" check downstream kept
+passing, and the accounts kept being put to sleep with nothing left that could wake them. The one
+detector that could have caught it was reachable only from the uniform-wedge escalation, and that
+escalation is vetoed on every pass by the proxy's own good health — the DHT proxies' HTTPS listens
+stay perfectly fine while push is dead. **Those are two different legs:** a proxy answering a
+listen says nothing about whether anything can still wake the phone. So the app logged
+*"no push for 108699s"* and concluded *"receive path alive, no recover"*, for two days.
+
+**The fix, in four parts.** The re-fetch retries on a backoff, and when the retries are exhausted
+the token is declared **lost** rather than held — a token that can never receive anything again
+must not go on authorising background sleep. Push evidence older than 45 minutes no longer
+authorises sleep at all. A standing push-leg death watch asks the only question that matters — is
+anything still waking us? — from the push clock alone, where no proxy-health evidence can veto it,
+and it runs even while the accounts are asleep, which is precisely the state it exists to break.
+And manual **Recover** now repairs the push leg too, graded cheapest first: fresh does nothing,
+stale re-announces the token already held, and past-dead replaces it and goes straight to
+streaming mode rather than making anyone wait out the standing watch.
+
+---
+
 ## `20260904-01+2026-09-08.19-39.g3c0b6ad1+017` — 2026-09-15
 
 One fault, one remedy, and the remedy in two places — automatic and manual. Builds `+015` and
