@@ -24,8 +24,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.transition.AutoTransition
 import androidx.transition.TransitionManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
+import cx.ring.R
 import cx.ring.adapters.ContactPickerAdapter
 import cx.ring.databinding.FragContactPickerBinding
 import cx.ring.utils.BottomSheetTheme
@@ -118,6 +121,10 @@ class ContactPickerFragment(val contacts: List<Contact> = emptyList()) : BottomS
 
             override fun onItemLongClick(item: ConversationItemViewModel) {}
         }, mConversationFacade)
+        // shiroikuma: upstream labels this button "Select contacts", the sheet's own title, so it
+        // never read as the button that creates the conversation. Only when starting a new swarm;
+        // adding members to an existing one (contacts non-empty) keeps upstream's label.
+        if (contacts.isEmpty()) binding!!.createGroupBtn.setText(R.string.sk_picker_create_swarm)
         binding!!.createGroupBtn.setOnClickListener { v: View? ->
             passData(mAccountId!!, mCurrentSelection)
             val dialog = dialog
@@ -131,6 +138,12 @@ class ContactPickerFragment(val contacts: List<Contact> = emptyList()) : BottomS
     override fun onStart() {
         super.onStart()
         BottomSheetTheme.apply(dialog)
+        // shiroikuma: open fully. The default half-height peek left the create button, which sits at
+        // the bottom of the sheet, below the screen edge until the sheet was dragged up.
+        (dialog as? BottomSheetDialog)?.behavior?.apply {
+            skipCollapsed = true
+            state = BottomSheetBehavior.STATE_EXPANDED
+        }
     }
 
     private fun passData(accountId: String, contacts: MutableSet<Contact>){
