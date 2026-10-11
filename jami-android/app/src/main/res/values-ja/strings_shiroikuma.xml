@@ -181,4 +181,6 @@
     <string name="sk_overlay_msg">通知だけでなく着信画面を表示するには、白い熊 GNU Jami に「他のアプリの上に重ねて表示」の許可が必要です。Android では、この許可があるときだけ、操作中の画面の上に着信画面を出せます。</string>
     <string name="sk_overlay_open">設定を開く</string>
     <string name="sk_overlay_later">後で</string>
+    <!-- new-swarm contact picker: the create button (upstream labels it like the sheet title) -->
+    <string name="sk_picker_create_swarm">新しいSWARMチャットを作成</string>
 </resources>
