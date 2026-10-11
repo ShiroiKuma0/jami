@@ -1,40 +1,36 @@
 diff --git a/src/jamidht/conversation.cpp b/src/jamidht/conversation.cpp
-index 64f8c3d8d..11351d403 100644
 --- a/src/jamidht/conversation.cpp
 +++ b/src/jamidht/conversation.cpp
-@@ -1131,6 +1131,27 @@ Conversation::Impl::startTracking(std::weak_ptr<Conversation> w)
-                 if (auto sthis = w.lock()) {
-                     if (online && sthis->isMember(uri)) {
-                         sthis->addKnownDevices({deviceId}, uri);
-+                    } else if (!online) {
-+                        // SK-ABSENTNODE: honour the OFFLINE edge, which upstream discards.
+@@ -1188,6 +1188,25 @@
+                             sthis->addKnownDevices({deviceId}, uri);
+                     } else {
+                         sthis->pimpl_->onDeviceOffline(deviceId, uri);
++                        // SK-ABSENTNODE: upstream now forwards the OFFLINE edge, but only to drop the
++                        // device from the per-member tracking sets (969c5c6b2). It still stays in the
++                        // DRT's known_nodes, the bin maintainBuckets draws speculative dials from.
 +                        //
-+                        // PresenceManager delivers both edges (presence_manager.cpp
-+                        // notifyDeviceListeners), but only `online` was ever acted on — so a device
-+                        // entered known_nodes on its first announce and was NEVER removed.
-+                        // maintainBuckets then kept drawing it from getKnownNodesRandom forever,
-+                        // and each speculative dial to an absent device posts a
-+                        // PeerConnectionRequest that occupies the target's DHT key for the full
-+                        // 10-minute TTL and can never be withdrawn (opendht has no delete: no
-+                        // DELETE route in proxy mode, no expire message in the protocol). Measured
-+                        // 2026-07-31: 73% of our outbound offers die unanswered at the fixed 30 s
-+                        // DHT_MSG_TIMEOUT, 94% of them from this one speculative selector.
++                        // A device entered known_nodes on its first announce and was NEVER removed,
++                        // so maintainBuckets kept drawing it from getKnownNodesRandom forever, and
++                        // each speculative dial to an absent device posts a PeerConnectionRequest
++                        // that occupies the target's DHT key for the full 10-minute TTL and can never
++                        // be withdrawn (opendht has no delete: no DELETE route in proxy mode, no
++                        // expire message in the protocol). Measured 2026-07-31: 73% of our outbound
++                        // offers die unanswered at the fixed 30 s DHT_MSG_TIMEOUT, 94% of them from
++                        // this one speculative selector.
 +                        //
-+                        // setNodeAbsent drops the device from known_nodes, the bin that
-+                        // getKnownNodesRandom draws from. Deliberately not a deletion of the node
-+                        // itself: it is a no-op while a live socket exists, so it cannot disturb a
-+                        // working connection, and the very same listener re-promotes the device on
-+                        // its next online announce. connectNode's reuse-only dial, FIND-response
-+                        // setKnownNodes and every user-initiated path are untouched.
++                        // setNodeAbsent drops the device from known_nodes only. Deliberately not a
++                        // deletion of the node itself: it is a no-op while a live socket exists, so it
++                        // cannot disturb a working connection, and the very same listener re-promotes
++                        // the device on its next online announce. connectNode's reuse-only dial,
++                        // FIND-response setKnownNodes and every user-initiated path are untouched.
 +                        sthis->setDeviceAbsent(deviceId);
                      }
                  }
              });
-@@ -3030,6 +3051,15 @@ Conversation::bootstrap(std::function<void()> onBootstrapped, const std::vector<
-     }
+@@ -3349,6 +3368,15 @@
  }
  
-+void
+ void
 +Conversation::setDeviceAbsent(const DeviceId& deviceId)
 +{
 +    // SK-ABSENTNODE: forwarder — swarmManager_ is a member of Impl, and the presence listener in
@@ -43,27 +39,28 @@ index 64f8c3d8d..11351d403 100644
 +        pimpl_->swarmManager_->setNodeAbsent(deviceId);
 +}
 +
- void
++void
  Conversation::addKnownDevices(const std::vector<DeviceId>& devices, const std::string& memberUri)
  {
+     if (devices.empty())
 diff --git a/src/jamidht/conversation.h b/src/jamidht/conversation.h
-index 8b08cadda..01f076349 100644
 --- a/src/jamidht/conversation.h
 +++ b/src/jamidht/conversation.h
-@@ -297,6 +297,13 @@ public:
-      */
+@@ -303,6 +303,13 @@
      void addKnownDevices(const std::vector<DeviceId>& devices, const std::string& memberUri);
  
-+    /**
+     /**
 +     * SK-ABSENTNODE: drop a device from the DRT's speculative-dial pool on the presence OFFLINE
 +     * edge, so maintainBuckets stops speculatively dialling it. Re-promoted automatically by the
 +     * next online announce. No-op while a live socket to that device exists.
 +     */
 +    void setDeviceAbsent(const DeviceId& deviceId);
 +
-     /**
++    /**
       * Proactively connect a device in the swarm, bypassing DRT bucket checks.
       * Used when a TCP link to the device already exists.
+      * @param deviceId
+diff --git a/src/jamidht/swarm/swarm_manager.h b/src/jamidht/swarm/swarm_manager.h
 --- a/src/jamidht/swarm/swarm_manager.h
 +++ b/src/jamidht/swarm/swarm_manager.h
 @@ -73,6 +73,14 @@
@@ -81,9 +78,10 @@ index 8b08cadda..01f076349 100644
       * Set list of nodes to the routing table mobile_nodes
       * @param mobile_nodes
       */
+diff --git a/src/jamidht/swarm/swarm_manager.cpp b/src/jamidht/swarm/swarm_manager.cpp
 --- a/src/jamidht/swarm/swarm_manager.cpp
 +++ b/src/jamidht/swarm/swarm_manager.cpp
-@@ -203,6 +203,24 @@
+@@ -210,6 +210,24 @@
  }
  
  void
