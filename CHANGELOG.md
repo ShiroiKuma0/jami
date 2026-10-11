@@ -7,6 +7,51 @@ listed is built on top of stock.
 
 ---
 
+## `20260925-01+2026-10-07.17-04.g1fb1959e+001` — 2026-10-11
+
+Rebased onto upstream **20260925-01** (`1fb1959e6`), with the creation of a new swarm chat
+repaired at both ends: the crash behind it, and the sheet that hid its button. The `daemon`
+submodule gitlink **moved** (`ce493889` → `1c057cc2`), so the whole native side — the daemon and
+the patched contrib packages — was rebuilt from source, and every fork patch was re-verified
+against it.
+
+### 👥 Creating a swarm chat works again
+
+**The crash.** Tapping the create button in the new-swarm sheet did nothing visible — the app
+quietly crashed a background thread instead. The daemon announced the new conversation through
+its callback dispatcher a moment *after* the client went looking for it, so the lookup found
+nothing and a forced non-null dereference threw. Upstream fixed exactly this race in
+`71b8496e2` ("conversation: fix crash when creating a group"), which this sync brings in; a
+failure to create is now reported with a message instead of a silent crash.
+
+**The sheet.** The contact picker opened half-collapsed, so its only action button sat below the
+fold until the sheet was dragged up — and it was labelled with upstream's generic **“Select
+contacts”**, which does not say that it creates anything. The sheet now opens **fully expanded**,
+and when it is creating a new swarm, the button reads **“Create new SWARM chat”** (新しいSWARMチャットを作成,
+Vytvořit nový SWARM chat). When the same picker is used to add members to an existing chat, it
+keeps “Select contacts”.
+
+### 🧬 Upstream 20260925-01
+
+- **Daemon (34 commits):** OpenDHT 4.4.1; a newer pjproject; libarchive built without crypto;
+  swarm hardening — device certificates verified against member keys, conversation ids and
+  file ids validated before they touch the disk, clone retries backed off per device rather than
+  per conversation, tracked device sets kept current; SRTP replay protection and AES-256 suites;
+  ICE request authorisation fixed; several call-path lock-order and lifetime fixes; collaborative
+  documents replicated on announcement.
+- **Client:** the collaborative-document editor gains font and size choices, a reorganised
+  formatting toolbar and the document's own name in its title.
+
+### 🔧 Fork patches carried forward
+
+- `patches/jami-delist-absent-devices.patch` regenerated: upstream's “keep tracked device sets
+  current” moved the device-offline handling into a new branch, and our absent-device de-listing
+  (`SK-ABSENTNODE`) now sits inside it. Its behaviour is unchanged.
+- Every other daemon and contrib patch (pjproject ×2, OpenDHT ×5, dhtnet ×9, plus the
+  daemon-source patches) applied cleanly to the new sources unchanged.
+
+---
+
 ## `20260904-01+2026-09-08.19-39.g3c0b6ad1+020` — 2026-10-08
 
 A real incoming-call screen, and the end of a push outage the app inflicted on itself. Builds
