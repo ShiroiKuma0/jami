@@ -23,7 +23,7 @@ button that stops the ringing without refusing the call, **call recording** that
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260904-01+2026-09-08.19-39.g3c0b6ad1+020`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260925-01+2026-10-07.17-04.g1fb1959e+001`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
