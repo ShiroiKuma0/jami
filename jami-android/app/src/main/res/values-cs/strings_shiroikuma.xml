@@ -196,4 +196,6 @@
     <string name="sk_overlay_msg">Aby se místo pouhého oznámení zobrazila obrazovka příchozího hovoru, potřebuje 白い熊 GNU Jami oprávnění „Zobrazování přes jiné aplikace“. Android dovolí aplikaci zobrazit obrazovku hovoru přes to, co právě děláte, jen s tímto oprávněním.</string>
     <string name="sk_overlay_open">Otevřít nastavení</string>
     <string name="sk_overlay_later">Teď ne</string>
+    <!-- new-swarm contact picker: the create button (upstream labels it like the sheet title) -->
+    <string name="sk_picker_create_swarm">Vytvořit nový SWARM chat</string>
 </resources>
