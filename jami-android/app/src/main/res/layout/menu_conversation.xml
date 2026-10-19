@@ -149,6 +149,21 @@
             app:drawableStartCompat="@drawable/baseline_share_twoton_16dp" />
 
         <TextView
+            android:id="@+id/conv_action_select"
+            style="@style/TextAppearance.Material3.LabelMedium"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/conversation_menu_item_height"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:drawablePadding="16dp"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:text="@string/msg_select_start"
+            android:textColor="@color/text_color"
+            app:drawableStartCompat="@drawable/baseline_check_circle_16" />
+
+        <TextView
             android:id="@+id/conv_action_edit"
             style="@style/TextAppearance.Material3.LabelMedium"
             android:layout_width="match_parent"

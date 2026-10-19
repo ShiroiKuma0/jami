@@ -123,7 +123,10 @@ object ContentUri {
             intent.clipData?.let { clips ->
                 for (i in 0 until clips.itemCount) {
                     clips.getItemAt(i)?.let { clip ->
-                        val mimeType = clip.uri?.let { cr.getType(it) } ?: clip.intent?.type ?: type
+                        // A text-only clip item is text whatever the intent's overall type, so a
+                        // multi-item share can carry a caption next to its files.
+                        val mimeType = clip.uri?.let { cr.getType(it) } ?: clip.intent?.type
+                            ?: if (clip.text != null) "text/plain" else type
                         if (mimeType.isNotEmpty() && intentUri != clip.uri)
                             mediaList.add(ShareItem(mimeType, clip.uri, clip.text))
                     }

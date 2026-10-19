@@ -17,11 +17,13 @@
 package cx.ring.adapters
 
 import android.annotation.SuppressLint
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -47,6 +49,7 @@ import androidx.annotation.ColorInt
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.children
 import androidx.core.view.isVisible
@@ -195,6 +198,105 @@ class ConversationAdapter(
 
     fun getMessageFromPosition(position: Int): Interaction? =
         if (position < mInteractions.size && position >= 0) mInteractions[position] else null
+
+    // Multi-select (白い熊, 2026-10-19): entered from the message menu's "Select messages" item;
+    // while it is on, a tap or a long hold on a message toggles it instead of opening the menu,
+    // and the fragment's selection bar forwards everything selected — pictures, files and texts —
+    // as one Jami share.
+    // Keyed by message id so an edit, which can replace the Interaction object, keeps the mark.
+    private val selectedKeys = LinkedHashSet<String>()
+    var isSelecting = false
+        private set
+
+    private fun selectionKey(interaction: Interaction): String =
+        interaction.messageId ?: "id:${interaction.id}"
+
+    private fun isSelectable(interaction: Interaction): Boolean =
+        (interaction is TextMessage && !interaction.body.isNullOrEmpty())
+                || (interaction is DataTransfer && interaction.isComplete)
+
+    fun startSelection(interaction: Interaction) {
+        isSelecting = true
+        selectedKeys.clear()
+        if (isSelectable(interaction)) selectedKeys.add(selectionKey(interaction))
+        notifySelectionChanged(interaction)
+    }
+
+    fun toggleSelection(position: Int) {
+        toggleSelection(getMessageFromPosition(position) ?: return)
+    }
+
+    private fun toggleSelection(interaction: Interaction) {
+        if (!isSelecting || !isSelectable(interaction)) return
+        val key = selectionKey(interaction)
+        if (!selectedKeys.remove(key)) selectedKeys.add(key)
+        notifySelectionChanged(interaction)
+    }
+
+    fun clearSelection() {
+        if (!isSelecting) return
+        isSelecting = false
+        val keys = selectedKeys.toSet()
+        selectedKeys.clear()
+        mInteractions.forEachIndexed { i, it -> if (selectionKey(it) in keys) notifyItemChanged(i) }
+        conversationFragment.onMessageSelectionChanged(false, 0)
+    }
+
+    /**
+     * The share intent for the selection, for the in-app share picker (ShareActivity). Texts only
+     * go as one EXTRA_TEXT, one paragraph per message, exactly like the single-message share.
+     * With files they go as SEND_MULTIPLE: every file a clip item, in conversation order, and the
+     * texts joined into one more text item. getShareItems reads clipData, not EXTRA_STREAM.
+     */
+    fun selectionShareIntent(context: Context): Intent? {
+        val selected = mInteractions.filter { isSelectable(it) && selectionKey(it) in selectedKeys }
+        if (selected.isEmpty()) return null
+        val text = selected.filterIsInstance<TextMessage>()
+            .mapNotNull { it.body?.trim() }
+            .joinToString("\n\n")
+        val files = selected.filterIsInstance<DataTransfer>()
+        val intent = Intent().setClass(context, ShareActivity::class.java)
+        if (files.isEmpty())
+            return intent.setAction(Intent.ACTION_SEND)
+                .putExtra(Intent.EXTRA_TEXT, text)
+                .setType("text/plain")
+        val uris = ArrayList<Uri>()
+        val types = ArrayList<String>()
+        for (file in files) {
+            val path = presenter.deviceRuntimeService.getConversationPath(file)
+            uris.add(getUriForFile(context, path, file.displayName))
+            types.add(AndroidFileUtils.getMimeType(file.displayName))
+        }
+        val clip = ClipData.newRawUri(null, uris[0])
+        for (i in 1 until uris.size) clip.addItem(ClipData.Item(uris[i]))
+        if (text.isNotEmpty()) clip.addItem(ClipData.Item(text))
+        val type = when {
+            types.all { it == types[0] } -> types[0]
+            types.all { it.startsWith("image/") } -> "image/*"
+            types.all { it.startsWith("video/") } -> "video/*"
+            else -> "*/*"
+        }
+        intent.action = Intent.ACTION_SEND_MULTIPLE
+        intent.type = type
+        intent.clipData = clip
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return intent
+    }
+
+    // Multi-select mark: a translucent wash of the menu border colour over the whole row.
+    private fun applySelectionMark(viewHolder: ConversationViewHolder, interaction: Interaction) {
+        viewHolder.itemView.foreground = if (isSelecting && selectionKey(interaction) in selectedKeys)
+            ColorDrawable(ColorUtils.setAlphaComponent(
+                ColorPrefs.getColor(viewHolder.itemView.context, ColorPrefs.MENU_BORDER), 0x55))
+        else null
+    }
+
+    private fun notifySelectionChanged(interaction: Interaction) {
+        val index = mInteractions.indexOf(interaction)
+        if (index >= 0) notifyItemChanged(index)
+        conversationFragment.onMessageSelectionChanged(true, selectedKeys.size)
+    }
 
     fun add(e: Interaction): Boolean {
         if (e.isSwarm) {
@@ -980,6 +1082,10 @@ class ConversationAdapter(
      * Display and manage the popup that allows user to react/reply/share/edit/delete message ...
      */
     private fun openItemMenu(viewHolder: ConversationViewHolder, view: View, interaction: Interaction) {
+        if (isSelecting) {
+            toggleSelection(interaction)
+            return
+        }
         MenuConversationBinding.inflate(LayoutInflater.from(view.context)).apply {
             val history = interaction.historyObservable.blockingFirst()
             val isDeleted = interaction is TextMessage && interaction.body.isNullOrEmpty()
@@ -996,8 +1102,8 @@ class ConversationAdapter(
             menuDivider.setBackgroundColor(menuBorder)
             val menuTint = ColorStateList.valueOf(menuText)
             listOf(convActionFileOpen, convActionFileSave, convActionCopyText, convActionShare,
-                convActionJamiShare, convActionEdit, convActionHistory, convActionFileDelete,
-                convActionDelete).forEach { item ->
+                convActionJamiShare, convActionSelect, convActionEdit, convActionHistory,
+                convActionFileDelete, convActionDelete).forEach { item ->
                 item.setTextColor(menuText)
                 TextViewCompat.setCompoundDrawableTintList(item, menuTint)
             }
@@ -1010,6 +1116,7 @@ class ConversationAdapter(
             convActionFileDelete.isVisible = isFileMenu
             convActionCopyText.isVisible = !isDeleted && interaction !is DataTransfer
             convActionJamiShare.isVisible = isFileMenu || (!isDeleted && interaction is TextMessage)
+            convActionSelect.isVisible = !isSearch && isSelectable(interaction)
             convActionEdit.isVisible = !isDeleted && !interaction.isIncoming && interaction is TextMessage
             convActionDelete.isVisible = !isDeleted && !interaction.isIncoming
             convActionHistory.isVisible = !isDeleted && history.size > 1
@@ -1217,6 +1324,12 @@ class ConversationAdapter(
                 popupWindow.dismiss()
             }
 
+            // Select messages: enter multi-select with this message already marked.
+            convActionSelect.setOnClickListener {
+                popupWindow.dismiss()
+                startSelection(interaction)
+            }
+
             // Message history
             if (convActionHistory.isVisible)
                 convActionHistory.setOnClickListener {
@@ -1246,6 +1359,7 @@ class ConversationAdapter(
     ) {
         val context = viewHolder.itemView.context
         val file = interaction as DataTransfer
+        applySelectionMark(viewHolder, file)
         val path = presenter.deviceRuntimeService.getConversationPath(file)
         val timeString = TextUtils.timestampToTime(context, formatter, file.timestamp)
         viewHolder.mFileTime?.text = timeString
@@ -1307,6 +1421,10 @@ class ConversationAdapter(
         }
 
         val longPressListener = View.OnLongClickListener { v: View ->
+            if (isSelecting) {
+                toggleSelection(file)
+                return@OnLongClickListener true
+            }
             if (type == MessageType.TransferType.AUDIO || type == MessageType.TransferType.FILE) {
                 if (file.isIncoming) {
                     longPressView.background.setTint(context.getColor(R.color.grey_500))
@@ -1632,8 +1750,14 @@ class ConversationAdapter(
             isIncoming = interaction.isIncoming
         )
 
+        applySelectionMark(viewHolder, interaction)
+
         // Manage long press.
         messageBubble.setOnLongClickListener { v: View ->
+            if (isSelecting) {
+                toggleSelection(interaction)
+                return@setOnLongClickListener true
+            }
             openItemMenu(viewHolder, v, interaction)
             if (interaction.isIncoming)
                 messageBubble.setBubbleColor(context.getColor(R.color.grey_500))

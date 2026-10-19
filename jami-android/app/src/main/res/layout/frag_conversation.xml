@@ -534,6 +534,56 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             </androidx.cardview.widget.CardView>
         </LinearLayout>
 
+        <!-- shiroikuma: multi-select bar. Overlays the composer while messages are being
+             selected for sharing; colours are set at runtime from the message-menu roles. -->
+        <LinearLayout
+            android:id="@+id/selection_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="8dp"
+            android:clickable="true"
+            android:elevation="6dp"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageView
+                android:id="@+id/selection_close"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@string/msg_select_cancel"
+                android:padding="8dp"
+                android:src="@drawable/baseline_close_24" />
+
+            <TextView
+                android:id="@+id/selection_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                tools:text="3 selected" />
+
+            <TextView
+                android:id="@+id/selection_jami_share"
+                style="@style/TextAppearance.Material3.LabelMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="?selectableItemBackground"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp"
+                android:text="@string/msg_select_jami_share"
+                app:drawableStartCompat="@drawable/baseline_share_twoton_16dp" />
+        </LinearLayout>
+
         <include
             android:id="@+id/audio_record_overlay"
             layout="@layout/view_audio_record_overlay"
