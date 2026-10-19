@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="msg_select_start">複数選択</string>
+    <string name="msg_select_count">%1$d件選択</string>
+    <string name="msg_select_cancel">選択を解除</string>
+    <string name="msg_select_jami_share">「白い熊 GNU Jami」で共有</string>
+</resources>
