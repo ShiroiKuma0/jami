@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — selecting several messages in a chat to share them at once. English is the
+     default (base) locale; values-ja and values-cs carry Japanese and Czech. -->
+<resources>
+    <string name="msg_select_start">Select messages</string>
+    <string name="msg_select_count">%1$d selected</string>
+    <string name="msg_select_cancel">Cancel selection</string>
+    <string name="msg_select_jami_share">白い熊 GNU Jami share</string>
+</resources>

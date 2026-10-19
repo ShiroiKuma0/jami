@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="msg_select_start">Vybrat zprávy</string>
+    <string name="msg_select_count">Vybráno: %1$d</string>
+    <string name="msg_select_cancel">Zrušit výběr</string>
+    <string name="msg_select_jami_share">Sdílet přes 白い熊 GNU Jami</string>
+</resources>

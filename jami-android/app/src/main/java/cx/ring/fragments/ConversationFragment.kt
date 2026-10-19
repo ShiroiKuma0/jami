@@ -96,6 +96,10 @@ import java.util.*
 import androidx.core.content.edit
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import cx.ring.client.HomeActivity
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
+import androidx.activity.OnBackPressedCallback
+import androidx.core.widget.TextViewCompat
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -349,6 +353,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             }
 
             replyCloseBtn.setOnClickListener { clearReply() }
+            setupSelectionBar(this)
             fabLatest.setOnClickListener { scrollToEnd() }
 
             toolbar.setNavigationOnClickListener { activity?.onBackPressedDispatcher?.onBackPressed() }
@@ -438,7 +443,76 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             swipeHelper = ItemTouchHelper(messageSwipeController).apply {
                 attachToRecyclerView(histList)
             }
+
+            // Multi-select: while selecting, a tap anywhere on a row toggles that message. The tap
+            // is intercepted on UP, so the row's own children (links, players) never see it.
+            val tapDetector = GestureDetector(requireContext(),
+                object : GestureDetector.SimpleOnGestureListener() {
+                    override fun onSingleTapUp(e: MotionEvent): Boolean = true
+                })
+            histList.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+                override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                    val adapter = mAdapter ?: return false
+                    if (!adapter.isSelecting || rv.adapter !== adapter) return false
+                    if (!tapDetector.onTouchEvent(e)) return false
+                    rv.findChildViewUnder(e.x, e.y)?.let { child ->
+                        val position = rv.getChildAdapterPosition(child)
+                        if (position != RecyclerView.NO_POSITION) adapter.toggleSelection(position)
+                    }
+                    return true
+                }
+            })
         }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, selectionBackCallback)
+    }
+
+    private val selectionBackCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            endMessageSelection()
+        }
+    }
+
+    private fun setupSelectionBar(binding: FragConversationBinding) {
+        val context = binding.root.context
+        val text = ColorPrefs.getColor(context, ColorPrefs.MENU_TEXT)
+        binding.selectionBar.background = GradientDrawable().apply {
+            cornerRadius = resources.getDimension(R.dimen.conversation_message_input_radius)
+            setColor(ColorPrefs.getColor(context, ColorPrefs.MENU_FILL))
+            setStroke((2f * resources.displayMetrics.density).toInt(),
+                ColorPrefs.getColor(context, ColorPrefs.MENU_BORDER))
+        }
+        binding.selectionCount.setTextColor(text)
+        binding.selectionJamiShare.setTextColor(text)
+        TextViewCompat.setCompoundDrawableTintList(binding.selectionJamiShare, ColorStateList.valueOf(text))
+        binding.selectionClose.imageTintList = ColorStateList.valueOf(text)
+        binding.selectionClose.setOnClickListener { endMessageSelection() }
+        binding.selectionJamiShare.setOnClickListener { shareSelectedMessages() }
+    }
+
+    private fun endMessageSelection() {
+        mAdapter?.clearSelection()
+        onMessageSelectionChanged(false, 0)
+    }
+
+    /** Called by the adapter whenever the multi-select mode or its selection changes. */
+    fun onMessageSelectionChanged(active: Boolean, count: Int) {
+        selectionBackCallback.isEnabled = active
+        val binding = binding ?: return
+        binding.selectionBar.isVisible = active
+        binding.selectionCount.text = getString(R.string.msg_select_count, count)
+        binding.selectionJamiShare.isEnabled = count > 0
+        binding.selectionJamiShare.alpha = if (count > 0) 1f else 0.4f
+    }
+
+    // Forward the selection — pictures, files and texts, in conversation order — through the
+    // in-app share picker: the same route as the single-message 白い熊 GNU Jami share.
+    private fun shareSelectedMessages() {
+        try {
+            startActivity(mAdapter?.selectionShareIntent(requireContext()) ?: return)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to start Jami share of the selection", e)
+        }
+        endMessageSelection()
     }
 
     override fun setConversationColor(@ColorInt color: Int) {
@@ -1350,13 +1424,17 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
         Log.w(TAG, "handleShareIntent $intent")
         val action = intent.action
         if (Intent.ACTION_SEND == action || Intent.ACTION_SEND_MULTIPLE == action) {
+            // Files are sent one after another, so a forwarded series of pictures arrives in the
+            // order it was shared; delayError still sends the rest when one of them fails.
+            val fileSends = ArrayList<Completable>()
             intent.getShareItems(requireContext()).forEach { shareItem ->
                 if (shareItem.type == "text/plain" && shareItem.text != null) {
                     binding!!.msgInputTxt.setText(shareItem.text)
                 } else if (shareItem.data != null){
-                    startFileSend(AndroidFileUtils.getCacheFile(requireContext(), shareItem.data).flatMapCompletable { file -> sendFile(file) })
+                    fileSends.add(AndroidFileUtils.getCacheFile(requireContext(), shareItem.data).flatMapCompletable { file -> sendFile(file) })
                 }
             }
+            if (fileSends.isNotEmpty()) startFileSend(Completable.concatDelayError(fileSends))
         } else if (Intent.ACTION_VIEW == action) {
             val path = ConversationPath.fromIntent(intent)
             if (path != null && intent.getBooleanExtra(EXTRA_SHOW_MAP, false)) {
