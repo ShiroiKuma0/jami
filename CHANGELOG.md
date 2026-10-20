@@ -7,6 +7,41 @@ listed is built on top of stock.
 
 ---
 
+## `20260925-01+2026-10-18.01-53.gf0de9b4c+006` — 2026-10-20
+
+Decline an incoming call with a predefined message. Same base as `+005` — upstream
+**20260925-01** at `f0de9b4c9`; the `daemon` submodule gitlink did not move (`1c057cc2`), so the
+native side is unchanged.
+
+### 💬 Decline with a message
+
+- **On the incoming-call screen**, a new **Message** circle (メッセージ / Zpráva) sits beside
+  **Silence**, directly above Accept; Silence, Decline and Accept are unchanged. One tap silences
+  the ringtone and the vibration immediately, then opens a picker.
+- **The picker** lists the caller's own replies first, under *For &lt;name&gt;*, then the general
+  ones, and has a text box with a send arrow for a new message.
+- **Choosing a reply** refuses the call and sends the text into the caller's own conversation —
+  their 1:1 swarm, or the contact itself for a legacy contact. The send runs in the background
+  service, so it completes even though the call screen closes at once. A call declined this way
+  raises **no missed-call notification**.
+- **A newly typed message** is offered for keeping once it has gone: **For everyone**,
+  **Only for &lt;name&gt;**, or **Don't save**.
+- **Cancelling** the picker leaves the call ringing, silenced, so Decline and Accept still work.
+- **The incoming-call notification** gets a third action, **Message**, which opens the call screen
+  straight onto the picker.
+- **Settings — 白い熊 GNU Jami UI → Call decline messages:** the general list inline (tap a
+  message to edit, move up, move down or delete it; **+ Add message**), one row per contact that
+  has replies of their own, and **+ Add contact…** with the same searchable contact picker as the
+  home-screen shortcuts.
+- **A contact's details screen** has a **Decline messages** row for 1:1 chats, opening the same
+  editor for that contact.
+- The general list starts with four replies in the phone's language (English, Japanese, Czech);
+  after that they are ordinary items, and deleting them all leaves the list empty. Per-contact
+  lists are keyed by the contact's Jami id, so they follow the contact across all accounts.
+- The replies travel in **保存復元** backups with the app settings.
+
+---
+
 ## `20260925-01+2026-10-18.01-53.gf0de9b4c+005` — 2026-10-20
 
 Forward a whole series of pictures in one go, on upstream's fix for a file-acceptance freeze.

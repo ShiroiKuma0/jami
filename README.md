@@ -19,11 +19,12 @@ setting, every account, and the **entire chat history with its attachments** to 
 **chat-files panel** that shows what those chats are actually storing, down to the individual
 picture, with a **soft delete** that frees your space without touching anybody else's chat, and a
 worked-over **calling** experience: a **full-screen incoming-call screen** with a **Silence**
-button that stops the ringing without refusing the call, **call recording** that lands in the chat
+button that stops the ringing without refusing the call and a **Message** button that declines it
+with a **predefined reply** — general or per contact — **call recording** that lands in the chat
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260925-01+2026-10-18.01-53.gf0de9b4c+005`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260925-01+2026-10-18.01-53.gf0de9b4c+006`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -458,7 +459,7 @@ almost always.
 
 So the fork raises the screen itself on an incoming ring, exactly once per call, so stepping away
 while it rings does not drag you back. The caller's picture sits above a large centred name, and
-the controls are three circles: **Decline**, **Accept**, and **Silence**.
+the controls are four circles: **Decline**, **Accept**, **Silence**, and **Message** (below).
 
 **Silence is the one stock has no answer for.** It stops the ringtone *and* the vibration while
 the call goes on ringing for the caller — no rejection, no "I saw it and said no", just a quiet
@@ -469,6 +470,22 @@ is fixed for the life of the channel, so a silenced call is re-posted on a silen
 Raising a screen over whatever you are doing requires **"display over other apps"**, which Android
 grants only by hand — so the app asks for it on every open until it has it, and says plainly that
 calls fall back to a notification until then.
+
+## 💬 Decline with a message — general replies, and replies per contact
+
+The phone-app classic stock Jami never had. Beside **Silence** sits a fourth circle, **Message**:
+one tap silences the ringing at once, then offers your predefined replies — *Can't talk now, I'll
+call you back*, *I'm in a meeting*, … — with a box underneath to write a new one. Pick one, or
+send what you typed, and the call is declined and the text lands in **that caller's own chat**,
+where they will see it. No missed-call notification follows: the message is the record. Back out
+of the picker and the call simply keeps ringing — silently — so you can still take it.
+
+Replies come in two layers. A **general list** (seeded with four defaults in the phone's
+language) is offered for everyone; any contact can also have **replies of their own**, shown first
+under their name. A newly typed message is offered for keeping afterwards — *for everyone*, *only
+for this contact*, or not at all. Both layers are edited under **白い熊 GNU Jami UI → Call decline
+messages**, and a contact's own list from **their details screen** too. The same **Message**
+action sits on the incoming-call notification.
 
 ## 📼 Call recording, in the conversation
 
