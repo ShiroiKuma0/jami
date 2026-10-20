@@ -7,6 +7,43 @@ listed is built on top of stock.
 
 ---
 
+## `20260925-01+2026-10-18.01-53.gf0de9b4c+005` — 2026-10-20
+
+Forward a whole series of pictures in one go, on upstream's fix for a file-acceptance freeze.
+Rebased onto upstream **20260925-01** at `f0de9b4c9` (three new commits; upstream's version
+number did not change, so the build counter carries on from the unreleased `+002`–`+004` rather
+than restarting — a `+001` would have had a lower version code than the build already installed).
+The `daemon` submodule gitlink did not move (`1c057cc2`), so the native side is unchanged.
+
+### 🖼 Select several messages and forward them at once
+
+- The long-press menu of a text, picture, video, voice message or completed file gets a new item,
+  **複数選択** (Select messages / Vybrat zprávy). It starts a select mode with that message
+  already marked; every existing menu item is unchanged.
+- While selecting, a **tap** anywhere on a message's row — or a long hold — marks or unmarks it,
+  and marked rows carry a translucent wash of the message-menu border colour. Links and players
+  in the chat do not react to taps while the mode is on.
+- A bar over the composer, in the message-menu colours, shows **✕**, the count (“3件選択”) and
+  **「白い熊 GNU Jami」で共有**. Back or ✕ leaves the mode.
+- Sharing opens the in-app share picker once for the whole selection. Pictures and files are sent
+  to the chosen chat **one after another, in conversation order**; marked texts are joined, one
+  paragraph per message, into that chat's composer.
+- Receiving side, which also benefits shares from other apps: a multi-file share now sends its
+  files sequentially (so they keep their order, and one failure no longer stops the rest), and a
+  text item that rides along with files reaches the composer instead of being dropped.
+
+### 🧬 Upstream since `1fb1959e6`
+
+- **File transfer:** accepting a file — from the chat or its notification — no longer calls the
+  daemon's `downloadFile()` on the main thread, where a conversation with a large history could
+  freeze the app for seconds (Google Play “not responding” reports); automatic acceptance stops
+  blocking a computation thread too.
+- **Collaborative documents:** a picture whose bytes arrive after the document names it now
+  appears when they land, instead of staying blank until the document is reopened.
+- **CI:** upstream's Docker image creates its `jenkins` build user again (no effect on this build).
+
+---
+
 ## `20260925-01+2026-10-07.17-04.g1fb1959e+001` — 2026-10-11
 
 Rebased onto upstream **20260925-01** (`1fb1959e6`), with the creation of a new swarm chat

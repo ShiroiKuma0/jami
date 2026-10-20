@@ -13,7 +13,7 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
-too), **in-app message forwarding**, **automation intents** plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
+too), **in-app message forwarding** — a whole series of pictures at once — **automation intents** plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat, a call, or a **hands-free call on speaker**, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
 setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
@@ -23,7 +23,7 @@ button that stops the ringing without refusing the call, **call recording** that
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20260925-01+2026-10-07.17-04.g1fb1959e+001`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20260925-01+2026-10-18.01-53.gf0de9b4c+005`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -385,6 +385,11 @@ Jami's **own** picker — no system share sheet. Pick the **sending account** fr
 pick the target conversation (with search and a content preview), and the message lands staged in
 that chat's composer. The long-press menu itself is black/yellow, colour-settable, and pinned in
 place so background sync can no longer make it dance.
+
+**Forward many at once.** **複数選択** in the same menu starts a select mode: tap pictures, files
+and messages to mark them, then one **「白い熊 GNU Jami」で共有** sends the whole selection to the
+chat you pick — the pictures arrive **in their original order**, one after another, and any marked
+texts are joined into that chat's composer.
 
 ## 🤖 Automation intents & the 保存復元 data door
 
