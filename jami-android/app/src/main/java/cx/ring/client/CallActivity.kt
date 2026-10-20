@@ -136,6 +136,24 @@ class CallActivity : AppCompatActivity() {
                     callFragment?.handleAcceptIntent(acceptOption, confId, wantVideo)
                 }
             }
+            // shiroikuma: the incoming-call notification's Message action — the call screen, opened
+            // straight onto the decline-message picker (which silences the ringing first).
+            DRingService.ACTION_CALL_DECLINE_MESSAGE -> {
+                val currentId = callFragment?.arguments?.getString(NotificationService.KEY_CALL_ID)
+                if (currentId != confId) {
+                    val callFragment = CallFragment.newInstance(Intent.ACTION_VIEW, confId, wantVideo).apply {
+                        requireArguments().putBoolean(CallFragment.KEY_OPEN_DECLINE_PICKER, true)
+                    }
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.main_call_layout, callFragment, CALL_FRAGMENT_TAG)
+                        .commitNow()
+                } else {
+                    callFragment?.openDeclinePicker()
+                }
+                // onStart re-runs this intent; as a plain VIEW it no longer re-opens the picker
+                // after the screen goes off and on, or after the picker was cancelled.
+                setIntent(Intent(intent).setAction(Intent.ACTION_VIEW))
+            }
         }
     }
 

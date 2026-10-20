@@ -20,6 +20,7 @@ package net.jami.call
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Observer
 import io.reactivex.rxjava3.core.Scheduler
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import net.jami.daemon.JamiService
@@ -360,6 +361,46 @@ class CallPresenter @Inject constructor(
 
     fun refuseCall() {
         mConference?.let { mCallService.refuse(it.accountId, it.id) }
+        finish()
+    }
+
+    /** shiroikuma: who a decline-with-message goes to, captured when the Message button is pressed. */
+    class DeclineTarget(
+        val accountId: String,
+        val callId: String,
+        val conversationUri: Uri,
+        val contactId: String?,
+        val contactName: String
+    )
+
+    /**
+     * shiroikuma: resolves the caller's own conversation (the 1:1 swarm, or the contact URI for a
+     * legacy contact — the same resolution [chatClick] uses) and display name while the call still
+     * exists, then hands them to [onReady] on the UI thread. Nothing happens for a call that is
+     * already gone.
+     */
+    fun resolveDeclineTarget(onReady: (DeclineTarget) -> Unit) {
+        val conference = mConference ?: return
+        val call = conference.firstCall ?: return
+        val contact = call.contact
+        val conversationUri = call.conversationUri ?: contact?.conversationUri?.blockingFirst() ?: return
+        val accountId = conference.accountId
+        val callId = conference.id
+        val contactId = contact?.uri?.rawRingId?.takeIf { it.isNotEmpty() }
+        val fallback = contactId?.take(8) ?: ""
+        val name = if (contact == null) Single.just(fallback)
+            else mContactService.getLoadedContact(accountId, contact)
+                .map { it.displayName }
+                .timeout(3, TimeUnit.SECONDS)
+                .onErrorReturnItem(fallback)
+        mCompositeDisposable.add(name
+            .observeOn(mUiScheduler)
+            .subscribe({ n -> onReady(DeclineTarget(accountId, callId, conversationUri, contactId, n)) },
+                { e -> Log.w(TAG, "resolveDeclineTarget failed", e) }))
+    }
+
+    /** shiroikuma: the call was handed to the service to be declined with a message; close the screen. */
+    fun declinedWithMessage() {
         finish()
     }
 
