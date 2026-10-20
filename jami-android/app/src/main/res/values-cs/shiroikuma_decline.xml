@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sk_decline_msg">Zpráva</string>
+    <string name="sk_decline_msg_desc">Ztiší hovor a odmítne ho se zprávou</string>
+    <string name="sk_decline_title">Odmítnout se zprávou</string>
+    <string name="sk_decline_for_contact">Pro: %1$s</string>
+    <string name="sk_decline_general">Obecné</string>
+    <string name="sk_decline_hint">Napište zprávu…</string>
+    <string name="sk_decline_send">Odmítnout a odeslat</string>
+    <string name="sk_decline_save_title">Uložit tuto zprávu?</string>
+    <string name="sk_decline_save_everyone">Pro všechny</string>
+    <string name="sk_decline_save_contact">Jen pro: %1$s</string>
+    <string name="sk_decline_save_no">Neukládat</string>
+    <string name="sk_decline_sent">Hovor odmítnut, zpráva odeslána</string>
+    <string name="sk_decline_editor_title">Zprávy při odmítnutí</string>
+    <string name="sk_decline_editor_contact_title">Zprávy při odmítnutí: %1$s</string>
+    <string name="sk_decline_editor_empty">Zatím žádné vlastní zprávy — nabízejí se obecné.</string>
+    <string name="sk_decline_add">+ Přidat zprávu</string>
+    <string name="sk_decline_edit">Upravit</string>
+    <string name="sk_decline_move_up">Posunout nahoru</string>
+    <string name="sk_decline_move_down">Posunout dolů</string>
+    <string name="sk_decline_delete">Smazat</string>
+    <string name="sk_decline_delete_all">Smazat vše pro tento kontakt</string>
+    <string name="sk_decline_default_1">Teď nemůžu mluvit — zavolám zpátky.</string>
+    <string name="sk_decline_default_2">Jsem na schůzce.</string>
+    <string name="sk_decline_default_3">Napište mi prosím sem.</string>
+    <string name="sk_decline_default_4">Zavolám později.</string>
+</resources>

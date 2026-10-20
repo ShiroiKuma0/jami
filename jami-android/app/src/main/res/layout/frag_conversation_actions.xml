@@ -396,6 +396,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 android:textColor="@color/colorOnSurface"
                 tools:checked="true" />
 
+            <!-- shiroikuma: this contact's own replies for declining a call with a message.
+                 Shown for 1:1 conversations only. -->
+            <TextView
+                android:id="@+id/decline_messages_panel"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="12dp"
+                android:text="@string/sk_decline_editor_title"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
         </LinearLayout>
 
         <LinearLayout

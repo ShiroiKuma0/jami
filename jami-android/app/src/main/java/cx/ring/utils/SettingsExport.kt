@@ -60,6 +60,8 @@ object SettingsExport {
     private const val P_UI = "shiroikuma_ui"
     private const val P_AUTOMATION = "shiroikuma_automation"
     private const val P_PROTECTED = "shiroikuma_protected"
+    /** Decline-with-message replies (DeclineMessagesPrefs) — plain app preferences, ride with [Cat.APP]. */
+    private const val P_DECLINE = "shiroikuma_decline"
     private const val P_APP = "ring_settings"
     private const val P_VIDEO = "videoPrefs"
 
@@ -139,7 +141,7 @@ object SettingsExport {
         // The automation token must NEVER travel in a backup ZIP (保存復元 contract §2) — it is a
         // live credential; a restored backup regenerates one lazily. Everything else exports.
         Cat.AUTOMATION -> mapOf(P_AUTOMATION to { k: String -> k != "token" }, P_PROTECTED to null)
-        Cat.APP -> mapOf(P_APP to null, P_VIDEO to null, P_UI to { k: String -> k in APP_UI_KEYS })
+        Cat.APP -> mapOf(P_APP to null, P_VIDEO to null, P_DECLINE to null, P_UI to { k: String -> k in APP_UI_KEYS })
     }
 
     // --- export -------------------------------------------------------------------------------
