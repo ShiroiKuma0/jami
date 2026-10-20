@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork: decline an incoming call with a predefined message. -->
+<resources>
+    <string name="sk_decline_msg">Message</string>
+    <string name="sk_decline_msg_desc">Silence the call, then decline it with a message</string>
+    <string name="sk_decline_title">Decline with a message</string>
+    <string name="sk_decline_for_contact">For %1$s</string>
+    <string name="sk_decline_general">General</string>
+    <string name="sk_decline_hint">Write a message…</string>
+    <string name="sk_decline_send">Decline and send</string>
+    <string name="sk_decline_save_title">Save this message?</string>
+    <string name="sk_decline_save_everyone">For everyone</string>
+    <string name="sk_decline_save_contact">Only for %1$s</string>
+    <string name="sk_decline_save_no">Don’t save</string>
+    <string name="sk_decline_sent">Call declined, message sent</string>
+    <string name="sk_decline_editor_title">Decline messages</string>
+    <string name="sk_decline_editor_contact_title">Decline messages for %1$s</string>
+    <string name="sk_decline_editor_empty">No messages of their own yet — the general ones are offered.</string>
+    <string name="sk_decline_add">+ Add message</string>
+    <string name="sk_decline_edit">Edit</string>
+    <string name="sk_decline_move_up">Move up</string>
+    <string name="sk_decline_move_down">Move down</string>
+    <string name="sk_decline_delete">Delete</string>
+    <string name="sk_decline_delete_all">Delete all for this contact</string>
+    <string name="sk_decline_default_1">Can’t talk now — I’ll call you back.</string>
+    <string name="sk_decline_default_2">I’m in a meeting.</string>
+    <string name="sk_decline_default_3">Please write to me here.</string>
+    <string name="sk_decline_default_4">I’ll call you later.</string>
+</resources>

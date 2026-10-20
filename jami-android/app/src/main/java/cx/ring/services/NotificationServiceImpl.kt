@@ -246,6 +246,19 @@ class NotificationServiceImpl(
                                         .putExtra(CallFragment.KEY_HAS_VIDEO, hasVideo), ContentUri.immutable(PendingIntent.FLAG_ONE_SHOT)))
                                     .setIsVideo(hasVideo))
 
+                        // shiroikuma: a third action, Message — opens the call screen on the
+                        // decline-message picker. Presets cannot be listed inside a notification,
+                        // so this is an activity, not a RemoteInput. Phone/tablet call screen only.
+                        if (callClass == CallActivity::class.java)
+                            messageNotificationBuilder.addAction(NotificationCompat.Action.Builder(R.drawable.baseline_chat_24,
+                                mContext.getString(R.string.sk_decline_msg),
+                                PendingIntent.getActivity(mContext, random.nextInt(), Intent(DRingService.ACTION_CALL_DECLINE_MESSAGE)
+                                    .setClass(mContext, callClass)
+                                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                    .putExtra(ConversationPath.KEY_ACCOUNT_ID, accountId)
+                                    .putExtra(NotificationService.KEY_CALL_ID, call.id)
+                                    .putExtra(CallFragment.KEY_HAS_VIDEO, hasVideo), ContentUri.immutable(PendingIntent.FLAG_ONE_SHOT))).build())
+
                         try {
                             val audioManager =
                                 mContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -1159,6 +1172,8 @@ class NotificationServiceImpl(
     }
 
     override fun showMissedCallNotification(call: Call) {
+        // shiroikuma: declined with a message on purpose — the message in the chat is the record.
+        if (call.id?.let { declinedWithMessage.remove(it) } == true) return
         val conversationUri = call.conversationUri
         val contact = call.contact
         val account = mAccountService.getAccount(call.account)!!
@@ -1328,6 +1343,8 @@ class NotificationServiceImpl(
     }
 
     companion object {
+        /** shiroikuma: call ids declined with a message — they raise no missed-call notification. */
+        val declinedWithMessage: MutableSet<String> = ConcurrentHashMap.newKeySet()
         const val EXTRA_BUBBLE = "bubble"
         private val TAG = NotificationServiceImpl::class.java.simpleName
         private const val NOTIF_MSG = "MESSAGE"

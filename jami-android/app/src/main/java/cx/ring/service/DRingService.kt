@@ -365,6 +365,7 @@ class DRingService : Service() {
             ACTION_CONV_READ, ACTION_CONV_ACCEPT, ACTION_CONV_DISMISS, ACTION_CONV_REPLY_INLINE ->
                 handleConvAction(intent, action, extras)
             ACTION_AUTOMATION_SEND -> handleAutomationSend(intent)
+            ACTION_CALL_REFUSE_WITH_MESSAGE -> handleRefuseWithMessage(intent)
             ACTION_FILE_ACCEPT, ACTION_FILE_CANCEL -> extras?.let {
                 handleFileAction(intent.data, action, it)
             }
@@ -403,6 +404,37 @@ class DRingService : Service() {
             }
             .subscribe({ Log.i(TAG, "automation send ok -> ${path.accountId}") },
                 { e -> Log.w(TAG, "automation send failed", e) }))
+    }
+
+    /**
+     * shiroikuma: decline a ringing call and send the caller a message into their own chat — the
+     * one path for both the call screen and the notification's Message action. The conversation
+     * rides in the intent (resolved by CallPresenter.resolveDeclineTarget while the call still
+     * existed); the call object is only a fallback. The send chain is the proven automation/inline-
+     * reply one, and it lives here so it survives the call screen closing. A call declined this way
+     * raises no missed-call notification — the sent message in the chat is the record.
+     */
+    private fun handleRefuseWithMessage(intent: Intent) {
+        val extras = intent.extras ?: return
+        val callId = extras.getString(NotificationService.KEY_CALL_ID)?.takeIf { it.isNotEmpty() } ?: return
+        val accountId = extras.getString(ConversationPath.KEY_ACCOUNT_ID)?.takeIf { it.isNotEmpty() } ?: return
+        val message = extras.getString(KEY_TEXT_REPLY)?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        val target = extras.getString(ConversationPath.KEY_CONVERSATION_URI)?.takeIf { it.isNotEmpty() }
+            ?.let { net.jami.model.Uri.fromString(it) }
+            ?: mCallService.getCallById(callId)?.let { call ->
+                call.conversationUri ?: call.contact?.conversationUri?.blockingFirst()
+            }
+        cx.ring.services.NotificationServiceImpl.declinedWithMessage.add(callId)
+        mCallService.refuse(accountId, callId)
+        mHardwareService.closeAudioState()
+        if (target == null) {
+            Log.w(TAG, "decline with message: no conversation for the call, message not sent")
+            return
+        }
+        mDisposableBag.add(mConversationFacade.startConversation(accountId, target)
+            .flatMapCompletable { c: Conversation -> mConversationFacade.sendTextMessage(c, target, message) }
+            .subscribe({ Log.i(TAG, "decline with message: sent") },
+                { e -> Log.w(TAG, "decline with message: send failed", e) }))
     }
 
     private fun handleTrustRequestAction(uri: Uri?, action: String) {
@@ -515,6 +547,10 @@ class DRingService : Service() {
         const val ACTION_CALL_ACCEPT = BuildConfig.APPLICATION_ID + ".action.CALL_ACCEPT"
         const val ACTION_CALL_REFUSE = BuildConfig.APPLICATION_ID + ".action.CALL_REFUSE"
         const val ACTION_CALL_END = BuildConfig.APPLICATION_ID + ".action.CALL_END"
+        /** shiroikuma: refuse + send [KEY_TEXT_REPLY] to the caller's conversation. */
+        const val ACTION_CALL_REFUSE_WITH_MESSAGE = BuildConfig.APPLICATION_ID + ".action.CALL_REFUSE_WITH_MESSAGE"
+        /** shiroikuma: open the call screen straight onto the decline-message picker. */
+        const val ACTION_CALL_DECLINE_MESSAGE = BuildConfig.APPLICATION_ID + ".action.CALL_DECLINE_MESSAGE"
         const val ACTION_CONV_READ = BuildConfig.APPLICATION_ID + ".action.CONV_READ"
         const val ACTION_CONV_DISMISS = BuildConfig.APPLICATION_ID + ".action.CONV_DISMISS"
         const val ACTION_CONV_ACCEPT = BuildConfig.APPLICATION_ID + ".action.CONV_ACCEPT"

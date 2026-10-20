@@ -238,9 +238,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- shiroikuma: the incoming-call controls. Was a MaterialButtonGroup of two text
-                 buttons; now three 72dp circles in denwa's geometry — Silence centred above,
+                 buttons; now 72dp circles in denwa's geometry — Silence and Message above,
                  Decline left and Accept right — so an incoming call can be quietened without
-                 refusing it. The container keeps its id, its four constraints and its margins, so
+                 refusing it, or declined with a predefined message. The container keeps its id, its four constraints and its margins, so
                  the window-insets listener and call_mode_toggle_btn's anchor are untouched. -->
             <LinearLayout
                 android:id="@+id/call_btn_row"
@@ -257,28 +257,76 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 app:layout_constraintStart_toStartOf="parent"
                 tools:visibility="visible">
 
-                <ImageView
-                    android:id="@+id/call_silence_btn"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:background="@drawable/shiroikuma_call_silence_bg"
-                    android:clickable="true"
-                    android:contentDescription="@string/sk_call_silence_desc"
-                    android:focusable="true"
-                    android:padding="20dp"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/baseline_notifications_off_24"
-                    android:tint="@color/shiroikuma_call_yellow" />
-
-                <TextView
-                    android:id="@+id/call_silence_label"
+                <!-- shiroikuma: Silence and Message side by side. Each column is 128dp wide, so the
+                     row is 256dp against the 200dp Decline/Accept row below (72 + 56 + 72); both are
+                     centred, which puts Silence exactly over Decline and Message exactly over Accept. -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
                     android:layout_marginBottom="20dp"
-                    android:text="@string/sk_call_silence"
-                    android:textColor="@color/shiroikuma_call_yellow"
-                    android:textSize="16sp" />
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="128dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:id="@+id/call_silence_btn"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:background="@drawable/shiroikuma_call_silence_bg"
+                            android:clickable="true"
+                            android:contentDescription="@string/sk_call_silence_desc"
+                            android:focusable="true"
+                            android:padding="20dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/baseline_notifications_off_24"
+                            android:tint="@color/shiroikuma_call_yellow" />
+
+                        <TextView
+                            android:id="@+id/call_silence_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/sk_call_silence"
+                            android:textColor="@color/shiroikuma_call_yellow"
+                            android:textSize="16sp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="128dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:id="@+id/call_decline_msg_btn"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:background="@drawable/shiroikuma_call_silence_bg"
+                            android:clickable="true"
+                            android:contentDescription="@string/sk_decline_msg_desc"
+                            android:focusable="true"
+                            android:padding="20dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/baseline_chat_24"
+                            android:tint="@color/shiroikuma_call_yellow" />
+
+                        <TextView
+                            android:id="@+id/call_decline_msg_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/sk_decline_msg"
+                            android:textColor="@color/shiroikuma_call_yellow"
+                            android:textSize="16sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="wrap_content"

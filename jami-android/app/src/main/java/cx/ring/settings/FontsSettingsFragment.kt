@@ -26,10 +26,12 @@ import cx.ring.R
 import cx.ring.utils.AutomationPrefs
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.DataMeter
+import cx.ring.utils.DeclineMessagesPrefs
 import cx.ring.utils.EximPanel
 import cx.ring.utils.FontPrefs
 import cx.ring.utils.SettingsExport
 import cx.ring.utils.FontUtil
+import cx.ring.utils.PickListDialog
 import cx.ring.utils.UiPrefs
 
 /** "白い熊 GNU Jami UI" — the Online-recovery section on top, then grouped, inline per-element font +
@@ -199,6 +201,7 @@ class FontsSettingsFragment : Fragment() {
         c.removeAllViews()
         addExportImportSection(c)
         addOnlineRecoverySection(c)
+        addDeclineMessagesSection(c)
         c.addView(groupHeader("App language"))
         c.addView(languageRow())
         for (g in groups) {
@@ -267,6 +270,80 @@ class FontsSettingsFragment : Fragment() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    // ---- Call decline messages ---------------------------------------------------------------
+    // The replies offered by the incoming-call screen's Message button. The general list is shown
+    // inline; each contact with replies of its own gets one row that opens the shared editor
+    // (DeclineMessagesEditor — the contact's details screen opens the very same dialogs).
+    private fun addDeclineMessagesSection(c: LinearLayout) {
+        val ctx = requireContext()
+        c.addView(groupHeader("Call decline messages"))
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(72f), dp(6f), dp(16f), dp(4f))
+        }
+        box.addView(orMini("General — offered for every caller. Tap a message to edit, move or delete it."))
+        DeclineMessagesPrefs.global(ctx).forEachIndexed { i, m ->
+            box.addView(orTapRow("•  $m") {
+                context?.let { DeclineMessagesEditor.showItemActions(it, null, i, { rebuild() }) }
+            })
+        }
+        box.addView(orTapRow("+  Add message") {
+            context?.let { c3 ->
+                DeclineMessagesEditor.showEdit(c3, "Add message", "") { DeclineMessagesPrefs.addGlobal(c3, it); rebuild() }
+            }
+        })
+        box.addView(orMini("Per contact — offered first, above the general ones."))
+        for (id in DeclineMessagesPrefs.contactsWithOwn(ctx)) {
+            val name = DeclineMessagesPrefs.contactName(ctx, id) ?: (id.take(8) + "…")
+            val n = DeclineMessagesPrefs.forContact(ctx, id).size
+            box.addView(orTapRow("$name  —  $n message${if (n == 1) "" else "s"}") {
+                context?.let { DeclineMessagesEditor.showList(it, id, DeclineMessagesPrefs.contactName(it, id)) { rebuild() } }
+            })
+        }
+        box.addView(orTapRow("+  Add contact…") { showDeclineContactPicker() })
+        c.addView(box)
+    }
+
+    /** Every 1:1 contact on every account, once each (keyed by ring id, as the lists are). */
+    private fun showDeclineContactPicker() {
+        val ctx = context ?: return
+        val seen = HashSet<String>()
+        val singles = ArrayList<io.reactivex.rxjava3.core.Single<net.jami.smartlist.ConversationItemViewModel>>()
+        val ids = ArrayList<String>()
+        for (acc in mAccountService.getAccounts()) {
+            for (conv in acc.getConversations().toList()) {
+                if (conv.isSwarmGroup() || conv.isSyncing()) continue
+                val contact = try { conv.contact } catch (_: Exception) { null } ?: continue
+                if (contact.isUser) continue
+                val id = contact.uri.rawRingId.lowercase()
+                if (id.isEmpty() || !seen.add(id)) continue
+                ids.add(id)
+                singles.add(mConversationFacade.getConversationProfile(acc.accountId, conv.uri))
+            }
+        }
+        if (singles.isEmpty()) { Flash.show(ctx, "No contacts"); return }
+        recoveryDisposable.add(
+            io.reactivex.rxjava3.core.Single.zip(singles) { arr ->
+                arr.map { it as net.jami.smartlist.ConversationItemViewModel } }
+                .observeOn(io.reactivex.rxjava3.android.schedulers.AndroidSchedulers.mainThread())
+                .subscribe({ vms ->
+                    val c2 = context ?: return@subscribe
+                    val items = vms.mapIndexed { i, vm ->
+                        PickListDialog.Item(
+                            title = vm.title.ifBlank { ids[i].take(16) + "…" },
+                            subtitle = vm.uriTitle.takeIf { it != vm.title },
+                            icon = cx.ring.views.AvatarDrawable.Builder()
+                                .withViewModel(vm).withCircleCrop(true).withPresence(false).build(c2),
+                            payload = ids[i])
+                    }.sortedBy { it.title.lowercase() }
+                    PickListDialog.show(c2, "Pick a contact", items) { item ->
+                        DeclineMessagesEditor.showList(c2, item.payload as String, item.title) { rebuild() }
+                    }
+                }, { context?.let { Flash.show(it, "Could not load contacts") } })
+        )
     }
 
     // ---- Online recovery section (top of the page) -----------------------------------------

@@ -52,6 +52,7 @@ import net.jami.utils.Log
 import javax.inject.Inject
 import javax.inject.Singleton
 import cx.ring.utils.showThemed
+import cx.ring.settings.DeclineMessagesEditor
 
 @AndroidEntryPoint
 class ConversationActionsFragment : Fragment() {
@@ -216,6 +217,22 @@ class ConversationActionsFragment : Fragment() {
                             shareContact(registeredName.ifEmpty { identifier.uri })
                         }
                         qrCode.setOnClickListener { showContactQRCode(identifier) }
+                        // shiroikuma: this contact's decline-with-message replies (same editor as settings).
+                        identifier.rawRingId.takeIf { it.isNotEmpty() }?.let { ringId ->
+                            declineMessagesPanel.isVisible = true
+                            declineMessagesPanel.setOnClickListener {
+                                mDisposableBag.add(mConversationFacade.getConversationProfile(conversation.accountId, conversation.uri)
+                                    .map { it.title }
+                                    .timeout(3, java.util.concurrent.TimeUnit.SECONDS)
+                                    .onErrorReturnItem("")
+                                    .observeOn(DeviceUtils.uiScheduler)
+                                    .subscribe { title ->
+                                        val ctx = context ?: return@subscribe
+                                        DeclineMessagesEditor.showList(ctx, ringId,
+                                            title.ifBlank { registeredName.ifEmpty { ringId.take(8) } })
+                                    })
+                            }
+                        }
                     }
             )
             conversationDelete.setOnClickListener {

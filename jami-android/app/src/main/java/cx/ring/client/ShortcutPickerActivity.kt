@@ -22,23 +22,13 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.IconCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import cx.ring.R
 import cx.ring.service.DRingService
 import cx.ring.services.VCardServiceImpl
@@ -47,8 +37,8 @@ import cx.ring.utils.ConversationPath
 import cx.ring.utils.DeviceUtils
 import cx.ring.utils.DialogTheme
 import cx.ring.utils.Flash
-import cx.ring.utils.FontPrefs
-import cx.ring.utils.FontUtil
+import cx.ring.utils.PickListDialog
+import cx.ring.utils.PickListDialog.Item
 import cx.ring.utils.ShortcutPrefs
 import cx.ring.utils.showThemed
 import cx.ring.views.AvatarDrawable
@@ -64,7 +54,6 @@ import net.jami.smartlist.ConversationItemViewModel
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.math.max
-import kotlin.math.min
 
 @AndroidEntryPoint
 class ShortcutPickerActivity : AppCompatActivity() {
@@ -368,87 +357,10 @@ class ShortcutPickerActivity : AppCompatActivity() {
         canvas.drawCircle(cx, cy, d / 2f - ring / 2f, paint)
     }
 
-    // --- shared list dialog ----------------------------------------------------------------
-
-    private data class Item(
-        val title: String,
-        val subtitle: String?,
-        val icon: Drawable?,
-        val payload: Any
-    )
+    // --- shared list dialog (cx.ring.utils.PickListDialog) -----------------------------------
 
     private fun showPicker(title: String, items: List<Item>, onPick: (Item) -> Unit) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_shortcut_pick, null)
-        val filter = view.findViewById<EditText>(R.id.shortcut_pick_filter)
-        val list = view.findViewById<RecyclerView>(R.id.shortcut_pick_list)
-
-        var dialog: androidx.appcompat.app.AlertDialog? = null
-        val adapter = PickAdapter(items) { item ->
-            dialog?.dismiss()
-            onPick(item)
-        }
-        list.layoutManager = LinearLayoutManager(this)
-        list.adapter = adapter
-
-        val row = (64 * resources.displayMetrics.density).toInt()
-        val maxHeight = (resources.displayMetrics.heightPixels * 0.55f).toInt()
-        list.layoutParams.height = min(items.size * row, maxHeight).coerceAtLeast(row)
-
-        filter.visibility = if (items.size > 8) View.VISIBLE else View.GONE
-        filter.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                adapter.filter(s?.toString().orEmpty())
-            }
-        })
-
-        dialog = DialogTheme.builder(this)
-            .setTitle(title)
-            .setView(view)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> finish() }
-            .setOnCancelListener { finish() }
-            .showThemed()
-    }
-
-    private inner class PickAdapter(
-        private val all: List<Item>,
-        private val onPick: (Item) -> Unit
-    ) : RecyclerView.Adapter<PickViewHolder>() {
-        private var shown: List<Item> = all
-
-        fun filter(query: String) {
-            shown = if (query.isBlank()) all else all.filter {
-                it.title.contains(query, true) || it.subtitle?.contains(query, true) == true
-            }
-            notifyDataSetChanged()
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = PickViewHolder(
-            LayoutInflater.from(parent.context).inflate(R.layout.item_shortcut_pick, parent, false)
-        )
-
-        override fun getItemCount() = shown.size
-
-        override fun onBindViewHolder(holder: PickViewHolder, position: Int) {
-            val item = shown[position]
-            holder.avatar.setImageDrawable(item.icon)
-            holder.title.text = item.title
-            holder.title.setTextColor(ColorPrefs.getColor(holder.title.context, ColorPrefs.LIST_NAME))
-            FontUtil.apply(holder.title, FontPrefs.LIST_TITLE)
-            holder.subtitle.text = item.subtitle
-            holder.subtitle.visibility =
-                if (item.subtitle.isNullOrEmpty()) View.GONE else View.VISIBLE
-            holder.subtitle.setTextColor(ColorPrefs.getColor(holder.subtitle.context, ColorPrefs.LIST_PREVIEW))
-            FontUtil.apply(holder.subtitle, FontPrefs.LIST_PREVIEW)
-            holder.itemView.setOnClickListener { onPick(item) }
-        }
-    }
-
-    private class PickViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val avatar: ImageView = view.findViewById(R.id.shortcut_pick_avatar)
-        val title: TextView = view.findViewById(R.id.shortcut_pick_title)
-        val subtitle: TextView = view.findViewById(R.id.shortcut_pick_subtitle)
+        PickListDialog.show(this, title, items, onCancel = { finish() }, onPick = onPick)
     }
 
     private fun fail(@androidx.annotation.StringRes message: Int) {

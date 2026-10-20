@@ -58,6 +58,9 @@ import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import android.widget.Toast
 import cx.ring.utils.Flash
+import cx.ring.utils.DeclineMessagesPrefs
+import cx.ring.utils.DialogTheme
+import cx.ring.utils.showThemed
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
@@ -155,6 +158,12 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     private var currentAudioState: AudioState? = null
     private var currentAudioHasVideo = false
     private var audioOutputBottomSheetDialog: BottomSheetDialog? = null
+    /** shiroikuma: decline-with-message — the open picker, the "open it once the call shows" flag
+     *  (notification's Message action), and the finish held back while the save prompt is up. */
+    private var declineDialog: androidx.appcompat.app.AlertDialog? = null
+    private var openDeclineOnIncoming = false
+    private var holdFinish = false
+    private var heldFinishReason: CallPresenter.HangupReason? = null
 
     private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
@@ -166,6 +175,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         val args = requireArguments()
         presenter.wantVideo = args.getBoolean(KEY_HAS_VIDEO, false)
         pendingSpeakerRequest = args.getBoolean(KEY_WANT_SPEAKER, false)   // shiroikuma
+        openDeclineOnIncoming = args.getBoolean(KEY_OPEN_DECLINE_PICKER, false)   // shiroikuma
         args.getString(KEY_ACTION)?.let { action ->
             if (action == Intent.ACTION_CALL) {
                 prepareCall(false)
@@ -202,6 +212,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 }
                 b.callRefuseBtn.setOnClickListener { refuseClicked() }
                 b.callSilenceBtn.setOnClickListener { silenceClicked() }   // shiroikuma
+                b.callDeclineMsgBtn.setOnClickListener { openDeclinePicker() }   // shiroikuma
                 b.callEndBtn.setOnClickListener { refuseClicked() }
                 b.callHngUpBtn.setOnClickListener { hangupClicked() }
                 b.callSpeakerBtn.setOnClickListener { speakerClicked() }
@@ -1244,6 +1255,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
             callBtnRow.isVisible = false
             callAcceptBtn.isVisible = false
             callRefuseBtn.isVisible = false
+            declineDialog?.dismiss()   // shiroikuma: answered (here or elsewhere) — nothing to decline
             contactBubbleLayout.isVisible = false
             fullscreenCameraPreview.visibility = View.GONE
             participantOverlayContainer.isVisible = true
@@ -1276,6 +1288,11 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 binding?.fullscreenCameraPreview?.visibility = View.VISIBLE
                 isVideoMode = true
             }
+        }
+        // shiroikuma: opened from the notification's Message action — go straight to the picker.
+        if (openDeclineOnIncoming) {
+            openDeclineOnIncoming = false
+            binding?.root?.post { openDeclinePicker() }
         }
     }
 
@@ -1429,6 +1446,12 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     }
 
     override fun finish(hangupReason: CallPresenter.HangupReason) {
+        // shiroikuma: the "save this message?" prompt is up — close once it is answered.
+        if (holdFinish) {
+            heldFinishReason = hangupReason
+            return
+        }
+        declineDialog?.dismiss()
         // Display a toast if the call was not allowed
         if (hangupReason == CallPresenter.HangupReason.ERROR)
             Flash.show(context, R.string.call_error, Toast.LENGTH_SHORT)
@@ -1697,6 +1720,146 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         }
     }
 
+    /**
+     * shiroikuma: the Message button (and the notification's Message action). Silences the ringing
+     * at once, then offers the caller's own replies, the general ones, and a box for a new one.
+     * Cancelling leaves the call ringing — silently — so Decline and Accept still work.
+     */
+    fun openDeclinePicker() {
+        if (declineDialog?.isShowing == true) return
+        silenceClicked()
+        presenter.resolveDeclineTarget { target -> showDeclinePicker(target) }
+    }
+
+    private fun showDeclinePicker(target: CallPresenter.DeclineTarget) {
+        val ctx = context ?: return
+        if (declineDialog?.isShowing == true) return
+        val yellow = androidx.core.content.ContextCompat.getColor(ctx, R.color.shiroikuma_call_yellow)
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+        val (own, general) = DeclineMessagesPrefs.listFor(ctx, target.contactId)
+        target.contactId?.let { if (own.isNotEmpty()) DeclineMessagesPrefs.setContactName(ctx, it, target.contactName) }
+
+        val rows = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+        fun header(text: String) = rows.addView(android.widget.TextView(ctx).apply {
+            this.text = text
+            setTextColor(0xFFAAAAAA.toInt())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dp(24), dp(10), dp(24), dp(2))
+        })
+        fun row(text: String) = rows.addView(android.widget.TextView(ctx).apply {
+            this.text = text
+            setTextColor(yellow)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18f)
+            setPadding(dp(24), dp(12), dp(24), dp(12))
+            val tv = android.util.TypedValue()
+            ctx.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)
+            setBackgroundResource(tv.resourceId)
+            setOnClickListener { sendDeclineMessage(target, text, typed = false) }
+        })
+        if (own.isNotEmpty()) {
+            header(getString(R.string.sk_decline_for_contact, target.contactName))
+            own.forEach { row(it) }
+            if (general.isNotEmpty()) header(getString(R.string.sk_decline_general))
+        }
+        general.forEach { row(it) }
+
+        val maxListHeight = (resources.displayMetrics.heightPixels * 0.45f).toInt()
+        val scroll = object : android.widget.ScrollView(ctx) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(maxListHeight, View.MeasureSpec.AT_MOST))
+            }
+        }.apply { addView(rows) }
+
+        val input = android.widget.EditText(ctx).apply {
+            hint = getString(R.string.sk_decline_hint)
+            setTextColor(yellow)
+            setHintTextColor(0xFF808080.toInt())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            maxLines = 4
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val send = ImageView(ctx).apply {
+            setImageResource(R.drawable.baseline_send_24)
+            imageTintList = android.content.res.ColorStateList.valueOf(yellow)
+            contentDescription = getString(R.string.sk_decline_send)
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            setOnClickListener {
+                val text = input.text.toString().trim()
+                if (text.isNotEmpty()) sendDeclineMessage(target, text, typed = true)
+            }
+        }
+        val compose = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(8), dp(8), dp(4))
+            addView(input)
+            addView(send)
+        }
+        val content = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(scroll)
+            addView(compose)
+        }
+        declineDialog = DialogTheme.builder(ctx)
+            .setTitle(getString(R.string.sk_decline_title) + " — " + target.contactName)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .showThemed()
+            .also { d ->
+                d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                d.setOnDismissListener { if (declineDialog === d) declineDialog = null }
+            }
+    }
+
+    /** Hands the decline + send to DRingService (it outlives this screen), then closes the screen —
+     *  after offering to keep a newly typed message as a preset. */
+    private fun sendDeclineMessage(target: CallPresenter.DeclineTarget, text: String, typed: Boolean) {
+        val ctx = context ?: return
+        declineDialog?.let { declineDialog = null; it.dismiss() }
+        try {
+            ctx.startService(Intent(DRingService.ACTION_CALL_REFUSE_WITH_MESSAGE)
+                .setClass(ctx, DRingService::class.java)
+                .putExtra(ConversationPath.KEY_ACCOUNT_ID, target.accountId)
+                .putExtra(ConversationPath.KEY_CONVERSATION_URI, target.conversationUri.uri)
+                .putExtra(NotificationService.KEY_CALL_ID, target.callId)
+                .putExtra(DRingService.KEY_TEXT_REPLY, text))
+        } catch (e: Exception) {
+            Log.w(TAG, "Can't decline with a message", e)
+            presenter.refuseCall()
+            return
+        }
+        Flash.show(ctx, R.string.sk_decline_sent, Toast.LENGTH_SHORT)
+        val (own, general) = DeclineMessagesPrefs.listFor(ctx, target.contactId)
+        if (!typed || text in own || text in general) {
+            presenter.declinedWithMessage()
+            return
+        }
+        // A new message: the call is already declined and the message already on its way; this
+        // only decides whether to keep it. The screen stays until the prompt is answered.
+        holdFinish = true
+        presenter.declinedWithMessage()
+        val choices = ArrayList<Pair<String, () -> Unit>>()
+        choices.add(getString(R.string.sk_decline_save_everyone) to { DeclineMessagesPrefs.addGlobal(ctx, text) })
+        target.contactId?.let { id ->
+            choices.add(getString(R.string.sk_decline_save_contact, target.contactName) to {
+                DeclineMessagesPrefs.setContactName(ctx, id, target.contactName)
+                DeclineMessagesPrefs.addForContact(ctx, id, text)
+            })
+        }
+        choices.add(getString(R.string.sk_decline_save_no) to {})
+        DialogTheme.builder(ctx)
+            .setTitle(R.string.sk_decline_save_title)
+            .setItems(choices.map { it.first }.toTypedArray()) { _, which -> choices[which].second() }
+            .showThemed()
+            .setOnDismissListener {
+                holdFinish = false
+                finish(heldFinishReason ?: CallPresenter.HangupReason.LOCAL)
+            }
+    }
+
     fun acceptAudioClicked() {
         presenter.wantVideo = false
         prepareCall(true)
@@ -1768,6 +1931,8 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         const val KEY_HAS_VIDEO = "HAS_VIDEO"
         /** shiroikuma: start this outgoing call on the loudspeaker (speaker-call shortcut). */
         const val KEY_WANT_SPEAKER = "WANT_SPEAKER"
+        /** shiroikuma: open the decline-message picker as soon as the incoming call is shown. */
+        const val KEY_OPEN_DECLINE_PICKER = "OPEN_DECLINE_PICKER"
         private const val REQUEST_CODE_ADD_PARTICIPANT = 6
         private const val REQUEST_PERMISSION_INCOMING = 1003
         private const val REQUEST_PERMISSION_OUTGOING = 1004

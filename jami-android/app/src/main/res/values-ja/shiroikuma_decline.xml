@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sk_decline_msg">メッセージ</string>
+    <string name="sk_decline_msg_desc">着信音を止めて、メッセージを送って拒否します</string>
+    <string name="sk_decline_title">メッセージで拒否</string>
+    <string name="sk_decline_for_contact">%1$s専用</string>
+    <string name="sk_decline_general">共通</string>
+    <string name="sk_decline_hint">メッセージを入力…</string>
+    <string name="sk_decline_send">拒否して送信</string>
+    <string name="sk_decline_save_title">このメッセージを保存しますか？</string>
+    <string name="sk_decline_save_everyone">全員に使う</string>
+    <string name="sk_decline_save_contact">%1$s専用</string>
+    <string name="sk_decline_save_no">保存しない</string>
+    <string name="sk_decline_sent">拒否してメッセージを送りました</string>
+    <string name="sk_decline_editor_title">拒否メッセージ</string>
+    <string name="sk_decline_editor_contact_title">%1$sへの拒否メッセージ</string>
+    <string name="sk_decline_editor_empty">専用のメッセージはまだありません。共通のメッセージが表示されます。</string>
+    <string name="sk_decline_add">＋ メッセージを追加</string>
+    <string name="sk_decline_edit">編集</string>
+    <string name="sk_decline_move_up">上へ</string>
+    <string name="sk_decline_move_down">下へ</string>
+    <string name="sk_decline_delete">削除</string>
+    <string name="sk_decline_delete_all">この連絡先の分をすべて削除</string>
+    <string name="sk_decline_default_1">今は出られません。後で折り返します。</string>
+    <string name="sk_decline_default_2">会議中です。</string>
+    <string name="sk_decline_default_3">こちらにメッセージをください。</string>
+    <string name="sk_decline_default_4">後で電話します。</string>
+</resources>
