@@ -50,10 +50,14 @@ import cx.ring.utils.ContentUri.getUriForFile
 import cx.ring.utils.DeviceUtils
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import net.jami.model.Uri as JamiUri
 import net.jami.model.interaction.DataTransfer
+import net.jami.model.interaction.Interaction
 import net.jami.services.AccountService
 import net.jami.services.DeviceRuntimeService
+import net.jami.services.JamiFileTransferInfoProvider
+import java.io.File
 import javax.inject.Inject
 import kotlin.math.abs
 
@@ -349,15 +353,38 @@ class MediaViewerFragment : Fragment() {
         val convUri = JamiUri.fromString(conversationId)
         disposable.add(
             accountService.searchConversation(accountId, convUri, type = "application/data-transfer+json")
+                .observeOn(Schedulers.io())
+                .map { result ->
+                    result.results.filterIsInstance<DataTransfer>()
+                        .onEach { resolveTransfer(accountId, convUri.rawRingId, it) }
+                }
                 .observeOn(DeviceUtils.uiScheduler)
-                .subscribe({ result ->
-                    for (i in result.results) if (i is DataTransfer) collected.add(i)
+                .subscribe({ transfers ->
+                    collected.addAll(transfers)
                     val items = buildDisplayList()
                     val anchorKey = currentKey ?: tappedKey
                     val hasAnchor = items.any { (it.key != null && it.key == anchorKey) || it.uri == mUri }
                     if (items.isNotEmpty() && hasAnchor) submitItems(items, anchorKey)
                 }, { /* keep the single tapped item on search failure */ })
         )
+    }
+
+    /**
+     * Search results arrive as FILE_AVAILABLE with no daemon path: since upstream's loading
+     * deadlock fix the daemon is no longer asked about a file while the result is parsed, so
+     * nothing would ever pass [DataTransfer.isComplete] and the swipe set shrank to the tapped
+     * item alone. Ask the daemon here, off the UI thread, for the media type being browsed.
+     */
+    private fun resolveTransfer(accountId: String, conversationId: String, dt: DataTransfer) {
+        if (dt.transferStatus != Interaction.TransferStatus.FILE_AVAILABLE) return
+        if (!(if (isVideoMode) dt.isVideo else dt.isPicture)) return
+        val fileId = dt.fileId?.takeIf(String::isNotEmpty) ?: return
+        try {
+            val info = JamiFileTransferInfoProvider.get(accountId, conversationId, fileId)
+            dt.applyDaemonInfo(info.path?.let { File(it) }, info.total, info.progress)
+        } catch (e: Exception) {
+            // Left unresolved: the item is simply not offered in the swipe set.
+        }
     }
 
     /**
