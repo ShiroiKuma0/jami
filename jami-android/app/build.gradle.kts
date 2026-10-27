@@ -63,8 +63,8 @@ android {
 
         // Upstream's own literals. Read back, never rewritten by the fork -- an upstream bump edits
         // only these two lines and flows through everything below untouched.
-        val upstreamVersionCode = 505
-        val upstreamVersionName = "20260925-01"
+        val upstreamVersionCode = 506
+        val upstreamVersionName = "20261023-01"
 
         // Upstream-base pin. The merge-base of HEAD and master is the upstream commit our patches
         // sit on -- NOT our own HEAD (which +N and the release tag already identify), and NOT
@@ -245,6 +245,7 @@ configurations {
 dependencies {
     implementation(project(":libjamiclient"))
     implementation(libs.kotlin.stdlib)
+    testImplementation(libs.junit)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
