@@ -7,6 +7,67 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+001` — 2026-10-27
+
+Rebased onto upstream **20261023-01** at `2ec1e272f` (16 app commits), with a new daemon
+(`1c057cc2` → `a39cf186`, 82 commits). A fix for the typing indicator, a fix for swiping in the
+media viewer, and our native patches carried onto the new dhtnet. The build counter restarts at
+`+001` because upstream's version moved (versionCode 506 × 10000).
+
+### 💬 Typing indicator animates again
+
+- When the other person is typing, the three dots **bounce continuously** again. Since an August build
+  they played one bounce and then sat frozen, or flickered between frozen dots and
+  nothing while the typing signal came and went.
+- The cause was our own fix for a leaked animator (one never-ending animation per typing
+  indicator ever shown, still drawing frames in the background — up to 76 % of a core). It
+  removed the restart that keeps the bounce going, on the mistaken belief that the animation
+  repeats by itself; Android ignores the repeat setting on an animator set.
+- The restart is back, but bounded: one animation per indicator row, running only while the row
+  is on screen and the conversation is visible. Leaving the chat, scrolling the row away or
+  backgrounding the app stops it, so the leak stays fixed.
+
+### 🖼 Swiping in the media viewer works again
+
+- In the full-screen viewer, swiping had stopped moving to the next picture — it stayed on the
+  one you tapped. Upstream's fix for a loading deadlock stopped asking the daemon for each file's
+  state while reading search results, so every picture arrived as "not downloaded" and the swipe
+  set, which only takes completed files, kept none of them. The viewer now asks for each
+  candidate's state itself, in the background, before building the set. The same-direction scope
+  and the swipe-down behaviour are unchanged.
+
+### 📶 From upstream 20261023-01
+
+- **Calls survive a network change** — Wi-Fi to cellular and back: the app follows the default
+  network and tells the daemon when its addresses change, so a running call moves to the new
+  network; if the network drops mid-call, accounts stay up for 20 s while the daemon recovers the
+  call. This is merged with our own connectivity watchdog: the address-change handover is
+  upstream's, while a lost network is still debounced the fork's way rather than switching the
+  accounts off at once, and the 20 s in-call grace applies to it too.
+- **Calls and conferences:** incoming-call notifications no longer hang when Android's Telecom
+  never answers; conference participant names are looked up without blocking the daemon thread
+  (a possible stall); the host is kept after a peer leaves, and a conference that drops back to a
+  1:1 call keeps being tracked.
+- **Video:** a reworked camera pipeline (stable encoding, a camera that resumes when a preview is
+  reopened, no crash when the camera service is unavailable), the camera state restored after
+  screen sharing, and a new **conference resolution** setting (720p / 1080p / 1440p) under the
+  video settings.
+- **Daemon:** FFmpeg 6.1.3 → **9.0.2**, webrtc-audio-processing → **2.1**, swarm fixes (rotating
+  away from a member gone offline, recovering a swarm with nothing left to track, merge-order
+  fixes), SIP handover and re-INVITE fixes, a refreshed CA certificate bundle.
+
+### 🔧 Native patches
+
+- All nine of our dhtnet patches were regenerated for the new dhtnet `818ed67e`, which made the
+  UPnP mapping wait configurable. Our **UPnP circuit breaker** keeps working on top of it, and no
+  longer counts a miss in upstream's new "use only mappings already open" mode (used for call
+  handover) as a router failure — that would have tripped it on every handover.
+- The daemon's own patches (SIP log level, current-CRL-only, trust-request confirm-once, swarm
+  redial backoff, absent-device de-listing, DHT client mode, audio diagnostics, capture-silence
+  fallback, import APIs) all carried over unchanged.
+
+---
+
 ## `20260925-01+2026-10-18.01-53.gf0de9b4c+006` — 2026-10-20
 
 Decline an incoming call with a predefined message. Same base as `+005` — upstream
