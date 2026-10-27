@@ -40,6 +40,7 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import net.jami.model.Conversation
 import net.jami.model.Settings
 import net.jami.services.*
+import java.net.InetAddress
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -91,6 +92,12 @@ class DRingService : Service() {
     private val mHandler = Handler(Looper.myLooper()!!)
     private val mDisposableBag = CompositeDisposable()
     private val mConnectivityChecker = Runnable { updateConnectivityState() }
+    private var networkDeactivationScheduled = false
+    private val mDeactivateAfterNetworkLoss = Runnable {
+        networkDeactivationScheduled = false
+        if (mDaemonService.isStarted && !mPreferencesService.hasNetworkConnected())
+            mAccountService.setAccountsActive(false)
+    }
 
     // --- Connectivity resilience: survive network-change signals + reconnect when stale ---
     private var mLastNetworkKey: String? = null
@@ -128,6 +135,9 @@ class DRingService : Service() {
     }
 
     private val monitor = object : NetworkCallback() {
+        private var defaultNetwork: Network? = null
+        private var defaultAddresses: Set<InetAddress> = emptySet()
+
         fun enable(context: Context) {
             val connectivityManager = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager?
             try {
@@ -135,7 +145,7 @@ class DRingService : Service() {
                 // on (for a VPN-excluded app, the underlying physical network). This is
                 // what lets us notice the path moving *under* an active VPN/WireGuard
                 // tunnel, which onAvailable alone never reported.
-                connectivityManager?.registerDefaultNetworkCallback(this)
+                connectivityManager?.registerDefaultNetworkCallback(this, mHandler)
             } catch (e: Exception) {
                 Log.e(TAG, "Can't register network callback", e)
             }
@@ -153,17 +163,41 @@ class DRingService : Service() {
 
         override fun onAvailable(network: Network) {
             Log.w(TAG, "net onAvailable $network")
+            if (defaultNetwork != network) {
+                Log.i(TAG, "Default network changed to $network")
+                defaultNetwork = network
+                defaultAddresses = emptySet()
+            }
+            // A network is back: keep the accounts active while its link
+            // properties are reported.
+            cancelNetworkDeactivation()
             onNetworkChanged(network)
-        }
-
-        override fun onLost(network: Network) {
-            Log.w(TAG, "net onLost $network")
-            mLastNetworkKey = null
-            scheduleNetworkSettle()
         }
 
         override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
             onNetworkChanged(network, linkProperties.interfaceName)
+            if (network != defaultNetwork || !isRunning) return
+            val addresses = linkProperties.linkAddresses.map { it.address }.toSet()
+            if (addresses.isEmpty() || addresses == defaultAddresses) return
+            defaultAddresses = addresses
+            // The default network's addresses changed: tell the daemon so ongoing calls move
+            // to the new path (upstream's handover). Account reconnects stay on our debounce.
+            updateConnectivityState(true)
+            if (mDaemonService.isStarted)
+                mHardwareService.networkInterfaceChanged()
+        }
+
+        override fun onLost(network: Network) {
+            Log.w(TAG, "net onLost $network")
+            if (network == defaultNetwork) {
+                defaultNetwork = null
+                defaultAddresses = emptySet()
+            }
+            // Debounced rather than upstream's immediate updateConnectivityState(false): a
+            // Wi-Fi<->cellular switch reports onLost just before onAvailable, and the settle
+            // still goes through updateConnectivityState(), so the 20 s in-call grace applies.
+            mLastNetworkKey = null
+            scheduleNetworkSettle()
         }
     }
 
@@ -233,6 +267,8 @@ class DRingService : Service() {
         mHandler.removeCallbacks(mOnlineRecoveryRunnable)
         mHandler.removeCallbacks(mNetworkSettleRunnable)
         mHandler.removeCallbacks(mForceReconnectRunnable)
+        cancelNetworkDeactivation()
+        mHandler.removeCallbacks(mConnectivityChecker)
         mHardwareService.unregisterCameraDetectionCallback()
         mDisposableBag.clear()
         isRunning = false
@@ -285,9 +321,25 @@ class DRingService : Service() {
         updateConnectivityState(mPreferencesService.hasNetworkConnected())
     }
 
+    private fun cancelNetworkDeactivation() {
+        mHandler.removeCallbacks(mDeactivateAfterNetworkLoss)
+        networkDeactivationScheduled = false
+    }
+
     private fun updateConnectivityState(isConnected: Boolean) {
         if (mDaemonService.isStarted) {
-            mAccountService.setAccountsActive(isConnected)
+            if (isConnected) {
+                cancelNetworkDeactivation()
+                mAccountService.setAccountsActive(true)
+            } else if (mCallService.hasActiveCalls()) {
+                if (!networkDeactivationScheduled) {
+                    networkDeactivationScheduled = true
+                    mHandler.postDelayed(mDeactivateAfterNetworkLoss, CALL_RECOVERY_TIMEOUT_MS)
+                }
+            } else {
+                cancelNetworkDeactivation()
+                mAccountService.setAccountsActive(false)
+            }
             mHardwareService.connectivityChanged(isConnected)
         }
     }
@@ -562,6 +614,7 @@ class DRingService : Service() {
         const val KEY_TRANSFER_ID = "transferId"
         const val KEY_TEXT_REPLY = "textReply"
         private const val NOTIFICATION_ID = 1
+        private const val CALL_RECOVERY_TIMEOUT_MS = 20_000L
         var isRunning = false
     }
 }
