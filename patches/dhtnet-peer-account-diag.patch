@@ -1,6 +1,7 @@
+diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
 --- a/src/connectionmanager.cpp
 +++ b/src/connectionmanager.cpp
-@@ -1742,6 +1742,18 @@
+@@ -1756,6 +1756,18 @@
                                                          deviceId,
                                                          std::move(info->tls_),
                                                          config_->logger);
@@ -19,7 +20,7 @@
      info->socket_->setOnReady(
          [w = weak_from_this()](const DeviceId& deviceId, const std::shared_ptr<ChannelSocket>& socket) {
              if (auto sthis = w.lock())
-@@ -1759,8 +1771,15 @@
+@@ -1773,8 +1785,15 @@
      info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid](const std::error_code& ec) {
          // SK-ICEDIAG: why did an ESTABLISHED connection end? ec=0 is a clean local/remote close
          // (someone decided to); anything else is a transport error. This is the 45 s median.

@@ -1,14 +1,15 @@
+diff -ruN a/src/ice_transport.cpp b/src/ice_transport.cpp
 --- a/src/ice_transport.cpp
 +++ b/src/ice_transport.cpp
-@@ -72,6 +72,36 @@
+@@ -71,6 +71,36 @@
+ static constexpr int MAX_CANDIDATES {32};
  static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
  static constexpr int HANDLE_EVENT_DURATION {500};
- static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
 +
 +/* Circuit breaker for the UPnP port-mapping path.
 + *
 + * requestUpnpMappings() blocks every ICE transport setup for up to
-+ * PORT_MAPPING_TIMEOUT waiting for a mapping. When the router's UPnP
++ * upnpMappingTimeout_ waiting for a mapping. When the router's UPnP
 + * service is down (dead IGD, disabled service, exhausted table), every
 + * request fails — and every connection attempt keeps paying the wait,
 + * in exactly the time-critical window where ICE must complete.
@@ -37,13 +38,13 @@
  //==============================================================================
  
  using namespace upnp;
-@@ -959,6 +989,23 @@
+@@ -960,6 +990,23 @@
  {
      if (not upnp_)
          return;
 +
 +    // Circuit breaker: with no valid IGD, or after a run of consecutive
-+    // failures, skip the request — and its PORT_MAPPING_TIMEOUT wait —
++    // failures, skip the request — and its upnpMappingTimeout_ wait —
 +    // entirely. ICE then proceeds exactly as with UPnP disabled.
 +    if (not upnp_->isReady()) {
 +        if (logger_)
@@ -61,14 +62,17 @@
      auto transport = isTcpEnabled() ? PJ_CAND_TCP_PASSIVE : PJ_CAND_UDP;
      auto portType = transport == PJ_CAND_UDP ? PortType::UDP : PortType::TCP;
  
-@@ -1019,7 +1066,29 @@
-         for (auto& map : state->mappings) {
-             upnp_->releaseMapping(*map.second);
+@@ -1029,7 +1076,32 @@
+         for (auto& map : reserved) {
+             upnp_->releaseMapping(*map);
          }
 +        // Feed the circuit breaker: after UPNP_BREAKER_THRESHOLD consecutive
 +        // failures, stop asking (and waiting) for UPNP_BREAKER_COOLDOWN.
-+        if (upnpBreakerFails.fetch_add(1, std::memory_order_relaxed) + 1
-+            >= UPNP_BREAKER_THRESHOLD) {
++        // A zero upnpMappingTimeout_ only uses mappings already open, so a
++        // miss there says nothing about the router and is not counted.
++        if (upnpMappingTimeout_.count() > 0
++            && upnpBreakerFails.fetch_add(1, std::memory_order_relaxed) + 1
++                   >= UPNP_BREAKER_THRESHOLD) {
 +            upnpBreakerFails.store(0, std::memory_order_relaxed);
 +            upnpBreakerOpenUntilMs.store(
 +                upnpBreakerNowMs()

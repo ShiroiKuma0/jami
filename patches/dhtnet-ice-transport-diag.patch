@@ -1,3 +1,4 @@
+diff -ruN a/src/ice_transport.cpp b/src/ice_transport.cpp
 --- a/src/ice_transport.cpp
 +++ b/src/ice_transport.cpp
 @@ -33,6 +33,7 @@
@@ -8,7 +9,7 @@
  }
  
  #include <map>
-@@ -93,6 +94,52 @@
+@@ -92,6 +93,52 @@
  static constexpr unsigned UPNP_BREAKER_THRESHOLD {6};
  static constexpr std::chrono::minutes UPNP_BREAKER_COOLDOWN {5};
  static std::atomic<unsigned> upnpBreakerFails {0};
@@ -95,7 +96,7 @@
      threadTerminateFlags_ = true;
  
      if (thread_.joinable()) {
-@@ -670,6 +733,22 @@
+@@ -671,6 +734,22 @@
      // By tests, never seen more than two events per 500ms
      static constexpr auto MAX_NET_EVENTS = 2;
  

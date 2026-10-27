@@ -1,7 +1,7 @@
-diff -ruN base/src/connectionmanager.cpp work/src/connectionmanager.cpp
---- a/src/connectionmanager.cpp	2026-08-08 12:50:05.603168430 +0200
-+++ b/src/connectionmanager.cpp	2026-08-08 12:50:05.610991189 +0200
-@@ -1194,6 +1194,10 @@
+diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -1208,6 +1208,10 @@
                  return;
              if (logger)
                  logger->warn("[channel {}] Timeout waiting for channel reply", name);
@@ -12,9 +12,9 @@ diff -ruN base/src/connectionmanager.cpp work/src/connectionmanager.cpp
              if (auto sock = wSock.lock())
                  sock->shutdown();
          });
-diff -ruN base/src/multiplexed_socket.cpp work/src/multiplexed_socket.cpp
---- a/src/multiplexed_socket.cpp	2026-08-06 22:27:44.000000000 +0200
-+++ b/src/multiplexed_socket.cpp	2026-08-08 12:50:23.611783206 +0200
+diff -ruN a/src/multiplexed_socket.cpp b/src/multiplexed_socket.cpp
+--- a/src/multiplexed_socket.cpp
++++ b/src/multiplexed_socket.cpp
 @@ -50,6 +50,18 @@
      MSGPACK_DEFINE_MAP(v)
  };

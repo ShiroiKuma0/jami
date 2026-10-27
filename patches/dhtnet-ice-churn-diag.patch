@@ -1,3 +1,41 @@
+diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -35,6 +35,17 @@
+ #include <set>
+ #include <stdexcept>
+ 
++// SK-ICEDIAG (2026-07-30): which side initiates an ICE session. The transport census showed ~5.4
++// creations a minute sustained (bursting to 15) with almost all sessions failing on a CGNAT
++// cellular link; this says whether WE are retrying outbound or peers are retrying at US, which
++// are opposite problems with opposite fixes.
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_CM(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++#else
++#define SK_CM(...) do {} while (0)
++#endif
++
+ namespace dhtnet {
+ static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
+ static constexpr dht::Value::Id ID_MAX_VAL = 9007199254740992;
+@@ -1143,6 +1154,7 @@
+         ice_config.master = false;
+         ice_config.streamsCount = 1;
+         ice_config.compCountPerStream = 1;
++        SK_CM("initiate %s device=%s", "connect-out", std::string(deviceId.to_view()).c_str());
+         info->ice_ = sthis->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
+                                                                sthis->config_->logger);
+         if (!info->ice_) {
+@@ -1703,6 +1715,7 @@
+         if (shared->config_->logger)
+             shared->config_->logger->debug("[device {}] Accepting connection", deviceId);
+         std::unique_lock lk {info->mutex_};
++        SK_CM("initiate %s device=%s", "answer-in", std::string(deviceId.to_view()).c_str());
+         info->ice_ = shared->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
+                                                                 shared->config_->logger);
+         if (not info->ice_) {
+diff -ruN a/src/ice_transport.cpp b/src/ice_transport.cpp
 --- a/src/ice_transport.cpp
 +++ b/src/ice_transport.cpp
 @@ -460,7 +460,11 @@
@@ -51,39 +89,3 @@
             (long long) std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::steady_clock::now() - skBorn_).count(),
             skIceCreated.load(), skIceDestroyed.fetch_add(1, std::memory_order_relaxed) + 1);
---- a/src/connectionmanager.cpp
-+++ b/src/connectionmanager.cpp
-@@ -34,6 +34,17 @@
- #include <random>
- #include <set>
- 
-+// SK-ICEDIAG (2026-07-30): which side initiates an ICE session. The transport census showed ~5.4
-+// creations a minute sustained (bursting to 15) with almost all sessions failing on a CGNAT
-+// cellular link; this says whether WE are retrying outbound or peers are retrying at US, which
-+// are opposite problems with opposite fixes.
-+#ifdef __ANDROID__
-+#include <android/log.h>
-+#define SK_CM(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
-+#else
-+#define SK_CM(...) do {} while (0)
-+#endif
-+
- namespace dhtnet {
- static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
- static constexpr dht::Value::Id ID_MAX_VAL = 9007199254740992;
-@@ -1129,6 +1140,7 @@
-         ice_config.master = false;
-         ice_config.streamsCount = 1;
-         ice_config.compCountPerStream = 1;
-+        SK_CM("initiate %s device=%s", "connect-out", std::string(deviceId.to_view()).c_str());
-         info->ice_ = sthis->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
-                                                                sthis->config_->logger);
-         if (!info->ice_) {
-@@ -1689,6 +1701,7 @@
-         if (shared->config_->logger)
-             shared->config_->logger->debug("[device {}] Accepting connection", deviceId);
-         std::unique_lock lk {info->mutex_};
-+        SK_CM("initiate %s device=%s", "answer-in", std::string(deviceId.to_view()).c_str());
-         info->ice_ = shared->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
-                                                                 shared->config_->logger);
-         if (not info->ice_) {
