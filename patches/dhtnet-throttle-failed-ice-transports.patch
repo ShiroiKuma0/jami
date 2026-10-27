@@ -1,3 +1,4 @@
+diff -ruN a/src/ice_transport.cpp b/src/ice_transport.cpp
 --- a/src/ice_transport.cpp
 +++ b/src/ice_transport.cpp
 @@ -72,6 +72,20 @@
@@ -18,9 +19,9 @@
 +// Throttled poll interval, ~100 Hz. Comfortably below pjnath's Ta pacing (20 ms) and two orders
 +// of magnitude below any STUN/ICE retransmit timer, so nothing is delayed that matters.
 +static constexpr int SK_ICE_SPIN_POLL_MS {10};
- static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
  
  /* Circuit breaker for the UPnP port-mapping path.
+  *
 @@ -354,6 +368,14 @@
      unsigned skId_ {0};
      std::chrono::steady_clock::time_point skBorn_ {};
@@ -36,7 +37,7 @@
  };
  
  //==============================================================================
-@@ -684,7 +706,80 @@
+@@ -685,7 +707,80 @@
          while (not threadTerminateFlags_) {
              // NOTE: handleEvents can return false in this case
              // but here we don't care if there is event or not.
@@ -117,7 +118,7 @@
          }
      });
  }
-@@ -1372,6 +1467,11 @@
+@@ -1401,6 +1496,11 @@
      if (size == 0)
          return;
  

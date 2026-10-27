@@ -1,6 +1,7 @@
+diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
 --- a/src/connectionmanager.cpp
 +++ b/src/connectionmanager.cpp
-@@ -487,9 +487,38 @@
+@@ -490,9 +490,38 @@
      std::map<DeviceId, std::shared_ptr<DeviceInfo>> infos_ {};
  };
  
@@ -39,7 +40,7 @@
      explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
          : treatedMessages_ {config_->cachePath / "treatedMessages"}
          , config_ {createConfig(config_)}
-@@ -510,6 +539,12 @@
+@@ -513,6 +542,12 @@
      }
      ~Impl()
      {
@@ -52,7 +53,7 @@
          if (ioContextRunner_) {
              if (config_->logger)
                  config_->logger->debug("ConnectionManager: Stopping io_context thread");
-@@ -545,6 +580,14 @@
+@@ -548,6 +583,14 @@
              dht::ThreadPool::io().run([infos = std::move(unused)]() mutable { infos.clear(); });
      }
  
@@ -67,7 +68,7 @@
      void connectDeviceStartIce(const std::shared_ptr<ConnectionInfo>& info,
                                 const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
                                 const dht::Value::Id& vid,
-@@ -768,6 +811,23 @@
+@@ -770,6 +813,23 @@
      val.ice_msg = icemsg.str();
      val.connType = connType;
  
@@ -91,9 +92,9 @@
      auto value = std::make_shared<dht::Value>(std::move(val));
      value->user_type = "peer_request";
      value->pushType = connType;
-@@ -781,6 +841,20 @@
-     info->waitForAnswer_->async_wait(
-         std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
+@@ -787,6 +847,20 @@
+                 self->onResponse(ec, info, deviceId, vid);
+         });
  
 +    // SK-LOCALRDV: deliver in-process and skip the DHT entirely. Posted onto the SIBLING's own
 +    // io_context so its handler runs on the thread a DHT callback would have used, and so we are
@@ -112,7 +113,7 @@
      // Send connection request through DHT
      if (config_->logger)
          config_->logger->debug("[device {}] Sending connection request", deviceId);
-@@ -1340,49 +1414,56 @@
+@@ -1354,49 +1428,56 @@
              auto shared = w.lock();
              if (!shared)
                  return false;
@@ -209,7 +210,7 @@
  }
  
  void
-@@ -1493,6 +1574,30 @@
+@@ -1507,6 +1588,30 @@
      val.id = id;
      val.ice_msg = icemsg.str();
      val.isAnswer = true;

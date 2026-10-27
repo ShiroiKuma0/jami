@@ -1,6 +1,7 @@
+diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
 --- a/src/connectionmanager.cpp
 +++ b/src/connectionmanager.cpp
-@@ -907,6 +907,11 @@
+@@ -913,6 +913,11 @@
                                         ConnectCallback cb,
                                         const ConnectDeviceOptions& options)
  {
@@ -12,7 +13,7 @@
      if (!dht()) {
          cb(nullptr, deviceId);
          return;
-@@ -1748,6 +1753,10 @@
+@@ -1762,6 +1767,10 @@
          return false;
      });
      info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid](const std::error_code& ec) {
