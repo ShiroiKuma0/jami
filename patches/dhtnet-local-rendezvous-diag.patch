@@ -1,0 +1,160 @@
+--- a/src/connectionmanager.cpp	2026-10-31 21:22:42.166370543 +0100
++++ b/src/connectionmanager.cpp	2026-10-31 21:22:49.479819340 +0100
+@@ -856,6 +856,7 @@
+     // never inside its locks while holding ours. The timer above is already armed, so the answer
+     // is matched exactly as usual.
+     if (localPeer) {
++        SK_CM("localrdv send-request to=%s id=%llu", std::string(deviceId.to_view()).c_str(), (unsigned long long) val.id); // SK-RDVDIAG
+         if (config_->logger)
+             config_->logger->debug("[device {}] Sending connection request (process-local)", deviceId);
+         asio::post(*localPeer->config_->ioContext,
+@@ -900,6 +901,7 @@
+         return;
+     }
+     if (!info->responseReceived_) {
++        SK_CM("fail answer-timeout device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+         if (config_->logger)
+             config_->logger->error("[device {}] No response from DHT to ICE request.", deviceId);
+         if (onConnected)
+@@ -916,6 +918,7 @@
+     auto sdp = ice->parseIceCandidates(info->response_.ice_msg);
+ 
+     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
++        SK_CM("fail start-ice-out device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+         if (config_->logger)
+             config_->logger->warn("[device {}] Start ICE failed", deviceId);
+         if (onConnected)
+@@ -1008,6 +1011,7 @@
+                     [w = weak_from_this(), deviceId, name, cb = std::move(cb), options](
+                         const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                         if (!cert) {
++                            SK_CM("fail no-valid-cert device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+                             if (auto shared = w.lock())
+                                 if (shared->config_->logger)
+                                     shared->config_->logger->error("[device {}] No valid certificate found.", deviceId);
+@@ -1221,6 +1225,8 @@
+                                        eraseInfo = std::move(eraseInfo),
+                                        ok] {
+                 auto sthis = w.lock();
++                if (!ok)
++                    SK_CM("fail ice-nego-out device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+                 if (!ok && sthis && sthis->config_->logger)
+                     sthis->config_->logger->error("[device {}] ICE negotiation failed.", deviceId);
+                 if (!sthis || !ok || !sthis->connectDeviceOnNegoDone(diw, winfo.lock(), deviceId, name, vid, cert)) {
+@@ -1348,6 +1354,7 @@
+             config_->logger->debug("[device {}] New response received", device);
+         std::lock_guard lk {info->mutex_};
+         if (!info->waitingForPeerResponse_ || !info->waitForAnswer_) {
++            SK_CM("fail unexpected-response device=%s", std::string(device.to_view()).c_str()); // SK-RDVDIAG
+             if (config_->logger)
+                 config_->logger->warn("[device {}] Ignoring unexpected response with no pending DHT wait", device);
+             return;
+@@ -1363,6 +1370,7 @@
+                     self->onResponse(ec, info, device, reqId);
+             });
+     } else {
++        SK_CM("fail response-no-request device=%s", std::string(device.to_view()).c_str()); // SK-RDVDIAG
+         if (config_->logger)
+             config_->logger->warn("[device {}] Response received, but unable to find request", device);
+     }
+@@ -1413,6 +1421,7 @@
+ #endif
+                                                     shared->onDhtPeerRequest(req, true, cert);
+                                                 } else {
++                                                    SK_CM("fail untrusted-request from=%s", std::string(req.owner->getLongId().to_view()).c_str()); // SK-RDVDIAG
+                                                     if (shared->config_->logger)
+                                                         shared->config_->logger
+                                                             ->warn("[device {}] Received request from untrusted peer",
+@@ -1450,8 +1459,11 @@
+ {
+     if (!req.owner)
+         return;
+-    if (isMessageTreated(req.id))
++    if (isMessageTreated(req.id)) {
++        SK_CM("localrdv-or-dht drop-treated from=%s id=%llu answer=%d", std::string(req.owner->getLongId().to_view()).c_str(), (unsigned long long) req.id, (int) req.isAnswer); // SK-RDVDIAG
+         return;   // already treated — just ignore
++    }
++    SK_CM("incoming %s from=%s id=%llu", req.isAnswer ? "answer" : "request", std::string(req.owner->getLongId().to_view()).c_str(), (unsigned long long) req.id); // SK-RDVDIAG
+     auto from = req.owner->getLongId();
+     if (req.isAnswer) {
+         if (config_->logger)
+@@ -1476,6 +1488,7 @@
+ #endif
+                             shared->onDhtPeerRequest(req, false, cert);
+                         } else {
++                            SK_CM("fail untrusted-request from=%s", std::string(req.owner->getLongId().to_view()).c_str()); // SK-RDVDIAG
+                             if (shared->config_->logger)
+                                 shared->config_->logger->warn(
+                                     "[device {}] Received request from untrusted peer",
+@@ -1500,6 +1513,7 @@
+     auto isDhtRequest = name.empty();
+     if (!ok) {
+         if (isDhtRequest) {
++            SK_CM("fail tls-in device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+             if (config_->logger)
+                 config_->logger->error("[device {}] TLS connection failure - Incoming request. channel: {} - vid: {}",
+                                        deviceId,
+@@ -1508,6 +1522,7 @@
+             if (connReadyCb_)
+                 connReadyCb_(deviceId, "", nullptr);
+         } else {
++            SK_CM("fail tls-out device=%s channel=%s", std::string(deviceId.to_view()).c_str(), name.c_str()); // SK-RDVDIAG
+             if (config_->logger)
+                 config_->logger
+                     ->error("[device {}] TLS connection failure - Initied by connectDevice. channel: {} - vid: {}",
+@@ -1607,6 +1622,7 @@
+         PeerConnectionRequest localReq = val;
+         localReq.owner = config_->id.first->getSharedPublicKey();
+         localReq.from = localReq.owner->getId();   // see the request leg: the verifier reads it
++        SK_CM("localrdv send-answer to=%s id=%llu", std::string(from->getLongId().to_view()).c_str(), (unsigned long long) val.id); // SK-RDVDIAG
+         if (config_->logger)
+             config_->logger->debug("[device {}] Connection accepted, process-local reply",
+                                    from->getLongId());
+@@ -1654,6 +1670,7 @@
+     auto sdp = ice->parseIceCandidates(req.ice_msg);
+     answerTo(*ice, req.id, req.owner, legacyMode);
+     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
++        SK_CM("fail start-ice-in device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+         if (config_->logger)
+             config_->logger->error("[device {}] Start ICE failed", deviceId);
+         ice = nullptr;
+@@ -1699,6 +1716,7 @@
+             if (!shared)
+                 return false;
+             if (cert.getPublicKey().getId() != ph || deviceId != cert.getPublicKey().getLongId()) {
++                SK_CM("fail tls-cert-mismatch device=%s", std::string(deviceId.to_view()).c_str()); // SK-RDVDIAG
+                 if (l)
+                     l->warn("[device {}] TLS certificate with ID {} doesn't match the DHT request.",
+                             deviceId,
+@@ -1808,6 +1826,7 @@
+             if (!shared)
+                 return;
+             if (!ok) {
++                SK_CM("fail ice-nego-in device=%s", std::string(req.owner->getLongId().to_view()).c_str()); // SK-RDVDIAG
+                 if (shared->config_->logger)
+                     shared->config_->logger->error("[device {}] ICE negotiation failed.", req.owner->getLongId());
+                 dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
+@@ -2166,6 +2185,7 @@
+ 
+     // Unable to self-signed device certificate
+     if (top_issuer == crt) {
++        SK_CM("fail self-signed device=%s", std::string(crt->getLongId().to_view()).c_str()); // SK-RDVDIAG
+         if (logger)
+             logger->warn("Found invalid (self-signed) peer device: {}", crt->getLongId());
+         return false;
+@@ -2176,6 +2196,7 @@
+     dht::crypto::TrustList peer_trust;
+     peer_trust.add(*top_issuer);
+     if (not peer_trust.verify(*crt)) {
++        SK_CM("fail invalid-peer device=%s", std::string(crt->getLongId().to_view()).c_str()); // SK-RDVDIAG
+         if (logger)
+             logger->warn("Found invalid peer device: {}", crt->getLongId());
+         return false;
+@@ -2183,6 +2204,7 @@
+ 
+     // Check cached OCSP response
+     if (crt->ocspResponse and crt->ocspResponse->getCertificateStatus() != GNUTLS_OCSP_CERT_GOOD) {
++        SK_CM("fail ocsp-disabled device=%s", std::string(crt->getLongId().to_view()).c_str()); // SK-RDVDIAG
+         if (logger)
+             logger->error("Certificate {} is disabled by cached OCSP response", crt->getLongId());
+         return false;

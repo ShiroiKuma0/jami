@@ -1,6 +1,5 @@
-diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
---- a/src/connectionmanager.cpp
-+++ b/src/connectionmanager.cpp
+--- a/src/connectionmanager.cpp	2026-10-31 21:22:42.123954945 +0100
++++ b/src/connectionmanager.cpp	2026-10-31 21:22:42.166370543 +0100
 @@ -490,9 +490,38 @@
      std::map<DeviceId, std::shared_ptr<DeviceInfo>> infos_ {};
  };
@@ -68,7 +67,7 @@ diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
      void connectDeviceStartIce(const std::shared_ptr<ConnectionInfo>& info,
                                 const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
                                 const dht::Value::Id& vid,
-@@ -770,6 +813,23 @@
+@@ -770,6 +813,27 @@
      val.ice_msg = icemsg.str();
      val.connType = connType;
  
@@ -87,12 +86,16 @@ diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
 +        // Over the DHT the owner is filled in by the encryption layer; on the local path we set
 +        // it ourselves, because the receiver's trust gate resolves the certificate from it.
 +        localReq.owner = config_->id.first->getSharedPublicKey();
++        // `from` too: over the DHT, SignedValue::unpackValue derives it from the owner, and the TLS
++        // verifier compares the peer certificate against it (req.from). Left empty, every local
++        // handshake failed with "TLS certificate doesn't match the DHT request" (2026-10-31).
++        localReq.from = localReq.owner->getId();
 +    }
 +
      auto value = std::make_shared<dht::Value>(std::move(val));
      value->user_type = "peer_request";
      value->pushType = connType;
-@@ -787,6 +847,20 @@
+@@ -787,6 +851,20 @@
                  self->onResponse(ec, info, deviceId, vid);
          });
  
@@ -113,7 +116,7 @@ diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
      // Send connection request through DHT
      if (config_->logger)
          config_->logger->debug("[device {}] Sending connection request", deviceId);
-@@ -1354,49 +1428,56 @@
+@@ -1354,49 +1432,56 @@
              auto shared = w.lock();
              if (!shared)
                  return false;
@@ -210,7 +213,7 @@ diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
  }
  
  void
-@@ -1507,6 +1588,30 @@
+@@ -1507,6 +1592,31 @@
      val.id = id;
      val.ice_msg = icemsg.str();
      val.isAnswer = true;
@@ -228,6 +231,7 @@ diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
 +    if (localPeer) {
 +        PeerConnectionRequest localReq = val;
 +        localReq.owner = config_->id.first->getSharedPublicKey();
++        localReq.from = localReq.owner->getId();   // see the request leg: the verifier reads it
 +        if (config_->logger)
 +            config_->logger->debug("[device {}] Connection accepted, process-local reply",
 +                                   from->getLongId());
