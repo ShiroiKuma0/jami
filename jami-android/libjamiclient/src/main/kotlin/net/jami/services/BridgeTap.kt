@@ -23,6 +23,9 @@ interface BridgeTap {
 
     /** A data-transfer status change; [eventCode] is the daemon's raw `DataTransferEventCode`. */
     fun onTransfer(accountId: String, conversationId: String, interactionId: String, fileId: String, eventCode: Int)
+
+    /** A per-recipient delivery state of a swarm message; [status] is the daemon's raw MessageStates value. */
+    fun onStatus(accountId: String, conversationId: String, messageId: String, contactId: String, status: Int) {}
 }
 
 object BridgeTaps {

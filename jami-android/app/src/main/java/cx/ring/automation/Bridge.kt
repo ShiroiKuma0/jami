@@ -56,11 +56,13 @@ object Bridge : BridgeTap {
     const val TYPE_REACTION = "reaction"
     const val TYPE_REACTION_REMOVED = "reaction_removed"
     const val TYPE_FILE_STATE = "file_state"
+    const val TYPE_STATUS = "status"
 
     private lateinit var app: Context
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "sk-bridge").apply { isDaemon = true } }
     private val lock = Any()
     private val lastTransferState = ConcurrentHashMap<String, String>()
+    private val lastStatus = ConcurrentHashMap<String, String>()
 
     fun install(context: Context) {
         app = context.applicationContext
@@ -105,8 +107,17 @@ object Bridge : BridgeTap {
     override fun onReaction(accountId: String, conversationId: String, messageId: String, reaction: Map<String, String>) {
         val copy = HashMap(reaction)
         worker.execute { safe {
-            if (!isWatched(accountId, conversationId)) return@safe
             val author = copy["author"].orEmpty()
+            // A bridge_react waiting for its reaction's id gets it here, watched or not.
+            if (own(accountId, author) == "1") {
+                val match = "$messageId|${copy["body"].orEmpty()}"
+                pending.firstOrNull { it.accountId == accountId && it.conversationId == conversationId &&
+                        it.kind == TYPE_REACTION && it.match == match && it.messageId.isEmpty() }?.let {
+                    it.messageId = copy["id"].orEmpty()
+                    it.latch.countDown()
+                }
+            }
+            if (!isWatched(accountId, conversationId)) return@safe
             emit(accountId, conversationId, mutableMapOf(
                 "type" to TYPE_REACTION,
                 "message_id" to copy["id"].orEmpty(),
@@ -122,11 +133,16 @@ object Bridge : BridgeTap {
     override fun onReactionRemoved(accountId: String, conversationId: String, messageId: String, reactionId: String) {
         worker.execute { safe {
             if (!isWatched(accountId, conversationId)) return@safe
+            // The removal callback carries no author; take it from the reaction's own event.
+            val author = readJournal(accountId, conversationId)
+                .lastOrNull { it["type"] == TYPE_REACTION && it["message_id"] == reactionId }?.get("author").orEmpty()
             emit(accountId, conversationId, mutableMapOf(
                 "type" to TYPE_REACTION_REMOVED,
                 "message_id" to reactionId,
                 "event_id" to "$reactionId:removed",
-                "parent_id" to messageId))
+                "parent_id" to messageId,
+                "author" to author,
+                "own" to if (author.isEmpty()) "" else own(accountId, author)))
         } }
     }
 
@@ -150,6 +166,28 @@ object Bridge : BridgeTap {
                 }
             }
             emit(accountId, conversationId, ev)
+        } }
+    }
+
+    override fun onStatus(accountId: String, conversationId: String, messageId: String, contactId: String, status: Int) {
+        if (conversationId.isEmpty()) return   // legacy non-swarm path
+        worker.execute { safe {
+            if (!isWatched(accountId, conversationId)) return@safe
+            // The sender's own entry is always DISPLAYED for its own message — it says nothing.
+            if (ownUri(accountId)?.equals(contactId, ignoreCase = true) == true) return@safe
+            val state = net.jami.model.interaction.Interaction.MessageStates.entries.getOrNull(status)?.name ?: "UNKNOWN"
+            // Only for a message the journal knows (text, file or reaction). Edit and un-react commits
+            // get delivery states too, under a commit id no other event carries — noise to a caller.
+            if (readJournal(accountId, conversationId).none { it["message_id"] == messageId &&
+                        (it["type"] == TYPE_TEXT || it["type"] == TYPE_FILE || it["type"] == TYPE_REACTION) })
+                return@safe
+            if (lastStatus.put("$accountId|$messageId|$contactId", state) == state) return@safe
+            emit(accountId, conversationId, mutableMapOf(
+                "type" to TYPE_STATUS,
+                "message_id" to messageId,
+                "event_id" to "$messageId:$contactId:$state",
+                "peer" to contactId,
+                "status" to state))
         } }
     }
 

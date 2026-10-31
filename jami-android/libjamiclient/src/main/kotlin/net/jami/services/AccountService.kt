@@ -1734,6 +1734,7 @@ class AccountService(
         contactId: String,
         status: Int,
     ) {
+        BridgeTaps.fire { it.onStatus(accountId, conversationId, messageId, contactId, status) }
         val account = getAccount(accountId) ?: return
         val interactionStatus = Interaction.InteractionStatus.fromIntTextMessage(status)
         val messageState = Interaction.MessageStates.fromInt(status)

@@ -11,6 +11,7 @@ import cx.ring.utils.PushEvidence
 import net.jami.daemon.JamiService
 import net.jami.model.Account
 import net.jami.model.Uri
+import net.jami.model.interaction.Interaction
 import net.jami.utils.InboundEvidence
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit
  * automation switch before anything here runs.
  */
 object BridgeMethods {
-    const val VERSION = "1"
+    const val VERSION = "2"
 
     private val METHODS = listOf(
         Triple("bridge_describe", "", "version, items[method,args,returns]"),
@@ -41,6 +42,11 @@ object BridgeMethods {
         Triple("bridge_accept_file", "account,conversation,message_id,file_id", ""),
         Triple("bridge_open_file", "account,conversation,message_id,file_id", "fd, file_name, file_size, file_uri"),
         Triple("bridge_status", "account?", "app fields + items[per account]"),
+        Triple("bridge_react", "account,conversation,message_id,emoji", "reaction_id, pending"),
+        Triple("bridge_unreact", "account,conversation,reaction_id", ""),
+        Triple("bridge_edit", "account,conversation,message_id,text", "message_id"),
+        Triple("bridge_delete", "account,conversation,message_id", "message_id"),
+        Triple("bridge_message_status", "account,conversation,message_id", "delivered, read, items[peer,status]"),
     )
 
     fun call(ctx: Context, method: String, extras: Bundle?): Bundle = try {
@@ -75,6 +81,11 @@ object BridgeMethods {
             "bridge_accept_file" -> acceptFile(x)
             "bridge_open_file" -> openFile(x)
             "bridge_status" -> status(ctx, x)
+            "bridge_react" -> react(x)
+            "bridge_unreact" -> editTo(x, "reaction_id", "")
+            "bridge_edit" -> editTo(x, "message_id", x.getString("text") ?: return err("missing text"))
+            "bridge_delete" -> editTo(x, "message_id", "")
+            "bridge_message_status" -> messageStatus(x)
             else -> err("unknown method: $method")
         }
     }
@@ -242,6 +253,59 @@ object BridgeMethods {
                     "dht_proxy" to b(a.isDhtProxyEnabled),
                     "proxy_in_use" to a.dhtProxyUsed)
             }.toTypedArray())
+        }
+    }
+
+    private fun react(x: Bundle): Bundle {
+        val svc = JamiApplication.instance?.mAccountService ?: return err("app not initialized")
+        val acc = account(x) ?: return err("no such account")
+        val conv = conversation(x) ?: return err("missing conversation")
+        val target = x.getString("message_id")?.takeIf { it.isNotEmpty() } ?: return err("missing message_id")
+        val emoji = x.getString("emoji")?.takeIf { it.isNotEmpty() } ?: return err("missing emoji")
+        val p = Bridge.Pending(acc, conv, Bridge.TYPE_REACTION, "$target|$emoji")
+        Bridge.expect(p)
+        try {
+            svc.sendConversationReaction(acc, Uri(Uri.SWARM_SCHEME, conv), emoji, target)
+            val got = p.latch.await(8, TimeUnit.SECONDS)
+            return ok().apply {
+                putString("reaction_id", p.messageId)
+                putString("pending", if (got) "0" else "1")
+            }
+        } finally {
+            Bridge.forget(p)
+        }
+    }
+
+    /**
+     * Edit, delete and un-react are one daemon operation: an edit commit on [idKey]'s message.
+     * An empty [text] deletes it (for a reaction, that removes the reaction). The daemon only accepts
+     * edits of this account's OWN messages and silently ignores anything else.
+     */
+    private fun editTo(x: Bundle, idKey: String, text: String): Bundle {
+        val svc = JamiApplication.instance?.mAccountService ?: return err("app not initialized")
+        val acc = account(x) ?: return err("no such account")
+        val conv = conversation(x) ?: return err("missing conversation")
+        val id = x.getString(idKey)?.takeIf { it.isNotEmpty() } ?: return err("missing $idKey")
+        svc.editConversationMessage(acc, Uri(Uri.SWARM_SCHEME, conv), text, id)
+        return ok().apply { putString("message_id", id) }
+    }
+
+    /** The delivery state per recipient, from the model (the message must be loaded in Jami). */
+    private fun messageStatus(x: Bundle): Bundle {
+        val svc = JamiApplication.instance?.mAccountService ?: return err("app not initialized")
+        val acc = account(x) ?: return err("no such account")
+        val conv = conversation(x) ?: return err("missing conversation")
+        val id = x.getString("message_id")?.takeIf { it.isNotEmpty() } ?: return err("missing message_id")
+        val msg = svc.getAccount(acc)?.getSwarm(conv)?.getMessage(id)
+            ?: return err("message not loaded in this conversation")
+        val me = Bridge.ownUri(acc).orEmpty()
+        val peers = msg.statusMap.filterKeys { !it.equals(me, ignoreCase = true) }
+        val delivered = peers.values.any { it == Interaction.MessageStates.SUCCESS || it == Interaction.MessageStates.DISPLAYED }
+        val read = peers.values.any { it == Interaction.MessageStates.DISPLAYED }
+        return ok().apply {
+            putString("delivered", b(delivered))
+            putString("read", b(read))
+            putParcelableArray("items", peers.map { (peer, st) -> flat("peer" to peer, "status" to st.name) }.toTypedArray())
         }
     }
 
