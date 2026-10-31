@@ -451,7 +451,7 @@ object ConnectionWatchdog {
         // A sleeping account cannot deliver, so its outbox naturally goes stuck — scanning it would
         // paint every one of its contacts unreachable (red dots) for a silence we asked for.
         accounts.getAccounts().filter { it.isJami && !accounts.isBackgroundDeactivated(it.accountId) }.forEach { acc -> runCatching {
-            val stuck = ConnectionHealth.accountStuckMessages(acc, t)
+            val stuck = ConnectionHealth.accountStuckMessages(acc, t, ConnectionHealth.localAccountUris(accounts))
                 .filter { it.presence != Contact.PresenceStatus.CONNECTED &&
                     it.memberUri.removePrefix("jami:").removePrefix("ring:") !in sameDeviceUris }
                 .map { it.memberUri }.distinct()
@@ -478,7 +478,7 @@ object ConnectionWatchdog {
     private fun anyStuckToReachable(accounts: AccountService, t: Long): Boolean =
         accounts.getAccounts().any { acc ->
             acc.isJami && acc.isRegistered &&
-                ConnectionHealth.accountStuckMessages(acc, t).any {
+                ConnectionHealth.accountStuckMessages(acc, t, ConnectionHealth.localAccountUris(accounts)).any {
                     it.presence == net.jami.model.Contact.PresenceStatus.CONNECTED
                 }
         }
@@ -615,7 +615,7 @@ object ConnectionWatchdog {
                             // nothing is being sent to the account — i.e. when it can't cost a message.
                             val stuckToConnected = runCatching {
                                 accounts.getAccount(id)?.let { acct ->
-                                    ConnectionHealth.accountStuckMessages(acct, t3)
+                                    ConnectionHealth.accountStuckMessages(acct, t3, ConnectionHealth.localAccountUris(accounts))
                                         .any { m -> m.presence == net.jami.model.Contact.PresenceStatus.CONNECTED }
                                 } ?: false
                             }.getOrDefault(false)
@@ -1673,15 +1673,11 @@ object ConnectionWatchdog {
         var reg = 0; var conn = 0; var healthy = 0
         val stuck = ArrayList<ConnectionHealth.StuckMsg>()
         val tokens = StringBuilder()
-        // Same-device recipients (another of MY registered accounts) are reachable BY DEFINITION —
-        // they never publish presence to each other, so they read stale-OFFLINE and their stuck
-        // messages were triaged "benign offline" forever (2026-07-24: 6 msgs stuck to a same-device
-        // sibling, no recovery). Upgrade them to CONNECTED so the wedge ledger treats them as the
-        // local-fault evidence they are (the classic inter-account sync stall).
-        val sameDeviceUris = accounts.getAccounts()
-            .filter { it.isJami && it.isRegistered }
-            .mapNotNull { it.uri?.removePrefix("jami:")?.removePrefix("ring:")?.takeIf(String::isNotEmpty) }
-            .toSet()
+        // Same-device recipients (another of MY accounts) were once upgraded to CONNECTED here so a
+        // sibling stall drove the wedge ledger (2026-07-24). REVERSED 2026-10-31 (SK-LOCALSTUCK): a
+        // sibling stall lives inside our own process, no network recovery reaches it, and acting on
+        // it escalated to a hard reset plus an all-account registration toggle. The account still
+        // shows NOT_SYNCING red on the health surfaces; it just no longer triggers recovery.
         for (acc in accounts.getAccounts()) {
             if (!acc.isJami || !acc.isRegistered) continue
             reg++
@@ -1693,10 +1689,9 @@ object ConnectionWatchdog {
             tokens.append(acc.accountId.take(6))
                 .append(if (deaf) ":⚠${quiet / 60_000}m" else if (connected) ":✓" else ":✓idle")
                 .append(' ')
-            stuck += ConnectionHealth.accountStuckMessages(acc, t).map { m ->
-                if (m.memberUri.removePrefix("jami:").removePrefix("ring:") in sameDeviceUris)
-                    m.copy(presence = Contact.PresenceStatus.CONNECTED) else m
-            }
+            // SK-LOCALSTUCK: sibling-account recipients are excluded inside accountStuckMessages —
+            // they used to be promoted to CONNECTED-class wedge evidence here (2026-10-31).
+            stuck += ConnectionHealth.accountStuckMessages(acc, t, ConnectionHealth.localAccountUris(accounts))
         }
         if (reg == 0) {
             // Cold-start stall: enabled accounts that never reach REGISTERED are invisible to the
