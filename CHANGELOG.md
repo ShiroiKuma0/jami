@@ -7,6 +7,51 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+008` — 2026-10-31
+
+Same upstream base as `+001` (**20261023-01** at `2ec1e272f`). A bot bridge for 白い熊 自由作業盤,
+a fix for name search, a fix for chats between your own accounts on one phone, and the invitation
+screens in the theme.
+
+### 🤖 A bridge for 白い熊 自由作業盤
+
+- New `bridge_*` methods on the caller-verified automation door: list accounts and conversations
+  (title, members, roles), **watch** a conversation, catch up on its events, **send text** with a
+  reply-to (returns the new message's id), **send a picture or file**, accept an incoming file and
+  open it, **react** and remove a reaction, **edit** and **delete** a message, ask a message's
+  **delivered / read** state, and a **status** call (registration, connection mode, last incoming
+  activity, last push, watchdog state).
+- Every message, edit, reaction, file-transfer state and per-recipient delivery state of a watched
+  conversation goes into a journal and out as a live broadcast to the one signed 自由作業盤 app.
+  Conversations that are not watched never leave Jami.
+
+### 🔎 Name search works again after a bad start
+
+- When Jami started before the network was usable, every name search failed instantly — even
+  your own name — until the app was restarted. The daemon looked the name server up once and
+  replayed that failure forever. A search that gets no answer now makes the next one look the
+  server up again. Filed upstream as Gerrit change 36883.
+
+### 🔗 Your own accounts can reach each other again
+
+- Messages between two accounts on the same phone never arrived, and accepting an invitation
+  from one of your own accounts stayed on "Downloading conversation from peer". Our own July
+  change, which lets co-resident accounts find each other inside the app, never filled in the
+  sender's id, so every secure handshake between them was rejected. Fixed; delivery is immediate.
+- Every failure on the connection path (no answer, connection setup, handshake, certificate and
+  trust checks) is now named in the log; release builds used to discard all of them.
+- The watchdog no longer resets the network or switches all accounts off and on because a message
+  to one of your own accounts is stuck — no network recovery can help there, and it made things
+  worse.
+
+### 🎨 Invitations in the theme
+
+- The "Invitations received" card, its list and the Block / Decline / Accept bar are black with
+  yellow text and borders instead of light blue and green. Their colours are settable under
+  UI fonts & colors → Invitations.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+001` — 2026-10-27
 
 Rebased onto upstream **20261023-01** at `2ec1e272f` (16 app commits), with a new daemon
