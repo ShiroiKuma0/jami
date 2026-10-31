@@ -556,7 +556,7 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # clean tree silently dropped all five (rules.mak carried 4 $(APPLY) lines for 9 patches). Chain
 # them after the throttle patch, in order; each one's diff context includes the previous.
 r bash -c 'prev=dhtnet-throttle-failed-ice-transports; m=daemon/contrib/src/dhtnet/rules.mak;
-for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous; do
+for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous dhtnet-local-rendezvous-diag; do
   cp "patches/$p.patch" daemon/contrib/src/dhtnet/
   grep -q "$p.patch" "$m" || sed -i "s|^\t\$(APPLY) \$(SRC)/dhtnet/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/dhtnet/$p.patch|" "$m"
   prev=$p
@@ -568,6 +568,10 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; grep -q "SK_CM(\"establ
 # dhtnet process-local rendezvous for co-resident accounts (SK-LOCALRDV). Guard: SK-LOCALRDV.
 r bash -c 'cp patches/dhtnet-local-sibling-rendezvous.patch daemon/contrib/src/dhtnet/; grep -q dhtnet-local-sibling-rendezvous.patch daemon/contrib/src/dhtnet/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-peer-account-diag.patch|\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-peer-account-diag.patch\n\t\$(APPLY) \$(SRC)/dhtnet/dhtnet-local-sibling-rendezvous.patch|" daemon/contrib/src/dhtnet/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q "SK-LOCALRDV" "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-local-sibling-rendezvous.patch; fi'
+# connection-failure + local-rendezvous diagnostics (SK-RDVDIAG, 2026-10-31) — AFTER the rendezvous patch,
+# whose code it instruments. dhtnet's logger is null in release, so every ICE/TLS/trust failure on the
+# connect path was silent; this mirrors each one to logcat (tag SK-ICEDIAG, "fail …" / "localrdv …").
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q "SK-RDVDIAG" "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-local-rendezvous-diag.patch; fi'
 
 # Rebuild dhtnet if ANY of its sources is newer than the stamp. The old form named ice_transport.cpp
 # and ip_utils.cpp explicitly, so a change to connectionmanager.cpp alone was SILENTLY SKIPPED and
@@ -648,6 +652,11 @@ r bash -c 'grep -q SK-CAPTUREZERO daemon/src/media/audio/aaudio/aaudiolayer.cpp 
 # checks the level, so raising it adds the write, never the formatting. Pairs with SK-RXERR's rate limit —
 # without that a wedged socket would deliver ~16 000 identical lines a second.
 r bash -c 'grep -q SK-SIPLOG daemon/src/manager.cpp || (cd daemon && patch -flp1) < patches/jami-sip-log-errors-by-default.patch'
+
+# name-server re-resolve (SK-NSRESOLVE; idempotent; daemon's OWN source — no rules.mak, no contrib
+# rebuild). NameDirectory resolved ns.jami.net once at daemon start and replayed that result forever,
+# so a start-up DNS failure made every name lookup fail with code=0 until the process died (2026-10-31).
+r bash -c 'grep -q SK-NSRESOLVE daemon/src/jamidht/namedirectory.cpp || (cd daemon && patch -flp1) < patches/jami-namedirectory-reresolve.patch'
 
 # current-CRL-only (idempotent; daemon's OWN source — no rules.mak, no contrib rebuild)
 r bash -c 'grep -q SK-CRL-CURRENT daemon/src/jamidht/account_manager.cpp || (cd daemon && patch -flp1) < patches/jami-publish-current-crl-only.patch'
