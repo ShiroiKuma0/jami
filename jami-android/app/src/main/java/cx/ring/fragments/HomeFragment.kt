@@ -104,6 +104,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
     fun refreshSmartListTheme() {
         mSmartListFragment?.refreshTheme()
+        mBinding?.invitationCard?.let { cx.ring.utils.InviteTheme.applyCard(it) }
     }
     private val mDisposable = CompositeDisposable()
     private var mSearchView: SearchView? = null
@@ -427,6 +428,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
         // Return to search
         invitationCard.pendingToolbar.setNavigationOnClickListener { collapsePendingView() }
+        cx.ring.utils.InviteTheme.applyCard(invitationCard)
 
         mBinding = this
     }.root
