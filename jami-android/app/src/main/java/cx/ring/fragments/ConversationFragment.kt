@@ -1308,6 +1308,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
             cvMessageInput.visibility = View.GONE
             unknownContactPrompt.visibility = View.GONE
             trustRequestPrompt.visibility = View.VISIBLE
+            cx.ring.utils.InviteTheme.applyRequestBar(trustRequestCard, listOf(btnBlock, btnRefuse, btnAccept))
             btnBlock.isVisible = requestMode == Conversation.Mode.OneToOne
             trustRequestMessage.text = getString(R.string.invitation_received_message, name)
             trustRequestMessage.visibility = View.VISIBLE

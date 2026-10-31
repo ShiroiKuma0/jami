@@ -69,6 +69,14 @@ object ColorPrefs {
     // the glyph itself plus the Jami badge's hairline ring, SHORTCUT_FILL the thin rim behind the
     // glyph that keeps it readable on a light photo. Baked into the icon bitmap at creation time.
     const val SHORTCUT_ICON = "shortcut_icon"
+    // Invitations (2026-10-31): the "Invitations received" card + its expanded list, and the
+    // Block / Decline / Accept bar of an incoming request. Black fill, yellow text + border.
+    const val INVITE_TEXT = "invite_text"
+    const val INVITE_FILL = "invite_fill"
+    const val INVITE_BORDER = "invite_border"
+    const val REQUEST_TEXT = "request_text"
+    const val REQUEST_FILL = "request_fill"
+    const val REQUEST_BORDER = "request_border"
     const val SHORTCUT_FILL = "shortcut_fill"
 
     private const val PREFS = "shiroikuma_colors"
@@ -84,7 +92,7 @@ object ColorPrefs {
     fun defaultColor(c: Context, role: String): Int = when (role) {
         LIST_DATE, MSG_TIME, LINK_DOMAIN -> ContextCompat.getColor(c, R.color.textColorSecondary)
         PRESENCE_AVAILABLE -> 0xFF0000FF.toInt()   // blue (#0000FF) — announced on the DHT, no live pipe yet
-        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL, SHORTCUT_FILL -> BLACK
+        MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL, SHORTCUT_FILL, INVITE_FILL, REQUEST_FILL -> BLACK
         CALL_TEXT, CALL_BORDER -> GREEN   // call-event pill: black fill, green text + border (settable)
         INFO_HEADING -> 0xFFFFFFFF.toInt()   // help-page section headings — white (readable on black; #0000FF was not)
         STATUS_SENDING -> 0xFF399EFF.toInt()   // light blue (#399EFF) — in flight

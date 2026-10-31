@@ -86,6 +86,15 @@ class FontsSettingsFragment : Fragment() {
                 ColorRole("Text", ColorPrefs.CALL_TEXT),
                 ColorRole("Pill fill", ColorPrefs.CALL_FILL),
                 ColorRole("Pill border", ColorPrefs.CALL_BORDER))))),
+        Group("Invitations", listOf(
+            Element("Invitations card & list", null, listOf(
+                ColorRole("Text", ColorPrefs.INVITE_TEXT),
+                ColorRole("Fill", ColorPrefs.INVITE_FILL),
+                ColorRole("Border", ColorPrefs.INVITE_BORDER))),
+            Element("Block / Decline / Accept bar", null, listOf(
+                ColorRole("Buttons", ColorPrefs.REQUEST_TEXT),
+                ColorRole("Fill", ColorPrefs.REQUEST_FILL),
+                ColorRole("Border", ColorPrefs.REQUEST_BORDER))))),
         Group("Message menu", listOf(
             Element("Long-press menu", null, listOf(
                 ColorRole("Text", ColorPrefs.MENU_TEXT),
