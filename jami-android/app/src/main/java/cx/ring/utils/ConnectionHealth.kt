@@ -56,12 +56,17 @@ object ConnectionHealth {
      *  mask it) is undelivered for > STUCK_MSG_MS, each annotated with the best recipient
      *  presence. Unlike the old same-device-only heuristic, this scans everything and leaves the
      *  its-their-fault / our-fault judgment to the caller, which has the presence to decide. */
-    fun accountStuckMessages(account: Account, nowMs: Long): List<StuckMsg> {
+    fun accountStuckMessages(account: Account, nowMs: Long, localUris: Set<String> = emptySet()): List<StuckMsg> {
         val out = ArrayList<StuckMsg>()
         for (conv in account.getConversations()) {
             val e = conv.lastDeliverableOutgoing() ?: continue
             if (deliveredToPeer(conv, e) || nowMs - e.timestamp <= STUCK_MSG_MS) continue
-            val best = conv.contacts.filter { !it.isUser }
+            // SK-LOCALSTUCK (2026-10-31): recipients that are other accounts on THIS phone are not
+            // network evidence. Their delivery runs inside our own process; a stall there is a local
+            // defect no network recovery can fix — on 2026-10-31 it drove a hard reset and an
+            // all-account registration toggle that left every account unregistered. A conversation
+            // whose only recipients are local accounts is therefore not reported here at all.
+            val best = conv.contacts.filter { !it.isUser && bare(it.uri.rawRingId ?: it.uri.uri) !in localUris }
                 .maxByOrNull { it.lastPresence.ordinal } ?: continue
             // Triage must judge by the RAW daemon presence: for a peer the watchdog demoted (red
             // dot), lastPresence reads the demotion's OFFLINE — feeding that back here made the
@@ -103,6 +108,15 @@ object ConnectionHealth {
         val presence: Contact.PresenceStatus, // recipient's RAW presence (never the demoted value)
         val severity: StuckSeverity,
     )
+
+    private fun bare(uri: String) = uri.removePrefix("jami:").removePrefix("ring:")
+
+    /** The ring ids of EVERY Jami account on this phone — registered or not. A toggled or sleeping
+     *  sibling is still a sibling; filtering on isRegistered (as the watchdog once did) let a
+     *  mid-toggle sibling's stuck message slip through as network evidence. */
+    fun localAccountUris(accounts: net.jami.services.AccountService): Set<String> =
+        accounts.getAccounts().filter { it.isJami }
+            .mapNotNull { it.uri?.let(::bare)?.takeIf(String::isNotEmpty) }.toSet()
 
     private fun rawPresenceOf(account: Account, c: Contact): Contact.PresenceStatus {
         val uri = c.uri.rawRingId ?: c.uri.uri
