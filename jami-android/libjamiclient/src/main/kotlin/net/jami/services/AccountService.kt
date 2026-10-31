@@ -36,7 +36,6 @@ import net.jami.model.interaction.Interaction.TransferStatus
 import net.jami.services.ConversationFacade.SearchResult
 import net.jami.utils.Log
 import net.jami.utils.SwigNativeConverter
-import net.jami.utils.TimestampUtils
 import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLEncoder
@@ -150,32 +149,6 @@ class AccountService(
         var longitude = 0.0
 
         override fun toString(): String = "Location{$type $latitude $longitude $date account:$account callId:$callId peer:$peer}"
-
-        companion object {
-            /**
-             * A location message, as peers send it in an "application/geo" payload,
-             * or null if it is not one.
-             */
-            fun parse(account: String, callId: String?, peer: Uri, json: String,
-                      now: Long = System.currentTimeMillis()): Location? {
-                val obj = JsonParser.parseString(json).asJsonObject
-                val type = obj["type"]?.asString
-                // Jami for desktop sends its Stop without a time: date it on reception.
-                val date = obj["time"]?.asLong ?: now
-                return when {
-                    type.equals(Type.Stop.toString(), ignoreCase = true) ->
-                        Location(account, callId, peer, date).apply { this.type = Type.Stop }
-                    (type == null || type.equals(Type.Position.toString(), ignoreCase = true))
-                            && obj.has("lat") && obj.has("long") ->
-                        Location(account, callId, peer, date).apply {
-                            this.type = Type.Position
-                            latitude = obj["lat"].asDouble
-                            longitude = obj["long"].asDouble
-                        }
-                    else -> null
-                }
-            }
-        }
     }
 
     private val incomingMessageSubject: Subject<Message> = PublishSubject.create()
@@ -197,8 +170,18 @@ class AccountService(
         .flatMapMaybe { msg: Message ->
             try {
                 val loc = msg.messages[CallService.MIME_GEOLOCATION] ?: return@flatMapMaybe Maybe.empty<Location>()
-                Location.parse(msg.accountId, msg.callId, Uri.fromId(msg.author), loc)
-                    ?.let { Maybe.just(it) } ?: Maybe.empty()
+                val obj = JsonParser.parseString(loc).asJsonObject
+                if (obj.size() < 2) return@flatMapMaybe Maybe.empty<Location>()
+                Maybe.just(Location(msg.accountId, msg.callId, Uri.fromId(msg.author), obj["time"].asLong).apply {
+                    val t = obj["type"]
+                    if (t == null || t.asString.equals(Location.Type.Position.toString(), ignoreCase = true)) {
+                        type = Location.Type.Position
+                        latitude = obj["lat"].asDouble
+                        longitude = obj["long"].asDouble
+                    } else if (t.asString.equals(Location.Type.Stop.toString(), ignoreCase = true)) {
+                        type = Location.Type.Stop
+                    }
+                })
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to receive geolocation", e)
                 Maybe.empty()
@@ -280,9 +263,7 @@ class AccountService(
      */
     fun loadAccountsFromDaemon(isConnected: Boolean) {
         refreshAccountsCacheFromDaemon()
-        // Called on the daemon executor during bootstrap. Do not enqueue activation behind
-        // pushes already waiting for bootstrap to finish.
-        setAccountsActiveOnExecutor(isConnected)
+        setAccountsActive(isConnected)
     }
 
     private fun refreshAccountsCacheFromDaemon() {
@@ -297,11 +278,7 @@ class AccountService(
         val scheduler = Schedulers.computation()
         toLoad.forEach { account ->
             account.registrationStateObservable
-                .filter {
-                    it != AccountConfig.RegistrationState.UNLOADED &&
-                        it != AccountConfig.RegistrationState.INITIALIZING &&
-                        it != AccountConfig.RegistrationState.ERROR_NEED_MIGRATION
-                }
+                .filter { it != AccountConfig.RegistrationState.UNLOADED && it != AccountConfig.RegistrationState.INITIALIZING }
                 .firstElement()
                 .observeOn(scheduler)
                 .flatMapCompletable { Completable.fromAction { loadAccount(account) } }
@@ -312,18 +289,12 @@ class AccountService(
         accountsSubject.onNext(newAccounts)
     }
 
-    private fun refreshConversationPermissions(conversation: Conversation) {
-        conversation.setPermissions(
-            JamiService.getConversationPermissions(conversation.accountId, conversation.uri.rawRingId)
-        )
-    }
-
     private fun loadAccount(account: Account) {
         if (!account.isJami) {
             return
         }
         Log.w(TAG, "${account.accountId} loading devices")
-        account.devices = loadAccountDevices(account.accountId)
+        account.devices = JamiService.getKnownRingDevices(account.accountId).toNative()
         Log.w(TAG, "${account.accountId} loading contacts")
         account.setContacts(JamiService.getContacts(account.accountId).toNative())
         val conversations: List<String> = JamiService.getConversations(account.accountId)
@@ -333,20 +304,19 @@ class AccountService(
                 val info: Map<String, String> = JamiService.conversationInfos(account.accountId, conversationId).toNativeFromUtf8()
                 //info.forEach { (key, value) -> Log.w(TAG, "conversation info: $key $value") }
                 val isSyncing = "true" == info["syncing"]
-                val daemonMode = parseConversationMode(
-                    account.accountId, conversationId, info["mode"],
-                    if (isSyncing) Conversation.Mode.OneToOne else Conversation.Mode.Syncing
-                ) ?: continue
-                val mode = if (isSyncing) Conversation.Mode.Syncing else daemonMode
+                val mode = if (isSyncing) Conversation.Mode.Syncing
+                    else Conversation.Mode.entries[info["mode"]?.toInt() ?: Conversation.Mode.Syncing.ordinal]
                 val conversation = account.newSwarm(conversationId, mode)
                 if (isSyncing) {
-                    conversation.requestMode = daemonMode
+                    conversation.requestMode =
+                        info["mode"]?.toIntOrNull()?.let {
+                            Conversation.Mode.entries.getOrNull(it)
+                        } ?: Conversation.Mode.OneToOne
                 }
-                conversation.updateTimestamps(info)
                 conversation.setProfile(mVCardService.loadConversationProfile(info))
-                refreshConversationPermissions(conversation)
                 if (mode == Conversation.Mode.Syncing) {
-                    conversation.lastEvent = ContactEvent(TimestampUtils.fromDetails(info, "created"))
+                    val created = (info["created"]?.toLong() ?: 0) * 1000L
+                    conversation.lastEvent = ContactEvent(created)
                 }
                 JamiService.getActiveCalls(account.accountId, conversationId)
                     .map { Conversation.ActiveCall(it) }
@@ -391,16 +361,13 @@ class AccountService(
                 Log.e(TAG, "Request: $key $value") */
                 val from = Uri.fromString(requestData["from"]!!)
                 val conversationId = requestData["id"] ?: continue
-                val mode = parseConversationMode(
-                    account.accountId, conversationId, requestData["mode"], Conversation.Mode.OneToOne
-                ) ?: continue
                 account.addRequest(TrustRequest(
                     account.accountId,
                     from,
                     requestData["received"]!!.toLong() * 1000L,
                     Uri(Uri.SWARM_SCHEME, conversationId),
                     mVCardService.loadConversationProfile(requestData),
-                    mode))
+                    requestData["mode"]?.let { m -> Conversation.Mode.entries[m.toInt()] } ?: Conversation.Mode.OneToOne))
             } catch (e: Exception) {
                 Log.w(TAG, "Error loading request", e)
             }
@@ -522,19 +489,6 @@ class AccountService(
             }
         }.subscribeOn(scheduler)
 
-    fun startFeedConversation(accountId: String): Single<Conversation> =
-        getAccountSingle(accountId).flatMap { account ->
-            if (account.isSip)
-                return@flatMap Single.error(IllegalArgumentException("Feeds require a Jami account"))
-            val id = JamiService.startFeedConversation(accountId)
-            if (id.isEmpty())
-                return@flatMap Single.error(IllegalStateException("Daemon failed to create Feed"))
-            conversationCallbacks.submit(accountId, id) {
-                account.getSwarm(id)
-                    ?: throw IllegalStateException("Feed $id was not registered")
-            }
-        }.subscribeOn(scheduler)
-
     fun removeConversation(accountId: String, conversationUri: Uri): Completable =
         Completable.fromAction { JamiService.removeConversation(accountId, conversationUri.rawRingId) }
             .subscribeOn(scheduler)
@@ -611,21 +565,6 @@ class AccountService(
     }
 
     fun sendConversationMessage(accountId: String, conversationUri: Uri, txt: String, replyTo: String?, flag: Int = 0) {
-        val conversation = checkNotNull(getAccount(accountId)?.getByUri(conversationUri)) {
-            "Conversation is unavailable: ${conversationUri.uri}"
-        }
-        when (flag) {
-            0 -> conversation.requirePermission(
-                if (replyTo.isNullOrEmpty()) Conversation.Permission.Text else Conversation.Permission.TextReply)
-            1 -> {
-                val target = replyTo?.let(conversation::getMessage)
-                if (txt.isEmpty()) conversation.requireMessageDeletion(target)
-                else if (target?.type != Interaction.InteractionType.COLLAB_DOC)
-                    conversation.requirePermission(Conversation.Permission.Edit)
-            }
-            2 -> conversation.requirePermission(Conversation.Permission.Reaction)
-            else -> throw IllegalArgumentException("Unsupported message flag: $flag")
-        }
         mExecutor.execute {
             Log.w(TAG, "sendConversationMessage ${conversationUri.rawRingId} $txt $replyTo $flag")
             JamiService.sendMessage(accountId, conversationUri.rawRingId, txt, replyTo ?: "", flag)
@@ -740,20 +679,18 @@ class AccountService(
      * for battery-saving background optimization.
      */
     fun setAccountsActive(active: Boolean) {
-        mExecutor.execute { setAccountsActiveOnExecutor(active) }
-    }
-
-    private fun setAccountsActiveOnExecutor(active: Boolean) {
-        Log.i(TAG, "setAccountsActive() running… $active")
-        // Keep explicit-deactivation markers consistent with bulk transitions.
-        if (active) {
-            explicitlyDeactivatedAccounts.clear()
-        } else {
-            for (a in mAccountList)
-                if (!a.isDhtProxyEnabled) explicitlyDeactivatedAccounts.add(a.accountId)
-        }
-        for (a in mAccountList) {
-            JamiService.setAccountActive(a.accountId, active || a.isDhtProxyEnabled)
+        mExecutor.execute {
+            Log.i(TAG, "setAccountsActive() running… $active")
+            // Keep explicit-deactivation markers consistent with bulk transitions.
+            if (active) {
+                explicitlyDeactivatedAccounts.clear()
+            } else {
+                for (a in mAccountList)
+                    if (!a.isDhtProxyEnabled) explicitlyDeactivatedAccounts.add(a.accountId)
+            }
+            for (a in mAccountList) {
+                JamiService.setAccountActive(a.accountId, active || a.isDhtProxyEnabled)
+            }
         }
     }
 
@@ -1321,12 +1258,6 @@ class AccountService(
         JamiService.updateProfile(accountId, displayName, "", "", "", 0)
     }
 
-    internal fun loadAccountDevices(accountId: String): Map<String, AccountDevice> =
-        JamiService.getDeviceList(accountId).associate { details ->
-            val device = AccountDevice.fromMap(details.toNativeFromUtf8())
-            device.id to device
-        }
-
     /**
      * @return the list of the account's devices from the Daemon
      */
@@ -1369,7 +1300,7 @@ class AccountService(
             details[ConfigKey.ACCOUNT_DEVICE_NAME.key] = newName
             JamiService.setAccountDetails(accountId, details)
             account?.setDetail(ConfigKey.ACCOUNT_DEVICE_NAME, newName)
-            account?.devices = loadAccountDevices(accountId)
+            account?.devices = JamiService.getKnownRingDevices(accountId).toNative()
         }
     }
 
@@ -1603,33 +1534,24 @@ class AccountService(
     fun findRegistrationByName(account: String, nameserver: String, name: String): Single<RegisteredName> =
         if (name.isEmpty())
             Single.just(RegisteredName(account, name, name))
-        else findRegistration(account, name) {
-            JamiService.lookupName(account, nameserver, name)
-        }
-
-    private fun findRegistration(account: String, query: String, lookup: () -> Boolean): Single<RegisteredName> =
-        Single.create<RegisteredName> { emitter ->
-            val result = registeredNames
-                .filter { it.accountId == account && it.query == query }
-                .firstOrError()
-                .subscribe(emitter::onSuccess) { emitter.tryOnError(it) }
-            emitter.setDisposable(result)
-            if (!emitter.isDisposed && !lookup()) {
-                emitter.onSuccess(failedLookup(account, query))
+        else registeredNames
+            .filter { r: RegisteredName -> account == r.accountId && name == r.query }
+            .firstOrError()
+            .doOnSubscribe {
+                mExecutor.execute { JamiService.lookupName(account, nameserver, name) }
             }
-        }.subscribeOn(scheduler)
-
-    private fun failedLookup(account: String, query: String): RegisteredName {
-        Log.w(TAG, "Unable to start name lookup for account $account")
-        return RegisteredName(account, query, "", state = LookupState.NetworkError)
-    }
+            .subscribeOn(scheduler)
 
     fun findRegistrationByAddress(account: String, nameserver: String, address: String): Single<RegisteredName> =
         if (address.isEmpty())
             Single.error(IllegalArgumentException())
-        else findRegistration(account, address) {
-            JamiService.lookupAddress(account, nameserver, address)
-        }
+        else registeredNames
+            .filter { r: RegisteredName -> account == r.accountId && address == r.query }
+            .firstOrError()
+            .doOnSubscribe {
+                mExecutor.execute { JamiService.lookupAddress(account, nameserver, address) }
+            }
+            .subscribeOn(scheduler)
 
     fun searchUser(account: String, query: String): Single<UserSearchResult> {
         if (query.isEmpty()) {
@@ -1654,10 +1576,7 @@ class AccountService(
      */
     fun lookupAddress(account: String, nameserver: String, address: String) {
         //Log.w(TAG, "lookupAddress $address")
-        mExecutor.execute {
-            if (!JamiService.lookupAddress(account, nameserver, address))
-                registeredNameSubject.onNext(failedLookup(account, address))
-        }
+        mExecutor.execute { JamiService.lookupAddress(account, nameserver, address) }
     }
 
     fun getConversationByUri(account: Account, conversationUri: Uri): Single<Conversation> =
@@ -1742,7 +1661,7 @@ class AccountService(
         if (oldState == AccountConfig.RegistrationState.INITIALIZING && state != AccountConfig.RegistrationState.INITIALIZING) {
             account.setDetails(JamiService.getAccountDetails(account.accountId).toNative())
             account.setCredentials(JamiService.getCredentials(account.accountId).toNative())
-            account.devices = loadAccountDevices(account.accountId)
+            account.devices = JamiService.getKnownRingDevices(account.accountId).toNative()
             // sets the registration state
             account.setVolatileDetails(JamiService.getVolatileAccountDetails(account.accountId).toNative())
         } else {
@@ -1841,9 +1760,9 @@ class AccountService(
         Log.d(TAG, "errorAlert : $alert")
     }
 
-    fun knownDevicesChanged(accountId: String) {
+    fun knownDevicesChanged(accountId: String, devices: Map<String, String>) {
         getAccount(accountId)?.let { account ->
-            account.devices = loadAccountDevices(accountId)
+            account.devices = devices
             observableAccounts.onNext(account)
         }
     }
@@ -1899,37 +1818,18 @@ class AccountService(
         return JamiService.getConversationPreferences(accountId, conversationId)
     }
 
-    fun updateConversationInfo(accountId: String, conversationId: String, info: Map<String, String>): Completable =
-        Completable.fromAction {
-            val conversation = getAccount(accountId)?.getSwarm(conversationId)
-            if (conversation == null || conversation.isSwarmGroup())
-                requireConversationPermission(accountId, conversationId, Conversation.Permission.UpdateProfile)
-            JamiService.updateConversationInfos(accountId, conversationId, StringMap.toSwig(info))
-        }.subscribeOn(scheduler)
+    fun updateConversationInfo(accountId: String, conversationId: String, info: Map<String, String>) {
+        JamiService.updateConversationInfos(accountId, conversationId, StringMap.toSwig(info))
+    }
 
-    fun addConversationMembers(accountId: String, conversationId: String, uris: List<Uri>): Completable =
-        Completable.fromAction {
-            val conversation = getAccount(accountId)?.getSwarm(conversationId)
-            uris.map { uri ->
-                if (conversation?.roles?.get(uri.uri) == MemberRole.BLOCKED)
-                    Conversation.Permission.BanUnbanMember
-                else Conversation.Permission.AddMember
-            }.distinct().forEach { requireConversationPermission(accountId, conversationId, it) }
+    fun addConversationMembers(accountId: String, conversationId: String, uris: List<Uri>) =
+        mExecutor.execute {
             for (uri in uris)
                 JamiService.addConversationMember(accountId, conversationId, uri.rawRingId)
-        }.subscribeOn(scheduler)
+        }
 
-    fun removeConversationMember(accountId: String, conversationId: String, uri: Uri): Completable =
-        Completable.fromAction {
-            requireConversationPermission(accountId, conversationId, Conversation.Permission.BanUnbanMember)
-            JamiService.removeConversationMember(accountId, conversationId, uri.rawRingId)
-        }.subscribeOn(scheduler)
-
-    fun unbanConversationMember(accountId: String, conversationId: String, uri: Uri): Completable =
-        Completable.fromAction {
-            requireConversationPermission(accountId, conversationId, Conversation.Permission.BanUnbanMember)
-            JamiService.addConversationMember(accountId, conversationId, uri.rawRingId)
-        }.subscribeOn(scheduler)
+    fun removeConversationMember(accountId: String, conversationId: String, uri: Uri) =
+        JamiService.removeConversationMember(accountId, conversationId, uri.rawRingId)
 
     fun contactAdded(accountId: String, uri: String, confirmed: Boolean) {
         getAccount(accountId)?.let { account ->
@@ -1951,8 +1851,6 @@ class AccountService(
     fun contactRemoved(accountId: String, uri: String, blocked: Boolean) {
         Log.d(TAG, "Contact removed: $uri User is blocked: $blocked")
         getAccount(accountId)?.let { account ->
-            account.getContactFromCache(Uri.fromId(uri))
-                .updateDates(JamiService.getContactDetails(accountId, uri))
             mHistoryService.clearHistory(uri, accountId, true).subscribe()
             account.removeContact(uri, blocked)
         }
@@ -2010,21 +1908,20 @@ class AccountService(
         val edit = message["edit"]
         val contact = conversation.findContact(authorUri) ?: account.getContactFromCache(authorUri)
         val interaction: Interaction = when (type) {
-            "initial" -> when (conversation.effectiveMode) {
-                Conversation.Mode.OneToOne -> {
-                    val invited = message["invited"]!!
-                    val invitedContact = conversation.findContact(Uri.fromId(invited)) ?: account.getContactFromCache(invited)
-                    ContactEvent(account.accountId, invitedContact, timestamp).setEvent(ContactEvent.Event.INVITED)
-                }
-                Conversation.Mode.Feed ->
-                    ContactEvent(account.accountId, contact, timestamp).setEvent(ContactEvent.Event.FEED_CREATED)
-                else -> Interaction(conversation, Interaction.InteractionType.INVALID)
+            "initial" -> if (conversation.mode.blockingFirst() == Conversation.Mode.OneToOne) {
+                val invited = message["invited"]!!
+                val invitedContact = conversation.findContact(Uri.fromId(invited)) ?: account.getContactFromCache(invited)
+                invitedContact.addedDate = Date(timestamp)
+                ContactEvent(account.accountId, invitedContact).setEvent(ContactEvent.Event.INVITED)
+            } else {
+                Interaction(conversation, Interaction.InteractionType.INVALID)
             }
             "member" -> {
                 val action = message["action"]!!
                 val uri = message["uri"]!!
                 val member = conversation.findContact(Uri.fromId(uri)) ?: account.getContactFromCache(uri)
-                ContactEvent(account.accountId, member, timestamp).setEvent(ContactEvent.Event.fromConversationAction(action))
+                member.addedDate = Date(timestamp)
+                ContactEvent(account.accountId, member).setEvent(ContactEvent.Event.fromConversationAction(action))
             }
             "application/edited-message",
             "text/plain" -> TextMessage(author, account.accountId, timestamp, conversation, message["body"]!!, !contact.isUser)
@@ -2107,14 +2004,13 @@ class AccountService(
         return interaction
     }
 
-    internal fun swarmLoaded(id: Long, accountId: String, conversationId: String, messages: List<SwarmMessageData>, permissions: Set<String>) {
-        val grantedPermissions = permissions.toSet()
+    internal fun swarmLoaded(id: Long, accountId: String, conversationId: String, messages: List<SwarmMessageData>) {
         conversationCallbacks.dispatch(accountId, conversationId) {
-            swarmLoadedNow(id, accountId, conversationId, messages, grantedPermissions)
+            swarmLoadedNow(id, accountId, conversationId, messages)
         }
     }
 
-    private fun swarmLoadedNow(id: Long, accountId: String, conversationId: String, messages: List<SwarmMessageData>, permissions: Set<String>) {
+    private fun swarmLoadedNow(id: Long, accountId: String, conversationId: String, messages: List<SwarmMessageData>) {
         var conversationLoad: ConversationLoad? = null
         try {
             val task = loadingTasks.remove(id)
@@ -2129,7 +2025,6 @@ class AccountService(
             }
             val interactions = messages.map { getInteractionFromSwarmMessage(account, conversation, it) }
             val subject = synchronized(conversation) {
-                conversation.setPermissions(permissions)
                 interactions.forEach { conversation.addSwarmElement(it, false) }
                 conversationLoad?.takeIf { it.conversation === conversation }?.let { load ->
                     synchronized(conversation.loadingLock()) {
@@ -2151,10 +2046,7 @@ class AccountService(
 
     fun conversationProfileUpdated(accountId: String, conversationId: String, info: Map<String, String>) {
         conversationCallbacks.dispatch(accountId, conversationId) {
-            getAccount(accountId)?.getSwarm(conversationId)?.let { conversation ->
-                conversation.updateTimestamps(info)
-                conversation.setProfile(mVCardService.loadConversationProfile(info))
-            }
+            getAccount(accountId)?.getSwarm(conversationId)?.setProfile(mVCardService.loadConversationProfile(info))
         }
     }
 
@@ -2196,7 +2088,6 @@ class AccountService(
                     }
                 }
             }
-            refreshConversationPermissions(conversation)
         }}
     }
 
@@ -2217,7 +2108,7 @@ class AccountService(
         /*for (Map.Entry<String, String> i : info.entrySet()) {
             Log.w(TAG, "conversation info: " + i.getKey() + " " + i.getValue());
         }*/
-        val mode = parseConversationMode(accountId, conversationId, info["mode"]) ?: return
+        val mode = Conversation.Mode.entries[info["mode"]!!.toInt()]
         val members = JamiService.getConversationMembers(accountId, conversationId).map { HashMap(it) }
         val uri = Uri(Uri.SWARM_SCHEME, conversationId)
         var c = account.getByUri(uri)//getSwarm(conversationId) ?: account.getByUri(Uri(Uri.SWARM_SCHEME, conversationId))
@@ -2231,9 +2122,7 @@ class AccountService(
             setMode = mode != c.mode.blockingFirst()
         }
         val conversation = c
-        refreshConversationPermissions(conversation)
         synchronized(conversation) {
-            conversation.updateTimestamps(info)
             conversation.setProfile(mVCardService.loadConversationProfile(info))
             // Making sure to add contacts before changing the mode
             for (member in members) {
@@ -2273,20 +2162,6 @@ class AccountService(
         getAccount(accountId)?.removeRequest(Uri(Uri.SWARM_SCHEME, conversationId))
     }
 
-    private fun parseConversationMode(
-        accountId: String,
-        conversationId: String,
-        value: String?,
-        missingMode: Conversation.Mode? = null
-    ): Conversation.Mode? {
-        if (value == null && missingMode != null) return missingMode
-        val mode = value?.toIntOrNull()?.let { Conversation.Mode.fromDaemonOrNull(it) }
-        if (mode == null) {
-            Log.w(TAG, "Invalid or unsupported daemon mode '$value' for $accountId/$conversationId; skipping")
-        }
-        return mode
-    }
-
     fun conversationRequestReceived(accountId: String, conversationId: String, metadata: Map<String, String>) {
         Log.w(TAG, "ConversationCallback: conversationRequestReceived $accountId/$conversationId ${metadata.size}")
         val account = getAccount(accountId)
@@ -2294,9 +2169,6 @@ class AccountService(
             Log.w(TAG, "conversationRequestReceived: unable to find account")
             return
         }
-        val mode = parseConversationMode(
-            accountId, conversationId, metadata["mode"], Conversation.Mode.OneToOne
-        ) ?: return
         val from = Uri.fromId(metadata["from"]!!)
         account.addRequest(TrustRequest(
             account.accountId,
@@ -2304,10 +2176,11 @@ class AccountService(
             metadata["received"]!!.toLong() * 1000L,
             Uri(Uri.SWARM_SCHEME, conversationId),
             mVCardService.loadConversationProfile(metadata),
-            mode))
+            metadata["mode"]?.let { m -> Conversation.Mode.entries[m.toInt()] } ?: Conversation.Mode.OneToOne))
     }
 
     internal fun swarmMessageReceived(accountId: String, conversationId: String, message: SwarmMessageData) {
+        BridgeTaps.fire { it.onMessage(accountId, conversationId, message.id, message.type, message.body, message.editions.size, false) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             swarmMessageReceivedNow(accountId, conversationId, message)
         }
@@ -2335,6 +2208,7 @@ class AccountService(
     }
 
     internal fun swarmMessageUpdated(accountId: String, conversationId: String, message: SwarmMessageData) {
+        BridgeTaps.fire { it.onMessage(accountId, conversationId, message.id, message.type, message.body, message.editions.size, true) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             swarmMessageUpdatedNow(accountId, conversationId, message)
         }
@@ -2350,6 +2224,7 @@ class AccountService(
     }
 
     fun reactionAdded(accountId: String, conversationId: String, messageId: String, reaction: Map<String, String>) {
+        BridgeTaps.fire { it.onReaction(accountId, conversationId, messageId, reaction) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             reactionAddedNow(accountId, conversationId, messageId, reaction)
         }
@@ -2365,6 +2240,7 @@ class AccountService(
     }
 
     fun reactionRemoved(accountId: String, conversationId: String, messageId: String, reactionId: String) {
+        BridgeTaps.fire { it.onReactionRemoved(accountId, conversationId, messageId, reactionId) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             reactionRemovedNow(accountId, conversationId, messageId, reactionId)
         }
@@ -2458,15 +2334,8 @@ class AccountService(
             })
     }
 
-    fun sendFile(conversation: Conversation, file: File, replyTo: String? = null) {
-        conversation.requirePermission(
-            if (replyTo.isNullOrEmpty()) Conversation.Permission.File else Conversation.Permission.FileReply)
-        mExecutor.execute {
-            JamiService.sendFile(
-                conversation.accountId, conversation.uri.rawRingId,
-                file.absolutePath, file.name, replyTo.orEmpty()
-            )
-        }
+    fun sendFile(conversation: Conversation, file: File, replyTo: String = "") {
+        mExecutor.execute { JamiService.sendFile(conversation.accountId, conversation.uri.rawRingId,file.absolutePath, file.name, replyTo) }
     }
 
     fun acceptFileTransfer(accountId: String, conversationUri: Uri, messageId: String?, fileId: String) {
@@ -2518,6 +2387,7 @@ class AccountService(
     }
 
     fun dataTransferEvent(accountId: String, conversationId: String, interactionId: String, fileId: String, eventCode: Int) {
+        BridgeTaps.fire { it.onTransfer(accountId, conversationId, interactionId, fileId, eventCode) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             dataTransferEventNow(accountId, conversationId, interactionId, fileId, eventCode)
         }
@@ -2824,14 +2694,6 @@ class AccountService(
 
     companion object {
         private val TAG = AccountService::class.java.simpleName
-        internal fun requireConversationPermission(
-            accountId: String, conversationId: String, vararg anyOf: Conversation.Permission
-        ) {
-            val grants = JamiService.getConversationPermissions(accountId, conversationId).toSet()
-            if (anyOf.none { it.key in grants })
-                throw SecurityException("Conversation does not grant ${anyOf.joinToString { it.key }}")
-        }
-
         private const val VCARD_CHUNK_SIZE = 1000
         private const val DATA_TRANSFER_REFRESH_PERIOD: Long = 500
         private const val DATA_TRANSFER_INFO_MAX_RETRIES = 4

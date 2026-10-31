@@ -102,6 +102,18 @@ object AutomationCallers {
     }
 
     /**
+     * The OTHER direction: may we SEND private data to [pkg]? Used by the SMS-bridge event broadcast,
+     * which is `setPackage(...)`-addressed. A package name alone is not an identity (see the class
+     * doc), so the same pin applies: installed, listed, and signed by the pinned certificate — or
+     * nothing is sent. No uid check here: there is no caller, we are the sender.
+     */
+    fun isPinnedTarget(context: Context, pkg: String): Boolean {
+        val pin = CALLERS[pkg] ?: return false
+        val signature = signingSha256(context, pkg) ?: return false
+        return MessageDigest.isEqual(signature.toByteArray(), pin.toByteArray())
+    }
+
+    /**
      * The SHA-256 of the caller's current signing certificate, lower-case hex.
      *
      * `signingInfo` rather than the deprecated `signatures`: a rotated key reports its whole history
