@@ -13,7 +13,7 @@ resilience** — a **three-fold connection mode** (full DHT / Firebase / Unified
 **adaptive push→streaming fallback** that survives a dead push leg, a self-healing recovery watchdog
 with **probe-verified** health, and a live **connection monitor** (per-contact too) — a swipeable
 **media viewer** with hide/restore, **protected contacts** with vague notifications (masking media
-too), **in-app message forwarding** — a whole series of pictures at once — **automation intents** plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
+too), **in-app message forwarding** — a whole series of pictures at once — **automation intents**, a **bot bridge** that lets 白い熊 自由作業盤 read, send, react to and track chats, plus a caller-verified **保存復元 data door** that backs the app up *with its data* and restores it onto a wiped phone, a **DHT data-efficiency fix** that cut the fork's own DHT footprint ~80x, a live **data-usage
 meter** with unattended logging, smarter **registered-name** lookups, **home-screen shortcuts** straight to a chat, a call, or a **hands-free call on speaker**, a **split-view** toggle, and **保存復元** — a one-file backup carrying every
 setting, every account, and the **entire chat history with its attachments** to a new phone — a
 **chat-files panel** that shows what those chats are actually storing, down to the individual
@@ -24,7 +24,7 @@ with a **predefined reply** — general or per contact — **call recording** th
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20261023-01+2026-10-23.21-54.g2ec1e272+001`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20261023-01+2026-10-23.21-54.g2ec1e272+008`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -419,9 +419,18 @@ ways before it opens: an exact package name, a uid cross-check the kernel answer
 signing certificate. Restoring into Jami wants the app launched once first: an import drives the
 daemon throughout, so a never-started process would half-restore and call it success.
 
+**And a bridge for a bot.** The same verified door carries a set of `bridge_*` methods for
+白い熊 自由作業盤: list accounts and conversations, send text and pictures with a reply-to, react,
+edit and delete, and ask whether a message was delivered and read. Every message, edit, reaction,
+file transfer and delivery state of a conversation the bot is told to **watch** is written to a
+journal it can catch up on and announced live by a broadcast addressed to that one signed app —
+conversations nobody watches never leave Jami. It is what lets a phone at home forward SMS into
+Jami and send the replies back out.
+
 ## 🔎 Registered-name resolution
 
-Username lookups that get stuck are retried automatically, and a dedicated **“Look up name”** action
+A name lookup that fails because the name server could not be reached no longer poisons every
+later lookup until the app restarts (filed upstream as Gerrit 36883). Username lookups that get stuck are retried automatically, and a dedicated **“Look up name”** action
 lets you resolve a registered name on demand instead of waiting on a silent failure.
 
 ## 🪟 Split-view toggle
