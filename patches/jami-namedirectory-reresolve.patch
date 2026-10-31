@@ -1,0 +1,104 @@
+diff --git a/src/jamidht/namedirectory.cpp b/src/jamidht/namedirectory.cpp
+index 034824f8d..2677234a9 100644
+--- a/src/jamidht/namedirectory.cpp
++++ b/src/jamidht/namedirectory.cpp
+@@ -112,6 +112,26 @@ NameDirectory::NameDirectory(const std::string& serverUrl, std::shared_ptr<dht::
+     cachePath_ = fileutils::get_cache_dir() / CACHE_DIRECTORY / resolver_->get_url().host;
+ }
+ 
++// SK-NSRESOLVE — see namedirectory.h.
++std::shared_ptr<dht::http::Resolver>
++NameDirectory::resolver()
++{
++    std::lock_guard lk(resolverMtx_);
++    if (!resolver_)
++        resolver_ = std::make_shared<dht::http::Resolver>(*httpContext_, serverUrl_, logger_);
++    return resolver_;
++}
++
++void
++NameDirectory::dropResolver(const std::shared_ptr<dht::http::Resolver>& failed)
++{
++    std::lock_guard lk(resolverMtx_);
++    if (resolver_ && resolver_ == failed) {
++        resolver_.reset();
++        JAMI_WARNING("[SK-NSRESOLVE] no HTTP response from {}; the host will be re-resolved", serverUrl_);
++    }
++}
++
+ NameDirectory::~NameDirectory()
+ {
+     decltype(requests_) requests;
+@@ -173,11 +193,14 @@ NameDirectory::lookupAddress(const std::string& addr, LookupCallback cb)
+         cb(cacheResult.first, cacheResult.second, Response::found);
+         return;
+     }
+-    auto request = std::make_shared<Request>(*httpContext_, resolver_, serverUrl_ + QUERY_ADDR + addr);
++    auto res = resolver(); // SK-NSRESOLVE
++    auto request = std::make_shared<Request>(*httpContext_, res, serverUrl_ + QUERY_ADDR + addr);
+     try {
+         request->set_method(restinio::http_method_get());
+         setHeaderFields(*request);
+-        request->add_on_done_callback([this, cb, addr](const dht::http::Response& response) {
++        request->add_on_done_callback([this, res, cb, addr](const dht::http::Response& response) {
++            if (response.status_code == 0)
++                dropResolver(res); // SK-NSRESOLVE
+             if (response.status_code > 400 && response.status_code < 500) {
+                 auto cacheResult = nameCache(addr);
+                 if (not cacheResult.first.empty())
+@@ -249,11 +272,14 @@ NameDirectory::lookupName(const std::string& name, LookupCallback cb)
+         return;
+     }
+     auto encodedName = urlEncode(name);
+-    auto request = std::make_shared<Request>(*httpContext_, resolver_, serverUrl_ + QUERY_NAME + encodedName);
++    auto res = resolver(); // SK-NSRESOLVE
++    auto request = std::make_shared<Request>(*httpContext_, res, serverUrl_ + QUERY_NAME + encodedName);
+     try {
+         request->set_method(restinio::http_method_get());
+         setHeaderFields(*request);
+-        request->add_on_done_callback([this, name, cb](const dht::http::Response& response) {
++        request->add_on_done_callback([this, res, name, cb](const dht::http::Response& response) {
++            if (response.status_code == 0)
++                dropResolver(res); // SK-NSRESOLVE
+             if (response.status_code > 400 && response.status_code < 500)
+                 cb("", "", Response::notFound);
+             else if (response.status_code == 400)
+@@ -359,7 +385,8 @@ NameDirectory::registerName(const std::string& addr,
+                                    base64::encode(publickey));
+ 
+     auto encodedName = urlEncode(name);
+-    auto request = std::make_shared<Request>(*httpContext_, resolver_, serverUrl_ + QUERY_NAME + encodedName);
++    auto res = resolver(); // SK-NSRESOLVE
++    auto request = std::make_shared<Request>(*httpContext_, res, serverUrl_ + QUERY_NAME + encodedName);
+     try {
+         request->set_method(restinio::http_method_post());
+         setHeaderFields(*request);
+@@ -367,7 +394,9 @@ NameDirectory::registerName(const std::string& addr,
+ 
+         JAMI_WARNING("RegisterName: sending request {} {}", addr, name);
+ 
+-        request->add_on_done_callback([this, name, addr, cb = std::move(cb)](const dht::http::Response& response) {
++        request->add_on_done_callback([this, res, name, addr, cb = std::move(cb)](const dht::http::Response& response) {
++            if (response.status_code == 0)
++                dropResolver(res); // SK-NSRESOLVE
+             {
+                 std::lock_guard l(cacheLock_);
+                 pendingRegistrations_.erase(name);
+diff --git a/src/jamidht/namedirectory.h b/src/jamidht/namedirectory.h
+index 7dcefc6cc..f12abe113 100644
+--- a/src/jamidht/namedirectory.h
++++ b/src/jamidht/namedirectory.h
+@@ -108,6 +108,13 @@ private:
+      */
+     std::shared_ptr<asio::io_context> httpContext_;
+     std::shared_ptr<dht::http::Resolver> resolver_;
++    // SK-NSRESOLVE: a Resolver resolves its host ONCE and replays that result (or that error) to
++    // every later request. Built at daemon start, it froze a start-up DNS failure into a permanent
++    // "code=0" for every name lookup until the process died. Requests now take the resolver through
++    // resolver(), and a request that got no HTTP response at all drops it so the next re-resolves.
++    std::mutex resolverMtx_ {};
++    std::shared_ptr<dht::http::Resolver> resolver();
++    void dropResolver(const std::shared_ptr<dht::http::Resolver>& failed);
+     std::mutex requestsMtx_ {};
+     std::set<std::shared_ptr<dht::http::Request>> requests_;
+ 
