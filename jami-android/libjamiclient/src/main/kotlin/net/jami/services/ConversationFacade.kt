@@ -158,14 +158,14 @@ class ConversationFacade(
         mCallService.setIsComposing(accountId, conversationUri.uri, isComposing)
     }
 
-    fun sendFile(conversation: Conversation, to: Uri, file: File): Completable {
+    fun sendFile(conversation: Conversation, to: Uri, file: File, replyTo: String = ""): Completable {
         if (!file.exists() || !file.canRead()) {
             return Completable.error(IllegalArgumentException("file not found or not readable"))
         }
         if (conversation.isSwarm) {
             val destPath = mDeviceRuntimeService.getNewConversationPath(conversation.accountId, conversation.uri.rawRingId, file.name)
             moveFile(file, destPath)
-            mAccountService.sendFile(conversation, destPath)
+            mAccountService.sendFile(conversation, destPath, replyTo)
         }
         return Completable.complete()
     }

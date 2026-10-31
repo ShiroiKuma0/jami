@@ -56,14 +56,17 @@ class AutomationProvider : ContentProvider() {
 
         // WHO, before WHAT. A caller we cannot identify gets the same answer whatever it asked for.
         when (val verdict = AutomationCallers.verify(ctx, callingPackage)) {
-            is AutomationCallers.Verdict.Refused -> return fail(verdict.why)
+            is AutomationCallers.Verdict.Refused -> return bridgeAware(method, verdict.why)
             AutomationCallers.Verdict.Allowed -> Unit
         }
         // Then this app's own switches. Note that this door is the ONLY part of the automation
         // surface with a caller identity behind it — the three checks above have already proved
         // who is asking. The broadcast and Activity entry points cannot do that, which is why the
         // token is the only gate they have.
-        AutomationPrefs.refuse(ctx, extras?.getString(KEY_TOKEN))?.let { return fail(it) }
+        AutomationPrefs.refuse(ctx, extras?.getString(KEY_TOKEN))?.let { return bridgeAware(method, it) }
+
+        // The SMS-over-Jami bridge (2026-10-31): its own result shape, see BridgeMethods.
+        if (method.startsWith(BRIDGE_PREFIX)) return BridgeMethods.call(ctx, method, extras)
 
         return when (method) {
             METHOD_DESCRIBE -> ok(describe(ctx))
@@ -149,6 +152,11 @@ class AutomationProvider : ContentProvider() {
         }
     }
 
+    /** A refusal in both grammars, so a bridge caller still finds `status`/`error`. */
+    private fun bridgeAware(method: String, why: String): Bundle = fail(why).apply {
+        if (method.startsWith(BRIDGE_PREFIX)) putAll(BridgeMethods.err(why.removePrefix("ERROR:")))
+    }
+
     private fun ok(result: String) = Bundle().apply { putString(KEY_RESULT, result) }
     private fun fail(why: String) = Bundle().apply { putString(KEY_RESULT, why) }
 
@@ -169,6 +177,7 @@ class AutomationProvider : ContentProvider() {
         const val METHOD_EXPORT = "export"
         const val METHOD_IMPORT = "import"
         const val METHOD_CANCEL = "cancel"
+        const val BRIDGE_PREFIX = "bridge_"
 
         const val KEY_RESULT = "result"
         const val KEY_FD = "fd"

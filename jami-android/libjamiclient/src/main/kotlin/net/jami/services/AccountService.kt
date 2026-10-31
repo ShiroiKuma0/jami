@@ -2180,6 +2180,7 @@ class AccountService(
     }
 
     internal fun swarmMessageReceived(accountId: String, conversationId: String, message: SwarmMessageData) {
+        BridgeTaps.fire { it.onMessage(accountId, conversationId, message.id, message.type, message.body, message.editions.size, false) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             swarmMessageReceivedNow(accountId, conversationId, message)
         }
@@ -2207,6 +2208,7 @@ class AccountService(
     }
 
     internal fun swarmMessageUpdated(accountId: String, conversationId: String, message: SwarmMessageData) {
+        BridgeTaps.fire { it.onMessage(accountId, conversationId, message.id, message.type, message.body, message.editions.size, true) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             swarmMessageUpdatedNow(accountId, conversationId, message)
         }
@@ -2222,6 +2224,7 @@ class AccountService(
     }
 
     fun reactionAdded(accountId: String, conversationId: String, messageId: String, reaction: Map<String, String>) {
+        BridgeTaps.fire { it.onReaction(accountId, conversationId, messageId, reaction) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             reactionAddedNow(accountId, conversationId, messageId, reaction)
         }
@@ -2237,6 +2240,7 @@ class AccountService(
     }
 
     fun reactionRemoved(accountId: String, conversationId: String, messageId: String, reactionId: String) {
+        BridgeTaps.fire { it.onReactionRemoved(accountId, conversationId, messageId, reactionId) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             reactionRemovedNow(accountId, conversationId, messageId, reactionId)
         }
@@ -2330,8 +2334,8 @@ class AccountService(
             })
     }
 
-    fun sendFile(conversation: Conversation, file: File) {
-        mExecutor.execute { JamiService.sendFile(conversation.accountId, conversation.uri.rawRingId,file.absolutePath, file.name, "") }
+    fun sendFile(conversation: Conversation, file: File, replyTo: String = "") {
+        mExecutor.execute { JamiService.sendFile(conversation.accountId, conversation.uri.rawRingId,file.absolutePath, file.name, replyTo) }
     }
 
     fun acceptFileTransfer(accountId: String, conversationUri: Uri, messageId: String?, fileId: String) {
@@ -2383,6 +2387,7 @@ class AccountService(
     }
 
     fun dataTransferEvent(accountId: String, conversationId: String, interactionId: String, fileId: String, eventCode: Int) {
+        BridgeTaps.fire { it.onTransfer(accountId, conversationId, interactionId, fileId, eventCode) }
         conversationCallbacks.dispatch(accountId, conversationId) {
             dataTransferEventNow(accountId, conversationId, interactionId, fileId, eventCode)
         }

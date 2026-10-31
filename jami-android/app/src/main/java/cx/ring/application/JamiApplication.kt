@@ -599,6 +599,8 @@ abstract class JamiApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // SMS-over-Jami bridge: tap the daemon callbacks before any account loads (cx.ring.automation.Bridge).
+        cx.ring.automation.Bridge.install(this)
         LinkPreview.init(this)
 
         // Re-assert the user's chosen app language. Some ROMs (EMUI) don't keep the system
