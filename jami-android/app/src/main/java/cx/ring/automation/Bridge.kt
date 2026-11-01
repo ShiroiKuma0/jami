@@ -47,7 +47,6 @@ object Bridge : BridgeTap {
     private const val PREFS = "shiroikuma_bridge"
     private const val KEY_WATCHED = "watched"
     private const val KEY_SEQ = "seq"
-    private const val KEY_KEEP_AWAKE = "keep_awake"
     private const val JOURNAL_MAX = 3000
     private const val JOURNAL_KEEP = 2000
 
@@ -83,13 +82,6 @@ object Bridge : BridgeTap {
         if (on) set.add(key(accountId, conversationId)) else set.remove(key(accountId, conversationId))
         prefs().edit().putStringSet(KEY_WATCHED, set).commit()
     }
-
-    /** Never let the background duty cycle put this phone's accounts to sleep (bridge_keep_awake). */
-    fun keepAwake(): Boolean = ::app.isInitialized && prefs().getBoolean(KEY_KEEP_AWAKE, false)
-    fun setKeepAwake(on: Boolean) { prefs().edit().putBoolean(KEY_KEEP_AWAKE, on).commit() }
-
-    /** How long a send holds the accounts awake: long enough for the peer to fetch the commit. */
-    const val SEND_HOLD_MS = 90_000L
 
     // ------------------------------------------------------------------ pending sends
 
