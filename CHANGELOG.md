@@ -7,6 +7,43 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+022` — 2026-11-01
+
+Same upstream base (**20261023-01** at `2ec1e272f`). A fix for conversations that would not open
+and messages that were silently lost, the bridge's wake on send, a quieter watchdog for quiet
+accounts, and every diagnostic moved behind a switch.
+
+### 🧊 Conversations open again, sent messages are no longer lost
+
+- In a large chat (one had 5,621 messages) with many replies, Jami asked the daemon for the full
+  history once **per quoted message it had not loaded yet** — hundreds of requests, each holding a
+  daemon worker while waiting for the same lock. For an hour every worker was taken: opening any
+  conversation showed an empty screen, and messages sent in that time were never saved. Now at most
+  one such request per conversation runs at a time; the same startup issues 3 instead of 698, and a
+  conversation opens in tens of milliseconds. Filed upstream with Jami.
+
+### 🤖 Bridge
+
+- A message the bridge sends from a sleeping account now wakes the accounts first and keeps them up
+  for 90 s, so it is delivered within about a second instead of at the next unrelated wake-up.
+  `bridge_wake` and `bridge_keep_awake` are available but not needed.
+- Messages the daemon re-reports without an actual edit are no longer recorded as edits.
+
+### 📶 Watchdog
+
+- A push addressed to an account's own key now counts as proof that the account is receiving. A
+  quiet account whose contacts were offline was being called "not receiving" and had its proxy
+  cycled again and again, although its own key was receiving pushes.
+
+### 🩺 Diagnostics
+
+- **Settings → Diagnostics**: every diagnostic, native and app-side, behind its own switch, grouped
+  in sub-sections, all **off by default** and free while off; a switch takes effect within 3 s.
+- New traces for chasing the problems above: history loads and the daemon's worker pool, each fetch
+  and merge from a peer and which message a new one attaches to, and each step of opening a chat.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+008` — 2026-10-31
 
 Same upstream base as `+001` (**20261023-01** at `2ec1e272f`). A bot bridge for 白い熊 自由作業盤,
