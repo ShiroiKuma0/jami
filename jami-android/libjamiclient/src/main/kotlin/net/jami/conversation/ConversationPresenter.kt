@@ -70,8 +70,13 @@ class ConversationPresenter @Inject constructor(
         val settings = preferencesService.settings
         view?.setSettings(settings.enableLinkPreviews)
         mConversationUri = conversationUri
+        val tOpen = System.currentTimeMillis()
+        val tag = conversationUri.rawRingId.take(8)
+        net.jami.utils.SkTrace.log { "SK-OPENDIAG open conv=$tag" }
         mCompositeDisposable.add(conversationFacade.getAccountSubject(accountId)
+            .doOnSuccess { net.jami.utils.SkTrace.log { "SK-OPENDIAG account ready conv=$tag +${System.currentTimeMillis() - tOpen} ms" } }
             .flatMap { account: Account -> accountService.getConversationByUri(account, conversationUri).map { Pair(it, account) } }
+            .doOnSuccess { net.jami.utils.SkTrace.log { "SK-OPENDIAG conversation found conv=$tag mode=${it.first.mode.blockingFirst()} +${System.currentTimeMillis() - tOpen} ms" } }
             .flatMapObservable { (conversation: Conversation, account: Account) ->
                 conversation.mode.flatMap { conversationMode: Conversation.Mode ->
                     if (conversationMode === Conversation.Mode.Legacy)
@@ -86,6 +91,7 @@ class ConversationPresenter @Inject constructor(
             }
             .observeOn(uiScheduler)
             .subscribe({ (account, conversation) ->
+                net.jami.utils.SkTrace.log { "SK-OPENDIAG shown conv=$tag +${System.currentTimeMillis() - tOpen} ms" }
                 setConversation(account, conversation)
             }) { error: Throwable ->
                 view?.goToHome()
