@@ -1,0 +1,80 @@
+--- a/src/jamidht/conversation.cpp
++++ b/src/jamidht/conversation.cpp
+@@ -40,6 +40,54 @@
+ #include "string_utils.h"
+ 
+ #include <opendht/thread_pool.h>
++
++// SK-LOADDIAG (2026-11-01, diagnostic): why a history request sometimes never answers. Logs only
++// slow stages, so EMUI's per-app log cap does not swallow the one line that matters.
++#ifdef __ANDROID__
++#include <android/log.h>
++#define SK_LD(...) do { if (sk_diag_on(8)) __android_log_print(ANDROID_LOG_ERROR, "SK-LOADDIAG", __VA_ARGS__); } while (0)
++#else
++#define SK_LD(...) do { } while (0)
++#endif
++#include <atomic>
++#include <chrono>
++#include <mutex>
++#include <thread>
++// SK-DIAGGATE: defined in manager.cpp; nonzero while Settings → Diagnostics → history group is on.
++extern "C" int sk_diag_on(int group);
++namespace {
++using SkClock = std::chrono::steady_clock;
++inline long long skMs(SkClock::time_point a, SkClock::time_point b)
++{
++    return std::chrono::duration_cast<std::chrono::milliseconds>(b - a).count();
++}
++// Every 5 s, time how long a trivial task waits for a free io-pool worker.
++void skStartIoHeartbeat()
++{
++    static std::once_flag once;
++    std::call_once(once, [] {
++        std::thread([] {
++            for (;;) {
++                std::this_thread::sleep_for(std::chrono::seconds(5));
++                if (!sk_diag_on(8))
++                    continue;   // switched off: no probe task, nothing posted to the pool
++                auto ran = std::make_shared<std::atomic<bool>>(false);
++                auto t0 = SkClock::now();
++                dht::ThreadPool::io().run([ran, t0] {
++                    ran->store(true);
++                    auto d = skMs(t0, SkClock::now());
++                    if (d > 1000)
++                        SK_LD("io-pool heartbeat waited %lld ms for a worker", d);
++                });
++                for (int i = 0; i < 100 && !ran->load(); ++i)
++                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
++                if (!ran->load())
++                    SK_LD("io-pool heartbeat NOT RUN after 10 s - every worker busy");
++            }
++        }).detach();
++    });
++}
++} // namespace
+ #include <opendht/infohash.h>
+ #include <fmt/compile.h>
+ #include <asio/error_code.hpp>
+@@ -2622,11 +2670,21 @@
+ {
+     if (!cb)
+         return;
+-    dht::ThreadPool::io().run([w = weak(), cb = std::move(cb), options] {
++    if (sk_diag_on(8))
++        skStartIoHeartbeat();
++    auto tQueued = SkClock::now();
++    dht::ThreadPool::io().run([w = weak(), cb = std::move(cb), options, tQueued] {
+         if (auto sthis = w.lock()) {
++            auto tStart = SkClock::now();
+             std::unique_lock lk(sthis->pimpl_->loadedHistory_.mutex);
++            auto tLocked = SkClock::now();
+             auto result = sthis->pimpl_->loadMessages(options);
+             lk.unlock();
++            auto tRead = SkClock::now();
++            auto wait = skMs(tQueued, tStart), lock = skMs(tStart, tLocked), read = skMs(tLocked, tRead);
++            if (wait > 300 || lock > 300 || read > 300)
++                SK_LD("slow history load conv=%.8s: worker wait %lld ms, history lock %lld ms, read %lld ms, n=%zu",
++                      sthis->id().c_str(), wait, lock, read, result.size());
+             cb(std::move(result));
+         }
+     });

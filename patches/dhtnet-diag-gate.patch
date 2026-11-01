@@ -1,0 +1,48 @@
+diff -ruN a/src/connectionmanager.cpp b/src/connectionmanager.cpp
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -41,7 +41,11 @@
+ // are opposite problems with opposite fixes.
+ #ifdef __ANDROID__
+ #include <android/log.h>
+-#define SK_CM(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++extern "C" __attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#define SK_CM(...) do { if (sk_diag_on(1)) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__); } while (0)
+ #else
+ #define SK_CM(...) do {} while (0)
+ #endif
+diff -ruN a/src/ice_transport.cpp b/src/ice_transport.cpp
+--- a/src/ice_transport.cpp
++++ b/src/ice_transport.cpp
+@@ -121,7 +121,11 @@
+ // exists). ERROR level so LogStormMonitor's own-pid *:E tail picks it up.
+ #ifdef __ANDROID__
+ #include <android/log.h>
+-#define SK_ICE(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++extern "C" __attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#define SK_ICE(...) do { if (sk_diag_on(1)) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__); } while (0)
+ #else
+ #define SK_ICE(...) do {} while (0)
+ #endif
+diff -ruN a/src/multiplexed_socket.cpp b/src/multiplexed_socket.cpp
+--- a/src/multiplexed_socket.cpp
++++ b/src/multiplexed_socket.cpp
+@@ -57,7 +57,11 @@
+ // and every death fans out ~8 immediate swarm reconnects with no backoff. This names the killer.
+ #ifdef __ANDROID__
+ #include <android/log.h>
+-#define SK_MS(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++extern "C" __attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#define SK_MS(...) do { if (sk_diag_on(1)) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__); } while (0)
+ #else
+ #define SK_MS(...) do {} while (0)
+ #endif

@@ -1,0 +1,47 @@
+--- a/src/jamidht/conversation.cpp
++++ b/src/jamidht/conversation.cpp
+@@ -55,6 +55,15 @@
+ #include <thread>
+ // SK-DIAGGATE: defined in manager.cpp; nonzero while Settings → Diagnostics → history group is on.
+ extern "C" int sk_diag_on(int group);
++// SK-SWARMSYNC (2026-11-01, diagnostic, Settings → Diagnostics → Swarm sync, group 32): a chat showed a
++// peer's late messages but kept attaching our new messages before them — fetched and displayed, yet
++// apparently not joined into our history. This traces each pull (fetch, merge, old and new head) and
++// each commit we create (the head it attaches to), at ERROR level so EMUI keeps it.
++#ifdef __ANDROID__
++#define SK_SS(...) do { if (sk_diag_on(32)) __android_log_print(ANDROID_LOG_ERROR, "SK-SWARMSYNC", __VA_ARGS__); } while (0)
++#else
++#define SK_SS(...) do { } while (0)
++#endif
+ namespace {
+ using SkClock = std::chrono::steady_clock;
+ inline long long skMs(SkClock::time_point a, SkClock::time_point b)
+@@ -2583,7 +2592,10 @@
+         [w = weak(), message = std::move(message), onCommit = std::move(onCommit), cb = std::move(cb)] {
+             if (auto sthis = w.lock()) {
+                 std::unique_lock lk(sthis->pimpl_->writeMtx_);
++                auto skHead = sk_diag_on(32) ? sthis->pimpl_->repository_->getHead() : std::string();
+                 auto commit = sthis->pimpl_->repository_->commitMessage(message.toString());
++                SK_SS("commit conv=%.8s on head %.8s -> new %.8s%s", sthis->id().c_str(), skHead.c_str(),
++                      commit.c_str(), commit.empty() ? " FAILED" : "");
+                 lk.unlock();
+                 if (onCommit)
+                     onCommit(commit);
+@@ -2932,6 +2944,7 @@
+         // Pull from remote
+         auto fetched = repo->fetch(deviceId);
+         if (!fetched) {
++            SK_SS("pull conv=%.8s from=%.8s fetch FAILED (wanted %.8s)", repo->id().c_str(), deviceId.c_str(), commitId.c_str());
+             cb(false);
+             continue;
+         }
+@@ -2941,6 +2954,9 @@
+         std::unique_lock lk(writeMtx_);
+         auto commits = repo->mergeHistory(deviceId,
+                                           [this](const std::string& peerUri) { this->disconnectFromPeer(peerUri); });
++        SK_SS("pull conv=%.8s from=%.8s merged %zu commit(s): head %.8s -> %.8s (wanted %.8s)",
++              repo->id().c_str(), deviceId.c_str(), commits.size(), oldHead.c_str(), repo->getHead().c_str(),
++              commitId.c_str());
+         if (!commits.empty()) {
+             announce(commits);
+         }

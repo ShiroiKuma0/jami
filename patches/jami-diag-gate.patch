@@ -1,0 +1,74 @@
+--- a/src/manager.cpp
++++ b/src/manager.cpp
+@@ -108,6 +108,44 @@
+ #error "Define the JAMI_DATADIR macro as the data installation prefix of the package"
+ #endif
+ 
++#include <atomic>   // SK-DIAGGATE
++#include <thread>   // SK-DIAGGATE
++// SK-DIAGGATE (2026-11-01): the one switch every SK diagnostic consults — in this daemon and in the
++// contrib libraries (opendht, dhtnet, pjproject), which carry a weak "always off" default that this
++// definition replaces at link time. The app writes the enabled groups as a decimal bitmask to
++// <data dir>/sk-diag (Settings → Diagnostics); a single thread re-reads it every 3 s, so a switch
++// takes effect without a restart. With the file absent or 0 nothing is logged and nothing extra runs.
++//   1 = connections (SK-ICEDIAG)  2 = DHT proxy (SK-PROXYDIAG)  4 = DHT message stats (SK-DHTSTATS)
++//   8 = history loads / io pool (SK-LOADDIAG)  16 = audio path (SK-AUDIODIAG)
++namespace {
++std::atomic<int> skDiagMask {0};
++void skDiagStartPoller()
++{
++    static std::once_flag once;
++    std::call_once(once, [] {
++        std::thread([] {
++            for (;;) {
++                int v = 0;
++                try {
++                    auto p = jami::fileutils::get_data_dir() / "sk-diag";
++                    std::ifstream f(p);
++                    if (f)
++                        f >> v;
++                } catch (...) {
++                }
++                skDiagMask.store(v, std::memory_order_relaxed);
++                std::this_thread::sleep_for(std::chrono::seconds(3));
++            }
++        }).detach();
++    });
++}
++} // namespace
++extern "C" int sk_diag_on(int group)
++{
++    skDiagStartPoller();
++    return (skDiagMask.load(std::memory_order_relaxed) & group) != 0;
++}
++
+ namespace jami {
+ 
+ /** To store uniquely a list of Call ids */
+@@ -213,7 +251,25 @@
+ static void
+ setSipLogLevel()
+ {
+-    int level = 0;
++    // SK-SIPLOG: default to 2 (fatal + error) rather than 0.
++    //
++    // At 0 the callback installed below is never invoked for anything, so every diagnostic pjsip
++    // and pjnath emit is discarded -- on a platform where the env var cannot practically be set,
++    // that is not "minimum logging", it is no logging, permanently. It cost 24 hours in August
++    // 2026: a pjnath socket failed every read forever and reported it through PJ_PERROR on every
++    // iteration, burning 100% of a core, and not one of those lines could reach logcat or the
++    // client's diagnostic log. The fault had to be found with a profiler instead.
++    //
++    // The emit is close to free, because the expense is already being paid. pj_perror_imp()
++    // (pjlib/src/pj/errno.c) runs pj_ansi_vsnprintf() and pj_strerror() to build the message and
++    // only THEN calls invoke_log(), which is where the level is finally checked -- so raising the
++    // level adds the write, never the formatting. Profiling attributed ~13% of a burning core to
++    // that formatting while its output went nowhere.
++    //
++    // Errors only, so the volume stays bounded in normal operation; anything chattier still needs
++    // JAMI_LOG_SIP. Note this pairs with the SK-RXERR rate limit in pjnath's on_data_recvfrom():
++    // without that, one wedged socket would deliver ~16 000 identical lines a second here.
++    int level = 2;
+     if (auto* envvar = getenv("JAMI_LOG_SIP")) {
+         level = std::clamp(to_int<int>(envvar, 0), 0, 6);
+     }
