@@ -220,6 +220,7 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     fun onMessage(remoteMessage: Map<String, String>) {
         if (PushEvidence.noteIfProbe(remoteMessage)) return   // self-test echo — not for the daemon
         PushEvidence.noteRealPush()
+        PushEvidence.noteAccountPush(remoteMessage)
         handleBackgroundWakeup(remoteMessage)
         mAccountService.pushNotificationReceived("", remoteMessage)
         mNotificationService.processPush()
@@ -228,6 +229,7 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     /** FCM message arrival (JamiFirebaseMessagingService.onMessageReceived). */
     fun onMessageReceived(remoteMessage: RemoteMessage) {
         PushEvidence.noteRealPush()
+        PushEvidence.noteAccountPush(remoteMessage.data)
         handleBackgroundWakeup(remoteMessage.data)
         mAccountService.pushNotificationReceived(remoteMessage.from ?: "", remoteMessage.data)
         mNotificationService.processPush()
@@ -257,7 +259,13 @@ class JamiApplicationUnifiedPush : JamiApplication() {
     /** Records the raw classification inputs alongside the verdict. Field names only — `pt` is a
      *  MIME-ish type, `ids` are opaque DHT value ids (counted, not listed), `key` a DHT hash that
      *  SK-PROXYDIAG already logs. No message content passes through here. */
-    private fun wakeClassifyLog(data: Map<String, String>, expired: Boolean, wakeup: PushWakeup) = try {
+    private fun wakeClassifyLog(data: Map<String, String>, expired: Boolean, wakeup: PushWakeup) {
+        // Settings → Diagnostics → Push wake decisions (off by default) — this one was missed in +020.
+        if (!cx.ring.utils.DiagPrefs.isOn(cx.ring.utils.DiagPrefs.Group.WAKE)) return
+        wakeClassifyWrite(data, expired, wakeup)
+    }
+
+    private fun wakeClassifyWrite(data: Map<String, String>, expired: Boolean, wakeup: PushWakeup) = try {
         cx.ring.utils.UiPrefs.appendRecoveryLog(
             this,
             "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())}" +
