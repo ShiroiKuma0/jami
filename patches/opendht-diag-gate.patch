@@ -1,0 +1,48 @@
+diff -ruN a/src/dht.cpp b/src/dht.cpp
+--- a/src/dht.cpp
++++ b/src/dht.cpp
+@@ -24,7 +24,11 @@
+ // mode the question is about (and the one SK-CLIENTMODE is meant to make cheaper).
+ #ifdef __ANDROID__
+ #include <android/log.h>
+-#define SK_DHTSTATS(...) __android_log_print(ANDROID_LOG_ERROR, "SK-DHTSTATS", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++extern "C" __attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#define SK_DHTSTATS(...) do { if (sk_diag_on(4)) __android_log_print(ANDROID_LOG_ERROR, "SK-DHTSTATS", __VA_ARGS__); } while (0)
+ #else
+ #define SK_DHTSTATS(...) do {} while (0)
+ #endif
+diff -ruN a/src/dht_proxy_client.cpp b/src/dht_proxy_client.cpp
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -14,7 +14,11 @@
+ // diagnostics straight to the Android log instead — unconditional, low-volume, grep 'SK-PROXYDIAG'.
+ #ifdef __ANDROID__
+ #include <android/log.h>
+-#define SK_DIAG(...) __android_log_print(ANDROID_LOG_ERROR, "SK-PROXYDIAG", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++extern "C" __attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#define SK_DIAG(...) do { if (sk_diag_on(2)) __android_log_print(ANDROID_LOG_ERROR, "SK-PROXYDIAG", __VA_ARGS__); } while (0)
+ #else
+ #define SK_DIAG(...) do {} while (0)
+ #endif
+diff -ruN a/src/http.cpp b/src/http.cpp
+--- a/src/http.cpp
++++ b/src/http.cpp
+@@ -11,7 +11,11 @@
+ // logger_ is null there (the daemon only wires a logger at dhtLogLevel>0). Log directly.
+ #ifdef __ANDROID__
+ #include <android/log.h>
+-#define SK_HTTP_DIAG(...) __android_log_print(ANDROID_LOG_ERROR, "SK-PROXYDIAG", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++extern "C" __attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#define SK_HTTP_DIAG(...) do { if (sk_diag_on(2)) __android_log_print(ANDROID_LOG_ERROR, "SK-PROXYDIAG", __VA_ARGS__); } while (0)
+ #else
+ #define SK_HTTP_DIAG(...) do {} while (0)
+ #endif

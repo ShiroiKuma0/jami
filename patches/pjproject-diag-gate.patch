@@ -1,0 +1,16 @@
+diff -ruN a/pjlib/src/pj/ioqueue_epoll.c b/pjlib/src/pj/ioqueue_epoll.c
+--- a/pjlib/src/pj/ioqueue_epoll.c
++++ b/pjlib/src/pj/ioqueue_epoll.c
+@@ -90,7 +90,11 @@
+ 
+ #if defined(__ANDROID__)
+ #  include <android/log.h>
+-#  define SK_EVICT(...) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__)
++/* SK-DIAGGATE (2026-11-01): every SK diagnostic is off unless its group is switched on in
++ * Settings → Diagnostics. The daemon defines sk_diag_on() for real; this weak default (off)
++ * only keeps the library linkable on its own. */
++__attribute__((weak)) int sk_diag_on(int group) { (void)group; return 0; }
++#  define SK_EVICT(...) do { if (sk_diag_on(1)) __android_log_print(ANDROID_LOG_ERROR, "SK-ICEDIAG", __VA_ARGS__); } while (0)
+ #else
+ #  define SK_EVICT(...) do {} while (0)
+ #endif
