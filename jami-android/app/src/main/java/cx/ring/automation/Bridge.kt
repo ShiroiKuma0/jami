@@ -47,6 +47,7 @@ object Bridge : BridgeTap {
     private const val PREFS = "shiroikuma_bridge"
     private const val KEY_WATCHED = "watched"
     private const val KEY_SEQ = "seq"
+    private const val KEY_KEEP_AWAKE = "keep_awake"
     private const val JOURNAL_MAX = 3000
     private const val JOURNAL_KEEP = 2000
 
@@ -67,7 +68,56 @@ object Bridge : BridgeTap {
     fun install(context: Context) {
         app = context.applicationContext
         net.jami.services.BridgeTaps.tap = this
+        // Diagnostics switches (Settings → Diagnostics), all off by default.
+        net.jami.utils.SkTrace.sink = { m -> JamiApplication.instance?.diagLog(m) }
+        net.jami.utils.SkTrace.enabled = cx.ring.utils.DiagPrefs.isOn(cx.ring.utils.DiagPrefs.Group.OPEN)
+        setExecutorHeartbeat(cx.ring.utils.DiagPrefs.isOn(cx.ring.utils.DiagPrefs.Group.EXEC))
+        cx.ring.utils.DiagPrefs.addListener { g, v ->
+            when (g) {
+                cx.ring.utils.DiagPrefs.Group.OPEN -> net.jami.utils.SkTrace.enabled = v
+                cx.ring.utils.DiagPrefs.Group.EXEC -> setExecutorHeartbeat(v)
+                else -> Unit
+            }
+        }
     }
+
+    /**
+     * SK-EXECDIAG (2026-11-01, diagnostic): every 30 s, hand the daemon executor a no-op and log to
+     * the persistent recovery log if it has not run 10 s later — and again when it finally does.
+     * On +009 conversation history stopped loading and a commit never happened; both go through
+     * that executor, and this is the cheapest way to see whether it is the thing that wedges.
+     */
+    private var beat: java.util.concurrent.ScheduledExecutorService? = null
+
+    /** Runs only while Settings → Diagnostics → App work queue is on; started/stopped by the switch. */
+    @Synchronized
+    private fun setExecutorHeartbeat(on: Boolean) {
+        if (!on) { beat?.shutdownNow(); beat = null; return }
+        if (beat != null) return
+        val ticker = Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "sk-execbeat").apply { isDaemon = true } }
+        beat = ticker
+        var stalledSince = 0L
+        ticker.scheduleWithFixedDelay({
+            safe {
+                val jami = JamiApplication.instance ?: return@safe
+                val done = CountDownLatch(1)
+                val t0 = System.currentTimeMillis()
+                jami.mExecutor.execute { done.countDown() }
+                if (!done.await(10, TimeUnit.SECONDS)) {
+                    if (stalledSince == 0L) {
+                        stalledSince = t0
+                        jami.diagLog("SK-EXECDIAG STALL: daemon executor did not run a no-op within 10 s")
+                    }
+                    done.await(10, TimeUnit.MINUTES)
+                }
+                if (stalledSince != 0L && done.count == 0L) {
+                    jami.diagLog("SK-EXECDIAG recovered after ${(System.currentTimeMillis() - stalledSince) / 1000} s")
+                    stalledSince = 0L
+                }
+            }
+        }, 30, 30, TimeUnit.SECONDS)
+    }
+
 
     // ------------------------------------------------------------------ watch list
 
@@ -82,6 +132,13 @@ object Bridge : BridgeTap {
         if (on) set.add(key(accountId, conversationId)) else set.remove(key(accountId, conversationId))
         prefs().edit().putStringSet(KEY_WATCHED, set).commit()
     }
+
+    /** Never let the background duty cycle put this phone's accounts to sleep (bridge_keep_awake). */
+    fun keepAwake(): Boolean = ::app.isInitialized && prefs().getBoolean(KEY_KEEP_AWAKE, false)
+    fun setKeepAwake(on: Boolean) { prefs().edit().putBoolean(KEY_KEEP_AWAKE, on).commit() }
+
+    /** How long a send holds the accounts awake: long enough for the peer to fetch the commit. */
+    const val SEND_HOLD_MS = 90_000L
 
     // ------------------------------------------------------------------ pending sends
 
@@ -101,7 +158,7 @@ object Bridge : BridgeTap {
     override fun onMessage(accountId: String, conversationId: String, id: String, type: String,
                            body: Map<String, String>, editions: Int, updated: Boolean) {
         val copy = HashMap(body)
-        worker.execute { safe { handleMessage(accountId, conversationId, id, type, copy, updated) } }
+        worker.execute { safe { handleMessage(accountId, conversationId, id, type, copy, editions, updated) } }
     }
 
     override fun onReaction(accountId: String, conversationId: String, messageId: String, reaction: Map<String, String>) {
@@ -192,7 +249,7 @@ object Bridge : BridgeTap {
     }
 
     private fun handleMessage(accountId: String, conversationId: String, id: String, type: String,
-                              body: Map<String, String>, updated: Boolean) {
+                              body: Map<String, String>, editions: Int, updated: Boolean) {
         val author = body["author"].orEmpty()
         val isOwn = own(accountId, author)
         val kind = when (type) {
@@ -214,6 +271,10 @@ object Bridge : BridgeTap {
         if (updated) {
             // Only text edits are bridge events; file updates are reported through onTransfer.
             if (kind != TYPE_TEXT) return
+            // The daemon also re-reports UNEDITED messages as "updated" (status refreshes, a history
+            // reload after a long sync). Without an edition it is not an edit: once the original
+            // had aged out of the journal, those were misfiled as edits (2026-11-01, 18:23:52).
+            if (editions == 0) return
             val text = body["body"].orEmpty()
             if (lastBody(accountId, conversationId, id) == text) return   // a status refresh, not an edit
             emit(accountId, conversationId, mutableMapOf(
