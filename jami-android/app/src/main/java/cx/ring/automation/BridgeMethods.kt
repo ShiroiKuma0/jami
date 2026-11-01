@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
  * automation switch before anything here runs.
  */
 object BridgeMethods {
-    const val VERSION = "3"
+    const val VERSION = "2"
 
     private val METHODS = listOf(
         Triple("bridge_describe", "", "version, items[method,args,returns]"),
@@ -47,8 +47,6 @@ object BridgeMethods {
         Triple("bridge_edit", "account,conversation,message_id,text", "message_id"),
         Triple("bridge_delete", "account,conversation,message_id", "message_id"),
         Triple("bridge_message_status", "account,conversation,message_id", "delivered, read, items[peer,status]"),
-        Triple("bridge_wake", "minutes? (default 2, max 30)", "asleep_before"),
-        Triple("bridge_keep_awake", "on? (\"1\"|\"0\"; omit to read)", "keep_awake"),
     )
 
     fun call(ctx: Context, method: String, extras: Bundle?): Bundle = try {
@@ -57,14 +55,7 @@ object BridgeMethods {
         err("${t.javaClass.simpleName}: ${t.message.orEmpty()}")
     }
 
-    private val SENDING = setOf("bridge_send_text", "bridge_send_file", "bridge_react", "bridge_unreact",
-        "bridge_edit", "bridge_delete", "bridge_accept_file")
-
     private fun dispatch(ctx: Context, method: String, x: Bundle): Bundle {
-        // SK-BRIDGEWAKE: anything that must reach a peer wakes the accounts first and holds them
-        // up long enough for the peer to fetch it. Asleep, a send only committed locally.
-        if (method in SENDING)
-            JamiApplication.instance?.automationWake(Bridge.SEND_HOLD_MS, method)
         return when (method) {
             "bridge_describe" -> ok().apply {
                 putString("version", VERSION)
@@ -95,16 +86,6 @@ object BridgeMethods {
             "bridge_edit" -> editTo(x, "message_id", x.getString("text") ?: return err("missing text"))
             "bridge_delete" -> editTo(x, "message_id", "")
             "bridge_message_status" -> messageStatus(x)
-            "bridge_wake" -> {
-                val app = JamiApplication.instance ?: return err("app not initialized")
-                val min = x.getString("minutes")?.toLongOrNull()?.coerceIn(1, 30) ?: 2
-                ok().apply { putString("asleep_before", app.automationWake(min * 60_000L, "bridge_wake").toString()) }
-            }
-            "bridge_keep_awake" -> {
-                x.getString("on")?.let { Bridge.setKeepAwake(it == "1" || it.equals("true", true)) }
-                if (Bridge.keepAwake()) JamiApplication.instance?.automationWake(0L, "keep_awake on")
-                ok().apply { putString("keep_awake", b(Bridge.keepAwake())) }
-            }
             else -> err("unknown method: $method")
         }
     }
@@ -262,7 +243,6 @@ object BridgeMethods {
             putString("last_inbound_ms", InboundEvidence.lastMs.toString())
             putString("last_inbound_kind", InboundEvidence.lastKind)
             putString("last_push_ms", PushEvidence.lastRealPushMs.toString())
-            putString("keep_awake", b(Bridge.keepAwake()))
             putParcelableArray("items", ids.mapNotNull { id ->
                 val a: Account = svc.getAccount(id) ?: return@mapNotNull null
                 flat("account" to id,
