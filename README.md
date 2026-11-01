@@ -24,7 +24,7 @@ with a **predefined reply** — general or per contact — **call recording** th
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20261023-01+2026-10-23.21-54.g2ec1e272+008`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20261023-01+2026-10-23.21-54.g2ec1e272+022`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -426,6 +426,16 @@ file transfer and delivery state of a conversation the bot is told to **watch** 
 journal it can catch up on and announced live by a broadcast addressed to that one signed app —
 conversations nobody watches never leave Jami. It is what lets a phone at home forward SMS into
 Jami and send the replies back out.
+
+## 🩺 Diagnostics, all behind switches
+
+Every diagnostic the fork has added over the months — connection attempts, DHT proxy and push
+traffic, DHT message counts, history loads and the daemon's worker pool, swarm fetches and merges,
+the audio path, conversation opening, push wake decisions and the app's work queue — now sits
+behind its own switch in **Settings → Diagnostics**, grouped in sub-sections and **all off by
+default**. Off costs nothing: no line is formatted or written and no diagnostic timer runs. Turn
+one on to chase a problem and it takes effect within three seconds, without a rebuild or restart —
+the native libraries consult the same switch through a small file the app writes.
 
 ## 🔎 Registered-name resolution
 
