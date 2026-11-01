@@ -34,6 +34,24 @@ object PushEvidence {
     @Volatile var lastRealPushMs = 0L
         private set
 
+    /**
+     * A push addressed to an account's OWN key (2026-11-01, SK-OWNKEY). [noteRealPush] keeps pushes
+     * off the per-account clock because a push proves the shared proxy leg, not that a particular
+     * account receives. A push whose `key` IS the account's own id does prove exactly that: this
+     * account's proxy subscription delivers. Without it a quiet account whose contacts were offline
+     * (torakuma, 2026-11-01) read "deaf 69–73 min", failed the presence probe four times and had its
+     * proxy cycled each time, while its own key was demonstrably receiving pushes. Typed or untyped,
+     * it counts here; it still does not hold the background awake window open.
+     */
+    fun noteAccountPush(data: Map<String, String>) {
+        val key = data["key"]?.lowercase()?.takeIf { it.length == 40 } ?: return
+        val svc = cx.ring.application.JamiApplication.instance?.mAccountService ?: return
+        for (a in svc.getAccounts()) {
+            val uri = a.username?.substringAfterLast(':')?.lowercase() ?: continue
+            if (uri == key) net.jami.utils.InboundEvidence.note(a.accountId, "own-key push")
+        }
+    }
+
     fun noteRealPush() {
         val now = System.currentTimeMillis()
         val prev = lastRealPushMs
