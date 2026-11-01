@@ -493,6 +493,10 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" 
 # fault was invisible in logcat. First failure plus one in N now, carrying the fd and the count.
 r bash -c 'cp patches/pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/; grep -q pjproject-throttle-erroring-stun-socket.patch daemon/contrib/src/pjproject/rules.mak || sed -i "s|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch|\t\$(APPLY) \$(SRC)/pjproject/pjproject-evict-stuck-epoll-sockets.patch\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-throttle-erroring-stun-socket.patch|" daemon/contrib/src/pjproject/rules.mak'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK_RX_ERR_LOG_EVERY "$d/pjproject/pjnath/src/pjnath/stun_sock.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-throttle-erroring-stun-socket.patch; fi'
+# SK-DIAGGATE (2026-11-01): LAST in the pjproject chain — turns SK_EVICT into a no-op unless Settings →
+# Diagnostics → Connections is on. Both halves, like every contrib patch: rules.mak line + direct guard.
+r bash -c 'cp patches/pjproject-diag-gate.patch daemon/contrib/src/pjproject/; m=daemon/contrib/src/pjproject/rules.mak; grep -q pjproject-diag-gate.patch "$m" || sed -i "s|^\t\$(APPLY) \$(SRC)/pjproject/pjproject-throttle-erroring-stun-socket.patch\$|&\n\t\$(APPLY) \$(SRC)/pjproject/pjproject-diag-gate.patch|" "$m"'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q SK-DIAGGATE "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-diag-gate.patch; fi'
 
 # Rebuild pjproject if the stamp is older than ANY patched source. Naming only ioqueue_epoll.c here
 # is the same trap that shipped a stale libdhtnet in +163 — stun_sock.c alone would be skipped.
@@ -515,7 +519,7 @@ r bash -c 'om=daemon/contrib/src/opendht/rules.mak
 cp patches/opendht-proxy-connect-resilience.patch daemon/contrib/src/opendht/
 grep -q opendht-proxy-connect-resilience.patch "$om" || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/opendht/opendht-proxy-connect-resilience.patch\n\t\$(MOVE)|" "$om"
 prev=opendht-proxy-connect-resilience
-for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag; do
+for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag opendht-diag-gate; do
   cp "patches/$p.patch" daemon/contrib/src/opendht/
   grep -q "$p.patch" "$om" || sed -i "s|^\t\$(APPLY) \$(SRC)/opendht/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/opendht/$p.patch|" "$om"
   prev=$p
@@ -556,7 +560,7 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # clean tree silently dropped all five (rules.mak carried 4 $(APPLY) lines for 9 patches). Chain
 # them after the throttle patch, in order; each one's diff context includes the previous.
 r bash -c 'prev=dhtnet-throttle-failed-ice-transports; m=daemon/contrib/src/dhtnet/rules.mak;
-for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous dhtnet-local-rendezvous-diag; do
+for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous dhtnet-local-rendezvous-diag dhtnet-diag-gate; do
   cp "patches/$p.patch" daemon/contrib/src/dhtnet/
   grep -q "$p.patch" "$m" || sed -i "s|^\t\$(APPLY) \$(SRC)/dhtnet/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/dhtnet/$p.patch|" "$m"
   prev=$p
@@ -572,6 +576,7 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # whose code it instruments. dhtnet's logger is null in release, so every ICE/TLS/trust failure on the
 # connect path was silent; this mirrors each one to logcat (tag SK-ICEDIAG, "fail …" / "localrdv …").
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q "SK-RDVDIAG" "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-local-rendezvous-diag.patch; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK-DIAGGATE "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-diag-gate.patch; fi'   # SK-DIAGGATE, last
 
 # Rebuild dhtnet if ANY of its sources is newer than the stamp. The old form named ice_transport.cpp
 # and ip_utils.cpp explicitly, so a change to connectionmanager.cpp alone was SILENTLY SKIPPED and
@@ -589,11 +594,20 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.dhtnet" 
 # de-list absent devices (SK-ABSENTNODE; idempotent; daemon's OWN source). Honours the presence
 # OFFLINE edge, which upstream discards, so an absent device leaves the speculative dial pool.
 r bash -c 'grep -q SK-ABSENTNODE daemon/src/jamidht/conversation.cpp || (cd daemon && patch -flp1) < patches/jami-delist-absent-devices.patch'
+# history-load diagnostics (SK-LOADDIAG, 2026-11-01; daemon's OWN source). AFTER absent-devices, which
+# also edits conversation.cpp. Logs slow history loads and io-pool starvation to logcat (tag SK-LOADDIAG).
+r bash -c 'grep -q SK-LOADDIAG daemon/src/jamidht/conversation.cpp || (cd daemon && patch -flp1) < patches/jami-loadhistory-diag.patch'
+# swarm-sync trace (SK-SWARMSYNC, 2026-11-01; daemon's OWN source) — AFTER loadhistory-diag, whose lines it extends.
+r bash -c 'grep -q SK-SWARMSYNC daemon/src/jamidht/conversation.cpp || (cd daemon && patch -flp1) < patches/jami-swarmsync-diag.patch'
+# the one diagnostics switch (SK-DIAGGATE; daemon's OWN source). Defines sk_diag_on(), which every SK diagnostic
+# in the daemon and the contrib libraries consults; reads <data dir>/sk-diag, written by Settings → Diagnostics.
+r bash -c 'grep -q SK-DIAGGATE daemon/src/manager.cpp || (cd daemon && patch -flp1) < patches/jami-diag-gate.patch'
 
 # opendht DHT message-stats diag (SK-DHTSTATS): per-kind in/out message counts + passively-learned
 # node count, one line per confirmNodes tick. FULL-DHT mode only (proxy mode constructs no Dht).
 r bash -c 'cp patches/opendht-dht-message-stats-diag.patch daemon/contrib/src/opendht/'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q "SK-DHTSTATS" "$d/opendht/src/dht.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-dht-message-stats-diag.patch && rm -f "$d/.opendht"; fi'
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q SK-DIAGGATE "$d/opendht/src/dht.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-diag-gate.patch; fi'   # SK-DIAGGATE, last
 
 # swarm redial backoff (SK-SWARMBACKOFF; idempotent; daemon's OWN source — no rules.mak, no contrib
 # rebuild). 60 s base doubling to a 30 min cap, gating ONLY maintainBuckets' speculative dial.
