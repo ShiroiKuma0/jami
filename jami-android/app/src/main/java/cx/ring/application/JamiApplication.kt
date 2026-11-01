@@ -101,6 +101,8 @@ abstract class JamiApplication : Application() {
         // Recheck cadence while the watchdog says the push leg is not proven — long enough that a
         // standing outage costs nothing, short enough to sleep soon after the leg comes back.
         private const val SLEEP_UNSAFE_RECHECK_MS = 60_000L
+        // Longest single hold an automation caller may ask for (bridge_wake minutes are clamped).
+        private const val MAX_AUTOMATION_HOLD_MS = 30 * 60_000L
 
         /**
          * Background account deactivation. The figures this comment carried until 2026-07-31
@@ -253,6 +255,37 @@ abstract class JamiApplication : Application() {
     private val lastCallPushTime = AtomicLong(0L)
     private val lastMessagePushTime = AtomicLong(0L)
 
+    // SK-BRIDGEWAKE (2026-11-01): elapsedRealtime until which an automation caller (the SMS bridge)
+    // asked the accounts to stay awake. Bridge traffic has no push of its own to wake us: a
+    // bridge_send_text while every proxy account was asleep committed locally and then waited for
+    // the next unrelated wake — 13 min measured for a message between two accounts on one phone.
+    private val automationHoldUntil = AtomicLong(0L)
+
+    /**
+     * Wake every background-deactivated account now and keep them awake for [holdMs]. Called by
+     * the bridge before it sends, and by `bridge_wake`. Returns how many accounts were asleep.
+     * Holds only extend, never shorten, a window another caller already opened.
+     */
+    fun automationWake(holdMs: Long, reason: String): Int {
+        val now = SystemClock.elapsedRealtime()
+        val until = now + holdMs.coerceIn(0L, MAX_AUTOMATION_HOLD_MS)
+        automationHoldUntil.accumulateAndGet(until) { a, b -> maxOf(a, b) }
+        val asleep = asleepCount()
+        if (!BACKGROUND_DEACTIVATION_ENABLED) return asleep
+        wakeLog("automation wake ($reason) hold=${holdMs / 1000}s asleep=$asleep")
+        backgroundHandler.post {
+            backgroundHandler.removeCallbacks(deactivateRunnable)
+            if (asleepCount() > 0) mAccountService.restoreProxyAccountsAfterBackground()
+            // SK-EXECDIAG: does the daemon executor get past the restore it was just handed?
+            if (cx.ring.utils.DiagPrefs.isOn(cx.ring.utils.DiagPrefs.Group.EXEC)) {
+                val queued = SystemClock.elapsedRealtime()
+                mExecutor.execute { diagLog("SK-EXECDIAG executor passed the restore (${SystemClock.elapsedRealtime() - queued} ms)") }
+            }
+            backgroundHandler.postDelayed(deactivateRunnable, BACKGROUND_DEACTIVATION_DELAY_MS)
+        }
+        return asleep
+    }
+
     // Start of the current continuous background-active episode (0 when none). Bounds how long
     // sustained pushes can keep accounts active; only the first event records it.
     private val backgroundActiveSince = AtomicLong(0L)
@@ -281,6 +314,7 @@ abstract class JamiApplication : Application() {
         val callGraceRemaining = lastCallPushTime.get() + CALL_PUSH_GRACE_MS - now
         val messageGraceRemaining = lastMessagePushTime.get() + PUSH_GRACE_MS - now
         val graceRemaining = maxOf(callGraceRemaining, messageGraceRemaining, lastPushTime.get() + PUSH_GRACE_MS - now)
+        val automationHoldRemaining = automationHoldUntil.get() - now
         val episodeStart = backgroundActiveSince.get()
         val capReached = episodeStart != 0L && now - episodeStart >= MAX_BACKGROUND_ACTIVE_MS
         when {
@@ -291,6 +325,12 @@ abstract class JamiApplication : Application() {
             // Call push still negotiating (not yet visible to hasActiveCalls): wait out its
             // grace window, also exempt from the cap.
             callGraceRemaining > 0 -> scheduleBackgroundDeactivation(callGraceRemaining)
+            // An automation caller (the SMS bridge) holds the accounts awake: it sent, or is about
+            // to, and delivery needs both ends up. Bounded by MAX_AUTOMATION_HOLD_MS per request.
+            automationHoldRemaining > 0 -> scheduleBackgroundDeactivation(automationHoldRemaining)
+            // The bridge's "keep awake" switch: a home phone on a charger whose whole job is to
+            // relay must never sleep its accounts.
+            cx.ring.automation.Bridge.keepAwake() -> scheduleBackgroundDeactivation(CALL_ACTIVE_RECHECK_MS)
             messageGraceRemaining > 0 -> scheduleBackgroundDeactivation(messageGraceRemaining)
             // Recent push/token refresh: wait out the grace window unless the episode cap is reached.
             graceRemaining > 0 && !capReached -> scheduleBackgroundDeactivation(graceRemaining)
@@ -320,12 +360,18 @@ abstract class JamiApplication : Application() {
     /** SK-WAKE diagnostic sink. Writes to the PERSISTENT recovery log rather than logcat, because
      *  EMUI drops this package's release Log.d/w — the reason the push→restore path has never been
      *  observable on-device. Timestamped here since appendRecoveryLog stores the line verbatim. */
-    private fun wakeLog(msg: String) = try {
+    fun wakeLog(msg: String) {
+        // Settings → Diagnostics → Push wake decisions (off by default).
+        if (cx.ring.utils.DiagPrefs.isOn(cx.ring.utils.DiagPrefs.Group.WAKE)) diagLog("SK-WAKE $msg")
+    }
+
+    /** Ungated writer to the persistent recovery log, for diagnostics whose own switch was checked. */
+    fun diagLog(line: String) = try {
         cx.ring.utils.UiPrefs.appendRecoveryLog(
             this,
-            "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())}  SK-WAKE $msg")
+            "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())}  $line")
     } catch (e: Exception) {
-        Log.w(TAG, "wakeLog failed", e)
+        Log.w(TAG, "diagLog failed", e)
     }
 
     /** How many accounts the background optimization currently has asleep. */
@@ -599,6 +645,8 @@ abstract class JamiApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // Settings → Diagnostics: load the switches and hand the daemon its mask BEFORE anything logs.
+        cx.ring.utils.DiagPrefs.init(this)
         // SMS-over-Jami bridge: tap the daemon callbacks before any account loads (cx.ring.automation.Bridge).
         cx.ring.automation.Bridge.install(this)
         LinkPreview.init(this)

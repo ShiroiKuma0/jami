@@ -211,6 +211,7 @@ class FontsSettingsFragment : Fragment() {
         addExportImportSection(c)
         addOnlineRecoverySection(c)
         addDeclineMessagesSection(c)
+        addDiagnosticsSection(c)
         c.addView(groupHeader("App language"))
         c.addView(languageRow())
         for (g in groups) {
@@ -353,6 +354,53 @@ class FontsSettingsFragment : Fragment() {
                     }
                 }, { context?.let { Flash.show(it, "Could not load contacts") } })
         )
+    }
+
+    // ---- Diagnostics (2026-11-01) --------------------------------------------------------------
+    // Every SK diagnostic behind its own switch, all OFF by default: off means nothing is formatted,
+    // written or timed. Native groups reach the daemon through DiagPrefs' mask file within 3 s.
+    private fun addDiagnosticsSection(c: LinearLayout) {
+        val ctx = requireContext()
+        c.addView(groupHeader("Diagnostics"))
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(72f), dp(6f), dp(16f), dp(4f))
+        }
+        box.addView(orMini("All off by default — while off they cost nothing. Turn one on only to chase a " +
+            "problem; it takes effect within 3 s, no restart. Daemon lines go to logcat (read over adb); " +
+            "app lines go to the recovery log (Online recovery → View recovery log)."))
+        fun sub(title: String) = box.addView(TextView(ctx).apply {
+            text = title; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setTypeface(typeface, Typeface.BOLD); setPadding(0, dp(16f), 0, dp(2f)); layoutParams = matchWrap()
+        })
+        fun sw(label: String, g: cx.ring.utils.DiagPrefs.Group, note: String) {
+            box.addView(orSwitchRow(label, cx.ring.utils.DiagPrefs.isOn(g)) { cx.ring.utils.DiagPrefs.set(ctx, g, it) })
+            box.addView(orMini(note))
+        }
+        sub("Connections & network")
+        sw("Connection attempts", cx.ring.utils.DiagPrefs.Group.CONNECTIONS,
+            "SK-ICEDIAG (logcat): every connect, ICE/TLS failure, local hand-off and stuck socket.")
+        sw("DHT proxy & push", cx.ring.utils.DiagPrefs.Group.DHT_PROXY,
+            "SK-PROXYDIAG (logcat): proxy subscriptions, pushes received, HTTP connects.")
+        sw("DHT message counters", cx.ring.utils.DiagPrefs.Group.DHT_STATS,
+            "SK-DHTSTATS (logcat): per-message DHT traffic counts.")
+        sub("Conversations")
+        sw("Conversation loading", cx.ring.utils.DiagPrefs.Group.OPEN,
+            "SK-OPENDIAG (recovery log): each step of opening a chat, history requests and their answers.")
+        sw("History loads & daemon workers", cx.ring.utils.DiagPrefs.Group.HISTORY,
+            "SK-LOADDIAG (logcat): slow history loads and a starved daemon worker pool.")
+        sw("Swarm sync", cx.ring.utils.DiagPrefs.Group.SWARM_SYNC,
+            "SK-SWARMSYNC (logcat): every fetch and merge from a peer, and which message each new one attaches to.")
+        sub("Calls")
+        sw("Audio path", cx.ring.utils.DiagPrefs.Group.AUDIO,
+            "SK-AUDIODIAG (logcat): per-call packets in and out, decode levels, silence.")
+        sub("Background & automation")
+        sw("Push wake decisions", cx.ring.utils.DiagPrefs.Group.WAKE,
+            "SK-WAKE (recovery log): how each push was classified and whether it woke the accounts.")
+        sw("App work queue & bridge sends", cx.ring.utils.DiagPrefs.Group.EXEC,
+            "SK-EXECDIAG (recovery log): a 30-s heartbeat of the app's daemon queue, and each bridge send's progress.")
+        c.addView(box)
     }
 
     // ---- Online recovery section (top of the page) -----------------------------------------
