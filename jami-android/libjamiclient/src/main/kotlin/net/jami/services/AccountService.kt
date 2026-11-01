@@ -493,7 +493,24 @@ class AccountService(
         Completable.fromAction { JamiService.removeConversation(accountId, conversationUri.rawRingId) }
             .subscribeOn(scheduler)
 
+    // SK-OPENDIAG: who keeps asking for more history? Logged for the first 3 calls per
+    // conversation and then every 50th, with the calling frames.
+    private val replyLoadsInFlight: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+    private val replyLoadIds = java.util.concurrent.ConcurrentHashMap<Long, String>()
+    private val replyLoadsAnswered: MutableSet<Long> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+    private val skLoadMoreCalls = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicInteger>()
+    private fun skTraceCaller(kind: String, conversation: Conversation, n: Int) {
+        if (!net.jami.utils.SkTrace.enabled) return   // a stack capture per load is not free
+        val c = skLoadMoreCalls.getOrPut(conversation.uri.rawRingId) { java.util.concurrent.atomic.AtomicInteger() }.incrementAndGet()
+        if (c <= 3 || c % 50 == 0) {
+            val frames = Throwable().stackTrace.drop(2).filter { it.className.startsWith("cx.ring") || it.className.startsWith("net.jami") }
+                .take(6).joinToString(" < ") { "${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}" }
+            net.jami.utils.SkTrace.log { "SK-OPENDIAG $kind #$c conv=${conversation.uri.rawRingId.take(8)} acct=${conversation.accountId.take(6)} n=$n from $frames" }
+        }
+    }
+
     fun loadMore(conversation: Conversation, n: Int = 32): Single<Conversation> {
+        skTraceCaller("loadMore", conversation, n)
         synchronized(conversation.loadingLock()) {
             val mode = conversation.mode.blockingFirst()
             if (mode == Conversation.Mode.Syncing || mode == Conversation.Mode.Request) {
@@ -504,9 +521,11 @@ class AccountService(
             val ret = SingleSubject.create<Conversation>()
             conversation.loading = ret
             val load = ConversationLoad(conversation, ret)
+            val tReq = System.currentTimeMillis()
             Single.fromCallable {
                 synchronized(conversationLoadingTasks) {
                     JamiService.loadConversation(conversation.accountId, conversation.uri.rawRingId, "", n.toLong()).also { id ->
+                        net.jami.utils.SkTrace.log { "SK-OPENDIAG loadConversation conv=${conversation.uri.rawRingId.take(8)} id=$id (queued ${System.currentTimeMillis() - tReq} ms)" }
                         if (id != 0L)
                             conversationLoadingTasks[id] = load
                     }
@@ -529,6 +548,7 @@ class AccountService(
     }
 
     fun loadUntil(conversation: Conversation, from: String = "", until: String = ""): Single<List<Interaction>> {
+        skTraceCaller("loadUntil from=${from.take(8)} until=${until.take(8)}", conversation, 0)
         val mode = conversation.mode.blockingFirst()
         if (mode == Conversation.Mode.Syncing || mode == Conversation.Mode.Request) {
             Log.w(TAG, "loadUntil: conversation is syncing")
@@ -1968,8 +1988,22 @@ class AccountService(
         interaction.edit = edit
         if (replyTo != null) {
             interaction.replyTo = conversation.loadMessage(replyTo) {
-                mExecutor.execute {
-                    JamiService.loadSwarmUntil(account.accountId, conversation.uri.rawRingId, "", replyTo)
+                // SK-REPLYLOAD (2026-11-01): at most ONE reply-target history load per conversation in
+                // flight. Each distinct missing target used to fire its own loadSwarmUntil, and each of
+                // those walks the whole history under the conversation's lock on the daemon's io pool.
+                // A 5,621-message chat with many replies queued hundreds of them, exhausted every io
+                // worker for minutes, and froze everything else that needs one (opening any
+                // conversation, committing a sent message). One load back to a target also brings in
+                // everything newer, so it resolves most of the others; one still missing afterwards
+                // just shows no quote preview.
+                val key = account.accountId + "|" + conversation.uri.rawRingId
+                if (replyLoadsInFlight.add(key)) {
+                    mExecutor.execute {
+                        val id = JamiService.loadSwarmUntil(account.accountId, conversation.uri.rawRingId, "", replyTo)
+                        // The answer can beat us here: if it already arrived, release the gate now.
+                        if (id == 0L || replyLoadsAnswered.remove(id)) replyLoadsInFlight.remove(key)
+                        else replyLoadIds[id] = key
+                    }
                 }
             }
         }
@@ -2006,7 +2040,17 @@ class AccountService(
     }
 
     internal fun swarmLoaded(id: Long, accountId: String, conversationId: String, messages: List<SwarmMessageData>) {
+        // SK-REPLYLOAD: a reply-target load finished — let the next one for this conversation go.
+        val gateKey = replyLoadIds.remove(id)
+        if (gateKey != null) replyLoadsInFlight.remove(gateKey)
+        else if (replyLoadsInFlight.isNotEmpty()) {
+            replyLoadsAnswered.add(id)   // may be ours, arriving before its id was recorded
+            if (replyLoadsAnswered.size > 256) replyLoadsAnswered.clear()
+        }
+        val tIn = System.currentTimeMillis()
+        net.jami.utils.SkTrace.log { "SK-OPENDIAG swarmLoaded from daemon conv=${conversationId.take(8)} id=$id n=${messages.size}" }
         conversationCallbacks.dispatch(accountId, conversationId) {
+            net.jami.utils.SkTrace.log { "SK-OPENDIAG swarmLoaded handled conv=${conversationId.take(8)} id=$id after ${System.currentTimeMillis() - tIn} ms in queue" }
             swarmLoadedNow(id, accountId, conversationId, messages)
         }
     }

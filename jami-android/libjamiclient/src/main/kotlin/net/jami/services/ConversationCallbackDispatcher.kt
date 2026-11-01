@@ -32,6 +32,8 @@ internal class ConversationCallbackDispatcher(
     )
 
     private val routingLock = Any()
+    private val pending = java.util.concurrent.atomic.AtomicInteger(0)
+    @Volatile private var pendingReported = 0
     private val routes = HashMap<ConversationKey, Route>()
     private var nextGeneration = 0L
     private val tasks: FlowableProcessor<Task> = PublishProcessor.create<Task>().toSerialized()
@@ -41,7 +43,16 @@ internal class ConversationCallbackDispatcher(
         .flatMapCompletable { group ->
             group.takeUntil(Task::closeAfter).concatMapCompletable { task ->
                 Completable.wrap(task.ready)
-                    .andThen(Completable.fromAction(task.action))
+                    .andThen(Completable.fromAction {
+                        // SK-OPENDIAG: a callback that holds its conversation's line (and a shared
+                        // computation thread) for over a second is what stalls history loading.
+                        val t0 = System.currentTimeMillis()
+                        pending.decrementAndGet()
+                        try { task.action() } finally {
+                            val dt = System.currentTimeMillis() - t0
+                            if (dt > 1000) net.jami.utils.SkTrace.log { "SK-OPENDIAG slow callback ${dt} ms conv=${task.key.conversation.conversationId.take(8)} pending=${pending.get()}" }
+                        }
+                    })
                     .subscribeOn(scheduler)
                     .onErrorComplete { error ->
                         onError(error)
@@ -60,6 +71,11 @@ internal class ConversationCallbackDispatcher(
                 Route(nextGeneration++, Completable.complete())
             }
             route.started = true
+            val n = pending.incrementAndGet()
+            if (n >= pendingReported * 2 && n >= 50) {
+                pendingReported = n
+                net.jami.utils.SkTrace.log { "SK-OPENDIAG callback backlog ${n} (latest conv=${conversationId.take(8)})" }
+            } else if (n < 10) pendingReported = 0
             tasks.onNext(Task(Key(conversation, route.generation), route.ready, false, action))
         }
     }
@@ -90,6 +106,7 @@ internal class ConversationCallbackDispatcher(
             val successorReady = CompletableSubject.create()
             val successor = Route(nextGeneration++, successorReady)
             routes[conversation] = successor
+            pending.incrementAndGet()   // balances the decrement every task does when it runs
             tasks.onNext(Task(Key(conversation, route.generation), route.ready, true) {
                 try {
                     action()
