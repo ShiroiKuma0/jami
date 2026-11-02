@@ -7,6 +7,22 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+023` — 2026-11-02
+
+Same upstream base (**20261023-01** at `2ec1e272f`). One fix: messages that arrive late keep their
+right place in the chat.
+
+### 🔀 Late messages no longer stay at the bottom of the chat
+
+- After a connection gap, a contact's late messages were shown as the newest ones, and messages
+  you sent afterwards landed **above** them; only restarting Jami put them in order. The daemon
+  merged them correctly and, since the 20261023-01 daemon, re-sorts the history after such a merge
+  and reports each moved message — but the app recorded the new positions without moving anything
+  on screen. It now re-orders the chat as soon as the re-sort arrives. Filed upstream as Gerrit
+  change 36892.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+022` — 2026-11-01
 
 Same upstream base (**20261023-01** at `2ec1e272f`). A fix for conversations that would not open
