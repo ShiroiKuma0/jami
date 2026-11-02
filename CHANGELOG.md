@@ -20,7 +20,7 @@ accounts, and every diagnostic moved behind a switch.
   daemon worker while waiting for the same lock. For an hour every worker was taken: opening any
   conversation showed an empty screen, and messages sent in that time were never saved. Now at most
   one such request per conversation runs at a time; the same startup issues 3 instead of 698, and a
-  conversation opens in tens of milliseconds. Prepared as an upstream Jami fix (Gerrit filing pending).
+  conversation opens in tens of milliseconds. Filed upstream as Gerrit change 36891.
 
 ### 🤖 Bridge
 
