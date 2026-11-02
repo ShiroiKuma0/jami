@@ -874,6 +874,7 @@ class Conversation(
     @Synchronized
     fun updateSwarmMessage(interaction: Interaction) {
         val existingInteraction = interaction.messageId?.let { getMessage(it) } ?: return
+        val oldParent = existingInteraction.parentId
         interaction.parentId?.let { existingInteraction.updateParent(it) }
         existingInteraction.replaceEdits(interaction.history)
         existingInteraction.replaceReactions(interaction.reactions)
@@ -888,6 +889,43 @@ class Conversation(
         if (lastEvent == existingInteraction) {
             lastEventSubject.onNext(existingInteraction)
         }
+        // After a non-fast-forward merge the daemon re-linearizes the history and reports each moved
+        // message with its NEW parent (SwarmMessageUpdated). Recording the parent is not enough:
+        // the displayed list kept the old order, so messages merged in late stayed below newer
+        // ones until a restart rebuilt the list. Re-chain the list and hand the view the result.
+        if (isSwarm && interaction.parentId != null && interaction.parentId != oldParent)
+            relinkAggregateHistory()
+    }
+
+    /**
+     * Re-orders [aggregateHistory] by following parent links from its root. Only applied when the
+     * links form one complete chain; mid-batch (several moves reported one by one) they may not,
+     * and the list is left untouched until the update that completes the chain arrives.
+     */
+    private fun relinkAggregateHistory() {
+        if (aggregateHistory.size < 2) return
+        val ids = HashSet<String>(aggregateHistory.size)
+        aggregateHistory.forEach { it.messageId?.let(ids::add) }
+        val childOf = HashMap<String, Interaction>(aggregateHistory.size)
+        var root: Interaction? = null
+        for (e in aggregateHistory) {
+            val p = e.parentId
+            if (p == null || p !in ids) {
+                if (root != null) return          // two roots: not a single chain yet
+                root = e
+            } else if (childOf.put(p, e) != null) return   // two children of one parent
+        }
+        val ordered = ArrayList<Interaction>(aggregateHistory.size)
+        var cur = root
+        while (cur != null && ordered.size <= aggregateHistory.size) {
+            ordered.add(cur)
+            cur = cur.messageId?.let { childOf[it] }
+        }
+        if (ordered.size != aggregateHistory.size) return
+        if (ordered == aggregateHistory) return
+        aggregateHistory.clear()
+        aggregateHistory.addAll(ordered)
+        clearedSubject.onNext(ArrayList(aggregateHistory))
     }
 
     data class ActiveCall(val confId: String, val uri: String, val device: String) {
