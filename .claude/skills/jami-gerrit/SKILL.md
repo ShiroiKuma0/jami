@@ -98,13 +98,18 @@ the fix is safe (the proof, not the assertion), and what was measured after. Cit
 maintainers accept a change far more readily when the reasoning is checkable. **No Claude/Anthropic
 attribution, ever.** Verify the trailer landed: `git log -1 --format=%B | grep Change-Id`.
 
-### 6. Hand over the push
+### 6. Hand over the push — via `~/tmp/gerrit.sh`, NEVER a `!` command
 
-Print exactly this, for 白い熊 to run:
+The `!` prompt swallows Gerrit's password prompt (白い熊, 2026-11-02), so the push never authenticates.
+Write the push(es) to **`~/tmp/gerrit.sh`** (overwrite it, `chmod +x`, `bash -n` it) and tell 白い熊 to run it
+from a vterm buffer. One block per change:
 
+```bash
+echo ">>> <subject>  (Change-Id I…)"
+cd <worktree> && git push https://ShiroiKuma0@review.jami.net/a/<project> HEAD:refs/for/master
 ```
-! cd <worktree> && git push https://ShiroiKuma0@review.jami.net/a/<project> HEAD:refs/for/master
-```
+
+This one file is an explicit exception to the "`~/tmp` only for builds and preview PNGs" rule.
 
 Note the **`/a/`** path segment — it selects authenticated access. Gerrit replies with the change URL.
 
