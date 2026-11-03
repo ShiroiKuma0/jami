@@ -232,14 +232,13 @@ object UiPrefs {
     // ---- External-file mirror --------------------------------------------------------------------
     // The dialog log lives in private SharedPreferences (unreadable over adb on a release build).
     // Mirror every line to the app's EXTERNAL files dir so the full history is inspectable with any
-    // file manager and pullable over adb — Android/data/shiroikuma.jami/files/recovery-log.txt.
+    // file manager and pullable over adb — Android/data/shiroikuma.jami/files/diag/recovery-log.txt.
     private const val LOG_FILE = "recovery-log.txt"
     private const val LOG_FILE_MAX_BYTES = 512 * 1024L   // trim to the last ~half when it grows past this
 
     private fun mirrorToFile(c: Context, line: String) {
         runCatching {
-            val dir = c.getExternalFilesDir(null) ?: return
-            val f = java.io.File(dir, LOG_FILE)
+            val f = DiagFiles.file(c, LOG_FILE)
             val day = java.text.SimpleDateFormat("MM-dd", java.util.Locale.US).format(java.util.Date())
             f.appendText("$day $line\n")
             if (f.length() > LOG_FILE_MAX_BYTES) {
@@ -251,7 +250,7 @@ object UiPrefs {
 
     /** Absolute path of the external mirror file, for surfacing in the dashboard. */
     fun recoveryLogFilePath(c: Context): String =
-        java.io.File(c.getExternalFilesDir(null), LOG_FILE).absolutePath
+        DiagFiles.file(c, LOG_FILE).absolutePath
 
     /** The rolling watchdog log, oldest first. */
     fun getRecoveryLog(c: Context): List<String> =

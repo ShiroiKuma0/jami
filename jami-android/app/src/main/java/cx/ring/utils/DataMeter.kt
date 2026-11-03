@@ -7,7 +7,7 @@
  *  session survives process restarts AND device reboots (counters reset at boot — detected by
  *  the counter running backwards, the pre-reboot delta banked into an accumulator).
  *
- *  History records append to files/data-measure-log.txt, one line per session, newest last;
+ *  History records append to files/diag/data-measure-log.txt, one line per session, newest last;
  *  the fonts-settings "Online recovery" section renders them in a themed dialog.
  */
 package cx.ring.utils
@@ -87,9 +87,9 @@ object DataMeter {
         return rec
     }
 
-    fun historyFile(c: Context): File = File(c.getExternalFilesDir(null), "data-measure-log.txt")
+    fun historyFile(c: Context): File = DiagFiles.file(c, DiagFiles.DATA_MEASURE)
 
-    fun hourlyFile(c: Context): File = File(c.getExternalFilesDir(null), "data-hourly-log.txt")
+    fun hourlyFile(c: Context): File = DiagFiles.file(c, DiagFiles.DATA_HOURLY)
 
     // ---- Unattended sampler settings (2026-07-26) ----
     const val WINDOW_MIN_MINUTES = 1        // the watchdog tick is the sampling clock — can't go finer

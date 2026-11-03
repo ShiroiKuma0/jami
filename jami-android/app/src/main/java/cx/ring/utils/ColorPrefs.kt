@@ -25,6 +25,7 @@ object ColorPrefs {
     const val SEARCH_HINT = "search_hint"
     const val SETTINGS = "settings"
     const val SETTINGS_ICON = "settings_icon"
+    const val SETTINGS_NOTE = "settings_note"   // explanatory text + item rule under a settings row (dim gold)
     const val PRESENCE_CONNECTED = "presence_connected"
     const val PRESENCE_AVAILABLE = "presence_available"
     const val MSG_SENT_FILL = "msg_sent_fill"
@@ -94,6 +95,7 @@ object ColorPrefs {
         PRESENCE_AVAILABLE -> 0xFF0000FF.toInt()   // blue (#0000FF) — announced on the DHT, no live pipe yet
         MSG_SENT_FILL, MSG_RECEIVED_FILL, LINK_CARD_FILL, FILE_CARD_FILL, BADGE_FILL, FLASH_FILL, INFO_PILL_FILL, CALL_FILL, MENU_FILL, SHORTCUT_FILL, INVITE_FILL, REQUEST_FILL -> BLACK
         CALL_TEXT, CALL_BORDER -> GREEN   // call-event pill: black fill, green text + border (settable)
+        SETTINGS_NOTE -> 0xFFC8C800.toInt()   // dim gold — explanatory text, a step below the yellow labels
         INFO_HEADING -> 0xFFFFFFFF.toInt()   // help-page section headings — white (readable on black; #0000FF was not)
         STATUS_SENDING -> 0xFF399EFF.toInt()   // light blue (#399EFF) — in flight
         STATUS_SUCCESS -> 0xFF0000FF.toInt()   // blue (#0000FF) — sent / delivered

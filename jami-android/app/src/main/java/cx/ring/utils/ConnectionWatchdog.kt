@@ -1038,12 +1038,12 @@ object ConnectionWatchdog {
     // ---- Incident forensics + user notification ---------------------------------------------
     /** Append a full incident record (context + recent daemon error lines) to
      *  watchdog-incidents.log in the app's external files dir — readable with any file manager
-     *  at Android/data/shiroikuma.jami/files/ — and mirror a one-liner to the rolling log. */
+     *  at Android/data/shiroikuma.jami/files/diag/ — and mirror a one-liner to the rolling log. */
     private fun writeIncident(c: Context, kind: String, detail: String, lines: List<String>) {
         val n = ++incidentSeq
         log(c, "incident #$n [$kind] $detail")
         runCatching {
-            val f = File(c.getExternalFilesDir(null), "watchdog-incidents.log")
+            val f = DiagFiles.file(c, DiagFiles.INCIDENTS)
             f.appendText(buildString {
                 append("\n==== incident #$n  $kind  ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ====\n")
                 append("$detail\n")

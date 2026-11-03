@@ -109,7 +109,7 @@ class HardwareServiceImpl(
     private val sharedPreferences: SharedPreferences = context
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val pendingStartCodec = Collections.synchronizedSet(HashSet<String>())
-    override val pushLogFile: File = File(context.filesDir, "firebaselog.txt")
+    override val pushLogFile: File = File(cx.ring.utils.DiagFiles.dir(context), cx.ring.utils.DiagFiles.PUSH_LOG)
 
     init {
         pushLogEnabled = sharedPreferences.getBoolean(LOGGING_ENABLED_KEY, false)

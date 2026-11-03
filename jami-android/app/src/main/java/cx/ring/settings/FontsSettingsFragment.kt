@@ -26,6 +26,7 @@ import cx.ring.R
 import cx.ring.utils.AutomationPrefs
 import cx.ring.utils.ColorPrefs
 import cx.ring.utils.DataMeter
+import cx.ring.utils.DiagPrefs.Group as DG
 import cx.ring.utils.DeclineMessagesPrefs
 import cx.ring.utils.EximPanel
 import cx.ring.utils.FontPrefs
@@ -104,7 +105,8 @@ class FontsSettingsFragment : Fragment() {
             Element("Search hint", FontPrefs.SEARCH_HINT, listOf(ColorRole("Color", ColorPrefs.SEARCH_HINT))))),
         Group("Settings", listOf(
             Element("Settings text", FontPrefs.SETTINGS, listOf(ColorRole("Color", ColorPrefs.SETTINGS))),
-            Element("Settings icons", null, listOf(ColorRole("Tint", ColorPrefs.SETTINGS_ICON))))),
+            Element("Settings icons", null, listOf(ColorRole("Tint", ColorPrefs.SETTINGS_ICON))),
+            Element("Settings notes & item rules", null, listOf(ColorRole("Color", ColorPrefs.SETTINGS_NOTE))))),
         Group("Presence dots (chat list)", listOf(
             Element("Online (connected)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_CONNECTED))),
             Element("Reachable (available)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_AVAILABLE))))),
@@ -176,6 +178,26 @@ class FontsSettingsFragment : Fragment() {
         } catch (e: Exception) {
             Flash.show(ctx, "Import failed: ${e.message}", Toast.LENGTH_LONG)
         }
+    }
+
+    /** Settings → Diagnostics → Export: the SAF directory picker (2026-11-03). */
+    private val pickDiagExportTree = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree: Uri? ->
+        tree ?: return@registerForActivityResult
+        val app = context?.applicationContext ?: return@registerForActivityResult
+        cx.ring.utils.DiagFiles.setExportTree(app, tree)
+        val where = cx.ring.utils.DiagFiles.treeLabel(tree)
+        Thread({
+            val msg = try {
+                val (sub, n) = cx.ring.utils.DiagFiles.export(app, tree)
+                "Exported $n ${if (n == 1) "file" else "files"} to $where/$sub."
+            } catch (e: Exception) {
+                "Export failed: ${e.message}"
+            }
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                Flash.show(app, msg, Toast.LENGTH_LONG)
+                if (isAdded) rebuild()
+            }
+        }, "sk-diag-export").start()
     }
 
     override fun onCreateView(inflater: LayoutInflater, parent: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -361,46 +383,208 @@ class FontsSettingsFragment : Fragment() {
     // written or timed. Native groups reach the daemon through DiagPrefs' mask file within 3 s.
     private fun addDiagnosticsSection(c: LinearLayout) {
         val ctx = requireContext()
+        val D = cx.ring.utils.DiagPrefs
+        val F = cx.ring.utils.DiagFiles
         c.addView(groupHeader("Diagnostics"))
+        // Tight layout (白い熊, 2026-11-03): minimal padding everywhere; each sub-heading underlined,
+        // its rows indented one further step beneath it.
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(72f), dp(6f), dp(16f), dp(4f))
+            setPadding(dp(72f), dp(4f), dp(16f), dp(4f))
         }
-        box.addView(orMini("All off by default — while off they cost nothing. Turn one on only to chase a " +
-            "problem; it takes effect within 3 s, no restart. Daemon lines go to logcat (read over adb); " +
-            "app lines go to the recovery log (Online recovery → View recovery log)."))
-        fun sub(title: String) = box.addView(TextView(ctx).apply {
-            text = title; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            setTypeface(typeface, Typeface.BOLD); setPadding(0, dp(16f), 0, dp(2f)); layoutParams = matchWrap()
+        // Explanatory text in dim gold, a step below the yellow labels (白い熊, 2026-11-03: no grey).
+        val noteC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.SETTINGS_NOTE)
+        fun note(text: String, into: LinearLayout) = into.addView(TextView(ctx).apply {
+            this.text = text; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, 0, 0, dp(2f)); layoutParams = matchWrap()
         })
-        fun sw(label: String, g: cx.ring.utils.DiagPrefs.Group, note: String) {
-            box.addView(orSwitchRow(label, cx.ring.utils.DiagPrefs.isOn(g)) { cx.ring.utils.DiagPrefs.set(ctx, g, it) })
-            box.addView(orMini(note))
+        fun tap(text: String, into: LinearLayout, onClick: () -> Unit) = into.addView(TextView(ctx).apply {
+            this.text = text; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setPadding(0, dp(2f), dp(12f), 0); layoutParams = matchWrap()
+            setOnClickListener { onClick() }
+        })
+        fun section(title: String): LinearLayout {
+            box.addView(TextView(ctx).apply {
+                text = title; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                setTypeface(typeface, Typeface.BOLD)
+                paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                setPadding(0, dp(8f), 0, dp(2f)); layoutParams = matchWrap()
+            })
+            return LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = matchWrap()
+                setPadding(dp(20f), 0, 0, 0)
+                box.addView(this)
+            }
         }
-        sub("Connections & network")
-        sw("Connection attempts", cx.ring.utils.DiagPrefs.Group.CONNECTIONS,
-            "SK-ICEDIAG (logcat): every connect, ICE/TLS failure, local hand-off and stuck socket.")
-        sw("DHT proxy & push", cx.ring.utils.DiagPrefs.Group.DHT_PROXY,
-            "SK-PROXYDIAG (logcat): proxy subscriptions, pushes received, HTTP connects.")
-        sw("DHT message counters", cx.ring.utils.DiagPrefs.Group.DHT_STATS,
-            "SK-DHTSTATS (logcat): per-message DHT traffic counts.")
-        sub("Conversations")
-        sw("Conversation loading", cx.ring.utils.DiagPrefs.Group.OPEN,
-            "SK-OPENDIAG (recovery log): each step of opening a chat, history requests and their answers.")
-        sw("History loads & daemon workers", cx.ring.utils.DiagPrefs.Group.HISTORY,
-            "SK-LOADDIAG (logcat): slow history loads and a starved daemon worker pool.")
-        sw("Swarm sync", cx.ring.utils.DiagPrefs.Group.SWARM_SYNC,
-            "SK-SWARMSYNC (logcat): every fetch and merge from a peer, and which message each new one attaches to.")
-        sub("Calls")
-        sw("Audio path", cx.ring.utils.DiagPrefs.Group.AUDIO,
-            "SK-AUDIODIAG (logcat): per-call packets in and out, decode levels, silence.")
-        sub("Background & automation")
-        sw("Push wake decisions", cx.ring.utils.DiagPrefs.Group.WAKE,
-            "SK-WAKE (recovery log): how each push was classified and whether it woke the accounts.")
-        sw("App work queue & bridge sends", cx.ring.utils.DiagPrefs.Group.EXEC,
-            "SK-EXECDIAG (recovery log): a 30-s heartbeat of the app's daemon queue, and each bridge send's progress.")
+        // One item = bold label + switch, then the tag line (bold monospace tag · where the lines go),
+        // then the description — all behind a thin dim-gold rule on the left that groups the item.
+        fun sw(into: LinearLayout, label: String, g: cx.ring.utils.DiagPrefs.Group, text: String) {
+            val tag = text.substringBefore(" (")
+            val dest = text.substringAfter(" (").substringBefore("):")
+            val desc = text.substringAfter("): ").replaceFirstChar { it.uppercase() }
+            val body = LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setPadding(dp(10f), 0, 0, 0)
+            }
+            body.addView(LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = matchWrap()
+                setPadding(0, 0, dp(12f), 0)
+                addView(TextView(ctx).apply {
+                    this.text = label; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTypeface(typeface, Typeface.BOLD)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+                addView(androidx.appcompat.widget.SwitchCompat(ctx).apply {
+                    isChecked = D.isOn(g)
+                    minHeight = 0; minimumHeight = 0; setPadding(0, 0, 0, 0)
+                    thumbTintList = android.content.res.ColorStateList.valueOf(yellow)
+                    trackTintList = android.content.res.ColorStateList.valueOf(0xFF666600.toInt())
+                    setOnCheckedChangeListener { _, v -> D.set(ctx, g, v) }
+                })
+            })
+            body.addView(TextView(ctx).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f); layoutParams = matchWrap()
+                this.text = android.text.SpannableStringBuilder().apply {
+                    append(tag, android.text.style.TypefaceSpan("monospace"), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, tag.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    setSpan(android.text.style.ForegroundColorSpan(yellow), 0, tag.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    append("  ·  $dest")
+                }
+                setTextColor(noteC)
+            })
+            body.addView(TextView(ctx).apply {
+                this.text = desc; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                layoutParams = matchWrap()
+            })
+            into.addView(LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = matchWrap().apply { topMargin = dp(4f); bottomMargin = dp(4f) }
+                addView(View(ctx).apply {
+                    setBackgroundColor(noteC)
+                    layoutParams = LinearLayout.LayoutParams(dp(2f), LinearLayout.LayoutParams.MATCH_PARENT)
+                })
+                addView(body)
+            })
+        }
+        note("All off by default — while off they cost nothing. Turn one on only to chase a " +
+            "problem; it takes effect within 3 s, no restart. Daemon lines go to logcat (read over adb); " +
+            "app lines go to the recovery log (Online recovery → View recovery log).", box)
+
+        section("Connections & network").let { s ->
+            sw(s, "Connection attempts", DG.CONNECTIONS,
+                "SK-ICEDIAG (logcat): every connect, ICE/TLS failure, local hand-off and stuck socket.")
+            sw(s, "DHT proxy & push", DG.DHT_PROXY,
+                "SK-PROXYDIAG (logcat): proxy subscriptions, pushes received, HTTP connects.")
+            sw(s, "DHT message counters", DG.DHT_STATS,
+                "SK-DHTSTATS (logcat): per-message DHT traffic counts.")
+        }
+        section("Conversations").let { s ->
+            sw(s, "Conversation loading", DG.OPEN,
+                "SK-OPENDIAG (recovery log): each step of opening a chat, history requests and their answers.")
+            sw(s, "History loads & daemon workers", DG.HISTORY,
+                "SK-LOADDIAG (logcat): slow history loads and a starved daemon worker pool.")
+            sw(s, "Swarm sync", DG.SWARM_SYNC,
+                "SK-SWARMSYNC (logcat): every fetch and merge from a peer, and which message each new one attaches to.")
+        }
+        section("Calls").let { s ->
+            sw(s, "Audio path", DG.AUDIO,
+                "SK-AUDIODIAG (logcat): per-call packets in and out, decode levels, silence.")
+        }
+        section("Background & automation").let { s ->
+            sw(s, "Push wake decisions", DG.WAKE,
+                "SK-WAKE (recovery log): how each push was classified and whether it woke the accounts.")
+            sw(s, "App work queue & bridge sends", DG.EXEC,
+                "SK-EXECDIAG (recovery log): a 30-s heartbeat of the app's daemon queue, and each bridge send's progress.")
+        }
+
+        // ---- Stored files, Export, Purge (2026-11-03) ----
+        section("Diagnostic data").let { s ->
+            note("Every diagnostic file is kept in " + F.dir(ctx).absolutePath +
+                " — the recovery log, watchdog incidents, data-usage logs, presence map and push log.", s)
+            val stored = TextView(ctx).apply {
+                text = "Stored: …"; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setPadding(0, 0, 0, dp(2f)); layoutParams = matchWrap()
+            }
+            s.addView(stored)
+            Thread({
+                val sum = runCatching { F.summarize(ctx) }.getOrNull()
+                stored.post {
+                    stored.text = when {
+                        sum == null -> "Stored: ?"
+                        sum.files == 0 -> "Stored: nothing"
+                        else -> "Stored: " + F.filesLabel(sum.files, sum.bytes) + ", " + F.spanLabel(sum.span)
+                    }
+                }
+            }, "sk-diag-summary").start()
+            val last = F.getExportTree(ctx)
+            tap("Export diagnostic data", s) { exportDiagData() }
+            note("Copies every file into a new dated subdirectory of the directory you pick " +
+                "(starts at ${last?.let { F.treeLabel(it) } ?: "/sdcard/tmp"}).", s)
+            tap("Purge diagnostic data", s) { confirmDiagPurge() }
+            note("Shows what is stored and asks before deleting anything.", s)
+        }
         c.addView(box)
+    }
+
+    private fun exportDiagData() {
+        val ctx = requireContext()
+        if (cx.ring.utils.DiagFiles.files(ctx).isEmpty()) {
+            Flash.show(ctx, "Nothing to export.", Toast.LENGTH_SHORT); return
+        }
+        val tree = cx.ring.utils.DiagFiles.getExportTree(ctx)
+        val initial = runCatching {
+            if (tree != null) android.provider.DocumentsContract.buildDocumentUriUsingTree(tree,
+                android.provider.DocumentsContract.getTreeDocumentId(tree))
+            else null
+        }.getOrNull() ?: android.provider.DocumentsContract.buildDocumentUri(
+            "com.android.externalstorage.documents", "primary:tmp")
+        try {
+            pickDiagExportTree.launch(initial)
+        } catch (e: Exception) {
+            Flash.show(ctx, "No directory picker: ${e.message}", Toast.LENGTH_LONG)
+        }
+    }
+
+    private fun confirmDiagPurge() {
+        val app = requireContext().applicationContext
+        Thread({
+            val s = runCatching { cx.ring.utils.DiagFiles.summarize(app) }.getOrNull()
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                val ctx = context ?: return@post
+                if (s == null || s.files == 0) {
+                    Flash.show(ctx, "Stored: nothing", Toast.LENGTH_SHORT); return@post
+                }
+                val df = cx.ring.utils.DiagFiles
+                val msg = StringBuilder()
+                for ((kind, k) in s.kinds)
+                    msg.append(kind).append(": ").append(df.filesLabel(k.files, k.bytes)).append(",\n    ")
+                        .append(df.spanLabel(k.span)).append('\n')
+                msg.append('\n')
+                val day = java.text.SimpleDateFormat("EEE yyyy-MM-dd", java.util.Locale.US)
+                val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US)
+                for (d in s.days.values)
+                    msg.append(day.format(java.util.Date(d.first))).append("  ")
+                        .append(time.format(java.util.Date(d.first))).append("–")
+                        .append(time.format(java.util.Date(d.last))).append('\n')
+                msg.append('\n').append("Total: ").append(df.filesLabel(s.files, s.bytes)).append(", ")
+                    .append(df.spanLabel(s.span)).append('.')
+                cx.ring.utils.DialogTheme.builder(ctx)
+                    .setTitle("Purge diagnostic data?")
+                    .setMessage(msg.toString())
+                    .setPositiveButton("Delete forever") { _, _ ->
+                        val n = df.purge(ctx)
+                        Flash.show(ctx, "Deleted $n ${if (n == 1) "file" else "files"}.", Toast.LENGTH_SHORT)
+                        if (isAdded) rebuild()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+            }
+        }, "sk-diag-purge-summary").start()
     }
 
     // ---- Online recovery section (top of the page) -----------------------------------------
