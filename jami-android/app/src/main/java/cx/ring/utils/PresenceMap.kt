@@ -23,7 +23,7 @@ import java.util.Locale
  *  us re-download their entire key.
  *
  *  Output goes beside the other logs, readable over adb without root:
- *  `/sdcard/Android/data/shiroikuma.jami/files/presence-map.txt`.
+ *  `/sdcard/Android/data/shiroikuma.jami/files/diag/presence-map.txt`.
  *
  *  Diagnostic only — never throws into the caller, and rate-limited so it cannot become a write
  *  storm on the watchdog's 60 s tick.
@@ -129,6 +129,6 @@ object PresenceMap {
                     sb.append("      ").append(bare(m.uri.uri)).append(label(bare(m.uri.uri))).append('\n')
             }
         }
-        File(c.getExternalFilesDir(null), FILE).writeText(sb.toString())
+        DiagFiles.file(c, FILE).writeText(sb.toString())
     }
 }
