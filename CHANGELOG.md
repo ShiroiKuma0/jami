@@ -7,6 +7,34 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+026` — 2026-11-03
+
+Same upstream base (**20261023-01** at `2ec1e272f`). Diagnostics get one home for their files,
+Export and Purge, and a cleaner page.
+
+### 🩺 Diagnostic files: one directory, Export and Purge
+
+- Every diagnostic file now lives in `/sdcard/Android/data/shiroikuma.jami/files/diag/`, readable
+  over adb: the recovery log, watchdog incidents, both data-usage logs, the presence map — and the
+  push log, which used to sit in private storage that adb cannot read. Files from earlier builds
+  are moved in on the next start; where a file already exists there, the old content is put in
+  front of it.
+- **Settings → Diagnostics → Diagnostic data** shows what is stored: number of files, size, and the
+  first and last time logged.
+- **Export diagnostic data** opens a directory picker (first at `/sdcard/tmp`, afterwards wherever
+  you exported last) and copies every file into a new `<date_time>_jami-diag` directory there.
+- **Purge diagnostic data** first lists each kind of file with its count, size and time span, then
+  each day with its span, then the total — and deletes only on **Delete forever**.
+
+### 🎨 A tighter, gold-on-black Diagnostics page
+
+- Minimal spacing; sub-headings underlined with their switches indented beneath them.
+- Each switch is a block: a bold label, its log tag in bold monospace with where the lines go, and
+  the description — grouped by a thin gold rule down the left. No grey text left: explanations are
+  dim gold, a new colour you can change as **Settings notes & item rules** in the Settings group of the 白い熊 GNU Jami UI colours.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+023` — 2026-11-02
 
 Same upstream base (**20261023-01** at `2ec1e272f`). One fix: messages that arrive late keep their

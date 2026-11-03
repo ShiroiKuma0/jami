@@ -24,7 +24,7 @@ with a **predefined reply** — general or per contact — **call recording** th
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20261023-01+2026-10-23.21-54.g2ec1e272+023`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20261023-01+2026-10-23.21-54.g2ec1e272+026`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -436,6 +436,12 @@ behind its own switch in **Settings → Diagnostics**, grouped in sub-sections a
 default**. Off costs nothing: no line is formatted or written and no diagnostic timer runs. Turn
 one on to chase a problem and it takes effect within three seconds, without a rebuild or restart —
 the native libraries consult the same switch through a small file the app writes.
+
+Every diagnostic **file** — the recovery log, watchdog incidents, data-usage logs, the presence
+map and the push log — lives in one place, `/sdcard/Android/data/shiroikuma.jami/files/diag/`,
+readable over adb. Under the switches, a **Stored** line shows how many files, how large and which
+time span; **Export** copies them all into a dated directory you pick (it starts at `/sdcard/tmp`),
+and **Purge** shows exactly what is stored, kind by kind and day by day, before deleting it.
 
 ## 🔎 Registered-name resolution
 
