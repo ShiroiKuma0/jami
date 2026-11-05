@@ -146,6 +146,10 @@ object ConnectionWatchdog {
          *  in the same window. Every red dot in those two days was this false positive, and a
          *  verifiedDeaf gate would have lit none of them — correctly. */
         var verifiedDeaf = false
+        /** When the last strike was recorded (0 = none). Any inbound for the account AFTER this
+         *  disproves the verdict, however old that inbound is by the time a tick looks — see
+         *  SK-VERDICTCLEAR in perAccountTick. */
+        var verdictMs = 0L
     }
     private val acctStates = java.util.concurrent.ConcurrentHashMap<String, AcctState>()
 
@@ -532,6 +536,21 @@ object ConnectionWatchdog {
         var healthy = 0
         for (acc in regd) {
             val st = acctStates.getOrPut(acc.accountId) { AcctState() }
+            // SK-VERDICTCLEAR (2026-11-05). A standing strike / "verified deaf" verdict is
+            // withdrawn by ANY inbound that arrived after it, not only by inbound younger than the
+            // limit at the moment a tick happens to look. Ticks stop while the accounts sleep, so
+            // inbound landing during sleep was older than the limit when the detectors woke and was
+            // ignored: on 2026-11-05 account 2f04db was verified wedged at 16:51, received at ~16:59
+            // while asleep, woke at 17:07 still red with strike 2, missed one 60-s probe and went
+            // to strike 3 — a full proxy cycle (a resubscribe of every key, on cellular) for an
+            // account that had already been shown to receive.
+            val lastInMs = t - InboundEvidence.quietMs(acc.accountId)
+            if ((st.strikes > 0 || st.verifiedDeaf) && st.verdictMs > 0L && lastInMs > st.verdictMs) {
+                log(c, "acct ${acc.accountId.take(6)}: inbound since the verdict (${InboundEvidence.lastKind(acc.accountId)}, ${(t - lastInMs) / 60_000}m ago) — deaf cleared, strikes reset")
+                scheduleBackfill(c, accounts, "acct ${acc.accountId.take(6)} deaf cleared")
+                st.strikes = 0; st.verifiedDeaf = false; st.verdictMs = 0L
+                st.nextCheckMs = t + IDLE_REARM_MS   // no wake-up probe for an account just shown to receive
+            }
             if (InboundEvidence.quietMs(acc.accountId) < limit) {
                 healthy++
                 if (st.strikes > 0) {
@@ -602,6 +621,7 @@ object ConnectionWatchdog {
                             val t3 = now()
                             val quiet3 = InboundEvidence.quietMs(id)
                             st.strikes++
+                            st.verdictMs = t3
                             st.nextCheckMs = t3 + WEDGE_RECOVER_BACKOFF_MS
                             // Corroboration against the coin-flip false positive (2026-07-24): on a
                             // QUIET account the only thing that can answer the probe is a peer's own
@@ -713,6 +733,7 @@ object ConnectionWatchdog {
         val quiet = InboundEvidence.quietMs(id)
         st.strikes++
         st.verifiedDeaf = true
+        st.verdictMs = t
         val backoff = (DEAF_LIMIT_MS shl (st.strikes - 1).coerceAtMost(3)).coerceAtMost(DEAF_BACKOFF_MAX_MS)
         st.nextCheckMs = t + backoff
         recovering = true; lastRecoverMs = t
@@ -1037,7 +1058,7 @@ object ConnectionWatchdog {
 
     // ---- Incident forensics + user notification ---------------------------------------------
     /** Append a full incident record (context + recent daemon error lines) to
-     *  watchdog-incidents.log in the app's external files dir — readable with any file manager
+     *  watchdog-incidents.txt in the app's external files dir — readable with any file manager
      *  at Android/data/shiroikuma.jami/files/diag/ — and mirror a one-liner to the rolling log. */
     private fun writeIncident(c: Context, kind: String, detail: String, lines: List<String>) {
         val n = ++incidentSeq
