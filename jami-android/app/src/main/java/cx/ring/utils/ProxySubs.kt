@@ -5,7 +5,7 @@
  *  subscription that our SK-SUBREFRESH patch re-subscribes every 3 minutes, so four accounts
  *  holding 68 of them between them cost ~21 MiB/h doing nothing (measured 2026-07-29). That number
  *  decided the whole evening's work and yet was only visible over adb, buried in
- *  watchdog-incidents.log and only written there when an incident happened to fire.
+ *  watchdog-incidents.txt and only written there when an incident happened to fire.
  *
  *  It costs nothing to surface. The opendht subscription-diag patch already prints one tick line
  *  per proxy every 3 minutes at ERROR level, and [LogStormMonitor] already tails this process's own

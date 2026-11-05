@@ -82,7 +82,7 @@ class EximRunner(
     /** Arms the diagnostic log for this run. A no-op outside the test twin. */
     fun enableDebugLog(archive: File, kind: String) {
         if (!debugLogging) return
-        logFile = File(archive.parentFile, "${archive.name}.$kind.log").also { f ->
+        logFile = File(archive.parentFile, "${archive.name}.$kind.txt").also { f ->
             runCatching { f.writeText("") }
         }
         logLine("=== $kind ${archive.name} (${app.packageName})")

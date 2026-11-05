@@ -20,7 +20,13 @@ import java.util.TreeMap
  * the watchdog incidents, the data-usage logs, the presence map and upstream's push log.
  *
  * Every writer opens, appends and closes per line (`appendText`/`writeText`), so nothing holds a
- * file open across a migration or a purge and no reopen generation is needed. The daemon's `sk-diag`
+ * file open across a migration or a purge and no reopen generation is needed — and a file deleted
+ * under a writer is simply recreated by its next line, never written into an unlinked inode.
+ *
+ * Never name a diag file “*.log” (2026-11-04): EMUI's Phone Manager nightly auto-clean
+ * (AutoCleanReceiveJobService, daily while charging) deletes *.log under Android/data as junk. Line
+ * logs are “.txt”; [migrate] renames any old *.log here to “.txt” on start, prepending into an
+ * existing target. The daemon's `sk-diag`
  * mask in filesDir is a switch, not a log, and stays where it is ([DiagPrefs]).
  */
 object DiagFiles {
@@ -29,14 +35,16 @@ object DiagFiles {
     private const val KEY_EXPORT_TREE = "export_tree"
 
     const val RECOVERY_LOG = "recovery-log.txt"
-    const val INCIDENTS = "watchdog-incidents.log"
+    const val INCIDENTS = "watchdog-incidents.txt"
+    /** The incidents file's name before 2026-11-04 (EMUI's clean-up deletes *.log). */
+    private const val OLD_INCIDENTS = "watchdog-incidents.log"
     const val DATA_HOURLY = "data-hourly-log.txt"
     const val DATA_MEASURE = "data-measure-log.txt"
     const val PRESENCE_MAP = "presence-map.txt"
     const val PUSH_LOG = "firebaselog.txt"
 
     /** Files that used to sit in the external files root. */
-    private val EXTERNAL_ROOT_NAMES = listOf(RECOVERY_LOG, INCIDENTS, DATA_HOURLY, DATA_MEASURE, PRESENCE_MAP)
+    private val EXTERNAL_ROOT_NAMES = listOf(RECOVERY_LOG, INCIDENTS, OLD_INCIDENTS, DATA_HOURLY, DATA_MEASURE, PRESENCE_MAP)
     /** Files that used to sit in the internal filesDir (unreadable over adb on a release build). */
     private val INTERNAL_NAMES = listOf(PUSH_LOG)
 
@@ -69,9 +77,17 @@ object DiagFiles {
         }
         for (f in sources) {
             if (!f.isFile) continue
-            runCatching { moveInto(f, File(target, f.name)) }   // left in place on failure; next start retries
+            runCatching { moveInto(f, File(target, txtName(f.name))) }   // left in place on failure; next start retries
+        }
+        // Old *.log files already in the diag directory → “.txt”.
+        target.listFiles { f -> f.isFile && f.name.endsWith(".log") }?.forEach { f ->
+            runCatching { moveInto(f, File(target, txtName(f.name))) }
         }
     }
+
+    /** “x.log” → “x.txt”; any other name unchanged. */
+    private fun txtName(name: String): String =
+        if (name.endsWith(".log")) name.removeSuffix(".log") + ".txt" else name
 
     private fun moveInto(f: File, to: File) {
         if (!to.exists() && f.renameTo(to)) return
@@ -97,7 +113,7 @@ object DiagFiles {
 
     fun kindOf(name: String): String = when (name) {
         RECOVERY_LOG -> "Recovery log"
-        INCIDENTS -> "Watchdog incidents"
+        INCIDENTS, OLD_INCIDENTS -> "Watchdog incidents"
         DATA_HOURLY, DATA_MEASURE -> "Data usage"
         PRESENCE_MAP -> "Presence map"
         PUSH_LOG -> "Push log"
