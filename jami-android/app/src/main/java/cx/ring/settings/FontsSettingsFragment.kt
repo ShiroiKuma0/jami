@@ -34,6 +34,17 @@ import cx.ring.utils.SettingsExport
 import cx.ring.utils.FontUtil
 import cx.ring.utils.PickListDialog
 import cx.ring.utils.UiPrefs
+import cx.ring.sk.SkGlyph
+import cx.ring.sk.SkGlyphDrawable
+import cx.ring.sk.SkIconRole
+import cx.ring.sk.SkLeftRule
+import cx.ring.sk.SkPalette
+import cx.ring.sk.SkRole
+import cx.ring.sk.SkRoles
+import cx.ring.sk.SkSection
+import cx.ring.sk.SkSectionIndex
+import cx.ring.sk.skColor
+import cx.ring.sk.skPillBackground
 
 /** "白い熊 GNU Jami UI" — the Online-recovery section on top, then grouped, inline per-element font +
  *  colour controls (App Manager treatment). */
@@ -152,10 +163,12 @@ class FontsSettingsFragment : Fragment() {
                 ColorRole("Glyph outline", ColorPrefs.SHORTCUT_FILL))))),
     )
 
-    private val yellow = 0xFFFFFF00.toInt()
-    private val grey = 0xFFAAAAAA.toInt()
-    private val dim = 0xFFC8C800.toInt()      // kxkb_yellow_dim — summaries/captions
-    private val warnRed = 0xFFFF5252.toInt()  // warning state (dir unset / no export yet)
+    // Every colour of this page is a role (black-yellow theme: nothing hard-coded).
+    private val yellow: Int get() = skColor(SkRole.TEXT)
+    private val grey: Int get() = skColor(SkRole.TEXT_SECONDARY)
+    private val dim: Int get() = skColor(SkRole.PAGE_NOTE)      // summaries / captions
+    private val warnRed: Int get() = skColor(SkRole.DANGER)     // warning state (dir unset / no export yet)
+    private val heading: Int get() = skColor(SkRole.PAGE_HEADING)
     private val sample = "AaIiMmOoQqWw 012 白い熊相撲道 áÁčČďĎéÉěĚíÍňŇóÓřŘšŠ"
 
     private var container: LinearLayout? = null
@@ -221,6 +234,8 @@ class FontsSettingsFragment : Fragment() {
         eximPermTv = null
         eximPermBox = null
         (activity as? cx.ring.client.HomeActivity)?.refreshThemedViews()
+        // Colours changed on this page: the screens behind it were built from the old ones.
+        activity?.let { if (SkPalette.isStale(it)) it.recreate() }
     }
 
     private fun dp(v: Float): Int = (v * resources.displayMetrics.density).toInt()
@@ -228,7 +243,7 @@ class FontsSettingsFragment : Fragment() {
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
 
     /** A row that DOES something on tap — opens a screen, picker, panel or dialog, or runs an
-     *  action — is a full-width OUTLINED pill (never filled), its explanation beneath in dim gold,
+     *  action — is an OUTLINED pill (never filled) that hugs its label, its explanation beneath in dim gold,
      *  aligned with the label (black-yellow-theme “Settings pages — every pressable row is a pill”,
      *  白い熊 2026-11-07; reference: 白い熊 読書 DokshoUiActivity.actionRow). [main] = the section's
      *  main action: 3 dp frame + bold label; otherwise 1.25 dp + normal. [opens] = it opens something
@@ -236,62 +251,288 @@ class FontsSettingsFragment : Fragment() {
      *  the touch target. Rows with their own control (switch, swatch, slider, a shown value) stay
      *  plain rows. Returns the column and the label, so callers can update or recolour the label. */
     private fun actionRow(title: String, summary: String? = null, main: Boolean = false, opens: Boolean = true,
+                          glyph: SkGlyph? = null, role: SkIconRole = SkIconRole.VIEW, danger: Boolean = false,
                           onClick: () -> Unit): Pair<LinearLayout, TextView> {
         val ctx = requireContext()
-        val noteC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.SETTINGS_NOTE)
+        val noteC = skColor(SkRole.PAGE_NOTE)
+        val ink = if (danger) skColor(SkRole.DANGER) else skColor(SkRole.PILL_TEXT)
+        val frame = if (danger) ink else skColor(SkRole.PILL_FRAME)
         val padH = dp(16f)
         val label = TextView(ctx).apply {
-            text = title; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            text = title; setTextColor(ink); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             if (main) setTypeface(typeface, Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            rowIcon(this, glyph ?: guessGlyph(title, opens), if (danger) SkIconRole.DELETE else role)
         }
+        // The pill hugs its label: a short action stretched across the line reads as a banner.
         val pill = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = dp(46f)
-            setPadding(padH, dp(10f), dp(12f), dp(10f))
-            background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
-                GradientDrawable().apply {
-                    setColor(Color.BLACK)
-                    cornerRadius = dp(100f).toFloat()
-                    setStroke(if (main) dp(3f) else (1.25f * resources.displayMetrics.density).toInt().coerceAtLeast(1), yellow)
-                }, null)
+            setPadding(padH, dp(9f), dp(12f), dp(9f))
+            background = skPillBackground(resources.displayMetrics.density, frame, skColor(SkRole.PILL_GROUND), main)
             isClickable = true
             setOnClickListener { onClick() }
             addView(label)
-            if (opens) addView(TextView(ctx).apply {
-                text = "›"; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
-                if (main) setTypeface(typeface, Typeface.BOLD)
-                setPadding(dp(8f), 0, dp(4f), 0)
+            if (opens) addView(android.widget.ImageView(ctx).apply {
+                setImageDrawable(SkGlyphDrawable(SkGlyph.CHEVRON, ink, dp(20f)))
+                setPadding(dp(6f), 0, 0, 0)
             })
         }
         val col = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = matchWrap().apply { topMargin = dp(5f); bottomMargin = dp(5f) }
-            addView(pill, matchWrap())
-            if (summary != null) addView(TextView(ctx).apply {
-                text = summary; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                setPadding(padH, dp(3f), dp(8f), 0)
-            }, matchWrap())
+            layoutParams = matchWrap().apply { topMargin = dp(3f); bottomMargin = dp(3f) }
+            addView(pill, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (summary != null) {
+                addView(TextView(ctx).apply {
+                    text = summary; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    setPadding(padH, dp(3f), dp(8f), 0)
+                }, matchWrap())
+                // The rule spans pill + explanation.
+                foreground = SkLeftRule(dp(3f).toFloat(), dp(2f).toFloat(), dp(2f).toFloat(), noteC)
+                setPadding(dp(12f), 0, 0, 0)
+            }
         }
         return col to label
     }
 
-    private fun rebuild() {
-        val c = container ?: return
-        c.removeAllViews()
-        addExportImportSection(c)
-        addOnlineRecoverySection(c)
-        addDeclineMessagesSection(c)
-        addDiagnosticsSection(c)
-        c.addView(groupHeader("App language"))
-        c.addView(languageRow())
-        for (g in groups) {
-            c.addView(groupHeader(g.title))
-            for (e in g.elements) c.addView(elementView(e))
+    /** The icon of a row: the label's start drawable, as tall as the label's text line (never
+     *  under 18 dp) and coloured by what the row does. */
+    private fun rowIcon(label: TextView, glyph: SkGlyph, role: SkIconRole = SkIconRole.VIEW) {
+        val size = maxOf(dp(18f), Math.round(label.textSize * 1.25f))
+        val d = SkGlyphDrawable(glyph, skColor(role), size)
+        d.setBounds(0, 0, size, size)
+        label.setCompoundDrawablesRelative(d, null, null, null)
+        label.compoundDrawablePadding = dp(10f)
+    }
+
+    /** An icon for an action told from its wording — only where the caller named none. */
+    private fun guessGlyph(title: String, opens: Boolean): SkGlyph {
+        val t = title.lowercase()
+        return when {
+            "export" in t || "share" in t || "save" in t -> SkGlyph.EXPORT
+            "import" in t || "restore" in t -> SkGlyph.IMPORT
+            "purge" in t || "delete" in t || "clear" in t || "remove" in t -> SkGlyph.TRASH
+            "reset" in t || "regenerate" in t -> SkGlyph.RESET
+            "file" in t || "director" in t -> SkGlyph.DIRECTORY
+            "log" in t || "history" in t -> SkGlyph.LIST
+            "how" in t || "help" in t || "details" in t || "about" in t -> SkGlyph.INFO
+            "add" in t -> SkGlyph.EDIT
+            "conversation" in t || "message" in t -> SkGlyph.MESSAGE
+            "access" in t || "permission" in t -> SkGlyph.CHECK
+            "setting" in t -> SkGlyph.GEAR
+            opens -> SkGlyph.OPEN
+            else -> SkGlyph.DOT
         }
     }
+
+    // ---------------------------------------------------------------- the page: index + folding sections
+
+    private class UiSection(val key: String, val title: String, val glyph: SkGlyph, val role: SkIconRole,
+                            val ownHeader: Boolean, val build: (LinearLayout) -> Unit)
+
+    /** Set while a section that adds its own group header builds: that header is the folding one now. */
+    private var swallowHeader = false
+    private val sectionHeaders = HashMap<String, View>()
+    private val sectionOpeners = HashMap<String, () -> Unit>()
+
+    private fun pagePrefs() = requireContext().getSharedPreferences("shiroikuma_colors", android.content.Context.MODE_PRIVATE)
+    private fun storedOrder(): List<String> =
+        pagePrefs().getString(KEY_ORDER, "").orEmpty().split('\n').filter { it.isNotEmpty() }
+    private fun storedOpen(): Set<String> =
+        pagePrefs().getString(KEY_OPEN, "").orEmpty().split('\n').filter { it.isNotEmpty() }.toSet()
+    private fun saveOpen(key: String, open: Boolean) {
+        val now = storedOpen().toMutableSet().apply { if (open) add(key) else remove(key) }
+        pagePrefs().edit().putString(KEY_OPEN, now.joinToString("\n")).apply()
+    }
+
+    private fun uiSections(): List<UiSection> {
+        val list = ArrayList<UiSection>()
+        list += UiSection("exim", "Export / Import", SkGlyph.EXPORT, SkIconRole.SHARE, true) { addExportImportSection(it) }
+        list += UiSection("recovery", "Online recovery", SkGlyph.PULSE, SkIconRole.CALL, true) { addOnlineRecoverySection(it) }
+        list += UiSection("decline", "Call decline messages", SkGlyph.MESSAGE, SkIconRole.MESSAGE, true) { addDeclineMessagesSection(it) }
+        list += UiSection("diag", "Diagnostics", SkGlyph.BARS, SkIconRole.VIEW, true) { addDiagnosticsSection(it) }
+        list += UiSection("language", "App language", SkGlyph.GLOBE, SkIconRole.VIEW, false) { it.addView(languageRow()) }
+        for (g in groups)
+            list += UiSection("g:" + g.title, g.title, SkGlyph.TEXT, SkIconRole.VIEW, false) { c ->
+                for (e in g.elements) c.addView(elementView(e))
+            }
+        for (sec in SkSection.entries)
+            list += UiSection("r:" + sec.name, sec.title, SkGlyph.DROP, SkIconRole.VIEW, false) { c -> addRoleRows(c, sec) }
+        list += UiSection("maintenance", "Maintenance", SkGlyph.RESET, SkIconRole.BLOCK, false) { addMaintenanceSection(it) }
+        // The stored order first; a section it does not know yet keeps its built-in place after them.
+        val order = storedOrder()
+        val known = list.associateBy { it.key }
+        return order.mapNotNull { known[it] } + list.filter { it.key !in order }
+    }
+
+    private fun rebuild() {
+        val c = container ?: return
+        val ctx = requireContext()
+        c.removeAllViews()
+        sectionHeaders.clear()
+        sectionOpeners.clear()
+        // The app's own settings: the first, thick pill of the page.
+        c.addView(LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(16f), dp(6f), dp(16f), dp(2f))
+            addView(actionRow("App settings", "Connectivity, notifications, media and everything else the app itself sets.",
+                main = true, opens = true, glyph = SkGlyph.GEAR) {
+                (activity as? cx.ring.client.HomeActivity)?.goToAdvancedSettings()
+            }.first)
+        })
+        val sections = uiSections()
+        // The index: one small chip per section. Tap = unfold and jump, long press = drag to reorder.
+        c.addView(LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(16f), dp(4f), dp(16f), dp(4f))
+            addView(SkSectionIndex.build(ctx, sections.map { SkSectionIndex.Item(it.key, it.title) },
+                skColor(SkRole.PAGE_CHIP), skColor(SkRole.PAGE_CHIP),
+                onJump = { key ->
+                    sectionOpeners[key]?.invoke()
+                    val header = sectionHeaders[key]
+                    val scroller = view as? android.widget.ScrollView
+                    if (header != null && scroller != null) scroller.post {
+                        scroller.smoothScrollTo(0, (header.top + c.top - dp(4f)).coerceAtLeast(0))
+                    }
+                },
+                onReordered = { order ->
+                    pagePrefs().edit().putString(KEY_ORDER, order.joinToString("\n")).apply()
+                    rebuild()
+                }), matchWrap())
+        })
+        val open = storedOpen()
+        for (s in sections) addFoldingSection(c, s, s.key in open)
+    }
+
+    /** One top-level section: the 1 px divider, a heading that folds its rows (› folded, ⌄ open),
+     *  and the rows — built only when the section is first opened. Folded by default. */
+    private fun addFoldingSection(c: LinearLayout, s: UiSection, open: Boolean) {
+        val ctx = requireContext()
+        c.addView(View(ctx).apply {
+            setBackgroundColor(skColor(SkRole.DIVIDER))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply { topMargin = dp(4f) }
+        })
+        val body = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            visibility = View.GONE
+        }
+        val title = TextView(ctx).apply {
+            text = s.title
+            setTextColor(heading)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            setTypeface(typeface, Typeface.BOLD)
+            background = underlineBg(heading)
+            setPadding(0, 0, dp(6f), dp(4f))
+        }
+        val iconSize = maxOf(dp(18f), Math.round(title.textSize * 1.25f))
+        val mark = android.widget.ImageView(ctx)
+        val header = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(16f), dp(8f), dp(14f), dp(6f))
+            isClickable = true
+            addView(android.widget.ImageView(ctx).apply {
+                setImageDrawable(SkGlyphDrawable(s.glyph, skColor(s.role), iconSize))
+            }, LinearLayout.LayoutParams(iconSize, iconSize).apply { marginEnd = dp(10f) })
+            addView(title, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(View(ctx), LinearLayout.LayoutParams(0, 1, 1f))
+            addView(mark, LinearLayout.LayoutParams(dp(22f), dp(22f)))
+        }
+        var built = false
+        fun show(now: Boolean) {
+            if (now && !built) {
+                built = true
+                swallowHeader = s.ownHeader
+                try { s.build(body) } finally { swallowHeader = false }
+                ruleExplained(body)
+            }
+            body.visibility = if (now) View.VISIBLE else View.GONE
+            mark.setImageDrawable(SkGlyphDrawable(if (now) SkGlyph.EXPAND else SkGlyph.CHEVRON, heading, dp(22f)))
+        }
+        header.setOnClickListener {
+            val now = body.visibility != View.VISIBLE
+            show(now)
+            saveOpen(s.key, now)
+        }
+        show(open)
+        sectionHeaders[s.key] = header
+        sectionOpeners[s.key] = { show(true); saveOpen(s.key, true) }
+        c.addView(header)
+        c.addView(body)
+    }
+
+    /** A switch row and the note right under it are one explained item: the dim-gold rule runs
+     *  down the left edge of both, the text a step to its right. */
+    private fun ruleExplained(group: ViewGroup) {
+        val noteC = skColor(SkRole.PAGE_NOTE)
+        var i = 0
+        while (i < group.childCount) {
+            val row = group.getChildAt(i)
+            val next = if (i + 1 < group.childCount) group.getChildAt(i + 1) else null
+            if (row.tag == TAG_SWITCH && next?.tag == TAG_NOTE) {
+                for (v in listOf(row, next!!)) {
+                    v.foreground = SkLeftRule(0f, dp(2f).toFloat(), 0f, noteC)
+                    v.setPadding(v.paddingLeft + dp(12f), v.paddingTop, v.paddingRight, v.paddingBottom)
+                }
+                // The note belongs to the switch above it: no gap that would break the rule.
+                next.setPadding(next.paddingLeft, 0, next.paddingRight, next.paddingBottom)
+                i += 2
+                continue
+            }
+            if (row is ViewGroup && row.tag != TAG_SWITCH) ruleExplained(row)
+            i++
+        }
+    }
+
+    /** The colour roles of one surface, each a swatch row — minus those an older group already shows. */
+    private fun addRoleRows(c: LinearLayout, section: SkSection) {
+        val ctx = requireContext()
+        val shown = groups.flatMap { g -> g.elements.flatMap { e -> e.colors.map { it.key } } }.toSet()
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(54f), dp(2f), dp(16f), dp(4f))
+        }
+        for (role in SkRole.ofSection(section)) if (role.key !in shown) box.addView(colorRow(ColorRole(role.label, role.key)))
+        c.addView(box)
+    }
+
+    private fun addMaintenanceSection(c: LinearLayout) {
+        val ctx = requireContext()
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap()
+            setPadding(dp(36f), dp(4f), dp(16f), dp(4f))
+        }
+        box.addView(actionRow("Reset section order", "Put the sections of this page back in their built-in order.",
+            opens = false, glyph = SkGlyph.RESET) {
+            pagePrefs().edit().remove(KEY_ORDER).apply()
+            rebuild()
+        }.first)
+        box.addView(actionRow("Reset all colours", "Every colour of the app goes back to its default: yellow on black.",
+            opens = false, glyph = SkGlyph.RESET, danger = true) {
+            cx.ring.utils.DialogTheme.builder(ctx)
+                .setTitle("Reset all colours?")
+                .setMessage("Every colour you set on this page is discarded.")
+                .setPositiveButton("Reset") { _, _ ->
+                    SkRoles.resetAll(ctx)
+                    for (g in groups) for (e in g.elements) for (r in e.colors) ColorPrefs.reset(ctx, r.key)
+                    rebuild()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show().let { cx.ring.utils.DialogTheme.theme(it, ctx, destructive = true) }
+        }.first)
+        c.addView(box)
+    }
+
+    /** A role's colour: the newer roles compute their default from other roles. */
+    private fun roleColor(key: String): Int =
+        SkRole.byKey(key)?.let { skColor(it) } ?: ColorPrefs.getColor(requireContext(), key)
 
     /** A tappable row showing the current app language; opens a locale picker. Overrides the
      *  phone locale for this app only (AppCompat per-app locales; localeConfig is declared). */
@@ -306,7 +547,8 @@ class FontsSettingsFragment : Fragment() {
             text = "Language: $label"
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(dp(72f), dp(10f), dp(16f), dp(10f))
+            rowIcon(this, SkGlyph.GLOBE)
+            setPadding(dp(54f), dp(2f), dp(16f), dp(2f))
             layoutParams = matchWrap()
             setOnClickListener { showLanguageDialog() }
         }
@@ -483,13 +725,13 @@ class FontsSettingsFragment : Fragment() {
                 addView(TextView(ctx).apply {
                     this.text = label; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                     setTypeface(typeface, Typeface.BOLD)
+                    rowIcon(this, SkGlyph.TOGGLE)
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 })
                 addView(androidx.appcompat.widget.SwitchCompat(ctx).apply {
                     isChecked = D.isOn(g)
                     minHeight = 0; minimumHeight = 0; setPadding(0, 0, 0, 0)
-                    thumbTintList = android.content.res.ColorStateList.valueOf(yellow)
-                    trackTintList = android.content.res.ColorStateList.valueOf(0xFF666600.toInt())
+                    cx.ring.sk.SkSwitches.style(this)
                     setOnCheckedChangeListener { _, v -> D.set(ctx, g, v) }
                 })
             })
@@ -690,7 +932,7 @@ class FontsSettingsFragment : Fragment() {
             }
         })
         box.addView(TextView(ctx).apply {
-            setTextColor(0xFFAAAAAA.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(dim); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(dp(8f), 0, 0, dp(4f)); layoutParams = matchWrap()
             text = if (DataMeter.isActive(ctx)) "measuring…" else "(off — flip on to start a measurement session)"
             meterLiveRow = this
@@ -754,16 +996,18 @@ class FontsSettingsFragment : Fragment() {
         this.text = text
         setTextColor(yellow)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-        setPadding(0, dp(12f), dp(12f), dp(12f))
+        rowIcon(this, SkGlyph.LIST)
+        setPadding(0, dp(2f), dp(12f), dp(2f))
         layoutParams = matchWrap()
         setOnClickListener { onClick() }
     }
 
     private fun orMini(text: String): View = TextView(requireContext()).apply {
         this.text = text
-        setTextColor(0xFFAAAAAA.toInt())
+        setTextColor(dim)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        setPadding(0, dp(12f), 0, dp(2f))
+        tag = TAG_NOTE
+        setPadding(0, dp(6f), 0, dp(2f))
         layoutParams = matchWrap()
     }
 
@@ -773,15 +1017,17 @@ class FontsSettingsFragment : Fragment() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = matchWrap()
-            setPadding(0, dp(10f), dp(12f), dp(6f))
+            setPadding(0, dp(2f), dp(12f), dp(2f))
+            tag = TAG_SWITCH
             addView(TextView(ctx).apply {
                 text = label; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                rowIcon(this, SkGlyph.TOGGLE)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
             addView(androidx.appcompat.widget.SwitchCompat(ctx).apply {
                 isChecked = checked
-                thumbTintList = android.content.res.ColorStateList.valueOf(yellow)
-                trackTintList = android.content.res.ColorStateList.valueOf(0xFF666600.toInt())
+                minimumHeight = 0
+                cx.ring.sk.SkSwitches.style(this)
                 setOnCheckedChangeListener { _, v -> onChange(v) }
             })
         }
@@ -791,7 +1037,7 @@ class FontsSettingsFragment : Fragment() {
         setText(UiPrefs.getRecoveryTestSwarm(ctx))
         hint = "paste conversation ID"
         setTextColor(yellow)
-        setHintTextColor(0xFF777777.toInt())
+        setHintTextColor(skColor(SkRole.TEXT_HINT))
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         inputType = InputType.TYPE_CLASS_TEXT
         layoutParams = matchWrap()
@@ -1099,6 +1345,11 @@ class FontsSettingsFragment : Fragment() {
 
     private fun groupHeader(title: String, first: Boolean = false): View {
         val ctx = requireContext()
+        // Inside a folding section the folding heading already carries this title.
+        if (swallowHeader) {
+            swallowHeader = false
+            return View(ctx).apply { layoutParams = LinearLayout.LayoutParams(0, 0) }
+        }
         return LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
@@ -1133,7 +1384,7 @@ class FontsSettingsFragment : Fragment() {
         val col = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setPadding(dp(54f), dp(10f), dp(16f), dp(4f))
+            setPadding(dp(54f), dp(6f), dp(16f), dp(2f))
         }
         // sub-heading: underline spans only the text width (bottom band drawable on a wrap_content view)
         col.addView(TextView(ctx).apply {
@@ -1240,6 +1491,7 @@ class FontsSettingsFragment : Fragment() {
             text = "$cur %"
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            rowIcon(this, SkGlyph.SLIDER)
             setPadding(0, dp(2f), 0, dp(2f))
         }
         controls.addView(value)
@@ -1266,23 +1518,23 @@ class FontsSettingsFragment : Fragment() {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = matchWrap()
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(8f), 0, dp(8f))
+            setPadding(0, dp(2f), 0, dp(2f))
             isClickable = true
             setOnClickListener { showColorPicker(role) }
         }
-        row.addView(View(ctx).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(22f), dp(22f))
-            background = swatch(ColorPrefs.getColor(ctx, role.key))
-        })
         row.addView(TextView(ctx).apply {
             text = role.label
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(dp(12f), 0, 0, 0)
+            rowIcon(this, SkGlyph.DROP)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
+        row.addView(View(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(28f), dp(22f)).apply { marginEnd = dp(10f) }
+            background = swatch(roleColor(role.key))
+        })
         row.addView(TextView(ctx).apply {
-            text = if (ColorPrefs.isSet(ctx, role.key)) hex(ColorPrefs.getColor(ctx, role.key)) else "Default"
+            text = if (ColorPrefs.isSet(ctx, role.key)) hex(roleColor(role.key)) else "Default"
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         })
@@ -1293,7 +1545,7 @@ class FontsSettingsFragment : Fragment() {
         shape = GradientDrawable.RECTANGLE
         cornerRadius = dp(4f).toFloat()
         setColor(color)
-        setStroke(dp(1f), 0x66FFFFFF.toInt())
+        setStroke(dp(1f), skColor(SkRole.DIVIDER))
     }
 
     private fun hex(c: Int): String =
@@ -1311,6 +1563,7 @@ class FontsSettingsFragment : Fragment() {
         text = value
         setTextColor(yellow)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        rowIcon(this, SkGlyph.TEXT)
         setPadding(0, dp(2f), 0, dp(2f))
         isClickable = true
         setOnClickListener { onClick() }
@@ -1390,7 +1643,7 @@ class FontsSettingsFragment : Fragment() {
 
     private fun showColorPicker(role: ColorRole) {
         val ctx = context ?: return
-        val initial = ColorPrefs.getColor(ctx, role.key)
+        val initial = roleColor(role.key)
         // channels: 0=alpha 1=red 2=green 3=blue
         val ch = intArrayOf(Color.alpha(initial), Color.red(initial), Color.green(initial), Color.blue(initial))
         fun current() = Color.argb(ch[0], ch[1], ch[2], ch[3])
@@ -1463,6 +1716,13 @@ class FontsSettingsFragment : Fragment() {
             .setNeutralButton("Default") { _, _ -> ColorPrefs.reset(ctx, role.key); rebuild() }
             .setNegativeButton(android.R.string.cancel, null)
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+    }
+
+    private companion object {
+        const val KEY_ORDER = "sk_ui_section_order"
+        const val KEY_OPEN = "sk_ui_sections_open"
+        const val TAG_SWITCH = "sk_switch_row"
+        const val TAG_NOTE = "sk_note"
     }
 
     private fun queryName(uri: Uri): String? {

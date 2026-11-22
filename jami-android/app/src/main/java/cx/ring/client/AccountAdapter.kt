@@ -180,7 +180,7 @@ class AccountAdapter(
                 else R.string.add_sip_account_title
             )
             holder.binding.logo.setImageResource(R.drawable.baseline_add_24)
-            holder.binding.logo.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.YELLOW)
+            holder.binding.logo.imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON))
             holder.binding.subtitle.visibility = View.GONE
         }
         return view

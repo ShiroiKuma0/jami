@@ -101,6 +101,10 @@ class ActionListBottomSheet(
             } else {
                 textView.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
             }
+            // Black-yellow menu rule: a full-width pill, its icon coloured by what the row does —
+            // told from the icon's resource name, which does not change with the app's language.
+            val iconName = if (iconId != 0) runCatching { resources.getResourceEntryName(iconId) }.getOrNull() else null
+            cx.ring.sk.SkMenus.styleRow(textView, cx.ring.sk.SkRowIcons.roleForName(iconName))
             itemView.setOnClickListener {
                 onActionSelected?.invoke(position)
                 dismiss()

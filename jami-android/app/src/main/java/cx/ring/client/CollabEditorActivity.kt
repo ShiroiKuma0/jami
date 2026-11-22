@@ -671,7 +671,7 @@ class CollabEditorActivity : AppCompatActivity() {
     private fun chooseAmong(
         anchor: View, items: List<CharSequence>, checked: Int, onChosen: (Int) -> Unit
     ) {
-        val popup = PopupMenu(this, anchor)
+        val popup = cx.ring.sk.SkPopupMenu(this, anchor)
         items.forEachIndexed { index, title ->
             popup.menu.add(Menu.NONE, index, index, title).isCheckable = true
         }

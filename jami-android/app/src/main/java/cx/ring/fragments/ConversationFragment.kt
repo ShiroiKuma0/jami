@@ -559,7 +559,7 @@ class ConversationFragment : BaseSupportFragment<ConversationPresenter, Conversa
     }
 
     private fun expandMenu(v: View) {
-        val popup = PopupMenu(requireContext(), v)
+        val popup = cx.ring.sk.SkPopupMenu(requireContext(), v)
         popup.inflate(R.menu.conversation_share_actions)
         popup.setOnMenuItemClickListener { item: MenuItem ->
             when (item.itemId) {

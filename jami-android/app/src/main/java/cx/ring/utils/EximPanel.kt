@@ -13,6 +13,7 @@ import android.provider.Settings
 import android.util.TypedValue
 import android.view.View
 import android.widget.CheckBox
+import cx.ring.sk.skRowIcon
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -40,9 +41,9 @@ import java.io.File
  */
 object EximPanel {
 
-    private const val YELLOW = 0xFFFFFF00.toInt()
-    private const val DIM = 0xFFC8C800.toInt()
-    private const val WARN = 0xFFFF5252.toInt()
+    private val YELLOW: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
+    private val DIM: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.PAGE_NOTE)
+    private val WARN: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER)
     private const val ROOT = "/storage/emulated/0"
 
     private class Ui(
@@ -91,7 +92,7 @@ object EximPanel {
             setTypeface(typeface, Typeface.BOLD)
             setPadding(dp(ctx, 12f), dp(ctx, 10f), dp(ctx, 12f), dp(ctx, 10f))
             background = GradientDrawable().apply {
-                setColor(Color.BLACK)
+                setColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
                 cornerRadius = dp(ctx, 10f).toFloat()
                 setStroke(dp(ctx, 2f), YELLOW)
             }
@@ -104,6 +105,7 @@ object EximPanel {
         val permissionText = TextView(ctx).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             setTypeface(typeface, Typeface.BOLD)
+            skRowIcon(cx.ring.sk.SkGlyph.CHECK, cx.ring.sk.SkIconRole.BLOCK)
         }
         val permissionBox = boxed(ctx) { openAllFilesSettings(ctx) }.apply {
             addView(caption(ctx, ctx.getString(R.string.sk_exim_perm_label), pad = false))
@@ -115,6 +117,7 @@ object EximPanel {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(YELLOW)
+            skRowIcon(cx.ring.sk.SkGlyph.DIRECTORY, cx.ring.sk.SkIconRole.SHARE)
         }
         val folderBox = boxed(ctx) { pickFolder(ctx, app) { refresh(ctx, app) } }.apply {
             addView(caption(ctx, ctx.getString(R.string.sk_exim_folder_label), pad = false))
@@ -150,11 +153,11 @@ object EximPanel {
         root.addView(divider(ctx, topGap = 8))
         root.addView(TextView(ctx).apply {
             text = ctx.getString(R.string.sk_exim_deleted_entry)
-            setTextColor(YELLOW)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setPadding(dp(ctx, 8f), dp(ctx, 10f), 0, dp(ctx, 6f))
             isClickable = true
-            minHeight = dp(ctx, 48f)
+            // An action that opens something: a pill with its icon and a ›, like every other.
+            layoutParams = wide(ctx, topMargin = 6f)
+            cx.ring.sk.SkMenus.styleRow(this, cx.ring.sk.SkIconRole.SHARE, opens = true, glyph = cx.ring.sk.SkGlyph.IMPORT)
             setOnClickListener {
                 current?.let { ui -> if (guard(ctx, ui)) startDeletedRestore(ctx, app, accounts) }
             }
@@ -532,6 +535,7 @@ object EximPanel {
             setPadding(dp(ctx, 8f), dp(ctx, 12f), dp(ctx, 8f), dp(ctx, 12f))
             minHeight = dp(ctx, 48f)
             isClickable = true
+            skRowIcon(cx.ring.sk.SkGlyph.DIRECTORY, cx.ring.sk.SkIconRole.SHARE)
             setOnClickListener {
                 dialog?.dismiss()
                 browse(ctx, target, onPick)
@@ -539,9 +543,9 @@ object EximPanel {
         }
         val parent = dir.parentFile
         if (parent != null && dir.absolutePath != ROOT && dir.absolutePath.startsWith(ROOT))
-            list.addView(row("⬆  ..", parent))
+            list.addView(row("..", parent))
         if (subs.isEmpty()) list.addView(caption(ctx, ctx.getString(R.string.sk_exim_no_subfolders)))
-        for (s in subs) list.addView(row("📁  ${s.name}", s))
+        for (s in subs) list.addView(row(s.name, s))
 
         dialog = DialogTheme.builder(ctx)
             .setTitle(dir.absolutePath)
@@ -613,7 +617,7 @@ object EximPanel {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(c, 14f), dp(c, 12f), dp(c, 14f), dp(c, 12f))
         background = GradientDrawable().apply {
-            setColor(Color.BLACK)
+            setColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
             cornerRadius = dp(c, 10f).toFloat()
             setStroke(dp(c, 2f), YELLOW)
         }

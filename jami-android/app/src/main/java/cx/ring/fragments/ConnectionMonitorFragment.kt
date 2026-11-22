@@ -66,7 +66,7 @@ import net.jami.services.ContactService
 import net.jami.utils.PeerReachability
 import javax.inject.Inject
 
-private val YELLOW = 0xFFFFEB3B.toInt()   // legend section-header accent only (not a monitor state)
+private val YELLOW: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)   // legend section-header accent only (not a monitor state)
 
 @AndroidEntryPoint
 class ConnectionMonitorFragment: Fragment() {
@@ -619,7 +619,7 @@ class ConnectionMonitorFragment: Fragment() {
             }
             r.addView(badge)
             r.addView(TextView(ctx).apply {
-                text = desc; setTextColor(0xFFFFFFFF.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                text = desc; setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT)); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             })
             root.addView(r)
         }
@@ -636,7 +636,7 @@ class ConnectionMonitorFragment: Fragment() {
         // Plain full-width paragraph (no badge column) — for explanation rather than a legend entry.
         fun para(t: String, emphasis: Boolean = false) = root.addView(TextView(ctx).apply {
             text = t
-            setTextColor(if (emphasis) YELLOW else 0xFFFFFFFF.toInt())
+            setTextColor(if (emphasis) YELLOW else cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
             if (emphasis) setTypeface(typeface, Typeface.BOLD)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, if (emphasis) 15f else 14f)
             setPadding(0, (6 * d).toInt(), 0, (6 * d).toInt())

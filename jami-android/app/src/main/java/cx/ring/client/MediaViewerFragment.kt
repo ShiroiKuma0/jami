@@ -173,7 +173,7 @@ class MediaViewerFragment : Fragment() {
     ): View {
         val view = inflater.inflate(R.layout.fragment_media_viewer, container, false)
         suppressedBadge = view.findViewById<TextView>(R.id.suppressed_badge)?.also {
-            TextViewCompat.setCompoundDrawableTintList(it, ColorStateList.valueOf(Color.YELLOW))
+            TextViewCompat.setCompoundDrawableTintList(it, ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON)))
         }
         val uri = mUri ?: return view
         val mimeType = AndroidFileUtils.getMimeType(requireContext().contentResolver, uri)

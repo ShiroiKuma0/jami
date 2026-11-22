@@ -37,8 +37,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/black"
-        app:titleTextColor="#FFFF00"
-        app:navigationIconTint="#FFFF00"
+        app:titleTextColor="@color/sk_role_text"
+        app:navigationIconTint="@color/sk_role_icon"
         app:navigationIcon="@drawable/abc_ic_ab_back_material"
         app:title="@string/menu_item_account_settings">
 
@@ -48,7 +48,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginEnd="16dp"
-            android:textColor="#FFFF00"
+            android:textColor="@color/sk_role_text"
             android:textSize="@dimen/text_size_small"
             app:showText="true"
             app:status="@string/account_status_offline" />
@@ -111,7 +111,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     style="?attr/textInputFilledStyle"
                     app:hintEnabled="true"
                     app:hintTextColor="@color/settings_submenu_header"
-                    app:endIconTint="#FFFF00">
+                    app:endIconTint="@color/sk_role_icon">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/username"
@@ -122,7 +122,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:maxLines="1"
                         android:imeOptions="actionDone"
                         android:singleLine="true"
-                        android:textColor="#FFFF00"
+                        android:textColor="@color/sk_role_text"
                         android:textStyle="bold" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -180,7 +180,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                             android:inputType="textPersonName"
                             android:maxLines="1"
                             android:singleLine="true"
-                            android:textColor="#FFFF00"
+                            android:textColor="@color/sk_role_text"
                             android:textStyle="bold"
                             android:textIsSelectable="true" />
 
@@ -194,7 +194,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:layout_centerVertical="true"
                         android:layout_marginEnd="8dp"
                         android:text="@string/register_name"
-                        android:textColor="#FFFF00"
+                        android:textColor="@color/sk_role_text"
                         android:visibility="gone"
                         app:chipBackgroundColor="@color/settings_option_background"
                         tools:visibility="visible" />
@@ -239,7 +239,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:inputType="none"
                         android:editable="false"
                         android:singleLine="true"
-                        android:textColor="#FFFF00"
+                        android:textColor="@color/sk_role_text"
                         android:textStyle="bold"
                         android:textIsSelectable="true"
                         android:ellipsize="end" />
@@ -266,7 +266,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         app:backgroundTint="@color/settings_option_background"
                         app:icon="@drawable/baseline_share_twoton_24dp"
                         app:iconSize="24dp"
-                        app:iconTint="#FFFF00"
+                        app:iconTint="@color/sk_role_icon"
                         app:iconGravity="textStart" />
 
                     <View
@@ -286,7 +286,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         app:backgroundTint="@color/settings_option_background"
                         app:icon="@drawable/baseline_qr_code_2_black_24dp"
                         app:iconSize="24dp"
-                        app:iconTint="#FFFF00"
+                        app:iconTint="@color/sk_role_icon"
                         app:iconGravity="textStart" />
 
                 </LinearLayout>
@@ -357,7 +357,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:text="@string/link_new_device"
                     app:icon="@drawable/link_new_device_24"
                     app:iconSize="24dp"
-                    app:iconTint="#FFFF00"
+                    app:iconTint="@color/sk_role_icon"
                     app:iconGravity="textStart" />
             </LinearLayout>
 
@@ -398,11 +398,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:drawablePadding="12dp"
                     android:text="@string/account"
                     app:drawableLeftCompat="@drawable/account_circle_24"
-                    app:drawableTint="#FFFF00" />
+                    app:drawableTint="@color/sk_role_icon" />
 
                 <TextView
                     android:id="@+id/settings_media"
-                    app:drawableTint="#FFFF00"
+                    app:drawableTint="@color/sk_role_icon"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
@@ -415,7 +415,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
                 <TextView
                     android:id="@+id/settings_messages"
-                    app:drawableTint="#FFFF00"
+                    app:drawableTint="@color/sk_role_icon"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
@@ -428,7 +428,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
                 <TextView
                     android:id="@+id/settings_advanced"
-                    app:drawableTint="#FFFF00"
+                    app:drawableTint="@color/sk_role_icon"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"

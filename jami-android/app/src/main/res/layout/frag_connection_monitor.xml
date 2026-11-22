@@ -34,7 +34,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="#FFFFFF00"
+            android:textColor="@color/sk_role_text"
             android:textSize="@dimen/text_size_small"
             tools:text="4 peers · 6 connected · 1 failing" />
 
@@ -45,8 +45,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:text="Data"
-            android:textColor="#FFFFFF00"
-            app:strokeColor="#FFFFFF00" />
+            android:textColor="@color/sk_role_text"
+            app:strokeColor="@color/sk_role_outline" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/help"
@@ -55,8 +55,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:text="?"
-            android:textColor="#FFFFFF00"
-            app:strokeColor="#FFFFFF00" />
+            android:textColor="@color/sk_role_text"
+            app:strokeColor="@color/sk_role_outline" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/reconnect"
@@ -64,8 +64,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Reconnect"
-            android:textColor="#FFFFFF00"
-            app:strokeColor="#FFFFFF00" />
+            android:textColor="@color/sk_role_text"
+            app:strokeColor="@color/sk_role_outline" />
     </LinearLayout>
 
     <!-- Transport verdict (2026-07-26): UDP/TCP egress test. Its own row rather than a header
@@ -77,7 +77,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         android:layout_height="wrap_content"
         android:paddingHorizontal="16dp"
         android:paddingVertical="10dp"
-        android:textColor="#FFFFFF00"
+        android:textColor="@color/sk_role_text"
         android:textSize="@dimen/text_size_small"
         android:background="?attr/selectableItemBackground"
         tools:text="Transport:  UDP ✓  TCP ✓  — full DHT viable" />

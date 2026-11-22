@@ -145,7 +145,7 @@ class ChatFilesActivity : AppCompatActivity() {
     private fun buildUi(): View {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
             fitsSystemWindows = true
         }
 
@@ -840,7 +840,7 @@ class ChatFilesActivity : AppCompatActivity() {
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 
     private fun pill(stroke: Int) = GradientDrawable().apply {
-        setColor(Color.BLACK)
+        setColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
         cornerRadius = dp(10).toFloat()
         setStroke(dp(2), stroke)
     }
@@ -863,9 +863,9 @@ class ChatFilesActivity : AppCompatActivity() {
 
     companion object {
         private val TAG = ChatFilesActivity::class.simpleName!!
-        private const val YELLOW = 0xFFFFFF00.toInt()
-        private const val DIM = 0xFFC8C800.toInt()
-        private const val RED = 0xFFFF5252.toInt()
+        private val YELLOW: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
+        private val DIM: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.PAGE_NOTE)
+        private val RED: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER)
 
         fun intent(ctx: Context) = Intent(ctx, ChatFilesActivity::class.java)
     }

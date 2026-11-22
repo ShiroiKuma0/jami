@@ -74,7 +74,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:ellipsize="end"
             android:maxLines="1"
             android:padding="5dp"
-            android:textColor="#000000"
+            android:textColor="@color/sk_role_on_accent"
             android:textSize="@dimen/message_display_name_textsize"
             app:drawableStartCompat="@drawable/reply_contact_avatar_12px"
             tools:text="Jean-Pascal" />

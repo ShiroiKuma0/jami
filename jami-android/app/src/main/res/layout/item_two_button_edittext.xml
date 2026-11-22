@@ -23,7 +23,7 @@
             android:ellipsize="end"
             android:lines="1"
             android:singleLine="true"
-            android:textColor="#FFFF00"
+            android:textColor="@color/sk_role_text"
             android:textIsSelectable="true"
             android:textStyle="bold"
             tools:text="@tools:sample/full_names"/>

@@ -34,9 +34,9 @@ class AutomationSettingsFragment : Fragment() {
     @Inject
     lateinit var accountService: AccountService
 
-    private val yellow = 0xFFFFFF00.toInt()
-    private val grey = 0xFFAAAAAA.toInt()
-    private val black = 0xFF000000.toInt()
+    private val yellow: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
+    private val grey: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY)
+    private val black: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND)
     private var tokenView: TextView? = null
 
     private fun dp(v: Float) = (v * resources.displayMetrics.density).toInt()

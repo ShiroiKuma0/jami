@@ -114,14 +114,14 @@ class HomeAccountCreationFragment :
     /** The fork is yellow-on-black everywhere else; the wizard was still upstream blue-on-white,
      *  and it is the first screen a restored phone shows (白い熊, 2026-07-28). */
     private fun themeWizard(root: View) {
-        val yellow = 0xFFFFFF00.toInt()
+        val yellow = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
         val stroke = (2 * resources.displayMetrics.density).toInt()
         val tint = ColorStateList.valueOf(yellow)
-        root.setBackgroundColor(Color.BLACK)
+        root.setBackgroundColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
         fun walk(v: View) {
             when (v) {
                 is MaterialButton -> {
-                    v.backgroundTintList = ColorStateList.valueOf(Color.BLACK)
+                    v.backgroundTintList = ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
                     v.strokeColor = tint
                     v.strokeWidth = stroke
                     v.rippleColor = ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000)

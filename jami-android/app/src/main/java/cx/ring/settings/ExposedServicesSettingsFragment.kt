@@ -296,7 +296,7 @@ class ExposedServiceViewHolder(
         }
 
         binding.btnMore.setOnClickListener { anchor ->
-            val popup = PopupMenu(anchor.context, anchor)
+            val popup = cx.ring.sk.SkPopupMenu(anchor.context, anchor)
             popup.menuInflater.inflate(R.menu.menu_service_item, popup.menu)
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {

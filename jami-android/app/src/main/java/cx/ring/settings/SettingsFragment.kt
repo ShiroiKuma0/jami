@@ -691,7 +691,7 @@ class ConnectivityOptionsAdapter(
             titleView.text = it.title
             descriptionView.text = it.description
             radioButton.isChecked = position == selectedPosition
-            radioButton.buttonTintList = android.content.res.ColorStateList.valueOf(0xFFFFFF00.toInt())
+            radioButton.buttonTintList = android.content.res.ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON))
         }
         view.setOnClickListener {
             selectedPosition = position
