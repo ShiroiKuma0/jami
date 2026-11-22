@@ -205,6 +205,7 @@ upstream's layouts are NOT edited for colour; roles are laid over colour resourc
   files may keep naming a role resource — that is the mixed way.
 - **Fork layouts and shapes name role resources, never literals.** A new `#RRGGBB` in XML or a colour
   literal in fork Kotlin is a defect: use `@color/sk_role_*` / `skColor(SkRole.X)`.
+- **The welcome wallpaper is pinned to the starry dark-blue sky** (白い熊, 2026-11-22): `res/drawable/background_welcome_jami.webp` and `res/drawable-night/background_welcome_jami.webp` are the pre-`fdfd29f51` files. Upstream swaps this image with each release name (the “Tim Berners-Lee” release brought grey-mauve waves); when a sync changes either file, restore ours.
 - **TV screens (`cx.ring.tv`) are out of scope** (白い熊, 2026-11-22).
 
 ## Commit convention — no Claude attribution
