@@ -647,6 +647,7 @@ abstract class JamiApplication : Application() {
         instance = this
         // Settings → Diagnostics: load the switches and hand the daemon its mask BEFORE anything logs.
         cx.ring.utils.DiagPrefs.init(this)
+        cx.ring.utils.MemDiag.init(this)
         // …and move every old diagnostic file into files/diag/ (off the main thread, idempotent).
         cx.ring.utils.DiagFiles.init(this)
         // SMS-over-Jami bridge: tap the daemon callbacks before any account loads (cx.ring.automation.Bridge).
