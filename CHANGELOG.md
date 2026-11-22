@@ -7,6 +7,68 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+034` — 2026-11-22
+
+Same upstream base (**20261023-01** at `2ec1e272f`). The whole look is rebuilt on one rule set —
+black ground, yellow ink, outlined pills — and **every colour is now a setting**.
+
+This build changes how every screen is painted. It was compared in the code, not walked through
+on a device before release; if something looks wrong, `+032` is the build before the change.
+
+### 🎨 Every colour is a role you can set
+
+- **58 new colour roles**, beside the existing per-surface ones, each a swatch row on the
+  **白い熊 GNU Jami UI** page in the section of the thing it colours: Foundation, Text, Buttons,
+  Dialogs, Switches, Check boxes and radio buttons, Menus, Lists, Text fields, Top bars, Call
+  controls, Settings pages. *Default* in the picker resets one role; **Reset all colours** is in
+  the new Maintenance section. The roles travel in the colours export.
+- Nothing is pinned any more: a colour you change reaches every screen, upstream's own included.
+  Screens already open rebuild themselves when you leave the page.
+- The app is dark only now.
+
+### 🔘 Buttons, switches, dialogs
+
+- **Every button is an outlined pill**, never a filled slab. The main action of a block has a
+  thick frame and bold label, every other a thin frame; a button that deletes is red.
+- **Floating buttons are outlined rings.**
+- **Switches** are an outlined track with a solid dot — right and bright when on, left and a
+  darker yellow when off.
+- **Dialogs:** the confirming button is the main pill; a dialog that deletes confirms in red.
+
+### 📋 Menus you can read at a glance
+
+- Every action in a menu is a **full-width pill with its icon**, and the icon is coloured by what
+  the row does: call green, message blue, contact cyan, share orange, block magenta, delete red.
+  A **›** marks a row that opens something; “Split view” has a switch instead of a check box.
+- This covers the ⋮ menus, the + menu of the message bar, the message long-press menu, the chat
+  list's action sheet and the member sheet. A long menu opened low on the screen shifts up
+  instead of scrolling.
+
+### 📞 Call screen
+
+- Answer, decline, hang-up and the in-call controls are **unfilled rings**. A control that is
+  switched on (muted, camera off) turns red instead of filling yellow.
+
+### 🧭 The UI page
+
+- **App settings** is the first, thick pill.
+- A **chip index** under it: tap a chip to unfold its section and jump there; long-press and drag
+  to reorder the sections.
+- **Every section folds**, and starts folded. Order and fold state are remembered and exported.
+  **Reset section order** is in Maintenance.
+- Rows have icons; actions are pills that hug their label; a switch and its explanation share a
+  thin rule down the left.
+
+### ⚙️ Settings lists
+
+- The icons of the app's settings and account-settings rows are coloured by what the row does.
+
+### Not covered
+
+- The Android TV screens are left as upstream draws them.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+032` — 2026-11-22
 
 Same upstream base (**20261023-01** at `2ec1e272f`). Sent files now tell you what happened to
