@@ -42,6 +42,7 @@ object DiagFiles {
     const val DATA_MEASURE = "data-measure-log.txt"
     const val PRESENCE_MAP = "presence-map.txt"
     const val PUSH_LOG = "firebaselog.txt"
+    const val MEMORY_LOG = "memory-log.txt"
 
     /** Files that used to sit in the external files root. */
     private val EXTERNAL_ROOT_NAMES = listOf(RECOVERY_LOG, INCIDENTS, OLD_INCIDENTS, DATA_HOURLY, DATA_MEASURE, PRESENCE_MAP)
@@ -117,6 +118,7 @@ object DiagFiles {
         DATA_HOURLY, DATA_MEASURE -> "Data usage"
         PRESENCE_MAP -> "Presence map"
         PUSH_LOG -> "Push log"
+        MEMORY_LOG -> "Memory"
         else -> "Other"
     }
 

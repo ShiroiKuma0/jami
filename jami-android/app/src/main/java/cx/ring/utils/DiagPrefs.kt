@@ -26,6 +26,7 @@ object DiagPrefs {
         OPEN("open", 0),               // SK-OPENDIAG — conversation opening, callback queue, history requests
         EXEC("exec", 0),               // SK-EXECDIAG — app daemon-executor heartbeat, bridge send markers
         WAKE("wake", 0),               // SK-WAKE — push classification and background sleep/wake decisions
+        MEMORY("memory", 0),           // SK-MEMDIAG — 10-min memory/thread/retained-screen samples (MemDiag)
     }
 
     private val on = BooleanArray(Group.entries.size)
