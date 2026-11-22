@@ -106,7 +106,6 @@ import com.google.android.material.snackbar.Snackbar
 import cx.ring.client.HomeActivity
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
-import androidx.activity.OnBackPressedCallback
 import androidx.core.widget.TextViewCompat
 import javax.inject.Inject
 import javax.inject.Named

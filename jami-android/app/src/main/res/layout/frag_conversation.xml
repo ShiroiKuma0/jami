@@ -434,7 +434,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 android:layout_marginBottom="8dp"
                 android:minHeight="48dp"
                 android:visibility="invisible"
-                app:cardBackgroundColor="@color/conversation_message_input_background"
                 app:cardCornerRadius="@dimen/conversation_message_input_radius"
                 tools:visibility="visible">
 
