@@ -122,6 +122,8 @@
   <string name="action_call_end_accept">Принять входящий звонок и завершить текущий вызов</string>
   <string name="action_call_decline">Отказаться</string>
   <string name="action_call_mic_mute">Отключить микрофон</string>
+  <string name="action_call_mic_unmute">Включить микрофон</string>
+  <string name="action_call_lower_hand">Опущенная рука</string>
   <string name="action_load_extension">Загрузить расширение</string>
   <string name="ab_action_speakerphone">Включить динамик</string>
   <string name="ab_action_contact_add">Добавить контакт</string>
@@ -134,7 +136,7 @@
   <string name="scan_qr">Сканировать QR-код</string>
   <string name="qr_code">QR-код</string>
   <string name="qr_code_not_contact">Не QR-код контакта 白い熊 GNU Jami</string>
-  <string name="new_group">Создать новую группу</string>
+  <string name="new_group">Новая группа</string>
   <string name="ab_action_flipcamera">Перевернуть камеру</string>
   <string name="ab_action_hidepreview">Скрыть предпросмотр</string>
   <string name="remote_recording">%s запись...</string>
@@ -472,6 +474,7 @@
   <string name="dialog_hint_description">Описание</string>
   <string name="picker_title">Выбрать контакты</string>
   <string name="picker_btn">Выбрать контакты</string>
+  <string name="picker_search_hint">Найти контакты</string>
   <string name="no_contact_to_add">У вас нет контактов для добавления</string>
   <string name="bottomsheet_contact">Контакт 白い熊 GNU Jami\n%1$s</string>
   <string name="bottomsheet_block">Блокировать участника</string>
@@ -625,4 +628,13 @@
   <string name="shared_services_policy_specific">Определенные контакты</string>
   <string name="shared_services_allowed_contacts_hint">Разрешенные контакты (через запятую)</string>
   <string name="shared_services_save">Сохранить</string>
+  <!--Collaborative documents-->
+  <string name="collab_documents">Документы</string>
+  <string name="collab_create">Создать</string>
+  <string name="collab_link_title">Ссылка</string>
+  <string name="collab_link_hint">Адрес</string>
+  <string name="collab_link_add">Добавить</string>
+  <string name="collab_link_remove">Убрать</string>
+  <string name="collab_remove">Убрать</string>
+  <!--Threaded conversations-->
 </resources>

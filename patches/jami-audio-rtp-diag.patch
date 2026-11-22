@@ -1,5 +1,5 @@
 diff --git a/src/media/audio/audio_receive_thread.cpp b/src/media/audio/audio_receive_thread.cpp
-index 4d2c82b3d..8e3cd41f7 100644
+index 4d2c82b..8e3cd41 100644
 --- a/src/media/audio/audio_receive_thread.cpp
 +++ b/src/media/audio/audio_receive_thread.cpp
 @@ -22,6 +22,7 @@
@@ -31,7 +31,7 @@ index 4d2c82b3d..8e3cd41f7 100644
      audioDecoder_->setContextCallback([this]() {
          if (recorderCallback_)
 diff --git a/src/media/audio/audio_receive_thread.h b/src/media/audio/audio_receive_thread.h
-index 3cc824698..33b81f83e 100644
+index 3cc8246..33b81f8 100644
 --- a/src/media/audio/audio_receive_thread.h
 +++ b/src/media/audio/audio_receive_thread.h
 @@ -34,6 +34,7 @@ class MediaDecoder;
@@ -62,7 +62,7 @@ index 3cc824698..33b81f83e 100644
      uint16_t mtu_;
  
 diff --git a/src/media/audio/audio_rtp_session.cpp b/src/media/audio/audio_rtp_session.cpp
-index 91885e394..e680b857d 100644
+index 91885e3..e680b85 100644
 --- a/src/media/audio/audio_rtp_session.cpp
 +++ b/src/media/audio/audio_rtp_session.cpp
 @@ -31,6 +31,7 @@
@@ -132,7 +132,7 @@ index 91885e394..e680b857d 100644
  
  void
 diff --git a/src/media/audio/audio_rtp_session.h b/src/media/audio/audio_rtp_session.h
-index fd89eda91..6d2744e9c 100644
+index fd89eda..6d2744e 100644
 --- a/src/media/audio/audio_rtp_session.h
 +++ b/src/media/audio/audio_rtp_session.h
 @@ -33,6 +33,7 @@ class AudioSender;
@@ -155,7 +155,7 @@ index fd89eda91..6d2744e9c 100644
      std::unique_ptr<AudioReceiveThread> receiveThread_;
      std::shared_ptr<AudioInput> audioInput_;
 diff --git a/src/media/audio/audio_sender.cpp b/src/media/audio/audio_sender.cpp
-index 84e74a2aa..899d473dc 100644
+index 84e74a2..899d473 100644
 --- a/src/media/audio/audio_sender.cpp
 +++ b/src/media/audio/audio_sender.cpp
 @@ -22,6 +22,7 @@
@@ -185,7 +185,7 @@ index 84e74a2aa..899d473dc 100644
          JAMI_ERROR("encoding failed");
  }
 diff --git a/src/media/audio/audio_sender.h b/src/media/audio/audio_sender.h
-index 348d1a1ee..e72d4310b 100644
+index 348d1a1..e72d431 100644
 --- a/src/media/audio/audio_sender.h
 +++ b/src/media/audio/audio_sender.h
 @@ -28,6 +28,7 @@ class AudioInput;
@@ -215,98 +215,9 @@ index 348d1a1ee..e72d4310b 100644
  };
  
  } // namespace jami
-diff --git a/src/media/socket_pair.cpp b/src/media/socket_pair.cpp
-index dfda113ff..920cbbe81 100644
---- a/src/media/socket_pair.cpp
-+++ b/src/media/socket_pair.cpp
-@@ -21,6 +21,7 @@
- #include "libav_deps.h" // THEN THIS ONE AFTER
- 
- #include "socket_pair.h"
-+#include "audio/sk_audio_diag.h" // SK-AUDIODIAG
- #include "logger.h"
- #include "connectivity/security/memory.h"
- 
-@@ -517,6 +518,10 @@ SocketPair::readCallback(uint8_t* buf, int buf_size)
-     if (!len and (datatype & static_cast<int>(DataType::RTP))) {
-         len = readRtpData(buf, buf_size);
-         fromRTCP = false;
-+        // SK-AUDIODIAG: the earliest point at which the peer's media is observable — raw bytes off
-+        // the socket, before SRTP and before the decoder. Zero here proves nothing arrived.
-+        if (skDiag_ and len > 0)
-+            skDiag_->noteRxPacket(len);
-     }
- 
-     if (len <= 0)
-@@ -547,8 +552,13 @@ SocketPair::readCallback(uint8_t* buf, int buf_size)
-         if (packetLossCallback_ and (buf[2] << 8 | buf[3]) != lastSeqNumIn_ + 1)
-             packetLossCallback_();
-         lastSeqNumIn_ = buf[2] << 8 | buf[3];
--        if (err < 0)
-+        if (err < 0) {
-             JAMI_WARNING("decrypt error {}", err);
-+            // SK-AUDIODIAG: packets arriving but failing to decrypt is its own diagnosis — a
-+            // crypto-attribute mismatch loses every frame while the transport looks perfect.
-+            if (skDiag_)
-+                skDiag_->noteRxDecryptError();
-+        }
-     }
- 
-     if (len != 0)
-diff --git a/src/media/socket_pair.h b/src/media/socket_pair.h
-index ddfc678b4..351c43f1f 100644
---- a/src/media/socket_pair.h
-+++ b/src/media/socket_pair.h
-@@ -48,6 +48,7 @@ using socklen_t = int;
- namespace jami {
- 
- class SRTPProtoContext;
-+class SkAudioDiag; // SK-AUDIODIAG
- 
- typedef struct
- {
-@@ -135,6 +136,11 @@ public:
- 
-     void interrupt();
- 
-+    // SK-AUDIODIAG: count raw inbound RTP here, before decrypt and decode, so a silent call can be
-+    // told apart from a call whose packets never arrive. Published right after construction and
-+    // before the receive thread exists, hence no lock.
-+    void setSkAudioDiag(std::shared_ptr<SkAudioDiag> diag) { skDiag_ = std::move(diag); }
-+
-     // Set the read blocking mode.
-     // By default, the read operation will block until data is available
-     // on the socket. This method allows to switch to unblocking mode
-@@ -213,6 +219,7 @@ private:
-     std::atomic_bool readBlockingMode_ {false};
-     std::atomic_bool noWrite_ {false};
-     std::unique_ptr<SRTPProtoContext> srtpContext_;
-+    std::shared_ptr<SkAudioDiag> skDiag_; // SK-AUDIODIAG, null for video and for unmeasured streams
-     std::function<void(void)> packetLossCallback_;
-     std::function<void(int, int)> rtpDelayCallback_;
-     bool getOneWayDelayGradient(float sendTS, bool marker, int32_t* gradient, int32_t* deltaR);
-diff --git a/src/sip/sipcall.cpp b/src/sip/sipcall.cpp
-index 1c9381945..ed6cf1fa7 100644
---- a/src/sip/sipcall.cpp
-+++ b/src/sip/sipcall.cpp
-@@ -4387,6 +4387,15 @@ SIPCall::peerMuted(bool muted, int streamIdx)
- void
- SIPCall::peerVoice(bool voice)
- {
-+    // SK-AUDIODIAG: the peer's own voice-activity detector, transmitted to us as a media_control
-+    // SIP INFO and — in a one-to-one call — parsed here and then dropped on the floor. It is the
-+    // only view we get of the far side's capture without touching that phone: a voice=1 while our
-+    // decoded RMS stays at zero puts the fault downstream of the peer's microphone, and a stream
-+    // that never leaves voice=0 puts it at the microphone. Edge-triggered by the sender, so this
-+    // logs only on change. Absence proves nothing: the VAD needs an audio processor, and the
-+    // sender's callback fires only when the state flips.
-+    JAMI_WARNING("SK-AUDIODIAG [call:{}] peer voice_activity={}", getCallId(), voice ? 1 : 0);
-+
-     peerVoice_ = voice;
- 
-     if (auto conference = conf_.lock()) {
 diff --git a/src/media/audio/sk_audio_diag.h b/src/media/audio/sk_audio_diag.h
 new file mode 100644
+index 0000000..6bcc197
 --- /dev/null
 +++ b/src/media/audio/sk_audio_diag.h
 @@ -0,0 +1,227 @@
@@ -537,3 +448,89 @@ new file mode 100644
 +};
 +
 +} // namespace jami
+diff --git a/src/media/socket_pair.cpp b/src/media/socket_pair.cpp
+index cf53344..f89401f 100644
+--- a/src/media/socket_pair.cpp
++++ b/src/media/socket_pair.cpp
+@@ -21,6 +21,7 @@
+ #include "libav_deps.h" // THEN THIS ONE AFTER
+ 
+ #include "socket_pair.h"
++#include "audio/sk_audio_diag.h" // SK-AUDIODIAG
+ #include "logger.h"
+ #include "connectivity/security/memory.h"
+ 
+@@ -519,6 +520,10 @@ SocketPair::readCallback(uint8_t* buf, int buf_size)
+         if (!len and (datatype & static_cast<int>(DataType::RTP))) {
+             len = readRtpData(buf, buf_size);
+             fromRTCP = false;
++            // SK-AUDIODIAG: the earliest point at which the peer's media is observable — raw bytes off
++            // the socket, before SRTP and before the decoder. Zero here proves nothing arrived.
++            if (skDiag_ and len > 0)
++                skDiag_->noteRxPacket(len);
+         }
+ 
+         if (len <= 0)
+@@ -533,6 +538,10 @@ SocketPair::readCallback(uint8_t* buf, int buf_size)
+             if (err < 0) {
+                 if (rejected == 0)
+                     JAMI_WARNING("decrypt error {}", err);
++                // SK-AUDIODIAG: packets arriving but failing to decrypt is its own diagnosis — a
++                // crypto-attribute mismatch loses every frame while the transport looks perfect.
++                if (skDiag_)
++                    skDiag_->noteRxDecryptError();
+                 continue;
+             }
+ 
+diff --git a/src/media/socket_pair.h b/src/media/socket_pair.h
+index ddfc678..351c43f 100644
+--- a/src/media/socket_pair.h
++++ b/src/media/socket_pair.h
+@@ -48,6 +48,7 @@ using socklen_t = int;
+ namespace jami {
+ 
+ class SRTPProtoContext;
++class SkAudioDiag; // SK-AUDIODIAG
+ 
+ typedef struct
+ {
+@@ -135,6 +136,11 @@ public:
+ 
+     void interrupt();
+ 
++    // SK-AUDIODIAG: count raw inbound RTP here, before decrypt and decode, so a silent call can be
++    // told apart from a call whose packets never arrive. Published right after construction and
++    // before the receive thread exists, hence no lock.
++    void setSkAudioDiag(std::shared_ptr<SkAudioDiag> diag) { skDiag_ = std::move(diag); }
++
+     // Set the read blocking mode.
+     // By default, the read operation will block until data is available
+     // on the socket. This method allows to switch to unblocking mode
+@@ -213,6 +219,7 @@ private:
+     std::atomic_bool readBlockingMode_ {false};
+     std::atomic_bool noWrite_ {false};
+     std::unique_ptr<SRTPProtoContext> srtpContext_;
++    std::shared_ptr<SkAudioDiag> skDiag_; // SK-AUDIODIAG, null for video and for unmeasured streams
+     std::function<void(void)> packetLossCallback_;
+     std::function<void(int, int)> rtpDelayCallback_;
+     bool getOneWayDelayGradient(float sendTS, bool marker, int32_t* gradient, int32_t* deltaR);
+diff --git a/src/sip/sipcall.cpp b/src/sip/sipcall.cpp
+index 1c93819..ed6cf1f 100644
+--- a/src/sip/sipcall.cpp
++++ b/src/sip/sipcall.cpp
+@@ -4387,6 +4387,15 @@ SIPCall::peerMuted(bool muted, int streamIdx)
+ void
+ SIPCall::peerVoice(bool voice)
+ {
++    // SK-AUDIODIAG: the peer's own voice-activity detector, transmitted to us as a media_control
++    // SIP INFO and — in a one-to-one call — parsed here and then dropped on the floor. It is the
++    // only view we get of the far side's capture without touching that phone: a voice=1 while our
++    // decoded RMS stays at zero puts the fault downstream of the peer's microphone, and a stream
++    // that never leaves voice=0 puts it at the microphone. Edge-triggered by the sender, so this
++    // logs only on change. Absence proves nothing: the VAD needs an audio processor, and the
++    // sender's callback fires only when the state flips.
++    JAMI_WARNING("SK-AUDIODIAG [call:{}] peer voice_activity={}", getCallId(), voice ? 1 : 0);
++
+     peerVoice_ = voice;
+ 
+     if (auto conference = conf_.lock()) {

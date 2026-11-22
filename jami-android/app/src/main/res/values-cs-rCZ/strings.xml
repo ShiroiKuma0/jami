@@ -122,6 +122,8 @@
   <string name="action_call_end_accept">Přijmout příchozí hovor a ukončit aktuální hovor</string>
   <string name="action_call_decline">Odmítnout</string>
   <string name="action_call_mic_mute">Ztlumit mikrofon</string>
+  <string name="action_call_mic_unmute">Zrušit ztlumení mikrofonu</string>
+  <string name="action_call_lower_hand">Dát ruku dolů</string>
   <string name="action_load_extension">Nahrát rozříření</string>
   <string name="ab_action_speakerphone">Zapnout reproduktor</string>
   <string name="ab_action_contact_add">Přidat do kontaktů</string>
@@ -134,7 +136,7 @@
   <string name="scan_qr">Skenovat kód QR</string>
   <string name="qr_code">Kód QR</string>
   <string name="qr_code_not_contact">Nejedná se o QR kód kontaktu 白い熊 GNU Jami</string>
-  <string name="new_group">Vytvořit novou skupinu</string>
+  <string name="new_group">Nová skupina</string>
   <string name="ab_action_flipcamera">Otočit kameru</string>
   <string name="ab_action_hidepreview">Skrýt náhled</string>
   <string name="remote_recording">%s nahrávání...</string>
@@ -470,11 +472,16 @@
   <string name="dialog_hint_description">Popis</string>
   <string name="picker_title">Vybrat kontakt</string>
   <string name="picker_btn">Vybrat kontakt</string>
+  <string name="picker_search_hint">Hledat kontakty</string>
   <string name="no_contact_to_add">Nemáte žádný kontakt k přidání</string>
   <string name="bottomsheet_contact">Kontaktovat 白い熊 GNU Jami\n %1$s</string>
+  <string name="bottomsheet_block">Zablokovat člena</string>
+  <string name="bottomsheet_unblock">Odblokovat člena</string>
   <string name="error_open_no_app_found">Nebyla nalezena žádná aplikace pro tento soubor: %1$s</string>
   <string name="swarm_detail_no_document">Zatím nemáte žádné dokumenty.</string>
   <string name="group_admin">Správce</string>
+  <string name="group_member_blocked">Blokováno</string>
+  <string name="group_member_invited">Pozvaný</string>
   <string name="share_contact_intent_title">Přidejte tento kontakt v 白い熊 GNU Jami!</string>
   <string name="share_contact_intent_body">Tento kontakt „%1$s“ můžete přidat na distribuované komunikační platformě 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
@@ -619,4 +626,13 @@
   <string name="shared_services_policy_specific">Konkrétní kontakty</string>
   <string name="shared_services_allowed_contacts_hint">Povolené kontakty (oddělené čárkami)</string>
   <string name="shared_services_save">Uložit</string>
+  <!--Collaborative documents-->
+  <string name="collab_documents">Dokumenty</string>
+  <string name="collab_create">Vytvořit</string>
+  <string name="collab_link_title">Odkaz</string>
+  <string name="collab_link_hint">Adresa</string>
+  <string name="collab_link_add">Přidat</string>
+  <string name="collab_link_remove">Odstranit</string>
+  <string name="collab_remove">Odstranit</string>
+  <!--Threaded conversations-->
 </resources>

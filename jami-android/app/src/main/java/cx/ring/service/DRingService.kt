@@ -32,6 +32,7 @@ import android.util.Log
 import androidx.core.app.RemoteInput
 import cx.ring.BuildConfig
 import cx.ring.application.JamiApplication
+import cx.ring.backup.RuntimeServiceGuard
 import cx.ring.client.CallActivity
 import cx.ring.client.ConversationActivity
 import cx.ring.utils.ConversationPath
@@ -225,6 +226,7 @@ class DRingService : Service() {
     }
 
     override fun onCreate() {
+        if (!RuntimeServiceGuard.canInitialize(this)) return
         super.onCreate()
         Log.i(TAG, "onCreate")
         isRunning = true
@@ -259,6 +261,7 @@ class DRingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (!::mDaemonService.isInitialized) return
         Log.i(TAG, "onDestroy()")
         unregisterReceiver(receiver)
         contentResolver.unregisterContentObserver(contactContentObserver)
@@ -299,6 +302,9 @@ class DRingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!::mDaemonService.isInitialized || !RuntimeServiceGuard.canInitialize(this)) {
+            return RuntimeServiceGuard.rejectStart(this, startId)
+        }
         // Log.i(TAG, "onStartCommand ${intent?.action} $flags $startId");
         if (intent != null) {
             parseIntent(intent)
@@ -308,6 +314,7 @@ class DRingService : Service() {
 
     private val binder: IBinder = Binder()
     override fun onBind(intent: Intent): IBinder? {
+        if (!::mDaemonService.isInitialized || !RuntimeServiceGuard.canInitialize(this)) return null
         return binder
     }
 
@@ -341,6 +348,8 @@ class DRingService : Service() {
                 mAccountService.setAccountsActive(false)
             }
             mHardwareService.connectivityChanged(isConnected)
+            // Upstream 6ae921cb9's hook: re-arm the background deactivation after a change.
+            JamiApplication.instance?.notifyNetworkConnectivityChanged()
         }
     }
 

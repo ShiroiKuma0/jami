@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <!-- About -->
     <string name="app_name" translatable="false">白い熊 GNU Jami</string>
     <string name="app_author" translatable="false">Savoir-faire Linux Inc.</string>
-    <string name="app_release" translatable="false">Euclid - %1$s</string>
+    <string name="app_release" translatable="false">"Tim Berners-Lee" - %1$s</string>
     <string name="app_website" translatable="false">https://jami.net</string>
     <string name="app_website_contribute" translatable="false"><u>https://jami.net/contribute</u></string>
     <string name="gnu_license_website" translatable="false">https://www.gnu.org/licenses/gpl.html</string>
@@ -196,6 +196,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
     <!-- Home Fragment -->
     <string name="invitation_card_title">Invitations received</string>
+    <string name="joinable_feeds">Joinable feeds</string>
+    <string name="join_feed">Join</string>
+    <string name="joinable_feed_message">You\'ve been invited to join the %1$s feed.</string>
     <plurals name="home_conferences_title">
         <item quantity="one">%d Conversation</item>
         <item quantity="other">%d Conversations</item>
@@ -276,6 +279,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="action_call_end_accept">Accept incoming call and end current call</string>
     <string name="action_call_decline">Decline</string>
     <string name="action_call_mic_mute">Mute microphone</string>
+    <string name="action_call_mic_unmute">Unmute microphone</string>
+    <string name="action_call_camera_on">Turn camera on</string>
+    <string name="action_call_camera_off">Turn camera off</string>
+    <string name="action_call_stop_screen_share">Stop sharing screen</string>
+    <string name="action_call_lower_hand">Lower hand</string>
+    <string name="action_call_show_extensions">Show extensions</string>
+    <string name="action_call_show_participants">Show participants</string>
     <string name="action_load_extension">Load extension</string>
     <string name="ab_action_speakerphone">Turn on speaker</string>
     <string name="ab_action_contact_add">Add to contacts</string>
@@ -288,7 +298,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="scan_qr">Scan QR Code</string>
     <string name="qr_code">QR Code</string>
     <string name="qr_code_not_contact">Not a 白い熊 GNU Jami contact QR code</string>
-    <string name="new_group">Create new group</string>
+    <string name="conversation_filter_all">All</string>
+    <string name="conversation_filter_groups">Groups</string>
+    <string name="conversation_filter_feeds">Feeds</string>
+    <string name="new_group">New group</string>
+    <string name="new_feed">New Feed</string>
+    <string name="feed_creation_hint">A dedicated space for sharing announcements and updates.</string>
+    <string name="feed_conversation_name">Feed: %1$s</string>
+    <string name="feed_created">Feed created</string>
+    <string name="feed_created_at">Feed created, %1$s</string>
+    <string name="feed_name">Feed name</string>
+    <string name="create_feed">Create Feed</string>
+    <string name="feed_details">Feed details</string>
+    <string name="conversation_type_feed">Feed</string>
+    <string name="leave_feed">Leave Feed</string>
+    <string name="leave_feed_title">Leave this Feed?</string>
+    <string name="leave_feed_message">This will remove the Feed from your conversations list.</string>
+    <string name="feed_edit_title">Edit Feed title</string>
+    <string name="feed_edit_description">Edit Feed description</string>
+    <string name="feed_not_admin">Only admins can edit the information of this Feed</string>
     <string name="ab_action_flipcamera">Flip camera</string>
     <string name="ab_action_hidepreview">Hide preview</string>
     <string name="remote_recording">%s recording…</string>
@@ -477,6 +505,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="hist_contact_blocked">Contact blocked</string>
     <string name="hist_contact_unblocked">Contact unblocked</string>
     <string name="hist_invitation_received">Invitation received</string>
+    <string name="conversation_joined_date">Joined</string>
+    <string name="contact_added_date">Added</string>
+    <string name="contact_removed_date">Removed</string>
 
     <!-- Account summary -->
     <string name="profile">Profile</string>
@@ -680,6 +711,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="dialog_hint_description">Description</string>
     <string name="picker_title">Select contacts</string>
     <string name="picker_btn">Select contacts</string>
+    <string name="picker_close">Close contact picker</string>
+    <string name="picker_search_hint">Search contacts</string>
+    <string name="picker_create_group">Create group</string>
+    <string name="picker_add_members">Add members</string>
+    <string name="picker_no_matches">No matching contacts</string>
+    <string name="picker_remove_contact">Remove %1$s</string>
+    <plurals name="picker_selection_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
     <string name="no_contact_to_add">You have no contact to add</string>
     <string name="bottomsheet_contact">Contact 白い熊 GNU Jami\n%1$s</string>
     <string name="bottomsheet_block">Block member</string>
@@ -917,4 +958,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="collab_document_removed_locally">Document removed from this device</string>
     <string name="collab_document_removed_locally_message">\"%1$s\" is no longer on this device. Opening it again downloads it back.</string>
 
+    <!-- Threaded conversations -->
+    <string name="conversation_threaded_view">Threaded view</string>
+    <string name="conversation_threaded_view_summary">Show replies in threads. Open a thread to read it and reply to it</string>
+    <string name="conversation_thread_title">Thread</string>
+    <string name="conversation_thread_reply_hint">Reply in thread</string>
+    <string name="conversation_thread_missing">The original message is unavailable. Return to the conversation to continue.</string>
+    <string name="conversation_thread_finding">Finding message in conversation history&#8230;</string>
+    <string name="conversation_thread_unavailable">The message or its original is unavailable.</string>
+    <string name="conversation_thread_close">Return to conversation</string>
+    <plurals name="conversation_thread_replies">
+        <item quantity="one">%d comment</item>
+        <item quantity="other">%d comments</item>
+    </plurals>
 </resources>

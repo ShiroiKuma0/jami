@@ -16,11 +16,13 @@
  */
 package cx.ring.fragments
 
+import android.app.Activity
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -28,6 +30,9 @@ import cx.ring.R
 import cx.ring.utils.Flash
 import cx.ring.adapters.SmartListAdapter
 import cx.ring.client.CallActivity
+import cx.ring.client.ConversationDetailsActivity
+import cx.ring.client.ConversationDetailsActivity.Companion.EXIT_REASON
+import cx.ring.client.ConversationDetailsActivity.Companion.ExitReason
 import cx.ring.client.HomeActivity
 import cx.ring.databinding.FragSmartlistBinding
 import cx.ring.mvp.BaseSupportFragment
@@ -42,6 +47,7 @@ import net.jami.model.Conversation
 import net.jami.model.Conversation.ConversationActionCallback
 import net.jami.model.Uri
 import net.jami.services.ConversationFacade
+import net.jami.smartlist.ConversationFilter
 import net.jami.smartlist.SmartListPresenter
 import net.jami.smartlist.SmartListView
 import androidx.core.net.toUri
@@ -56,6 +62,29 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
         mSmartListAdapter?.notifyDataSetChanged()
     }
     private var binding: FragSmartlistBinding? = null
+    private var detailsTargetPath: ConversationPath? = null
+
+    private val conversationDetailsLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val targetPath = detailsTargetPath
+            detailsTargetPath = null
+            if (result.resultCode == Activity.RESULT_OK && targetPath != null) {
+                when (result.data?.extras?.getString(EXIT_REASON)) {
+                    ExitReason.CONTACT_ADDED.toString(),
+                    ExitReason.CONTACT_DELETED.toString(),
+                    ExitReason.CONTACT_BLOCKED.toString(),
+                    ExitReason.CONTACT_UNBLOCKED.toString(),
+                    ExitReason.CONVERSATION_LEFT.toString(),
+                    ExitReason.INVITATION_ACCEPTED.toString() -> {
+                        val openConv = activity?.supportFragmentManager
+                            ?.findFragmentByTag(ConversationFragment.TAG) as? ConversationFragment
+                        if (openConv != null && ConversationPath.fromBundle(openConv.arguments) == targetPath) {
+                            openConv.goToHome()
+                        }
+                    }
+                }
+            }
+        }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         FragSmartlistBinding.inflate(inflater, container, false).apply {
@@ -64,6 +93,10 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
         }.root
 
     fun getRecyclerView(): RecyclerView? = binding?.confsList
+
+    fun setConversationFilter(filter: ConversationFilter) {
+        presenter.setConversationFilter(filter)
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -111,12 +144,13 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
         ActionHelper.launchClearAction(requireContext(), accountId, conversationUri, this@SmartListFragment)
     }
 
-    override fun displayDeleteDialog(accountId: String, conversationUri: Uri, isGroup: Boolean) {
-        if (isGroup)
+    override fun displayDeleteDialog(accountId: String, conversationUri: Uri, mode: Conversation.Mode) {
+        if (mode.isGroup)
             ActionHelper.launchDeleteSwarmGroupAction(
                 context = requireContext(),
                 accountId = accountId,
                 uri = conversationUri,
+                isFeed = mode == Conversation.Mode.Feed,
                 callback = this@SmartListFragment
             )
         else
@@ -200,24 +234,15 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
 
     override fun onItemLongClick(item: Conversation) {
         if (item.isSwarm) {
-            val currentMode = item.mode.blockingFirst()
-            val effectiveMode = if (currentMode == Conversation.Mode.Syncing) {
-                item.requestMode ?: Conversation.Mode.OneToOne
-            } else {
-                currentMode
-            }
-
-            val isGroup = effectiveMode == Conversation.Mode.AdminInvitesOnly ||
-                    effectiveMode == Conversation.Mode.InvitesOnly ||
-                    effectiveMode == Conversation.Mode.Public
-
-            if (isGroup) {
+            val effectiveMode = item.effectiveMode
+            if (effectiveMode.isGroup) {
                 ActionListBottomSheet(
-                    R.array.swarm_group_actions,
+                    if (effectiveMode == Conversation.Mode.Feed) R.array.swarm_feed_actions else R.array.swarm_group_actions,
                     R.array.swarm_group_action_icons
                 ) { which ->
                     when (which) {
-                        0 -> presenter.removeConversation(item)
+                        ActionHelper.ACTION_DETAILS -> openConversationDetails(item)
+                        ActionHelper.ACTION_GROUP_LEAVE -> presenter.removeConversation(item)
                     }
                 }.show(childFragmentManager, "SmartListFragment")
             } else {
@@ -226,12 +251,13 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                     R.array.swarm_one_to_one_action_icons
                 ) { which ->
                     when (which) {
-                        0 -> presenter.copyNumber(item)
-                        1 -> presenter.clearConversation(item)
-                        2 -> presenter.removeConversation(item)
-                        3 -> presenter.blockContact(item)
-                        4 -> presenter.lookUpName(item)
-                        5 -> showContactConnectionDialog(requireContext(), mAccountService, mConversationFacade, item)
+                        ActionHelper.ACTION_DETAILS -> openConversationDetails(item)
+                        ActionHelper.ACTION_COPY -> presenter.copyNumber(item)
+                        ActionHelper.ACTION_CLEAR -> presenter.clearConversation(item)
+                        ActionHelper.ACTION_DELETE -> presenter.removeConversation(item)
+                        ActionHelper.ACTION_BLOCK -> presenter.blockContact(item)
+                        ActionHelper.ACTION_LOOKUP_NAME -> presenter.lookUpName(item)
+                        ActionHelper.ACTION_LIVE_MONITOR -> showContactConnectionDialog(requireContext(), mAccountService, mConversationFacade, item)
                     }
                 }.show(childFragmentManager, "SmartListFragment")
             }
@@ -241,6 +267,7 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                 R.array.conversation_action_icons
             ) { which ->
                 when (which) {
+                    ActionHelper.ACTION_DETAILS -> openConversationDetails(item)
                     ActionHelper.ACTION_COPY -> presenter.copyNumber(item)
                     ActionHelper.ACTION_CLEAR -> presenter.clearConversation(item)
                     ActionHelper.ACTION_DELETE -> presenter.removeConversation(item)
@@ -249,6 +276,16 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                 }
             }.show(childFragmentManager, "SmartListFragment")
         }
+    }
+
+    private fun openConversationDetails(conversation: Conversation) {
+        (parentFragment as? HomeFragment)?.collapseSearchActionView()
+        val path = ConversationPath(conversation)
+        detailsTargetPath = path
+        conversationDetailsLauncher.launch(
+            Intent(Intent.ACTION_VIEW, path.toUri())
+                .setClass(requireContext().applicationContext, ConversationDetailsActivity::class.java)
+        )
     }
 
     companion object {

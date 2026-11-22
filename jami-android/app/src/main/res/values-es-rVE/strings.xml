@@ -31,8 +31,8 @@
   <!--Write call log permission-->
   <!--Post notifications permission-->
   <string name="permission_dialog_local_network_title">Permitir acceso a la red local</string>
-  <string name="permission_dialog_local_network_message">Jami necesita acceso a la red local para conectar llamadas directamente a los dispositivos de su red. Sin él, las llamadas pueden usar un relé y tener una calidad inferior.</string>
-  <string name="permission_dialog_local_network_blocked_message">El acceso a la red local está deshabilitado para Jami. Las llamadas a dispositivos en su red pueden usar un relé y tener una calidad inferior. Habilite el acceso a la red local para Jami en la configuración del dispositivo.</string>
+  <string name="permission_dialog_local_network_message">白い熊 GNU Jami necesita acceso a la red local para conectar llamadas directamente a los dispositivos de su red. Sin él, las llamadas pueden usar un relé y tener una calidad inferior.</string>
+  <string name="permission_dialog_local_network_blocked_message">El acceso a la red local está deshabilitado para 白い熊 GNU Jami. Las llamadas a dispositivos en su red pueden usar un relé y tener una calidad inferior. Habilite el acceso a la red local para 白い熊 GNU Jami en la configuración del dispositivo.</string>
   <!--QRCode Scan-->
   <!--Settings-->
   <!--Conversation-->

@@ -120,6 +120,8 @@
   <string name="action_call_end_accept">Accepta la trucada entrant i finalitza l\'actual</string>
   <string name="action_call_decline">Rebutja</string>
   <string name="action_call_mic_mute">Silencia el micròfon</string>
+  <string name="action_call_mic_unmute">Activa el so del micròfon</string>
+  <string name="action_call_lower_hand">Man baixa</string>
   <string name="action_load_extension">Carrega l\'extensió</string>
   <string name="ab_action_speakerphone">Activa l\'altaveu</string>
   <string name="ab_action_contact_add">Afegeix als contactes</string>
@@ -132,7 +134,7 @@
   <string name="scan_qr">Escaneja un codi QR</string>
   <string name="qr_code">Codi QR</string>
   <string name="qr_code_not_contact">No és un codi QR de contacte de 白い熊 GNU Jami</string>
-  <string name="new_group">Crea un grup nou</string>
+  <string name="new_group">Grup nou</string>
   <string name="ab_action_flipcamera">Canvia la càmera</string>
   <string name="ab_action_hidepreview">Amaga la previsualització</string>
   <string name="remote_recording">%s gravant...</string>
@@ -470,9 +472,13 @@
   <string name="picker_btn">Seleccionar els contactes</string>
   <string name="no_contact_to_add">No teniu cap contacte per afegir</string>
   <string name="bottomsheet_contact">Contacte amb 白い熊 GNU Jami\n%1$s</string>
+  <string name="bottomsheet_block">Bloqueja el membre</string>
+  <string name="bottomsheet_unblock">Desbloqueja el membre</string>
   <string name="error_open_no_app_found">No s\'ha trobat cap aplicació per gestionar aquest fitxer: %1$s</string>
   <string name="swarm_detail_no_document">Encara no teniu cap document.</string>
   <string name="group_admin">Administrador</string>
+  <string name="group_member_blocked">Bloquejat</string>
+  <string name="group_member_invited">Invitats</string>
   <string name="share_contact_intent_title">Afegiu aquest contacte al 白い熊 GNU Jami!</string>
   <string name="share_contact_intent_body">Podeu afegir aquest contacte «%1$s» a la plataforma de comunicació distribuïda 白い熊 GNU Jami: %2$s</string>
   <!--JamiId-->
@@ -617,4 +623,13 @@
   <string name="shared_services_policy_specific">Contactes específics</string>
   <string name="shared_services_allowed_contacts_hint">Contactes permesos (separats per comes)</string>
   <string name="shared_services_save">Desa</string>
+  <!--Collaborative documents-->
+  <string name="collab_documents">Documents</string>
+  <string name="collab_create">Crear</string>
+  <string name="collab_link_title">Enllaç</string>
+  <string name="collab_link_hint">Adreça</string>
+  <string name="collab_link_add">Afegir</string>
+  <string name="collab_link_remove">Eliminar</string>
+  <string name="collab_remove">Eliminar</string>
+  <!--Threaded conversations-->
 </resources>

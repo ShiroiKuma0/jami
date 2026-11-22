@@ -24,6 +24,7 @@ fun gitOutput(vararg command: String): String = try {
 }
 
 val buildFirebase = project.hasProperty("buildFirebase") || gradle.startParameter.taskRequests.toString().contains("Firebase")
+val buildHuawei = project.hasProperty("buildHuawei") || gradle.startParameter.taskRequests.toString().contains("Huawei")
 
 val collabEditorDir = layout.projectDirectory.dir("src/collabeditor")
 val collabEditorAssets = layout.buildDirectory.dir("generated/collabeditor").get().asFile
@@ -41,7 +42,7 @@ android {
     namespace = "cx.ring"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
-    ndkVersion = "29.0.14206865"
+    ndkVersion = "30.0.16248370"
     defaultConfig {
         // Test twin (-PshiroikumaTwin): a second, fully isolated install for destructive testing.
         // Its own applicationId means its own uid and its own private data directory, so nothing it
@@ -63,8 +64,8 @@ android {
 
         // Upstream's own literals. Read back, never rewritten by the fork -- an upstream bump edits
         // only these two lines and flows through everything below untouched.
-        val upstreamVersionCode = 506
-        val upstreamVersionName = "20261023-01"
+        val upstreamVersionCode = 507
+        val upstreamVersionName = "20261106-01"
 
         // Upstream-base pin. The merge-base of HEAD and master is the upstream commit our patches
         // sit on -- NOT our own HEAD (which +N and the release tag already identify), and NOT
@@ -147,6 +148,9 @@ android {
         viewBinding = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     flavorDimensions += "push"
     productFlavors {
         create("noPush") {
@@ -157,6 +161,10 @@ android {
         }
         create("withUnifiedPush") {
             dimension = "push"
+        }
+        create("withHuaweiPush") {
+            dimension = "push"
+            proguardFile("proguard-huawei.pro")
         }
     }
     signingConfigs {
@@ -245,7 +253,6 @@ configurations {
 dependencies {
     implementation(project(":libjamiclient"))
     implementation(libs.kotlin.stdlib)
-    testImplementation(libs.junit)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
@@ -286,8 +293,15 @@ dependencies {
     // Dagger dependency injection
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
+    kspTest(libs.hilt.android.compiler)
 
-    // Espresso Unit Tests
+    // Local UI tests
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.hilt.android.testing)
+    testImplementation(libs.mockito.core)
+
+    // Native integration tests
     androidTestImplementation(libs.androidx.test.ext.junit.ktx)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
@@ -337,6 +351,9 @@ dependencies {
         exclude(group= "com.google.firebase", module= "firebase-measurement-connector")
     }
 
+    "withHuaweiPushImplementation"(libs.huawei.agconnect.core)
+    "withHuaweiPushImplementation"(libs.huawei.push)
+
     implementation(libs.nanohttpd)
     implementation(libs.androidx.documentfile)
 }
@@ -359,6 +376,11 @@ protobuf {
 if (buildFirebase) {
     println ("apply plugin $buildFirebase")
     apply(plugin = libs.plugins.google.services.get().pluginId)
+}
+
+if (buildHuawei) {
+    println ("apply plugin $buildHuawei")
+    apply(plugin = "com.huawei.agconnect")
 }
 
 // Make sure the native build runs before the Kotlin/Java build

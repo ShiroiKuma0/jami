@@ -97,6 +97,8 @@
   <string name="switch_to_video">Активиране на видео</string>
   <string name="action_call_decline">Отказ</string>
   <string name="action_call_mic_mute">Заглушаване на микрофона</string>
+  <string name="action_call_mic_unmute">Премахване на заглушаването на микрофона</string>
+  <string name="action_call_lower_hand">Ниска ръка</string>
   <string name="ab_action_contact_add">Добавяне към контактите</string>
   <string name="ab_action_contact_add_question">Добавяне към контактите?</string>
   <string name="ab_action_audio_call">Започване на гласов разговор</string>
@@ -105,7 +107,6 @@
   <string name="share_via">Споделяне чрез</string>
   <string name="scan_qr">Сканиране на QR-код</string>
   <string name="qr_code">QR код</string>
-  <string name="new_group">Създаване на нова група</string>
   <string name="ab_action_flipcamera">Обръщане на камерата</string>
   <string name="ab_action_hidepreview">Скрийте предварителното преглеждане</string>
   <string name="remote_recording">Записване на %s...</string>
@@ -337,6 +338,10 @@
   <string name="picker_title">Изберете контакти</string>
   <string name="picker_btn">Изберете контакти</string>
   <string name="bottomsheet_contact">Свържете се с 白い熊 GNU Jami\n%1$s</string>
+  <string name="bottomsheet_block">Блокиране на член</string>
+  <string name="bottomsheet_unblock">Премахване на блокирането на член</string>
+  <string name="group_member_blocked">Блокирано</string>
+  <string name="group_member_invited">Поканени</string>
   <!--JamiId-->
   <string name="jami_id_validate">Регистрирайте потребителско име</string>
   <string name="jami_id_choose_username">Изберете потребителско име</string>
@@ -385,4 +390,13 @@
   <string name="shared_services_policy_hint">Достъпно за</string>
   <string name="shared_services_policy_public">Публично</string>
   <string name="shared_services_save">Запазване</string>
+  <!--Collaborative documents-->
+  <string name="collab_documents">Документи</string>
+  <string name="collab_create">Създаване</string>
+  <string name="collab_link_title">Свързване</string>
+  <string name="collab_link_hint">Адрес</string>
+  <string name="collab_link_add">Добавяне</string>
+  <string name="collab_link_remove">Премахване</string>
+  <string name="collab_remove">Премахване</string>
+  <!--Threaded conversations-->
 </resources>

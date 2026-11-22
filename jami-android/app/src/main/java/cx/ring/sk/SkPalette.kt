@@ -90,6 +90,10 @@ object SkPalette {
         "appbar_gradient_color" to Feed(SkRole.BAR_GROUND, alpha = 0xCC),
         "color_bottom_sheet_background" to Feed(SkRole.SURFACE, alpha = 0xF2),
         "edit_text_background" to Feed(SkRole.FIELD_GROUND),
+        // upstream 20261106-01: the message-input card, and the label chip of contact details
+        "conversation_message_input_background" to Feed(SkRole.BACKGROUND),
+        "contact_label_details_background" to Feed(SkRole.LIST_SELECTED),
+        "contact_label_details_text" to Feed(SkRole.TEXT),
         // accent
         "colorPrimary" to Feed(SkRole.ACCENT),
         "colorSecondary" to Feed(SkRole.ACCENT),

@@ -61,6 +61,7 @@ class JamiApplicationUnifiedPush : JamiApplication() {
      *  token and moved the proxy clients to streaming LISTEN — do not undo that from a late token
      *  arrival; store it and let the watchdog restore on its own exit path. */
     fun registerSelectedToken() {
+        if (!isRuntimeReady) return   // upstream's backup gate: no daemon calls before the runtime is up
         if (cx.ring.utils.ConnectionWatchdog.isNoPushAdaptive()) {
             Log.d(TAG, "adaptive no-push active — token registration deferred")
             // …but tell the watchdog a token now EXISTS. Deferring was right; leaving the decision
@@ -218,6 +219,8 @@ class JamiApplicationUnifiedPush : JamiApplication() {
 
     /** UnifiedPush message arrival (JamiPushService.onMessage). */
     fun onMessage(remoteMessage: Map<String, String>) {
+        if (!prepareRuntime()) return
+        bootstrapDaemon()
         if (PushEvidence.noteIfProbe(remoteMessage)) return   // self-test echo — not for the daemon
         PushEvidence.noteRealPush()
         PushEvidence.noteAccountPush(remoteMessage)

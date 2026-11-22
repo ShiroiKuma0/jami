@@ -133,8 +133,9 @@ class ConversationFacade(
 
     fun sendTextMessage(c: Conversation, to: Uri, txt: String, replyTo: String? = null): Completable {
         if (c.isSwarm) {
-            mAccountService.sendConversationMessage(c.accountId, c.uri, txt, replyTo)
-            return Completable.complete()
+            return Completable.fromAction {
+                mAccountService.sendConversationMessage(c.accountId, c.uri, txt, replyTo)
+            }
         }
         return mCallService.sendAccountTextMessage(c.accountId, to.rawUriString, txt)
             .map { id: Long ->
@@ -158,16 +159,19 @@ class ConversationFacade(
         mCallService.setIsComposing(accountId, conversationUri.uri, isComposing)
     }
 
-    fun sendFile(conversation: Conversation, to: Uri, file: File, replyTo: String = ""): Completable {
+    fun sendFile(
+        conversation: Conversation, to: Uri, file: File, replyTo: String? = null
+    ): Completable = Completable.fromAction {
+        conversation.requirePermission(
+            if (replyTo.isNullOrEmpty()) Conversation.Permission.File else Conversation.Permission.FileReply)
         if (!file.exists() || !file.canRead()) {
-            return Completable.error(IllegalArgumentException("file not found or not readable"))
+            throw IllegalArgumentException("file not found or not readable")
         }
         if (conversation.isSwarm) {
             val destPath = mDeviceRuntimeService.getNewConversationPath(conversation.accountId, conversation.uri.rawRingId, file.name)
             moveFile(file, destPath)
             mAccountService.sendFile(conversation, destPath, replyTo)
         }
-        return Completable.complete()
     }
 
     /**
@@ -236,6 +240,7 @@ class ConversationFacade(
             localRecordingFile(element)?.let { return deleteLocalRecording(conversation, element, it) }
 
         if (conversation.isSwarm) {
+            conversation.requireMessageDeletion(element)
             if (element is DataTransfer) {
                 if (element.transferStatus === TransferStatus.TRANSFER_ONGOING) {
                     mAccountService.cancelDataTransfer(conversation.accountId, conversation.uri.rawRingId, element.messageId, element.fileId!!)

@@ -24,8 +24,8 @@ import android.content.*
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.IBinder
+import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.system.Os
@@ -43,6 +43,9 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.bumptech.glide.Glide
 import cx.ring.BuildConfig
 import cx.ring.service.ActiveServiceMonitor
+import cx.ring.backup.AccountDataBackup
+import cx.ring.backup.JamiBackupAgent
+import cx.ring.backup.PortableSettingsBackup
 import cx.ring.service.ConnectionService
 import cx.ring.R
 import cx.ring.service.DRingService
@@ -51,6 +54,7 @@ import cx.ring.service.PeerTunnelForegroundService
 import cx.ring.linkpreview.LinkPreview
 import cx.ring.services.AndroidExposedServicesService
 import cx.ring.services.CallServiceImpl.Companion.CONNECTION_SERVICE_TELECOM_API_SDK_COMPATIBILITY
+import cx.ring.services.DaemonNetworkMonitor
 import cx.ring.utils.AndroidFileUtils
 import cx.ring.views.AvatarFactory
 import io.reactivex.rxjava3.core.Completable
@@ -62,6 +66,7 @@ import net.jami.daemon.JamiService
 import net.jami.services.*
 import java.io.File
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -73,6 +78,8 @@ abstract class JamiApplication : Application() {
         private val TAG = JamiApplication::class.java.simpleName
         const val DRING_CONNECTION_CHANGED = BuildConfig.APPLICATION_ID + ".event.DRING_CONNECTION_CHANGE"
         const val PERMISSIONS_REQUEST = 57
+        /** See startNetworkMonitoring(): the fork keeps connectivity handling in DRingService. */
+        private const val FORK_MONITORS_NETWORK_IN_SERVICE = true
         private val RINGER_FILTER = IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION)
         var instance: JamiApplication? = null
 
@@ -541,7 +548,26 @@ abstract class JamiApplication : Application() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleObserver)
     }
 
+    protected open fun onRuntimeReady() {}
+
+    /** Upstream 6ae921cb9 re-arms the Firebase flavor's background deactivation after a
+     *  connectivity change; that policy lives in this base class in the fork, so the re-arm does too. */
+    protected open fun onNetworkConnectivityChanged() {
+        backgroundHandler.post { if (!isAppVisible()) scheduleBackgroundDeactivation() }
+    }
+
+    @Volatile
+    private var runtimeInitialized = false
+    private var runtimeRequested = false
+    val isRuntimeReady: Boolean
+        get() = runtimeInitialized && !JamiBackupAgent.isActive
+    internal open val isDaemonRunning: Boolean
+        get() = ::daemon.isInitialized && daemon.isStarted
+
+    private val appInForeground = BehaviorSubject.createDefault(true)
+
     private var mBound = false
+    private lateinit var networkMonitor: DaemonNetworkMonitor
     private val mConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, s: IBinder) {
             Log.d(TAG, "onServiceConnected: " + className.className)
@@ -569,17 +595,26 @@ abstract class JamiApplication : Application() {
     }
 
     fun bootstrapDaemon() {
+        runtimeRequested = true
+        val backupGeneration = JamiBackupAgent.generation
+        if (!prepareRuntime()) return
         if (daemon.isStarted) {
+            startNetworkMonitoring()
             return
         }
         Log.d(TAG, "bootstrapDaemon")
         mExecutor.execute {
             try {
                 Log.d(TAG, "bootstrapDaemon: START")
-                if (daemon.isStarted) {
-                    return@execute
+                val started = synchronized(JamiBackupAgent.runtimeLock) {
+                    if (!JamiBackupAgent.canStartRuntime(backupGeneration) || daemon.isStarted) {
+                        false
+                    } else {
+                        daemon.startDaemon()
+                        true
+                    }
                 }
-                daemon.startDaemon()
+                if (!started) return@execute
 
                 // Check if the camera hardware feature is available.
                 if (mDeviceRuntimeService.hasVideoPermission()) {
@@ -608,6 +643,7 @@ abstract class JamiApplication : Application() {
                 sendBroadcast(Intent(DRING_CONNECTION_CHANGED).apply {
                     putExtra("connected", daemon.isStarted)
                 })
+                startNetworkMonitoring()
                 scheduleRefreshJob()
             } catch (e: Exception) {
                 Log.e(TAG, "DRingService start failed", e)
@@ -625,21 +661,31 @@ abstract class JamiApplication : Application() {
                 .build())
     }
 
-    private fun terminateDaemon() {
-        val stopResult = mExecutor.submit<Boolean> {
-            unregisterReceiver(ringerModeListener)
-            daemon.stopDaemon()
-            val intent = Intent(DRING_CONNECTION_CHANGED)
-            intent.putExtra("connected", daemon.isStarted)
-            sendBroadcast(intent)
-            true
+    private fun startNetworkMonitoring() {
+        // shiroikuma: connectivity monitoring stays in DRingService, where the fork's debounced
+        // settle, path-change reconnect and watchdogs live. Running upstream's DaemonNetworkMonitor
+        // (6ae921cb9) beside it would report every change to the daemon twice, and its immediate
+        // onLost handling is exactly what the debounce replaced. DRingService calls
+        // [notifyNetworkConnectivityChanged] instead, so upstream's re-arm hook still fires.
+        if (FORK_MONITORS_NETWORK_IN_SERVICE) return
+        Handler(mainLooper).post {
+            if (!isRuntimeReady || !isDaemonRunning) return@post
+            if (!::networkMonitor.isInitialized) {
+                networkMonitor = DaemonNetworkMonitor(
+                    this, { isRuntimeReady && isDaemonRunning },
+                    mAccountService, mCallService, hardwareService, mPreferencesService,
+                    ::onNetworkConnectivityChanged
+                )
+            }
+            networkMonitor.start()
         }
-        try {
-            stopResult.get()
-            mExecutor.shutdown()
-        } catch (e: Exception) {
-            Log.e(TAG, "DRingService stop failed", e)
-        }
+    }
+
+    /** Called by DRingService after it has pushed a connectivity state to the daemon. */
+    fun notifyNetworkConnectivityChanged() = onNetworkConnectivityChanged()
+
+    internal fun resumeAfterBackup() {
+        if (runtimeRequested) bootstrapDaemon()
     }
 
     override fun onCreate() {
@@ -652,6 +698,35 @@ abstract class JamiApplication : Application() {
         cx.ring.utils.DiagFiles.init(this)
         // SMS-over-Jami bridge: tap the daemon callbacks before any account loads (cx.ring.automation.Bridge).
         cx.ring.automation.Bridge.install(this)
+        setupActivityListener()
+        // shiroikuma: start the daemon with the process, as before upstream 31ab7c557 made it
+        // wait for the first activity or push. The fork's watchdog alarms, automation receivers
+        // and boot path all assume a process that is up has a daemon; upstream's backup gate
+        // still holds, since bootstrapDaemon() declines while JamiBackupAgent is active.
+        bootstrapDaemon()
+    }
+
+    fun prepareRuntime(): Boolean {
+        if (JamiBackupAgent.isActive) return false
+        if (Looper.myLooper() != mainLooper) {
+            val preparation = FutureTask { prepareRuntime() }
+            Handler(mainLooper).post(preparation)
+            return preparation.get()
+        }
+        try {
+            if (AccountDataBackup.hasPending(this)) {
+                check(!isDaemonRunning) { "Account restore requires a stopped daemon" }
+                AccountDataBackup.applyPending(this)
+            }
+            if (PortableSettingsBackup.applyPending(this)) {
+                mPreferencesService.reloadSettings()
+                mPreferencesService.loadDarkMode()
+            }
+        } catch (exception: Exception) {
+            Log.e(TAG, "Unable to complete device restore; runtime startup deferred", exception)
+            return false
+        }
+        if (runtimeInitialized) return true
         LinkPreview.init(this)
 
         // Re-assert the user's chosen app language. Some ROMs (EMUI) don't keep the system
@@ -711,7 +786,6 @@ abstract class JamiApplication : Application() {
             }
         }
 
-        bootstrapDaemon()
         mPreferencesService.loadDarkMode()
         Completable.fromAction {
             val caRootFile = getString(R.string.ca_root_file)
@@ -731,15 +805,19 @@ abstract class JamiApplication : Application() {
         }
             .subscribeOn(Schedulers.io())
             .subscribe()
-        setupActivityListener()
+        runtimeInitialized = true
+        setupBackgroundServiceListener()
         registerBackgroundOptimization()
+        onRuntimeReady()
+        return true
     }
 
     fun startDaemon(activityContext: Context) {
+        if (!prepareRuntime()) return
+        bootstrapDaemon()
         if (!DRingService.isRunning) {
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                        && mPreferencesService.settings.enablePermanentService) {
+                if (mPreferencesService.settings.enablePermanentService) {
                     startForegroundService(Intent(this, DRingService::class.java))
                 } else {
                     startService(Intent(this, DRingService::class.java))
@@ -753,6 +831,7 @@ abstract class JamiApplication : Application() {
     }
 
     fun bindDaemon() {
+        if (!prepareRuntime()) return
         if (!mBound) {
             try {
                 bindService(Intent(this, DRingService::class.java), mConnection, BIND_AUTO_CREATE or BIND_IMPORTANT or BIND_ABOVE_CLIENT)
@@ -764,17 +843,21 @@ abstract class JamiApplication : Application() {
 
     override fun onTerminate() {
         super.onTerminate()
-        terminateDaemon()
         instance = null
     }
 
     private fun setupActivityListener() {
         var startedActivityCount = 0
-        val appInForeground = BehaviorSubject.createDefault(true)
 
         cx.ring.sk.SkTheme.install(this)   // 白い熊: the black-yellow theme, before any screen is built
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityPreCreated(activity: Activity, bundle: Bundle?) {
+                bootstrapDaemon()
+            }
+
             override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
+                bootstrapDaemon()
+                if (!isRuntimeReady) return
                 if (mPreferencesService.settings.isRecordingBlocked) {
                     activity.window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
                 }
@@ -795,7 +878,9 @@ abstract class JamiApplication : Application() {
             override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })
+    }
 
+    private fun setupBackgroundServiceListener() {
         Observable.combineLatest(
             appInForeground,
             peerServicesService.observeAnyActiveTunnel(),

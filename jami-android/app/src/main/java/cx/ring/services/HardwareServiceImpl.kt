@@ -297,7 +297,13 @@ class HardwareServiceImpl(
     }
 
     private fun setOutputMuted(muted: Boolean) {
-        if (mIsOutputMuted == muted) return
+        if (mIsOutputMuted == muted) {
+            if (JamiService.isPlaybackMuted() != muted) {
+                Log.w(TAG, "Syncing daemon playback mute state to $muted")
+                JamiService.mutePlayback(muted)
+            }
+            return
+        }
         mIsOutputMuted = muted
         Log.w(TAG, "setOutputMuted $muted")
         JamiService.mutePlayback(muted)
@@ -314,6 +320,9 @@ class HardwareServiceImpl(
     @Synchronized
     override fun updateAudioState(conf: Conference?, call: Call, incomingCall: Boolean, isOngoingVideo: Boolean) {
         Log.d(TAG, "updateAudioState $conf: Call state updated to ${call.callStatus} Call is incoming: $incomingCall Call is video: $isOngoingVideo")
+        if (call.callStatus.isOver || !mIsOutputMuted) {
+            setOutputMuted(false)
+        }
         disposables.add(call.systemConnection.map {
                 (it as CallServiceImpl.AndroidCall).connection!!
             }
@@ -365,7 +374,7 @@ class HardwareServiceImpl(
 
     @Synchronized
     override fun closeAudioState() {
-        if (mIsOutputMuted) setOutputMuted(false)
+        setOutputMuted(false)
         mUserSelectedOutput = null // shiroikuma: a choice lasts for one call, not forever
         abandonAudioFocus()
     }
@@ -460,7 +469,7 @@ class HardwareServiceImpl(
     @Synchronized
     override fun toggleSpeakerphone(conf: Conference, checked: Boolean) {
         Log.w(TAG, "toggleSpeakerphone $conf $checked")
-        if (mIsOutputMuted) setOutputMuted(false)
+        setOutputMuted(false)
 
         conf.call?.let { call ->
             val hasVideo = conf.hasActiveVideo()
@@ -480,6 +489,7 @@ class HardwareServiceImpl(
                     }) {
                         // Fallback to the AudioManager API
                         JamiService.setAudioPlugin(JamiService.getCurrentAudioOutputPlugin())
+                        JamiService.mutePlayback(mIsOutputMuted)
                         mShouldSpeakerphone = checked
                         if (mHasSpeakerPhone && checked) {
                             routeToSpeaker()
@@ -542,7 +552,7 @@ class HardwareServiceImpl(
             setOutputMuted(true)
             return
         }
-        if (mIsOutputMuted) setOutputMuted(false)
+        setOutputMuted(false)
 
         conf.call?.let { call ->
             disposables.add(
@@ -554,6 +564,7 @@ class HardwareServiceImpl(
                         it.setWantedAudioState(routeListForOutput(output), output.outputId)
                     }) {
                         JamiService.setAudioPlugin(JamiService.getCurrentAudioOutputPlugin())
+                        JamiService.mutePlayback(mIsOutputMuted)
                         when (output.type) {
                             AudioOutputType.SPEAKERS -> {
                                 mShouldSpeakerphone = true

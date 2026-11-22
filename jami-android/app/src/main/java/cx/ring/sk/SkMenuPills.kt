@@ -55,7 +55,7 @@ object SkMenuPills {
         R.id.conv_action_peer_services to Row(SkIconRole.VIEW, true),
         R.id.conv_action_audiocall to Row(SkIconRole.CALL),
         R.id.conv_action_videocall to Row(SkIconRole.CALL),
-        R.id.conv_contact_details to Row(SkIconRole.CONTACT, true),
+        R.id.conv_conversation_details to Row(SkIconRole.CONTACT, true),
         R.id.conv_search to Row(SkIconRole.VIEW, true),
         R.id.contact_search to Row(SkIconRole.VIEW, true),
         // a file or a picture

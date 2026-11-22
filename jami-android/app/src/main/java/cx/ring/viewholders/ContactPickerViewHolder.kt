@@ -16,75 +16,74 @@
  */
 package cx.ring.viewholders
 
+import android.view.View
+import android.view.accessibility.AccessibilityEvent
 import android.view.animation.AlphaAnimation
 import android.view.animation.DecelerateInterpolator
+import android.widget.CheckBox
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import cx.ring.databinding.ItemContactBinding
-import cx.ring.utils.DeviceUtils
 import cx.ring.views.AvatarDrawable
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import net.jami.model.*
-import net.jami.services.ConversationFacade
+import net.jami.model.Uri
 import net.jami.smartlist.ConversationItemViewModel
 
-class ContactPickerViewHolder(b: ItemContactBinding, private val conversationFacade: ConversationFacade) :
-    RecyclerView.ViewHolder(b.root) {
-    private val binding: ItemContactBinding = b
+class ContactPickerViewHolder(private val binding: ItemContactBinding) :
+    RecyclerView.ViewHolder(binding.root) {
     private var currentUri: Uri? = null
-    private val compositeDisposable = CompositeDisposable()
+    private var isChecked = false
+
+    init {
+        ViewCompat.setAccessibilityDelegate(itemView, object : AccessibilityDelegateCompat() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = CheckBox::class.java.name
+                info.text = binding.displayName.text
+                info.isCheckable = true
+                info.isChecked = isChecked
+            }
+        })
+    }
 
     private fun fadeIn() = AlphaAnimation(0f, 1f).apply {
         interpolator = DecelerateInterpolator()
         duration = itemView.context.resources.getInteger(android.R.integer.config_mediumAnimTime).toLong()
     }
 
-    fun bind(clickListener: ContactPickerListeners, conversation: ConversationItemViewModel) {
-        compositeDisposable.clear()
+    fun bind(
+        conversation: ConversationItemViewModel,
+        checked: Boolean,
+        onClick: (ConversationItemViewModel) -> Unit
+    ) {
         if (conversation.uri != currentUri) {
             currentUri = conversation.uri
-            binding.quickCall.isVisible = false
             binding.photo.setAvatar(null)
         }
 
-        itemView.setOnClickListener { clickListener.onItemClick(conversation) }
-        itemView.setOnLongClickListener {
-            clickListener.onItemLongClick(conversation)
-            true
-        }
+        itemView.setOnClickListener { onClick(conversation) }
 
         binding.displayName.text = conversation.title
-        val fade = binding.photo.setAvatar(AvatarDrawable.Builder()
-            .withViewModel(conversation)
-            .withCircleCrop(true)
-            .build(binding.photo.context))
+        val selectionChanged = isChecked != checked
+        isChecked = checked
+        binding.contactSelected.isVisible = checked
+        if (selectionChanged) {
+            itemView.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
+        }
+        val fade = binding.photo.setAvatar(
+            AvatarDrawable.Builder()
+                .withViewModel(conversation)
+                .withCheck(false)
+                .withCircleCrop(true)
+                .build(binding.photo.context)
+        )
         if (fade)
             binding.photo.startAnimation(fadeIn())
-
-        // The list itself comes from a presence-less snapshot, so the avatar above carries no dot.
-        // Subscribe to the live model — the same one the smart list uses — purely for the dot, so
-        // the picker agrees with the chat list behind it instead of painting everyone offline.
-        // Check state stays with the row's own model: the live one is a fresh, unchecked instance.
-        compositeDisposable.add(
-            conversationFacade.observeConversation(conversation.accountId, conversation.uri, true)
-                .onErrorComplete()
-                .observeOn(DeviceUtils.uiScheduler)
-                .subscribe { live ->
-                    binding.photo.setAvatar(AvatarDrawable.Builder()
-                        .withViewModel(live)
-                        .withCircleCrop(true)
-                        .withCheck(conversation.isChecked)
-                        .build(binding.photo.context))
-                })
     }
 
     fun unbind() {
-        compositeDisposable.clear()
         binding.photo.setAvatar(null)
-    }
-
-    interface ContactPickerListeners {
-        fun onItemClick(item: ConversationItemViewModel)
-        fun onItemLongClick(item: ConversationItemViewModel)
     }
 }
