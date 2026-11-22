@@ -7,6 +7,65 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+032` — 2026-11-22
+
+Same upstream base (**20261023-01** at `2ec1e272f`). Sent files now tell you what happened to
+them, the automation bridge can accept and track a file on a phone nobody touches, and a leak that
+kept every old screen in memory is closed.
+
+### 📎 Sent files: you can see the bytes leave
+
+- The blue “sent” marker only ever meant that the file *message* was fetched; the bytes are pulled
+  by the receiver afterwards, and stock shows the sender nothing about that. The sent-file bubble
+  now does: while a peer pulls the file its size line reads **`4.2 MB / 17.84 MB`**, refreshed about
+  once a second, and once every byte has been written it reads **`17.84 MB · handed over`**
+  (転送済 / předáno). The note survives a restart.
+- What it proves: all bytes were written to a peer. Not which peer in a group, and not that the
+  receiver verified its copy. The “sent” marker itself is unchanged.
+- The byte count comes from a new daemon patch, `patches/jami-outgoing-transfer-progress.patch`:
+  the daemon announces the start of a pull to the sending side and serves the running count.
+
+### 🤖 Automation bridge, version 4
+
+- **`bridge_accept_file` works on a phone nobody opens.** It used to need the message loaded in the
+  app's own UI model, which a headless phone does not have after a restart — the accept answered
+  “message not loaded” and silently never happened. It now asks the daemon directly, and returns
+  what it did: `started`, `already_finished` or `already_in_progress`, or the daemon's refusal.
+- **New `bridge_file_state`** reports where a received file stands — `finished`, `in_progress`,
+  `accepted_waiting`, `not_started` or `unknown` — with bytes of total. An interrupted download
+  shows as `accepted_waiting` with a byte count, and the next accept resumes it.
+- The sending phone's journal now also gets a `TRANSFER_ONGOING` file-state event when a peer
+  starts pulling.
+
+### 🧠 Memory
+
+- **Leak fixed:** the accessibility manager kept a listener from every home screen ever created,
+  and with it the whole screen — seven Activity objects for one live screen after a week. The
+  listener is now removed with its view; the backup panel releases its screen the same way.
+- **Settings → Diagnostics → Memory & retained screens** (off by default): one line per interval in
+  `diag/memory-log.txt` with total, native, Java and graphics memory, the thread count, the live
+  screens and any destroyed screen that is still held, named by class.
+
+### 🛟 Watchdog
+
+- A “not receiving” verdict on an account is now withdrawn by anything that arrives after it, even
+  while the accounts sleep. Before, such an account could wake still marked red and be escalated to
+  a full proxy cycle although it had just received.
+
+### 🎨 Settings and texts
+
+- Every row on the 白い熊 settings pages that does something when tapped is now an outlined pill;
+  the main action of a block has the thick frame.
+- The hexagon's long-press tooltip and its help paragraph described the shapes the wrong way round.
+  Corrected in English, Japanese and Czech: **filled = DHT proxy, hollow = full DHT**.
+
+### 🩺 Diagnostic files
+
+- No diagnostic file is named `*.log` any more — EMUI's nightly clean-up deletes those. The
+  watchdog incidents file is `watchdog-incidents.txt`; old files are renamed on start.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+026` — 2026-11-03
 
 Same upstream base (**20261023-01** at `2ec1e272f`). Diagnostics get one home for their files,
