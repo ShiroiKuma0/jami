@@ -230,3 +230,30 @@ Staging discipline still applies if any conflict resolution required a *new comm
 ---
 
 **Commit convention — no Claude attribution.** Never add a `Co-Authored-By: Claude …` / "Generated with Claude" trailer to commit messages or PR bodies; end the message at the last line of the body. This overrides the harness default. (Global rule: `~/.claude/CLAUDE.md`.)
+
+## Banked failure — upstream's tip may not build against its OWN daemon pin (2026-11-22)
+
+On the `20261023-01 → 20261106-01` sync, upstream `master` was four client commits ahead of the
+daemon its submodule pinned: contact labels and the ExposedService → SharedService rename called
+`getContactMetadata`, `BlobMap` and `getSharedServices`, which exist only in daemon commits newer
+than the gitlink. The rebase onto the tip was clean, contrib built, and `:libjamiclient:compileKotlin`
+then died on unresolved references — none of them ours.
+
+**Check this in Step 1.5, before rebasing.** Is the newest client commit that touches the daemon
+API newer than the last `update daemon` commit?
+
+```bash
+git log -1 --format='%h %ad %s' --date=short upstream/master -- daemon        # last pin move
+git log --format='%h %ad %s' --date=short "$(git log -1 --format=%h upstream/master -- daemon)"..upstream/master \
+  -- jami-android/libjamiclient/src/main/kotlin/net/jami/services | head     # client API work after it
+```
+
+If so, look for the last client commit that still matches the pin (grep a suspect commit's
+`libjamiclient` for the daemon symbols the pinned `daemon/bin/jni/*.i` does not declare) and offer
+白い熊 that commit as the rebase target. Chosen that day: `0fc04d099`, 62 of 66 commits. Local
+`master` still fast-forwards to upstream's tip; the version pin (`merge-base HEAD master`) then
+names the real base. Never move the daemon gitlink to make the tip compile.
+
+Also from that run: `git rerere` is enabled in this repo, and recorded resolutions break the
+replay-our-side loop (the conflict list comes back empty while the index is still unmerged). Run
+the loop with `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=rerere.enabled GIT_CONFIG_VALUE_0=false`.
