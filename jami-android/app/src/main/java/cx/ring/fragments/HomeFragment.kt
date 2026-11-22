@@ -596,9 +596,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             requireContext().getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
         adjustLayoutForAccessibility(accessibilityManager.isEnabled )
 
-        accessibilityManager.addAccessibilityStateChangeListener { isEnabled ->
+        // SK-A11YLEAK (2026-11-13): AccessibilityManager is a process-wide singleton that holds its
+        // listeners strongly, and upstream never removed this one — so every HomeFragment view ever
+        // created stayed reachable, and with it the whole HomeActivity (process monitor: 7 Activity
+        // objects for 1 live screen after 7 days). Kept in a field and removed in onDestroyView.
+        a11yListener?.let { accessibilityManager.removeAccessibilityStateChangeListener(it) }
+        a11yListener = AccessibilityManager.AccessibilityStateChangeListener { isEnabled ->
             adjustLayoutForAccessibility(isEnabled)
-        }
+        }.also { accessibilityManager.addAccessibilityStateChangeListener(it) }
 
         mSmartListFragment = mBinding!!.fragmentContainer.getFragment()
 
@@ -618,8 +623,15 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         }
     }
 
+    private var a11yListener: AccessibilityManager.AccessibilityStateChangeListener? = null
+
     override fun onDestroyView() {
         super.onDestroyView()
+        a11yListener?.let {
+            (context?.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager)
+                ?.removeAccessibilityStateChangeListener(it)
+        }
+        a11yListener = null
         mSmartListFragment = null
         pendingAdapter = null
         searchAdapter = null

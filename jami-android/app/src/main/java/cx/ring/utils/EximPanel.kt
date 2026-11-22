@@ -186,6 +186,10 @@ object EximPanel {
         syncButtons(ctx, ui)
         dialog.setOnDismissListener {
             current = null
+            // SK-A11YLEAK sweep (2026-11-13): EximJob holds its listener statically, and that lambda
+            // captures this panel's Activity context — release it once nothing is running. A job still
+            // running keeps it until done (below), so the outcome toast still arrives.
+            if (!EximJob.running) EximJob.observe(null)
             onClosed?.invoke()
         }
         // Granting the permission means leaving for the system settings screen and coming back to a
@@ -260,6 +264,7 @@ object EximPanel {
                 if (done) main().post {
                     Flash.show(app, error?.let { app.getString(R.string.sk_exim_failed, it) }
                         ?: app.getString(R.string.sk_exim_done), Toast.LENGTH_LONG)
+                    if (current == null) EximJob.observe(null)   // panel gone: drop its Activity
                 }
                 return@observe
             }
