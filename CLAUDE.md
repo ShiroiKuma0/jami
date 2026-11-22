@@ -174,6 +174,37 @@ Two recent fixes — **already shipped, do not re-implement**:
 - Confirm the daemon gitlink: `[ "$(git ls-tree origin/custom daemon | awk '{print $3}')" = "$(git ls-tree upstream/master daemon | awk '{print $3}')" ] && echo OK`.
 - If there's an unbuilt patch sitting in `~/tmp/` from the previous session, look at it before assuming the tree is clean — apply it (or discard it deliberately) before starting new work.
 
+## The black-yellow theme (`cx.ring.sk`, 2026-11-22) — what a rebase must keep
+
+The whole look is the global **black-yellow-theme** skill, applied the **mixed way** (白い熊, 2026-11-22):
+upstream's layouts are NOT edited for colour; roles are laid over colour resources at run time.
+
+- **Role table:** `cx/ring/sk/SkRoles.kt` (`SkRole`, by `SkSection`). `res/values/sk_roles.xml` is GENERATED
+  from it (one `sk_role_<name>` per role, the computed default) — a new role needs a line there.
+- **Loader:** `SkPalette.kt` feeds every `sk_role_*` resource AND upstream's own colour names (table
+  `UPSTREAM`, by name through `getIdentifier`, so a name upstream drops does not break the build) through
+  `com/google/android/material/color/SkColorLoaderBridge.java`. Android 11+ only.
+- **`res/values-night/colors.xml` is DELETED on purpose** and its values are folded into `values/colors.xml`:
+  a night-qualified copy of a colour beats the loader. On a rebase, re-delete it and fold any new night
+  value in. Never add a `sk_role_*` colour to a qualified `values-*/`.
+- **Theme overlay:** `res/values/sk_theme.xml` (`ThemeOverlay.Sk`), applied to every non-TV activity by
+  `SkTheme.onActivityPreCreated` (registered in `JamiApplication`). It names `viewInflaterClass =
+  cx.ring.sk.SkViewInflater` (pills, floating rings, switches, selection marks).
+- **Menus:** `res/layout/abc_popup_menu_item_layout.xml` and `abc_cascading_menu_item_layout.xml` are
+  verbatim copies of **AppCompat 1.8.0** with the root swapped for `cx.ring.sk.SkPillMenuItemView`. When
+  `appcompat` in `gradle/libs.versions.toml` moves, diff them against the new library copies. A new menu
+  item gets a line in `SkMenuPills.ROWS`. `androidx/appcompat/view/menu/SkMenuAccess.kt` lives in
+  AppCompat's package to read a package-visible field.
+- **The fork's own shape drawables are colourless stubs** (`<drawable class="cx.ring.sk.SkShape" …/>`,
+  ten of them: `dialog_black_yellow`, `bottomsheet_black_yellow`, `badge_black_yellow`,
+  `background_item_smartlist_unread`, `compose_input_border`, `call_duration_bg`, `dot_alarm_ring`,
+  `shiroikuma_call_{accept,decline,silence}_bg`). `SkShape.kt` builds them in code from the roles their
+  attributes name. A new fork shape is a new stub, never a `<shape>` with a colour. Upstream's own shape
+  files may keep naming a role resource — that is the mixed way.
+- **Fork layouts and shapes name role resources, never literals.** A new `#RRGGBB` in XML or a colour
+  literal in fork Kotlin is a defect: use `@color/sk_role_*` / `skColor(SkRole.X)`.
+- **TV screens (`cx.ring.tv`) are out of scope** (白い熊, 2026-11-22).
+
 ## Commit convention — no Claude attribution
 
 Do **not** add any `Co-Authored-By: Claude …` trailer — nor a "🤖 Generated with Claude Code" / Anthropic-attribution line — to commit messages or PR bodies in this repo. 白い熊 does not want Claude attribution in the history; this **overrides** the harness's default to append such a trailer. End commit messages at the last line of the body. (The existing history was scrubbed of these trailers on 2026-06-08; the global rule lives in `~/.claude/CLAUDE.md`.)

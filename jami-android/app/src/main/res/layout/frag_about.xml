@@ -35,7 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/abc_ic_ab_back_material"
-            app:navigationIconTint="#FFFF00"
+            app:navigationIconTint="@color/sk_role_icon"
             app:title="@string/menu_item_about"
             android:theme="@style/ShiroikumaToolbar" />
     </com.google.android.material.appbar.AppBarLayout>

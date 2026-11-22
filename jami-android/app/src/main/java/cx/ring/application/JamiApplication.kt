@@ -772,6 +772,7 @@ abstract class JamiApplication : Application() {
         var startedActivityCount = 0
         val appInForeground = BehaviorSubject.createDefault(true)
 
+        cx.ring.sk.SkTheme.install(this)   // 白い熊: the black-yellow theme, before any screen is built
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
                 if (mPreferencesService.settings.isRecordingBlocked) {

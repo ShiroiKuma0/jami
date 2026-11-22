@@ -268,7 +268,7 @@ class AudioMessageRecorderFragment : BottomSheetDialogFragment() {
             cornerRadii = floatArrayOf(corner, corner, corner, corner, 0f, 0f, 0f, 0f)
             setColor(translucentSurface)
             // Same yellow border as the fork's other sheets, frosted fill and all.
-            setStroke((2f * density).toInt(), 0xFFFFFF00.toInt())
+            setStroke((2f * density).toInt(), cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT))
         })
         return true
     }

@@ -113,12 +113,20 @@ object FontUtil {
         // icons are themed by DEFAULT (2026-07-24: yellow icons across all settings pages) —
         // SETTINGS_ICON's default is the palette yellow, and stays user-settable.
         val text = if (ColorPrefs.isSet(ctx, ColorPrefs.SETTINGS)) ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS) else null
-        colorTree(root, text, ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS_ICON))
+        // Icons: coloured by what their row does (black-yellow theme) unless the user picked one
+        // colour for all settings icons.
+        val icon = if (ColorPrefs.isSet(ctx, ColorPrefs.SETTINGS_ICON)) ColorPrefs.getColor(ctx, ColorPrefs.SETTINGS_ICON) else null
+        colorTree(root, text, icon)
     }
-    private fun colorTree(root: View?, textColor: Int?, iconColor: Int) {
+    private fun colorTree(root: View?, textColor: Int?, iconColor: Int?) {
         if (root?.tag == SKIP_SETTINGS_FONT_TAG) return
         when (root) {
-            is android.widget.ImageView -> root.imageTintList = android.content.res.ColorStateList.valueOf(iconColor)
+            is android.widget.ImageView -> when {
+                iconColor != null -> root.imageTintList = android.content.res.ColorStateList.valueOf(iconColor)
+                // A preference row: its icon drawable was tinted by its key (SkRowIcons.tintPreferences).
+                root.id == android.R.id.icon -> root.imageTintList = null
+                else -> cx.ring.sk.SkRowIcons.tint(root)
+            }
             is TextView -> if (textColor != null) root.setTextColor(textColor)
             is ViewGroup -> for (i in 0 until root.childCount) colorTree(root.getChildAt(i), textColor, iconColor)
         }

@@ -1604,7 +1604,13 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
 
         outputs.forEach { output ->
             val itemView = layoutInflater.inflate(R.layout.item_audio_output_option, container, false)
-            itemView.findViewById<ImageView>(R.id.audio_output_icon).setImageResource(audioOutputIconRes(output))
+            itemView.findViewById<ImageView>(R.id.audio_output_icon).apply {
+                setImageResource(audioOutputIconRes(output))
+                // Coloured by what the row does: an output connects the call, "mute" blocks it.
+                imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.sk.skColor(
+                    if (output.type == HardwareService.AudioOutputType.MUTE) cx.ring.sk.SkIconRole.BLOCK
+                    else cx.ring.sk.SkIconRole.CALL))
+            }
             itemView.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.audio_output_title).text = audioOutputLabel(output)
             itemView.findViewById<ImageView>(R.id.audio_output_selected).isVisible = isCurrentAudioOutput(currentOutput, output)
             itemView.setOnClickListener {
@@ -1743,7 +1749,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         val rows = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
         fun header(text: String) = rows.addView(android.widget.TextView(ctx).apply {
             this.text = text
-            setTextColor(0xFFAAAAAA.toInt())
+            setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(dp(24), dp(10), dp(24), dp(2))
         })
@@ -1774,7 +1780,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
         val input = android.widget.EditText(ctx).apply {
             hint = getString(R.string.sk_decline_hint)
             setTextColor(yellow)
-            setHintTextColor(0xFF808080.toInt())
+            setHintTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_HINT))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
                 android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES

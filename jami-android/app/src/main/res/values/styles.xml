@@ -49,7 +49,7 @@
         <item name="preferenceTheme">@style/JamiPreferenceThemeOverlay</item>
         <item name="popupMenuBackground">@drawable/custom_popup_background</item>
         <item name="materialSwitchStyle">@style/CustomMaterialSwitch</item>
-        <item name="colorControlActivated">#FFFF00</item>
+        <item name="colorControlActivated">@color/sk_role_accent</item>
 
         <item name="textInputOutlinedStyle">@style/Widget.Material3.TextInputLayout.OutlinedBox</item>
         <item name="textInputFilledStyle">@style/Widget.Jami.TextInputLayout</item>
@@ -149,33 +149,33 @@
 
     <!-- shiroikuma: yellow toolbar icons/text on black -->
     <style name="ShiroikumaToolbar" parent="">
-        <item name="colorControlNormal">#FFFF00</item>
-        <item name="colorOnSurface">#FFFF00</item>
-        <item name="colorOnSurfaceVariant">#FFFF00</item>
-        <item name="android:textColorPrimary">#FFFF00</item>
-        <item name="android:textColorSecondary">#FFFF00</item>
+        <item name="colorControlNormal">@color/sk_role_accent</item>
+        <item name="colorOnSurface">@color/sk_role_accent</item>
+        <item name="colorOnSurfaceVariant">@color/sk_role_accent</item>
+        <item name="android:textColorPrimary">@color/sk_role_accent</item>
+        <item name="android:textColorSecondary">@color/sk_role_accent</item>
             <item name="elevationOverlayEnabled">false</item>
-        <item name="android:textColorHint">#FFFF00</item>
+        <item name="android:textColorHint">@color/sk_role_accent</item>
     </style>
 
     <!-- shiroikuma: expanded SearchView surface forced black, foreground yellow (mirrors ShiroikumaToolbar).
          Material SearchView paints its root from colorSurfaceContainerHigh (a tonal grey); override every
          surface-container variant to black so the whole expanded pane is black, not grey. -->
     <style name="ShiroikumaSearchView" parent="">
-        <item name="colorSurface">#000000</item>
-        <item name="colorSurfaceContainer">#000000</item>
-        <item name="colorSurfaceContainerLow">#000000</item>
-        <item name="colorSurfaceContainerLowest">#000000</item>
-        <item name="colorSurfaceContainerHigh">#000000</item>
-        <item name="colorSurfaceContainerHighest">#000000</item>
-        <item name="colorSurfaceBright">#000000</item>
-        <item name="colorSurfaceDim">#000000</item>
-        <item name="colorControlNormal">#FFFF00</item>
-        <item name="colorOnSurface">#FFFF00</item>
-        <item name="colorOnSurfaceVariant">#FFFF00</item>
-        <item name="android:textColorPrimary">#FFFF00</item>
-        <item name="android:textColorSecondary">#FFFF00</item>
-        <item name="android:textColorHint">#FFFF00</item>
+        <item name="colorSurface">@color/sk_role_background</item>
+        <item name="colorSurfaceContainer">@color/sk_role_background</item>
+        <item name="colorSurfaceContainerLow">@color/sk_role_background</item>
+        <item name="colorSurfaceContainerLowest">@color/sk_role_background</item>
+        <item name="colorSurfaceContainerHigh">@color/sk_role_background</item>
+        <item name="colorSurfaceContainerHighest">@color/sk_role_background</item>
+        <item name="colorSurfaceBright">@color/sk_role_background</item>
+        <item name="colorSurfaceDim">@color/sk_role_background</item>
+        <item name="colorControlNormal">@color/sk_role_accent</item>
+        <item name="colorOnSurface">@color/sk_role_accent</item>
+        <item name="colorOnSurfaceVariant">@color/sk_role_accent</item>
+        <item name="android:textColorPrimary">@color/sk_role_accent</item>
+        <item name="android:textColorSecondary">@color/sk_role_accent</item>
+        <item name="android:textColorHint">@color/sk_role_accent</item>
         <item name="elevationOverlayEnabled">false</item>
     </style>
 
@@ -237,8 +237,8 @@
         <!--        <item name="iconPadding">8dp</item>-->
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
-        <item name="backgroundTint">#000000</item>
-        <item name="android:backgroundTint">#000000</item>
+        <item name="backgroundTint">@color/sk_role_background</item>
+        <item name="android:backgroundTint">@color/sk_role_background</item>
         <item name="android:textColor">@color/fab_yellow_state</item>
         <item name="iconTint">@color/fab_yellow_state</item>
         <item name="strokeColor">@color/fab_yellow_state</item>
@@ -248,8 +248,8 @@
     <!-- Same chrome for the small extended FABs ("Start conversation", "Create group"). Parented on
          the Expressive Small style so only the colours change, never the pill's size or shape. -->
     <style name="Widget.AppTheme.MainActionButtonSmall" parent="@style/Widget.Material3Expressive.ExtendedFloatingActionButton.Small">
-        <item name="backgroundTint">#000000</item>
-        <item name="android:backgroundTint">#000000</item>
+        <item name="backgroundTint">@color/sk_role_background</item>
+        <item name="android:backgroundTint">@color/sk_role_background</item>
         <item name="android:textColor">@color/fab_yellow_state</item>
         <item name="iconTint">@color/fab_yellow_state</item>
         <item name="strokeColor">@color/fab_yellow_state</item>
@@ -277,7 +277,7 @@
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">true</item>
-        <item name="android:textColor">#FFFF00</item>
+        <item name="android:textColor">@color/sk_role_accent</item>
     </style>
 
     <style name="ListPrimary">
@@ -349,7 +349,7 @@
         <item name="trackTint">@color/material_switch_track_tint</item>
         <!-- 2026-07-24: OFF switches read as yellow-traced black pills (fork request) - the track
              decoration is MaterialSwitch's outline; on the checked yellow fill it blends away. -->
-        <item name="trackDecorationTint">#FFFF00</item>
+        <item name="trackDecorationTint">@color/sk_role_accent</item>
     </style>
 
     <!-- AndroidTV Style -->
@@ -500,12 +500,14 @@
         <item name="materialAlertDialogTitleTextStyle">@style/TitleTextStyle</item>
     </style>
     <style name="ShiroikumaDialog" parent="RoundedMaterialAlertDialog">
-        <item name="colorSurface">#000000</item>
-        <item name="colorSurfaceContainer">#000000</item>
-        <item name="colorSurfaceContainerHigh">#000000</item>
-        <item name="colorSurfaceContainerHighest">#000000</item>
-        <item name="colorOnSurface">#FFFF00</item>
-        <item name="colorOnSurfaceVariant">#FFFF00</item>
+        <item name="colorSurface">@color/sk_role_dialog_ground</item>
+        <item name="colorSurfaceContainer">@color/sk_role_dialog_ground</item>
+        <item name="colorSurfaceContainerHigh">@color/sk_role_dialog_ground</item>
+        <item name="colorSurfaceContainerHighest">@color/sk_role_dialog_ground</item>
+        <item name="colorOnSurface">@color/sk_role_dialog_title</item>
+        <item name="colorOnSurfaceVariant">@color/sk_role_dialog_text</item>
+        <item name="android:textColorPrimary">@color/sk_role_dialog_text</item>
+        <item name="android:textColorSecondary">@color/sk_role_dialog_text</item>
         <item name="elevationOverlayEnabled">false</item>
         <item name="buttonBarPositiveButtonStyle">@style/ShiroikumaDialogButton</item>
         <item name="buttonBarNegativeButtonStyle">@style/ShiroikumaDialogButton</item>
@@ -514,10 +516,10 @@
     </style>
     <!-- Dialog action buttons app-wide: yellow-outlined black pills with yellow text. -->
     <style name="ShiroikumaDialogButton" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="android:textColor">#FFFF00</item>
-        <item name="strokeColor">#FFFF00</item>
+        <item name="android:textColor">@color/sk_role_accent</item>
+        <item name="strokeColor">@color/sk_role_accent</item>
         <item name="strokeWidth">2dp</item>
-        <item name="rippleColor">#33FFFF00</item>
+        <item name="rippleColor">@color/sk_role_pressed</item>
         <item name="backgroundTint">@android:color/transparent</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Circle</item>
         <item name="android:textAllCaps">false</item>
@@ -528,10 +530,10 @@
          those attrs + the sheet backgroundTint themes the whole sheet without touching layouts. -->
     <style name="Theme.Shiroikuma.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Widget.Shiroikuma.BottomSheet.Modal</item>
-        <item name="colorOnSurface">#FFFF00</item>
-        <item name="colorOnSurfaceVariant">#FFFF00</item>
-        <item name="colorOnBackground">#FFFF00</item>
-        <item name="android:textColorPrimary">#FFFF00</item>
+        <item name="colorOnSurface">@color/sk_role_accent</item>
+        <item name="colorOnSurfaceVariant">@color/sk_role_accent</item>
+        <item name="colorOnBackground">@color/sk_role_accent</item>
+        <item name="android:textColorPrimary">@color/sk_role_accent</item>
     </style>
     <style name="Widget.Shiroikuma.BottomSheet.Modal" parent="Widget.Material3.BottomSheet.Modal">
         <item name="backgroundTint">@color/background</item>

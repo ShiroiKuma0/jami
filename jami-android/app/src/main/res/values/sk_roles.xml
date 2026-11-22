@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  白い熊 fork: one colour resource per role of cx.ring.sk.SkRole. The values here are each role's
+  computed default and show only where the run-time loader (SkPalette) cannot work: below Android 11.
+  GENERATED from SkRoles.kt — a new role needs a line here (sk_role_<name in lower case>).
+  This file must exist in the default values/ only: a qualified copy would beat the loader.
+-->
+<resources>
+    <color name="sk_role_background">#FF000000</color>
+    <color name="sk_role_surface">#FF000000</color>
+    <color name="sk_role_accent">#FFFFFF00</color>
+    <color name="sk_role_on_accent">#FF000000</color>
+    <color name="sk_role_icon">#FFFFFF00</color>
+    <color name="sk_role_icon_active">#FFFFFF00</color>
+    <color name="sk_role_outline">#FFFFFF00</color>
+    <color name="sk_role_divider">#FFB2B200</color>
+    <color name="sk_role_pressed">#4DFFFF00</color>
+    <color name="sk_role_danger">#FFFF0000</color>
+    <color name="sk_role_text">#FFFFFF00</color>
+    <color name="sk_role_text_secondary">#FFC8C800</color>
+    <color name="sk_role_text_disabled">#61FFFF00</color>
+    <color name="sk_role_text_hint">#99FFFF00</color>
+    <color name="sk_role_text_selection">#66FFFF00</color>
+    <color name="sk_role_link">#FFFFFF00</color>
+    <color name="sk_role_pill_text">#FFFFFF00</color>
+    <color name="sk_role_pill_frame">#FFFFFF00</color>
+    <color name="sk_role_pill_ground">#FF000000</color>
+    <color name="sk_role_fab_ring">#FFFFFF00</color>
+    <color name="sk_role_fab_glyph">#FFFFFF00</color>
+    <color name="sk_role_fab_ground">#FF000000</color>
+    <color name="sk_role_dialog_ground">#FF000000</color>
+    <color name="sk_role_dialog_frame">#FFFFFF00</color>
+    <color name="sk_role_dialog_title">#FFFFFF00</color>
+    <color name="sk_role_dialog_text">#FFFFFF00</color>
+    <color name="sk_role_switch_on">#FFFFFF00</color>
+    <color name="sk_role_switch_off">#FF8C8C00</color>
+    <color name="sk_role_mark_on">#FFFFFF00</color>
+    <color name="sk_role_mark_off">#FF8C8C00</color>
+    <color name="sk_role_menu_ground">#FF000000</color>
+    <color name="sk_role_menu_frame">#FFFFFF00</color>
+    <color name="sk_role_menu_label">#FFFFFF00</color>
+    <color name="sk_role_menu_row_frame">#FFFFFF00</color>
+    <color name="sk_role_menu_divider">#FFB2B200</color>
+    <color name="sk_role_menu_icon_call">#FF00FF00</color>
+    <color name="sk_role_menu_icon_message">#FF4D94FF</color>
+    <color name="sk_role_menu_icon_contact">#FF00FFFF</color>
+    <color name="sk_role_menu_icon_share">#FFFF8000</color>
+    <color name="sk_role_menu_icon_view">#FFFFFF00</color>
+    <color name="sk_role_menu_icon_block">#FFFF00FF</color>
+    <color name="sk_role_menu_icon_delete">#FFFF0000</color>
+    <color name="sk_role_list_divider">#FFB2B200</color>
+    <color name="sk_role_list_selected">#FF333300</color>
+    <color name="sk_role_list_selected_text">#FFFFFF00</color>
+    <color name="sk_role_field_text">#FFFFFF00</color>
+    <color name="sk_role_field_ground">#FF000000</color>
+    <color name="sk_role_field_frame">#FFFFFF00</color>
+    <color name="sk_role_bar_ground">#FF000000</color>
+    <color name="sk_role_call_ctrl">#FFFFFF00</color>
+    <color name="sk_role_call_ctrl_ground">#FF000000</color>
+    <color name="sk_role_call_ctrl_active">#FFFF5252</color>
+    <color name="sk_role_call_accept">#FF00E676</color>
+    <color name="sk_role_call_decline">#FFFF5252</color>
+    <color name="sk_role_call_missed">#FFFA2E30</color>
+    <color name="sk_role_page_heading">#FFFFFF00</color>
+    <color name="sk_role_page_chip">#FFFFFF00</color>
+    <color name="sk_role_page_note">#FFC8C800</color>
+</resources>

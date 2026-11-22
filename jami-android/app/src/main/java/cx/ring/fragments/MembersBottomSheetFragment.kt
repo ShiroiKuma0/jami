@@ -73,19 +73,23 @@ class MembersBottomSheetFragment : BottomSheetDialogFragment() {
             .blockingGet()
 
         adapter.actions.add(ContactAction(null,
-            getString(R.string.bottomsheet_contact, contactUri.host)) {
+            getString(R.string.bottomsheet_contact, contactUri.host),
+            cx.ring.sk.SkIconRole.SHARE, cx.ring.sk.SkGlyph.PERSON) {
             copyAndShow(requireContext(), getString(R.string.clip_contact_uri), contactUri.host)
         })
 
-        adapter.actions.add(ContactAction(null, getText(R.string.ab_action_audio_call)) {
+        adapter.actions.add(ContactAction(null, getText(R.string.ab_action_audio_call),
+            cx.ring.sk.SkIconRole.CALL, cx.ring.sk.SkGlyph.PHONE, true) {
             (activity as? ConversationDetailsActivity)?.goToCallActivity(conversation, contactUri, false)
         })
 
-        adapter.actions.add(ContactAction(null, getText(R.string.ab_action_video_call)) {
+        adapter.actions.add(ContactAction(null, getText(R.string.ab_action_video_call),
+            cx.ring.sk.SkIconRole.CALL, cx.ring.sk.SkGlyph.EYE, true) {
             (activity as? ConversationDetailsActivity)?.goToCallActivity(conversation, contactUri, true)
         })
 
-        adapter.actions.add(ContactAction(null, getString(R.string.send_message)) {
+        adapter.actions.add(ContactAction(null, getString(R.string.send_message),
+            cx.ring.sk.SkIconRole.MESSAGE, cx.ring.sk.SkGlyph.MESSAGE, true) {
             (activity as? ConversationDetailsActivity)?.goToConversationActivity(path.accountId, contactUri)
         })
 
@@ -93,7 +97,8 @@ class MembersBottomSheetFragment : BottomSheetDialogFragment() {
         if (isAdmin) {
             val isBlocked = conversation.roles[contactUri.uri] == MemberRole.BLOCKED
             adapter.actions.add(ContactAction(null,
-                getString(if (isBlocked) R.string.bottomsheet_unblock else R.string.bottomsheet_block)) {
+                getString(if (isBlocked) R.string.bottomsheet_unblock else R.string.bottomsheet_block),
+                cx.ring.sk.SkIconRole.BLOCK, cx.ring.sk.SkGlyph.TOGGLE) {
                 if (isBlocked) {
                     mAccountService.addConversationMembers(
                         path.accountId,
@@ -148,6 +153,7 @@ class MembersBottomSheetFragment : BottomSheetDialogFragment() {
             val action = actions[position]
             holder.disposable.clear()
             holder.binding.actionTitle.text = action.title
+            cx.ring.sk.SkMenus.styleRow(holder.binding.actionTitle, action.role, action.opens, action.glyph)
             holder.callback = action.callback
         }
 
@@ -179,7 +185,10 @@ class MembersBottomSheetFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private class ContactAction(d: Single<Drawable>?, t: CharSequence, cb: () -> Unit) {
+    private class ContactAction(d: Single<Drawable>?, t: CharSequence,
+                                val role: cx.ring.sk.SkIconRole = cx.ring.sk.SkIconRole.VIEW,
+                                val glyph: cx.ring.sk.SkGlyph = cx.ring.sk.SkGlyph.DOT,
+                                val opens: Boolean = false, cb: () -> Unit) {
         @DrawableRes
         val icon: Int = 0
         val drawable: Single<Drawable>? = d

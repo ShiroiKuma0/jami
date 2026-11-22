@@ -44,10 +44,10 @@ import net.jami.services.AccountService.ConnectionStatus
 import net.jami.services.ConversationFacade
 import net.jami.utils.PeerReachability
 
-private const val C_CONNECTED = 0xFFFFFF00.toInt()   // yellow — a live, usable channel
-private const val C_ATTEMPT = 0xFF0000FF.toInt()     // blue — connecting / negotiating / reachable
-private const val C_NONE = 0xFFFF5252.toInt()        // red — offline / unreachable
-private const val C_DIM = 0xFF9E9E9E.toInt()         // grey — IDs / detail
+private val C_CONNECTED: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)   // yellow — a live, usable channel
+private val C_ATTEMPT: Int get() = cx.ring.sk.skPref(cx.ring.utils.ColorPrefs.STATUS_CONNECTING)   // blue — connecting / negotiating / reachable
+private val C_NONE: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER)   // red — offline / unreachable
+private val C_DIM: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY)   // grey — IDs / detail
 private const val SOFT_PENDING_MS = 60_000L          // after a ping, if still no receipt by here, SOFTEN to "may be offline" — never a hard verdict
 private const val SNAP_TTL_MS = 90_000L              // how long a cached channel snapshot is worth re-showing after exit→reopen
 // Per-conversation snapshot of the last NON-EMPTY channel set, so exit→reopen doesn't lose the in-flight picture.
@@ -108,7 +108,7 @@ fun showContactConnectionDialog(
         background = android.graphics.drawable.GradientDrawable().apply {
             cornerRadius = 10 * d
             setStroke((2 * d).toInt(), C_CONNECTED)
-            setColor(0xFF000000.toInt())
+            setColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
         }
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT

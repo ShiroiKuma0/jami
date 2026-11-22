@@ -224,14 +224,16 @@ class SwitchButton(context: Context, attrs: AttributeSet? = null, defStyle: Int 
         // caller), 2dp yellow trace border, yellow thumb dot.
         mPaint.style = android.graphics.Paint.Style.STROKE
         mPaint.strokeWidth = 2 * resources.displayMetrics.density
-        mPaint.color = 0xFFFFFF00.toInt()
+        // On: the switch-on role; off: the darker, opaque switch-off role (black-yellow switch rule).
+        val skInk = cx.ring.sk.skColor(if (mProgress > 0.5f) cx.ring.sk.SkRole.SWITCH_ON else cx.ring.sk.SkRole.SWITCH_OFF)
+        mPaint.color = skInk
         canvas.drawRoundRect(mBackRectF, mBackRadius, mBackRadius, mPaint)
         mPaint.style = android.graphics.Paint.Style.FILL
 
         // thumb
         mPresentThumbPos.set(mThumbPos)
         mPresentThumbPos.offset(mProgress * mSafeRectF.width(), 0f)
-        mPaint.color = 0xFFFFFF00.toInt()
+        mPaint.color = skInk
         canvas.drawCircle(mPresentThumbPos.x, mPresentThumbPos.y, mThumbRadius, mPaint)
 
         // image

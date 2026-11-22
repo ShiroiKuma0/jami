@@ -346,7 +346,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:scaleType="fitCenter"
                         android:src="@drawable/baseline_call_end_24"
                         android:stateListAnimator="@animator/button_press_scale"
-                        android:tint="@android:color/white" />
+                        android:tint="@color/sk_role_call_decline" />
 
                     <ImageView
                         android:id="@+id/call_accept_btn"
@@ -361,7 +361,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:scaleType="fitCenter"
                         android:src="@drawable/baseline_call_24"
                         android:stateListAnimator="@animator/button_press_scale"
-                        android:tint="@android:color/black" />
+                        android:tint="@color/sk_role_call_accept" />
 
                 </LinearLayout>
 
@@ -431,7 +431,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:layout_width="13dp"
                 android:layout_height="13dp"
                 android:background="@drawable/item_color_background"
-                android:backgroundTint="#BF0046" />
+                android:backgroundTint="@color/sk_role_danger" />
 
             <TextView
                 android:id="@+id/record_name"

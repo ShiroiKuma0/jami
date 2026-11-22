@@ -411,7 +411,7 @@ class InlineAudioRecorder(
         val tv = TypedValue()
         return if (context.theme.resolveAttribute(attr, tv, true)) {
             if (tv.resourceId != 0) ContextCompat.getColor(context, tv.resourceId) else tv.data
-        } else 0xFF888888.toInt()
+        } else cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY)
     }
 
     private fun formatTime(ms: Long): String {

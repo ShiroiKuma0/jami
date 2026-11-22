@@ -18,7 +18,7 @@ import net.jami.services.AccountService
 import java.io.File
 
 object DataMeterUi {
-    private const val YELLOW = 0xFFFFFF00.toInt()
+    private val YELLOW: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
 
     /**
      * The "Data" dialog: the LIVE measurement session (start/stop + a ticking counter), the saved

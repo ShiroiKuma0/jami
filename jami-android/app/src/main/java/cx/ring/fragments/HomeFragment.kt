@@ -655,7 +655,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     /** Lightning: yellow when idle, blue while a recover/reset is settling. */
     private fun updateLightningIcon() {
         val iv = mBinding?.searchBar?.menu?.findItem(R.id.menu_lightning)?.actionView as? ImageView ?: return
-        iv.setColorFilter(if (cx.ring.utils.ConnectionWatchdog.isRecovering()) 0xFF0000FF.toInt() else 0xFFFFFF00.toInt())
+        iv.setColorFilter(if (cx.ring.utils.ConnectionWatchdog.isRecovering()) cx.ring.sk.skPref(cx.ring.utils.ColorPrefs.STATUS_CONNECTING) else cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON))
     }
 
 
@@ -729,7 +729,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     cornerRadius = dp(14).toFloat()
-                    setColor(0xFF0B0B0B.toInt()); setStroke(dp(1), 0x66FFFF00)
+                    setColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.SURFACE)); setStroke(dp(1), ((cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT) and 0x00FFFFFF) or 0x66000000))
                 }
             }
             col.addView(android.widget.LinearLayout(ctx).apply {
@@ -817,7 +817,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             stateRow(box, C.getColor(ctx, C.STATUS_ONLINE), true, ctx.getString(R.string.info_dot_connected))
             stateRow(box, C.getColor(ctx, C.STATUS_CONNECTING), true, ctx.getString(R.string.info_dot_connecting))
             stateRow(box, C.getColor(ctx, C.STATUS_OFFLINE), true, ctx.getString(R.string.info_dot_disconnected))
-            stateRow(box, 0xFF888888.toInt(), false, ctx.getString(R.string.info_dot_off))
+            stateRow(box, cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY), false, ctx.getString(R.string.info_dot_off))
             item(box, ctx.getString(R.string.info_b_main_dot))
             sub(box, R.drawable.connectivity_mode_dht_24, bodyC, ctx.getString(R.string.info_dht_header))
             // Shape = mode (both shown healthy-yellow); colour on the hub is state quality now.
@@ -827,9 +827,9 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             iconRow(box, R.drawable.connectivity_mode_dht_filled_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_proxy))
             iconRow(box, R.drawable.connectivity_mode_dht_hollow_24, C.getColor(ctx, C.DHT_FULL), ctx.getString(R.string.info_dht_full))
             item(box, ctx.getString(R.string.info_b_main_dht))
-            sub(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_header))
-            iconRow(box, R.drawable.ic_proxy_flash, 0xFFFFFF00.toInt(), ctx.getString(R.string.info_flash_ready))
-            iconRow(box, R.drawable.ic_proxy_flash, 0xFF0000FF.toInt(), ctx.getString(R.string.info_flash_recovering))
+            sub(box, R.drawable.ic_proxy_flash, cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT), ctx.getString(R.string.info_flash_header))
+            iconRow(box, R.drawable.ic_proxy_flash, cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT), ctx.getString(R.string.info_flash_ready))
+            iconRow(box, R.drawable.ic_proxy_flash, cx.ring.sk.skPref(cx.ring.utils.ColorPrefs.STATUS_CONNECTING), ctx.getString(R.string.info_flash_recovering))
             item(box, ctx.getString(R.string.info_b_main_flash))
         }
 
@@ -1048,7 +1048,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
      *  else red for a problem, yellow when up, blue while connecting or recovering. */
     private fun dotLook(ctx: android.content.Context, enabled: Boolean, problem: Boolean,
                         online: Boolean, connecting: Boolean): Pair<Boolean, Int> = when {
-        !enabled   -> false to 0xFF888888.toInt()   // off / disabled → hollow grey
+        !enabled   -> false to cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY)   // off / disabled → hollow grey
         problem    -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_OFFLINE)    // red
         online     -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_ONLINE)     // yellow
         connecting -> true  to cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.STATUS_CONNECTING) // blue
@@ -1103,13 +1103,13 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val container = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
-            addView(TextView(ctx).apply { setTextColor(0xFFFFFF00.toInt()); text = ctx.getString(R.string.conn_dash_checking) })
+            addView(TextView(ctx).apply { setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT)); text = ctx.getString(R.string.conn_dash_checking) })
         }
         val scroll = android.widget.ScrollView(ctx).apply { addView(container) }
         val d = ctx.resources.displayMetrics.density
         fun pill(label: String, tip: String) = TextView(ctx).apply {
             text = label
-            setTextColor(0xFFFFFF00.toInt())
+            setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
             background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
@@ -1130,7 +1130,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             setPadding(pad, pad, pad, 0)
             addView(TextView(ctx).apply {
                 text = ctx.getString(R.string.conn_dash_title)
-                setTextColor(0xFFFFFF00.toInt())
+                setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -1210,7 +1210,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 rebuild()
             }, { e ->
                 container.removeAllViews()
-                container.addView(TextView(ctx).apply { setTextColor(0xFFFF5252.toInt()); text = "Error: ${e.message}" })
+                container.addView(TextView(ctx).apply { setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER)); text = "Error: ${e.message}" })
             }))
         dialog.show()
         dialog.window?.setBackgroundDrawable(
@@ -1247,7 +1247,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val ctx = context ?: return
         val d = ctx.resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
-        val yellow = 0xFFFFFF00.toInt()
+        val yellow = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
 
         // Header + a scrolling monospace echo pane.
         val header = TextView(ctx).apply {
@@ -1307,7 +1307,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 header.setTextColor(yellow)
             } else {
                 header.text = ctx.getString(R.string.probe_fail, 60)
-                header.setTextColor(0xFFFF5252.toInt())
+                header.setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER))
                 dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.apply {
                     visibility = View.VISIBLE
                     styleDialogButton(this)
@@ -1335,10 +1335,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
 
     private fun styleDialogButton(button: android.widget.Button?) {
         val b = button ?: return
-        val yellow = 0xFFFFFF00.toInt()
+        val yellow = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
         b.setTextColor(yellow)
         if (b is com.google.android.material.button.MaterialButton) {
-            b.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFF000000.toInt())
+            b.backgroundTintList = android.content.res.ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.BACKGROUND))
             b.strokeColor = android.content.res.ColorStateList.valueOf(yellow)
             b.strokeWidth = (2 * resources.displayMetrics.density).toInt()
         } else {
@@ -1368,7 +1368,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val connectedCol = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.MONITOR_CONNECTED)
         val idleCol = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.MONITOR_IDLE)
         val offlineCol = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.MONITOR_OFFLINE)
-        val grey = 0xFFAAAAAA.toInt()
+        val grey = cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_SECONDARY)
         container.removeAllViews()
         fun text(s: CharSequence, color: Int, bold: Boolean = false, sizeSp: Float = 14f, padL: Int = 0, padT: Int = 0) =
             TextView(ctx).apply {
@@ -1484,14 +1484,14 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             })
             header.addView(ImageView(ctx).apply {
                 setImageResource(R.drawable.ic_proxy_flash)
-                setColorFilter(0xFFFFFF00.toInt())
+                setColorFilter(cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON))
                 layoutParams = android.widget.LinearLayout.LayoutParams((30 * d).toInt(), (30 * d).toInt())
                 setPadding((3 * d).toInt(), (3 * d).toInt(), (3 * d).toInt(), (3 * d).toInt())
                 descTip(this, ctx.getString(R.string.tip_recover_account))
                 setOnClickListener {
                     cx.ring.utils.ConnectionWatchdog.recoverAccount(ctx, mAccountService, ac.accountId)
                     Flash.show(ctx, "${ac.name}: ${ctx.getString(R.string.conn_dash_recovering)}")
-                    setColorFilter(0xFF66AAFF.toInt())
+                    setColorFilter(cx.ring.sk.skColor(cx.ring.sk.SkRole.MENU_ICON_MESSAGE))
                 }
             })
             // Per-account on/off dot, beside the ⚡ and sized to match it (白い熊, 2026-09-15). It is
@@ -1632,7 +1632,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         }
         // Merged recovery log at the bottom of the dashboard.
         container.addView(android.view.View(ctx).apply {
-            setBackgroundColor(0x33FFFF00)
+            setBackgroundColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.PRESSED))
             layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * d).toInt()).apply { topMargin = (12 * d).toInt(); bottomMargin = (8 * d).toInt() }
         })
         container.addView(text(ctx.getString(R.string.conn_dash_history), healthyCol, bold = true, sizeSp = 15f))
@@ -1682,7 +1682,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val logText = if (log.isEmpty()) "(no recovery events yet)" else log.reversed().joinToString("\n")
         val tv = TextView(ctx).apply {
             this.text = logText
-            setTextColor(0xFFFFFF00.toInt())
+            setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding((16 * d).toInt(), (12 * d).toInt(), (16 * d).toInt(), (12 * d).toInt())
             setTextIsSelectable(true)
@@ -1691,7 +1691,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         // Custom title: "Recovery log" left, an "ⓘ Recovery" pill top-right → Online-recovery settings.
         val recoveryPill = TextView(ctx).apply {
             text = "ⓘ Recovery"
-            setTextColor(0xFFFFFF00.toInt())
+            setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
             background = AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow)
@@ -1702,7 +1702,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             setPadding((16 * d).toInt(), (12 * d).toInt(), (12 * d).toInt(), 0)
             addView(TextView(ctx).apply {
                 text = "Recovery log"
-                setTextColor(0xFFFFFF00.toInt())
+                setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)

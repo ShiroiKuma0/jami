@@ -57,7 +57,7 @@
         android:background="@drawable/badge_black_yellow"
         android:paddingHorizontal="10dp"
         android:paddingVertical="5dp"
-        android:textColor="#FFFF00"
+        android:textColor="@color/sk_role_text"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

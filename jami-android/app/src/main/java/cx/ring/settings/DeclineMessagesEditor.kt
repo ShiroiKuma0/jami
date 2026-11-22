@@ -15,7 +15,7 @@ import cx.ring.utils.showThemed
  * screen, so both edit through exactly the same code. [onChanged] runs after every write.
  */
 object DeclineMessagesEditor {
-    private const val YELLOW = 0xFFFFFF00.toInt()
+    private val YELLOW: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
 
     private fun load(ctx: Context, contactId: String?): List<String> =
         if (contactId == null) DeclineMessagesPrefs.global(ctx) else DeclineMessagesPrefs.forContact(ctx, contactId)
@@ -93,7 +93,7 @@ object DeclineMessagesEditor {
                 InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             minLines = 2
             setTextColor(YELLOW)
-            setHintTextColor(0xFF777777.toInt())
+            setHintTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT_HINT))
             hint = ctx.getString(R.string.sk_decline_hint)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             val pad = (20 * density).toInt()

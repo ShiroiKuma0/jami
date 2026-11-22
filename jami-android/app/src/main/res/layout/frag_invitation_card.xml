@@ -79,13 +79,13 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:clickable="false"
-            app:chipBackgroundColor="#000000"
-            app:chipStrokeColor="#FFFF00"
+            app:chipBackgroundColor="@color/sk_role_background"
+            app:chipStrokeColor="@color/sk_role_outline"
             app:chipStrokeWidth="2dp"
             app:chipCornerRadius="8dp"
             app:textEndPadding="4dp"
             app:textStartPadding="4dp"
-            android:textColor="#FFFF00"
+            android:textColor="@color/sk_role_text"
             android:textStyle="bold"
             tools:text="4" />
     </RelativeLayout>

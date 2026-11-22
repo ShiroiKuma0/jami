@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- shiroikuma fork — the Accept circle on the incoming-call screen. Yellow, not green: yellow is
-     this fork's positive colour everywhere, and the button it replaces was already yellow. -->
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/call_button_ripple">
-    <item>
-        <shape android:shape="oval">
-            <solid android:color="@color/shiroikuma_call_yellow" />
-        </shape>
-    </item>
-</ripple>
+<!-- 白い熊 fork: no colour here. A stub drawn in code from colour roles — see cx.ring.sk.SkShape. -->
+<drawable xmlns:android="http://schemas.android.com/apk/res/android"
+    class="cx.ring.sk.SkShape"
+    shape="oval" fill="sk_role_call_ctrl_ground" stroke="sk_role_call_accept" strokeDp="3" ripple="sk_role_pressed" />

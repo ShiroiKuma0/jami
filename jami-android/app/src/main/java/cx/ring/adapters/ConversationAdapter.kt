@@ -900,7 +900,7 @@ class ConversationAdapter(
             if (convColorTint != 0) {
                 val colors = MaterialColors.getColorRoles(context, convColor)
                 playBtn.backgroundTintList = ColorStateList.valueOf(colors.accent)
-                playBtn.iconTint = ColorStateList.valueOf(Color.WHITE)
+                playBtn.iconTint = ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON))
             }
             val player = MediaPlayer.create(context, getUriForFile(context, path))
             viewHolder.player = player
@@ -924,8 +924,8 @@ class ConversationAdapter(
                 // bubbles use white, on incoming (neutral) bubbles use the on-surface color.
                 if (isOutgoing) {
                     setColors(
-                        active = Color.WHITE,
-                        inactive = (Color.WHITE and 0x00FFFFFF) or 0x59000000
+                        active = cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT),
+                        inactive = (cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT) and 0x00FFFFFF) or 0x59000000
                     )
                 } else {
                     val onSurface = context.getColor(R.color.colorOnSurface)
@@ -1075,7 +1075,7 @@ class ConversationAdapter(
 
         ContextCompat.getDrawable(context, R.drawable.baseline_play_arrow_24)
             ?.mutate()?.let { drawable ->
-            DrawableCompat.setTint(drawable, Color.WHITE)
+            DrawableCompat.setTint(drawable, cx.ring.sk.skColor(cx.ring.sk.SkRole.ICON))
             cardLayout.foreground = drawable
             cardLayout.foregroundGravity = Gravity.CENTER
         }
@@ -1128,15 +1128,22 @@ class ConversationAdapter(
                 setStroke((2f * menuContext.resources.displayMetrics.density).toInt(), menuBorder)
             }
             menuDivider.setBackgroundColor(menuBorder)
-            val menuTint = ColorStateList.valueOf(menuText)
-            listOf(convActionFileOpen, convActionFileSave, convActionCopyText, convActionShare,
-                convActionJamiShare, convActionSelect, convActionEdit, convActionHistory,
-                convActionFileDelete, convActionDelete).forEach { item ->
-                item.setTextColor(menuText)
-                TextViewCompat.setCompoundDrawableTintList(item, menuTint)
-            }
-            convActionMore.imageTintList = menuTint
-            convActionReply.imageTintList = menuTint
+            // Black-yellow menu rule: every action a full-width pill, its icon coloured by what it does.
+            menuDivider.setBackgroundColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.MENU_DIVIDER))
+            listOf(
+                Triple(convActionFileOpen, cx.ring.sk.SkIconRole.VIEW, true),
+                Triple(convActionFileSave, cx.ring.sk.SkIconRole.SHARE, false),
+                Triple(convActionCopyText, cx.ring.sk.SkIconRole.SHARE, false),
+                Triple(convActionShare, cx.ring.sk.SkIconRole.SHARE, true),
+                Triple(convActionJamiShare, cx.ring.sk.SkIconRole.SHARE, true),
+                Triple(convActionSelect, cx.ring.sk.SkIconRole.VIEW, false),
+                Triple(convActionEdit, cx.ring.sk.SkIconRole.MESSAGE, true),
+                Triple(convActionHistory, cx.ring.sk.SkIconRole.VIEW, true),
+                Triple(convActionFileDelete, cx.ring.sk.SkIconRole.DELETE, false),
+                Triple(convActionDelete, cx.ring.sk.SkIconRole.DELETE, false),
+            ).forEach { (item, role, opens) -> cx.ring.sk.SkMenus.styleRow(item, role, opens) }
+            convActionMore.imageTintList = ColorStateList.valueOf(menuText)
+            convActionReply.imageTintList = ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkIconRole.MESSAGE))
 
             // Configure what should be displayed
             convActionFileOpen.isVisible = isFileMenu

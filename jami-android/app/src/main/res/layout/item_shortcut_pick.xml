@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FFFF00"
+            android:textColor="@color/sk_role_text"
             android:textSize="16sp" />
 
         <TextView
@@ -40,7 +40,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#AAAAAA"
+            android:textColor="@color/sk_role_text_secondary"
             android:textSize="12sp" />
 
     </LinearLayout>

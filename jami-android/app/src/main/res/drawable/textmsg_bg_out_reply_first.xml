@@ -3,8 +3,8 @@
 
     <item>
         <shape>
-            <solid android:color="#000000" />
-            <stroke android:width="2dp" android:color="#FFFF00" />
+            <solid android:color="@color/sk_role_background" />
+            <stroke android:width="2dp" android:color="@color/sk_role_accent" />
             <corners
                 android:bottomRightRadius="@dimen/conversation_message_minor_radius"
                 android:radius="@dimen/conversation_message_radius"
@@ -17,8 +17,8 @@
         android:start="1.5dp"
         android:top="1.5dp">
         <shape>
-            <solid android:color="#000000" />
-            <stroke android:width="2dp" android:color="#FFFF00" />
+            <solid android:color="@color/sk_role_background" />
+            <stroke android:width="2dp" android:color="@color/sk_role_accent" />
             <corners
                 android:bottomRightRadius="@dimen/conversation_message_minor_radius"
                 android:radius="@dimen/conversation_message_radius"

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 白い熊 fork: tag keys of the black-yellow theme (cx.ring.sk). -->
+<resources>
+    <item name="sk_pill_main" type="id" />
+    <item name="sk_pill_danger" type="id" />
+    <item name="sk_row_icon" type="id" />
+</resources>

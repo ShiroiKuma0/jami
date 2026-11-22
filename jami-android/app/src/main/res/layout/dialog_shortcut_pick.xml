@@ -16,8 +16,8 @@
         android:importantForAutofill="no"
         android:inputType="text"
         android:maxLines="1"
-        android:textColor="#FFFF00"
-        android:textColorHint="#808080"
+        android:textColor="@color/sk_role_text"
+        android:textColorHint="@color/sk_role_text_hint"
         android:textSize="16sp" />
 
     <androidx.recyclerview.widget.RecyclerView

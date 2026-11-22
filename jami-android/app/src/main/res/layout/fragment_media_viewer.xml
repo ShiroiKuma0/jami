@@ -59,7 +59,7 @@
         android:drawablePadding="6dp"
         android:gravity="center_vertical"
         android:text="@string/media_suppressed_badge"
-        android:textColor="#FFFF00"
+        android:textColor="@color/sk_role_text"
         android:textStyle="bold"
         app:drawableStartCompat="@drawable/baseline_block_24"
         android:visibility="gone" />
@@ -80,7 +80,7 @@
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_open_in_new_24"
-            android:tint="#FFFF00" />
+            android:tint="@color/sk_role_icon" />
 
         <ImageButton
             android:id="@+id/action_view_suppressed"
@@ -91,7 +91,7 @@
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_block_24"
-            android:tint="#FFFF00" />
+            android:tint="@color/sk_role_icon" />
     </LinearLayout>
 
     <LinearLayout
@@ -110,7 +110,7 @@
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_share_24"
-            android:tint="#FFFF00" />
+            android:tint="@color/sk_role_icon" />
 
         <ImageButton
             android:id="@+id/conv_action_download"
@@ -121,7 +121,7 @@
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_file_download_24"
-            android:tint="#FFFF00" />
+            android:tint="@color/sk_role_icon" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

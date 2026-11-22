@@ -56,7 +56,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_height="?attr/actionBarSize"
             app:menu="@menu/conversation_actions"
             app:navigationIcon="@drawable/abc_ic_ab_back_material"
-            app:navigationIconTint="#FFFF00"
+            app:navigationIconTint="@color/sk_role_icon"
             android:theme="@style/ShiroikumaToolbar">
 
             <ImageView
@@ -369,7 +369,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                         android:background="?attr/selectableItemBackground"
                         android:gravity="center"
                         android:text="@string/accept"
-                        android:textColor="#FFFF00" />
+                        android:textColor="@color/sk_role_text" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
@@ -424,7 +424,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             <com.google.android.material.card.MaterialCardView
                 style="?attr/materialCardViewElevatedStyle"
                 android:id="@+id/cvMessageInput"
-                app:cardBackgroundColor="#000000"
+                app:cardBackgroundColor="@color/sk_role_background"
                 android:foreground="@drawable/compose_input_border"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -501,7 +501,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                             android:background="?selectableItemBackgroundBorderless"
                             android:contentDescription="@string/share_label"
                             android:padding="8dp"
-                            app:tint="#FFFF00"
+                            app:tint="@color/sk_role_icon"
                             app:srcCompat="@drawable/baseline_more_vert_24" />
 
                         <ImageButton
@@ -511,7 +511,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                             android:background="?selectableItemBackgroundBorderless"
                             android:contentDescription="@string/take_a_photo"
                             android:padding="8dp"
-                            app:tint="#FFFF00"
+                            app:tint="@color/sk_role_icon"
                             app:srcCompat="@drawable/baseline_photo_camera_24" />
 
                         <ImageButton
@@ -544,8 +544,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:background="@null"
-                            android:textColor="#FFFF00"
-                            android:textColorHint="#99FFFF00"
+                            android:textColor="@color/sk_role_text"
+                            android:textColorHint="@color/sk_role_text_hint"
                             android:hint="@string/write_a_message"
                             android:imeOptions="actionSend|flagNoExtractUi"
                             android:importantForAutofill="no"
@@ -570,7 +570,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                             android:layout_height="match_parent"
                             android:background="?selectableItemBackgroundBorderless"
                             android:contentDescription="@string/send_message"
-                            app:tint="#FFFF00"
+                            app:tint="@color/sk_role_icon"
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="8dp"
                             android:visibility="gone"
