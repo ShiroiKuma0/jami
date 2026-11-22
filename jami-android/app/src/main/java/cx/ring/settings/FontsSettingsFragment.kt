@@ -227,6 +227,57 @@ class FontsSettingsFragment : Fragment() {
     private fun matchWrap() = LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
 
+    /** A row that DOES something on tap — opens a screen, picker, panel or dialog, or runs an
+     *  action — is a full-width OUTLINED pill (never filled), its explanation beneath in dim gold,
+     *  aligned with the label (black-yellow-theme “Settings pages — every pressable row is a pill”,
+     *  白い熊 2026-11-07; reference: 白い熊 読書 DokshoUiActivity.actionRow). [main] = the section's
+     *  main action: 3 dp frame + bold label; otherwise 1.25 dp + normal. [opens] = it opens something
+     *  → a › inside at the right; an in-place action (Purge, Regenerate) has none. Only the pill is
+     *  the touch target. Rows with their own control (switch, swatch, slider, a shown value) stay
+     *  plain rows. Returns the column and the label, so callers can update or recolour the label. */
+    private fun actionRow(title: String, summary: String? = null, main: Boolean = false, opens: Boolean = true,
+                          onClick: () -> Unit): Pair<LinearLayout, TextView> {
+        val ctx = requireContext()
+        val noteC = cx.ring.utils.ColorPrefs.getColor(ctx, cx.ring.utils.ColorPrefs.SETTINGS_NOTE)
+        val padH = dp(16f)
+        val label = TextView(ctx).apply {
+            text = title; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            if (main) setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val pill = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(46f)
+            setPadding(padH, dp(10f), dp(12f), dp(10f))
+            background = android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
+                GradientDrawable().apply {
+                    setColor(Color.BLACK)
+                    cornerRadius = dp(100f).toFloat()
+                    setStroke(if (main) dp(3f) else (1.25f * resources.displayMetrics.density).toInt().coerceAtLeast(1), yellow)
+                }, null)
+            isClickable = true
+            setOnClickListener { onClick() }
+            addView(label)
+            if (opens) addView(TextView(ctx).apply {
+                text = "›"; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                if (main) setTypeface(typeface, Typeface.BOLD)
+                setPadding(dp(8f), 0, dp(4f), 0)
+            })
+        }
+        val col = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = matchWrap().apply { topMargin = dp(5f); bottomMargin = dp(5f) }
+            addView(pill, matchWrap())
+            if (summary != null) addView(TextView(ctx).apply {
+                text = summary; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setPadding(padH, dp(3f), dp(8f), 0)
+            }, matchWrap())
+        }
+        return col to label
+    }
+
     private fun rebuild() {
         val c = container ?: return
         c.removeAllViews()
@@ -322,11 +373,11 @@ class FontsSettingsFragment : Fragment() {
                 context?.let { DeclineMessagesEditor.showItemActions(it, null, i, { rebuild() }) }
             })
         }
-        box.addView(orTapRow("+  Add message") {
+        box.addView(actionRow("Add message") {
             context?.let { c3 ->
                 DeclineMessagesEditor.showEdit(c3, "Add message", "") { DeclineMessagesPrefs.addGlobal(c3, it); rebuild() }
             }
-        })
+        }.first)
         box.addView(orMini("Per contact — offered first, above the general ones."))
         for (id in DeclineMessagesPrefs.contactsWithOwn(ctx)) {
             val name = DeclineMessagesPrefs.contactName(ctx, id) ?: (id.take(8) + "…")
@@ -335,7 +386,7 @@ class FontsSettingsFragment : Fragment() {
                 context?.let { DeclineMessagesEditor.showList(it, id, DeclineMessagesPrefs.contactName(it, id)) { rebuild() } }
             })
         }
-        box.addView(orTapRow("+  Add contact…") { showDeclineContactPicker() })
+        box.addView(actionRow("Add contact…") { showDeclineContactPicker() }.first)
         c.addView(box)
     }
 
@@ -398,11 +449,6 @@ class FontsSettingsFragment : Fragment() {
         fun note(text: String, into: LinearLayout) = into.addView(TextView(ctx).apply {
             this.text = text; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(0, 0, 0, dp(2f)); layoutParams = matchWrap()
-        })
-        fun tap(text: String, into: LinearLayout, onClick: () -> Unit) = into.addView(TextView(ctx).apply {
-            this.text = text; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(0, dp(2f), dp(12f), 0); layoutParams = matchWrap()
-            setOnClickListener { onClick() }
         })
         fun section(title: String): LinearLayout {
             box.addView(TextView(ctx).apply {
@@ -501,6 +547,11 @@ class FontsSettingsFragment : Fragment() {
             sw(s, "App work queue & bridge sends", DG.EXEC,
                 "SK-EXECDIAG (recovery log): a 30-s heartbeat of the app's daemon queue, and each bridge send's progress.")
         }
+        section("App health").let { s ->
+            sw(s, "Memory & retained screens", DG.MEMORY,
+                "SK-MEMDIAG (memory-log.txt): every 10 min — total, daemon (native) and Java memory, GPU, " +
+                    "threads by name, and any closed screen still held in memory, by name.")
+        }
 
         // ---- Stored files, Export, Purge (2026-11-03) ----
         section("Diagnostic data").let { s ->
@@ -522,11 +573,11 @@ class FontsSettingsFragment : Fragment() {
                 }
             }, "sk-diag-summary").start()
             val last = F.getExportTree(ctx)
-            tap("Export diagnostic data", s) { exportDiagData() }
-            note("Copies every file into a new dated subdirectory of the directory you pick " +
-                "(starts at ${last?.let { F.treeLabel(it) } ?: "/sdcard/tmp"}).", s)
-            tap("Purge diagnostic data", s) { confirmDiagPurge() }
-            note("Shows what is stored and asks before deleting anything.", s)
+            s.addView(actionRow("Export diagnostic data",
+                "Copies every file into a new dated subdirectory of the directory you pick " +
+                    "(starts at ${last?.let { F.treeLabel(it) } ?: "/sdcard/tmp"}).") { exportDiagData() }.first)
+            s.addView(actionRow("Purge diagnostic data",
+                "Shows what is stored and asks before deleting anything.", opens = false) { confirmDiagPurge() }.first)
         }
         c.addView(box)
     }
@@ -609,12 +660,12 @@ class FontsSettingsFragment : Fragment() {
         box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
             UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping
         })
-        box.addView(orTapRow("How this works  ⓘ") { showRecoveryInfo() })
+        box.addView(actionRow("How this works") { showRecoveryInfo() }.first)
         box.addView(orSwitchRow("Ping check — send test pings", UiPrefs.isRecoveryPingEnabled(ctx)) {
             UiPrefs.setRecoveryPingEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect base
         })
         box.addView(orTapRow("①  Send pings from:  ${recoveryAccountLabel(ctx)}") { showRecoveryAccountPicker() })
-        box.addView(orTapRow("②  Pick test conversation…") { showRecoverySwarmPicker() })
+        box.addView(actionRow("②  Pick test conversation…") { showRecoverySwarmPicker() }.first)
         box.addView(orMini("…or paste the conversation ID (without “swarm:”)"))
         box.addView(orSwarmField(ctx))
         box.addView(orTapRow("Check every:  ${UiPrefs.getRecoveryTickMinutes(ctx)} min") {
@@ -627,7 +678,7 @@ class FontsSettingsFragment : Fragment() {
                 UiPrefs.setRecoveryPruneDays(ctx, it); rebuild()
             }
         })
-        box.addView(orTapRow("View recovery log") { showRecoveryLog() })
+        box.addView(actionRow("View recovery log") { showRecoveryLog() }.first)
         // ---- Data-usage meter (2026-07-25, from the 36-GiB runaway investigation) ----
         box.addView(orSwitchRow("Measure data usage", DataMeter.isActive(ctx)) { on ->
             if (on) {
@@ -644,7 +695,7 @@ class FontsSettingsFragment : Fragment() {
             text = if (DataMeter.isActive(ctx)) "measuring…" else "(off — flip on to start a measurement session)"
             meterLiveRow = this
         })
-        box.addView(orTapRow("Measurement history") { showDataMeasureHistory() })
+        box.addView(actionRow("Measurement history") { showDataMeasureHistory() }.first)
         // ---- Unattended sampler (2026-07-26): records without a human at either end ----
         box.addView(orSwitchRow("Record data usage automatically", DataMeter.isSamplingOn(ctx)) { on ->
             DataMeter.setSamplingOn(ctx, on); rebuild()
@@ -655,7 +706,7 @@ class FontsSettingsFragment : Fragment() {
             })
             box.addView(orMini("One line per window. Windows land on the ${UiPrefs.getRecoveryTickMinutes(ctx)}-min check tick, so they are approximate."))
         }
-        box.addView(orTapRow("Data usage log") { showDataHistory(DataMeter.hourlyFile(ctx), "Data usage log", clearable = false) })
+        box.addView(actionRow("Data usage log") { showDataHistory(DataMeter.hourlyFile(ctx), "Data usage log", clearable = false) }.first)
         if (DataMeter.isActive(ctx)) startMeterLive()
         c.addView(box)
     }
@@ -926,116 +977,39 @@ class FontsSettingsFragment : Fragment() {
     private fun addExportImportSection(c: LinearLayout) {
         val ctx = requireContext()
         c.addView(groupHeader("Export / Import", first = true))
-        // The way in. It used to be plain text, which gave no hint that it opened anything, so it
-        // is now the loudest thing in the section: a bordered pill with an explicit chevron
-        // (白い熊, 2026-07-28).
-        val row = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
-            minimumHeight = dp(64f)
-            background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
-                GradientDrawable().apply {
-                    setColor(Color.BLACK)
-                    cornerRadius = dp(12f).toFloat()
-                    setStroke(dp(2f), yellow)
-                }, null)
-            isClickable = true
-            setOnClickListener {
-                // onClosed, not onImported: the folder and the permission can both change inside
-                // the panel, and cancelling out of it must still leave this page truthful.
-                EximPanel.show(ctx, mAccountService, onClosed = {
-                    refreshEximPageStatus()
-                    refreshEximPermission()
-                })
-            }
+        // The way in: the section's main action, so the thick pill (白い熊, 2026-07-28; the
+        // settings-page pill rule, 2026-11-07). The status line sits beneath with the explanation.
+        val (row, _) = actionRow(getString(R.string.sk_exim_open).removeSuffix("▸").trim(),
+            getString(R.string.sk_exim_page_summary), main = true) {
+            // onClosed, not onImported: the directory and the permission can both change inside
+            // the panel, and cancelling out of it must still leave this page truthful.
+            EximPanel.show(ctx, mAccountService, onClosed = {
+                refreshEximPageStatus()
+                refreshEximPermission()
+            })
         }
-        row.addView(TextView(ctx).apply {
-            text = getString(R.string.sk_exim_open)
-            setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            setTypeface(typeface, Typeface.BOLD)
-        })
-        row.addView(TextView(ctx).apply {
-            text = getString(R.string.sk_exim_page_summary)
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(3f), 0, 0)
-        })
         val status = TextView(ctx).apply {
             setTextColor(dim)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(4f), 0, 0)
+            setPadding(dp(16f), dp(3f), dp(8f), 0)
         }
-        row.addView(status)
+        row.addView(status, matchWrap())
         eximPageStatusTv = status
-        c.addView(row, matchWrap().apply {
-            leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(10f)
-        })
+        c.addView(row, matchWrap().apply { leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(6f) })
         // ---- Chat files. A second, separate way in — it does NOT replace the backup panel above.
         //      It belongs in this section because the export made the shape of the problem plain:
         //      almost all of the weight is old chat attachments (白い熊, 2026-07-29).
-        val filesRow = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
-            minimumHeight = dp(64f)
-            background = android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf((yellow and 0x00FFFFFF) or 0x33000000),
-                GradientDrawable().apply {
-                    setColor(Color.BLACK)
-                    cornerRadius = dp(12f).toFloat()
-                    setStroke(dp(2f), yellow)
-                }, null)
-            isClickable = true
-            setOnClickListener {
-                startActivity(cx.ring.client.ChatFilesActivity.intent(ctx))
-            }
+        val (filesRow, _) = actionRow(getString(R.string.sk_files_open).removeSuffix("▸").trim(),
+            getString(R.string.sk_files_open_summary)) {
+            startActivity(cx.ring.client.ChatFilesActivity.intent(ctx))
         }
-        filesRow.addView(TextView(ctx).apply {
-            text = getString(R.string.sk_files_open)
-            setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            setTypeface(typeface, Typeface.BOLD)
-        })
-        filesRow.addView(TextView(ctx).apply {
-            text = getString(R.string.sk_files_open_summary)
-            setTextColor(dim)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(3f), 0, 0)
-        })
-        c.addView(filesRow, matchWrap().apply {
-            leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(10f)
-        })
-        // ---- All-files access. Nothing in the panel can run without it, so it gets a proper
-        //      two-line bordered target rather than a line of small print — the thin version was
-        //      very hard to hit (白い熊, 2026-07-28).
-        val permBox = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
-            minimumHeight = dp(56f)
-            background = GradientDrawable().apply {
-                setColor(Color.BLACK)
-                cornerRadius = dp(10f).toFloat()
-                setStroke(dp(2f), yellow)
-            }
-            isClickable = true
-            setOnClickListener { EximPanel.openAllFilesSettings(ctx) }
-            addView(TextView(ctx).apply {
-                text = getString(R.string.sk_exim_perm_label)
-                setTextColor(dim)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            })
-        }
-        val perm = TextView(ctx).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTypeface(typeface, Typeface.BOLD)
-        }
-        permBox.addView(perm)
+        c.addView(filesRow, matchWrap().apply { leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(6f) })
+        // ---- All-files access. Nothing in the panel can run without it, so it is a proper pill
+        //      rather than a line of small print (白い熊, 2026-07-28). It opens the system screen.
+        val (permBox, perm) = actionRow("All-files access") { EximPanel.openAllFilesSettings(ctx) }
         eximPermTv = perm
         eximPermBox = permBox
-        c.addView(permBox, matchWrap().apply {
-            leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(8f)
-        })
+        c.addView(permBox, matchWrap().apply { leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(8f) })
         refreshEximPermission()
         // ---- Automation (moved here from its standalone settings row, 白い熊 2026-07-25):
         //      the master switch + token live next to Export/Import because the 保存復元 batch
@@ -1083,14 +1057,14 @@ class FontsSettingsFragment : Fragment() {
             }
         }
         tokenBox.addView(tokenTv)
-        tokenBox.addView(orTapRow("Regenerate token") {
+        tokenBox.addView(actionRow("Regenerate token", opens = false) {
             tokenTv.text = AutomationPrefs.regenerateToken(ctx)
             Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
-        })
+        }.first)
         autoBox.addView(tokenBox)
-        autoBox.addView(orTapRow("Automation details & usage  ⓘ") {
+        autoBox.addView(actionRow("Automation details & usage") {
             (parentFragment as? SettingsFragment)?.goToAutomationSettings()
-        })
+        }.first)
         c.addView(autoBox)
         refreshEximPageStatus()
     }
@@ -1116,8 +1090,8 @@ class FontsSettingsFragment : Fragment() {
         // State only — NO directory here. Showing the path made the pill read as "tap to change
         // the folder", and tapping it opens the system permission screen instead (白い熊,
         // 2026-07-28). The folder belongs to the status line and to the panel's own folder box.
-        tv.text = getString(if (ok) R.string.sk_exim_perm_granted else R.string.sk_exim_perm_missing)
-        tv.setTextColor(if (ok) dim else warnRed)
+        tv.text = "All-files access: " + getString(if (ok) R.string.sk_exim_perm_granted else R.string.sk_exim_perm_missing)
+        tv.setTextColor(if (ok) yellow else warnRed)
         // Once granted this is settled business: fade it back so it stops competing with the
         // control that actually does something. It shouts only while it still needs attention.
         eximPermBox?.alpha = if (ok) 0.35f else 1f
