@@ -7,6 +7,86 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+002` — 2026-11-22
+
+**New upstream base: 20261106-01** (“Tim Berners-Lee”), at upstream commit `0fc04d099` — 62 commits
+past the previous base, with the daemon moved to `e62dfcb61` (OpenDHT 4.4.99, a newer dhtnet,
+libgit2 1.9.7) and the build moved to NDK 30.
+
+The base is four commits short of upstream's tip on purpose. Those four (synchronised contact
+labels, share-to-label, a dependency bump and a daemon-API rename) call daemon functions newer
+than the daemon upstream itself pins, so upstream's tip does not compile. They arrive with the
+next sync.
+
+### ⬆️ What comes from upstream
+
+- **Threaded replies** — an optional, per-account setting that groups replies under their root
+  message, with a thread view, separate drafts per thread and a slide transition. Off by default.
+- **Feeds** — a new one-to-many conversation type with its own creation dialog, details page and
+  leave action.
+- **Filter chips above the chat list** — All, Contacts, Groups, Feeds; joinable Feeds are kept
+  apart from invitations.
+- **Conversation permissions** — the daemon now grants messaging, calls, invitations and
+  moderation per conversation, and the app enforces them.
+- **Conversation details** gain a contact section with the dates a contact was added and a
+  conversation joined; the chat-list long-press menu gains a details entry as its first row.
+- **Redesigned contact picker** — a dialog instead of a bottom sheet; whole groups can be picked
+  and expand to their members.
+- **Linked devices** show their label and last-sync time.
+- Fixes: shared content is no longer sent again when a conversation is restored; a stationary
+  peer stays on the location map; playback mute follows the daemon during calls; invitations keep
+  their received order; attachments group within an hour and their bubbles follow the text
+  bubbles' corners.
+- A Huawei HMS push flavor now exists upstream; this fork still ships the UnifiedPush flavor.
+
+### 🔁 Two of our fixes are now upstream's
+
+- The typing indicator that froze after one bounce (Gerrit 36780) — our copy dropped out.
+- The name-server resolver that replayed a failed DNS lookup forever (Gerrit 36883, daemon
+  `ab2dd626d`) — `jami-namedirectory-reresolve.patch` is retired.
+
+### 🧩 Where the fork deliberately differs from this upstream
+
+- **The daemon still starts with the app process.** Upstream now starts it on the first screen or
+  push, to gate its new device-transfer backup. The fork's watchdog, automation receivers and boot
+  path rely on a running daemon, so the eager start stays; upstream's backup gate is kept.
+- **Connectivity handling stays in the fork's own code** — debounced network settle, reconnect on
+  a path change, the recovery watchdogs. Upstream's new network monitor is not started, since
+  running both would report every change to the daemon twice.
+- **Push wake-up keeps the fork's path** (expiry wake, noise cooldown).
+- **Contact picker:** upstream's redesign, with our “Create new SWARM chat” label. Its rows no
+  longer show presence dots.
+- **Chat-list long-press menu:** upstream's new order, then “Look up name” and “Contact live
+  monitor”.
+
+### 🌌 Wallpaper
+
+- Upstream's release replaced the welcome background — the picture behind the empty conversation
+  pane — with grey-mauve waves. **The starry dark-blue sky is back**, and stays across future
+  syncs.
+
+### 🎨 Look
+
+- Upstream's changed and new night colours are folded into the single colour table; the new
+  message-input card colour is fed from a role, so the input bar stays black with its yellow frame.
+- The new upstream screens (filter chips, Feed dialog, thread view, contact picker, contact
+  section) take their colours from the role loader only. They have not had a pass of their own
+  yet.
+
+### 🌐 Languages
+
+- Every string upstream changed or added that names the app says **白い熊 GNU Jami** again, in
+  all locales.
+
+### 🔧 Under the hood
+
+- `jami-audio-rtp-diag.patch` is regenerated for upstream's rewritten SRTP read path.
+- All other daemon and contrib patches apply to the new sources unchanged.
+- Contrib libraries that did not move in this sync are still NDK 29 builds, linked into an NDK 30
+  daemon.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+036` — 2026-11-22
 
 Same upstream base (**20261023-01** at `2ec1e272f`). Two paragraphs of the connectivity help page
