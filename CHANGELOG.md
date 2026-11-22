@@ -7,6 +7,24 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+003` — 2026-11-22
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+002`. This release puts back four
+things the 20261106-01 sync had quietly undone in the main view.
+
+### 🩹 Restored after the sync
+
+- **The message entry box has its yellow outline again.** Upstream turned the box into a Material
+  card, which discards the foreground drawable our outline was attached to — so the entry row sat
+  on the black background with nothing around it. The outline is now the card's own 2 dp stroke,
+  in the field-frame colour role.
+- **Chat-list rows grow with the font again.** The row had gone back to a fixed 72 dp, which cut
+  the second line (date and last message) in half at larger font sizes. It is a 72 dp minimum
+  once more.
+- **Reaction chips** keep their 5 dp corners instead of upstream's new 12 dp.
+- **Incoming file cards** reach the right edge of the screen again instead of stopping at
+  upstream's new guideline.
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+002` — 2026-11-22
 
 **New upstream base: 20261106-01** (“Tim Berners-Lee”), at upstream commit `0fc04d099` — 62 commits
