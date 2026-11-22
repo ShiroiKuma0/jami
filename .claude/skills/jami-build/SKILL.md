@@ -43,7 +43,7 @@ Only the **Android client repo** is forked — not the `jami-project` meta-tree.
 | Build host | Tuxedo OS (Ubuntu Noble base) |
 | Build JDK | OpenJDK 21 at `/usr/lib/jvm/java-21-openjdk-amd64` (Java target is 17; 21 host builds it fine) |
 | Android SDK | `~/android-sdk` (`sdkmanager` at `~/android-sdk/cmdline-tools/latest/bin/sdkmanager`) |
-| NDK | `29.0.14206865` (SDK **beta** channel) |
+| NDK | `30.0.16248370` since the 20261106-01 sync (was `29.0.14206865`) |
 | CMake | `4.1.2` (SDK **beta** channel) — invoked by AGP externalNativeBuild |
 | build-tools / platform / compileSdk | `36.1.0` / `android-36` / `36` |
 | SWIG | ≥ **4.2** required (apt `swig` 4.2.0 on Noble is OK) |
@@ -240,7 +240,7 @@ r bash -c 'cp patches/pjproject-evict-stuck-epoll-sockets.patch daemon/contrib/s
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" ] && ! grep -q ioqueue_note_unhandled "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c"; then (cd "$d/pjproject" && patch -flp1) < patches/pjproject-evict-stuck-epoll-sockets.patch; fi'
 # rebuild needs the cross env that daemon/CMakeLists.txt exports for autoconf contribs — a bare
 # `make .pjproject` dies at configure with "C compiler cannot create executables" (cost one attempt):
-#   export ANDROID_NDK=~/android-sdk/ndk/29.0.14206865 TARGET=aarch64-linux-android API=26
+#   export ANDROID_NDK=~/android-sdk/ndk/30.0.16248370 TARGET=aarch64-linux-android API=26
 #   export TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64
 #   export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang CXX=$TOOLCHAIN/bin/${TARGET}${API}-clang++
 #   export AS="$CC -c" AR=$TOOLCHAIN/bin/llvm-ar RANLIB=$TOOLCHAIN/bin/llvm-ranlib STRIP=$TOOLCHAIN/bin/llvm-strip LD=$TOOLCHAIN/bin/ld
@@ -345,7 +345,7 @@ command -v meson >/dev/null || r pipx install meson
 
 export SDKMANAGER=$(find ~/android-sdk/cmdline-tools -name sdkmanager -type f 2>/dev/null | head -1)
 r bash -c 'yes | "$SDKMANAGER" --channel=1 --licenses'
-r "$SDKMANAGER" --channel=1 "ndk;29.0.14206865" "cmake;4.1.2" "build-tools;36.1.0" "platforms;android-36"
+r "$SDKMANAGER" --channel=1 "ndk;30.0.16248370" "cmake;4.1.2" "build-tools;36.1.0" "platforms;android-36"
 
 mkdir -p ~/.android-keystores
 [ -f ~/.android-keystores/jami-custom.jks ] || r keytool -genkeypair -v -keystore ~/.android-keystores/jami-custom.jks -storetype PKCS12 -keyalg RSA -keysize 4096 -validity 10000 -alias jami-custom -dname "CN=shiroikuma jami, O=shiroikuma, C=JP" -storepass jami-shiroikuma -keypass jami-shiroikuma
@@ -501,7 +501,7 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/pjproject" 
 # Rebuild pjproject if the stamp is older than ANY patched source. Naming only ioqueue_epoll.c here
 # is the same trap that shipped a stale libdhtnet in +163 — stun_sock.c alone would be skipped.
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.pjproject" ] || [ -n "$(find "$d/pjproject/pjlib/src/pj/ioqueue_epoll.c" "$d/pjproject/pjnath/src/pjnath/stun_sock.c" -newer "$d/.pjproject" 2>/dev/null | head -1)" ]; then
-  export ANDROID_NDK="$HOME/android-sdk/ndk/29.0.14206865" TARGET=aarch64-linux-android API=26
+  export ANDROID_NDK="$HOME/android-sdk/ndk/30.0.16248370" TARGET=aarch64-linux-android API=26
   export TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64"
   export CC="$TOOLCHAIN/bin/${TARGET}${API}-clang" CXX="$TOOLCHAIN/bin/${TARGET}${API}-clang++"
   export AS="$CC -c" AR="$TOOLCHAIN/bin/llvm-ar" RANLIB="$TOOLCHAIN/bin/llvm-ranlib" STRIP="$TOOLCHAIN/bin/llvm-strip" LD="$TOOLCHAIN/bin/ld"
@@ -671,10 +671,8 @@ r bash -c 'grep -q SK-CAPTUREZERO daemon/src/media/audio/aaudio/aaudiolayer.cpp 
 # without that a wedged socket would deliver ~16 000 identical lines a second.
 r bash -c 'grep -q SK-SIPLOG daemon/src/manager.cpp || (cd daemon && patch -flp1) < patches/jami-sip-log-errors-by-default.patch'
 
-# name-server re-resolve (SK-NSRESOLVE; idempotent; daemon's OWN source — no rules.mak, no contrib
-# rebuild). NameDirectory resolved ns.jami.net once at daemon start and replayed that result forever,
-# so a start-up DNS failure made every name lookup fail with code=0 until the process died (2026-10-31).
-r bash -c 'grep -q SK-NSRESOLVE daemon/src/jamidht/namedirectory.cpp || (cd daemon && patch -flp1) < patches/jami-namedirectory-reresolve.patch'
+# (jami-namedirectory-reresolve.patch / SK-NSRESOLVE was here until 2026-11-22: 白い熊's Gerrit 36883,
+# merged upstream as daemon ab2dd626d in 20261106-01. The patch file is gone; never re-add it.)
 
 # current-CRL-only (idempotent; daemon's OWN source — no rules.mak, no contrib rebuild)
 r bash -c 'grep -q SK-CRL-CURRENT daemon/src/jamidht/account_manager.cpp || (cd daemon && patch -flp1) < patches/jami-publish-current-crl-only.patch'
