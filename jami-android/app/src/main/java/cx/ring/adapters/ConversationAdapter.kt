@@ -1398,10 +1398,8 @@ class ConversationAdapter(
             return
         }
 
-        viewHolder.compositeDisposable.add(timestampUpdateTimer
-            .observeOn(DeviceUtils.uiScheduler)
-            .subscribe {
-            viewHolder.mFileSize?.text = when (val status = file.transferStatus) {
+        val renderSizeLine = {
+            val sizeLine = when (val status = file.transferStatus) {
                 TransferStatus.TRANSFER_FINISHED -> Formatter.formatFileSize(context, file.totalSize)
                 TransferStatus.TRANSFER_ONGOING -> String.format("%s / %s - %s",
                     Formatter.formatFileSize(context, file.bytesProgress),
@@ -1410,7 +1408,25 @@ class ConversationAdapter(
                 )
                 else -> String.format(Formatter.formatFileSize(context, file.totalSize))
             }
-        })
+            // SK-HANDOVER: a peer is pulling this sent file right now (bytes written / total), or
+            // has pulled every byte of it (see FileHandover).
+            val pull = if (file.isOutgoing) cx.ring.utils.FileHandover.progress(file.messageId) else null
+            viewHolder.mFileSize?.text = when {
+                pull != null -> String.format("%s / %s",
+                    Formatter.formatFileSize(context, pull.first), Formatter.formatFileSize(context, pull.second))
+                file.isOutgoing && cx.ring.utils.FileHandover.has(file.messageId) ->
+                    sizeLine + " · " + context.getString(R.string.sk_file_handed_over)
+                else -> sizeLine
+            }
+        }
+        viewHolder.compositeDisposable.add(timestampUpdateTimer
+            .observeOn(DeviceUtils.uiScheduler)
+            .subscribe { renderSizeLine() })
+        if (file.isOutgoing)
+            viewHolder.compositeDisposable.add(cx.ring.utils.FileHandover.changes
+                .filter { it == file.messageId }
+                .observeOn(DeviceUtils.uiScheduler)
+                .subscribe({ renderSizeLine() }, {}))
 
         val isDateShown = hasPermanentDateString(file, position)
         configureTimestamp(viewHolder, file, isDateShown)

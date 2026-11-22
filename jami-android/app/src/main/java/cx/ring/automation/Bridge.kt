@@ -204,6 +204,8 @@ object Bridge : BridgeTap {
     }
 
     override fun onTransfer(accountId: String, conversationId: String, interactionId: String, fileId: String, eventCode: Int) {
+        // SK-HANDOVER: recorded for every conversation, watched or not — the sender's file bubble reads it.
+        safe { cx.ring.utils.FileHandover.note(accountId, conversationId, interactionId, fileId, eventCode) }
         worker.execute { safe {
             if (!isWatched(accountId, conversationId)) return@safe
             val state = Interaction.TransferStatus.fromIntFile(eventCode).name
@@ -371,6 +373,9 @@ object Bridge : BridgeTap {
     fun ownUri(accountId: String): String? =
         JamiApplication.instance?.mAccountService?.getAccount(accountId)?.username
             ?.substringAfterLast(':')?.takeIf { it.isNotEmpty() }
+
+    /** The last daemon transfer event seen for [fileId] since this process started, or "". */
+    fun lastTransferState(accountId: String, fileId: String): String = lastTransferState["$accountId|$fileId"].orEmpty()
 
     /** The finished file on disk: the client's own copy first (it is under the FileProvider root). */
     fun resolveFile(accountId: String, conversationId: String, messageId: String, fileId: String): File? {

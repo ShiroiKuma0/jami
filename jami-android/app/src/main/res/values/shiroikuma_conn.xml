@@ -56,7 +56,7 @@
     <string name="tip_close">Close the dashboard.</string>
     <string name="tip_dot">Connection dashboard: per-account status, history and recovery.</string>
     <string name="tip_flash">Recover now: full DHT + re-register + presence refresh.</string>
-    <string name="tip_dht_mode">Connection mode: the shape is the mode (filled = full DHT, hollow = DHT proxy); the colour is the state (yellow = receiving fine, blue = switching/recovering/streaming fallback, red = current mode verified broken). Tap to switch — it sets every account at once.</string>
+    <string name="tip_dht_mode">Connection mode: the shape is the mode (filled = DHT proxy, hollow = full DHT); the colour is the state (yellow = receiving fine, blue = switching/recovering/streaming fallback, red = current mode verified broken). Tap to switch — it sets every account at once.</string>
     <string name="dht_switched_full">Switched to full DHT (all accounts)</string>
     <string name="dht_switched_proxy">Switched to DHT proxy (all accounts)</string>
 
@@ -106,7 +106,7 @@
     <string name="info_flash_recovering">Recovering — while it repairs</string>
     <string name="info_dht_full">Full DHT — robust; no single proxy link that can wedge</string>
     <string name="info_dht_proxy">Proxy — lighter; inbound rides a proxy server</string>
-    <string name="info_b_main_dht">⬡ Connection-mode icon — its SHAPE is the current mode: filled hub = full DHT (the heavy mode, your device is a node), thick outline = DHT proxy (the light mode). Its COLOUR is the state: yellow = the chosen mode is receiving fine, blue = transitional (post-switch verification, recovery, or the streaming fallback while the push leg is dead), red = the current mode is verifiably not receiving. Tap to switch modes; it sets every account at once, so the per-account “Use DHT proxy” never drifts out of sync.</string>
+    <string name="info_b_main_dht">⬡ Connection-mode icon — its SHAPE is the current mode: filled hub = DHT proxy (the light mode, the normal one), thick outline = full DHT (the heavy mode, your device is a node). Its COLOUR is the state: yellow = the chosen mode is receiving fine, blue = transitional (post-switch verification, recovery, or the streaming fallback while the push leg is dead), red = the current mode is verifiably not receiving. Tap to switch modes; it sets every account at once, so the per-account “Use DHT proxy” never drifts out of sync.</string>
 
     <string name="info_h_dash">In this dashboard</string>
     <string name="info_b_dash_rows">Account rows — tap a row to expand its contacts and their live connections (connecting → ICE → TLS → connected). Each row has its own ⚡ that recovers just that account, leaving the healthy ones untouched.</string>
@@ -149,4 +149,6 @@
     <string name="tip_account_toggle">Account on/off. Tap to switch this account off, tap again to switch it back on — the same switch as in the account settings. The dot shows the state of the account.</string>
     <string name="conn_dash_acct_on">switched ON</string>
     <string name="conn_dash_acct_off">switched OFF</string>
+    <!-- Outgoing file bubble: a peer has pulled the whole file (SK-HANDOVER) -->
+    <string name="sk_file_handed_over">handed over</string>
 </resources>
