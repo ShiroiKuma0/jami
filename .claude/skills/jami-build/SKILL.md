@@ -617,6 +617,10 @@ r bash -c 'grep -q SK-SWARMBACKOFF daemon/src/jamidht/swarm/swarm_manager.cpp ||
 # re-delivered trust request on an already-active contact re-sends a confirmation: one putEncrypted
 # PER DEVICE with an RSA sign+encrypt, on every restore. Profiled at 49% of CPU samples.
 r bash -c 'grep -q SK-TRUSTCONFIRM daemon/src/jamidht/contact_list.cpp || (cd daemon && patch -flp1) < patches/jami-trust-request-confirm-once.patch'
+# outgoing-transfer progress (SK-OUTPROGRESS, 2026-11-22; idempotent; daemon's OWN source). The sender
+# learns nothing while a peer pulls a file; this announces the start and serves the byte count under
+# "<fileId>?sk-out" for the sent-file bubble (FileHandover.kt). Touches only data_transfer.{cpp,h}.
+r bash -c 'grep -q SK-OUTPROGRESS daemon/src/data_transfer.cpp || (cd daemon && patch -flp1) < patches/jami-outgoing-transfer-progress.patch'
 
 # DHT client mode (SK-CLIENTMODE; idempotent; daemon's OWN source). Inert in proxy mode; applies
 # only on the full-DHT escalation path. Honoured by every opendht since 1.4.0 (2017).

@@ -1,0 +1,105 @@
+diff --git a/src/data_transfer.cpp b/src/data_transfer.cpp
+index 04f702c57..32eb1ae16 100644
+--- a/src/data_transfer.cpp
++++ b/src/data_transfer.cpp
+@@ -25,7 +25,9 @@
+ #include <algorithm>
+ #include <mutex>
+ #include <cstdlib> // mkstemp
++#include <atomic>
+ #include <filesystem>
++#include <string_view>
+ #include <limits>
+ 
+ #include <opendht/rng.h>
+@@ -177,6 +179,18 @@ OutgoingFile::process()
+ {
+     if (!channel_ or !stream_ or !stream_.is_open())
+         return;
++    // SK-OUTPROGRESS: a peer has started pulling this file. Upstream tells the sending client
++    // nothing until the last byte is written; announce the start and keep a byte count that
++    // TransferManager::info() serves under "<fileId>?sk-out".
++    {
++        std::error_code skEc;
++        auto skSize = std::filesystem::file_size(info_.path, skEc);
++        skTotal_ = skEc ? 0 : static_cast<int64_t>(skSize);
++        skSent_ = static_cast<int64_t>(start_);
++        skActive_ = true;
++        if (!interactionId_.empty())
++            emit(libjami::DataTransferEventCode::ongoing);
++    }
+     auto correct = false;
+     stream_.seekg(static_cast<long>(start_), std::ios::beg);
+     try {
+@@ -192,6 +206,7 @@ OutgoingFile::process()
+             channel_->write(reinterpret_cast<const uint8_t*>(buffer.data()), gcount, ec);
+             if (ec)
+                 break;
++            skSent_ = static_cast<int64_t>(pos);
+         }
+         if (!ec)
+             correct = true;
+@@ -199,6 +214,7 @@ OutgoingFile::process()
+     } catch (const std::exception& e) {
+         JAMI_WARNING("Failed to read from stream: {}", e.what());
+     }
++    skActive_ = false;
+     if (!isUserCancelled_) {
+         // NOTE: emit(code) MUST be changed to improve handling of multiple destinations
+         // But for now, we can just avoid to emit errors to the client, because for outgoing
+@@ -536,6 +552,23 @@ TransferManager::info(const std::string& fileId, std::string& path, int64_t& tot
+     if (pimpl_->to_.empty())
+         return false;
+ 
++    // SK-OUTPROGRESS: "<fileId>?sk-out" asks how far an OUTGOING copy of the file has got. A
++    // separate key, so every stock caller of info() sees exactly what it saw before.
++    static constexpr std::string_view SK_OUT = "?sk-out";
++    if (fileId.size() > SK_OUT.size()
++        && std::string_view(fileId).substr(fileId.size() - SK_OUT.size()) == SK_OUT) {
++        const auto real = std::string_view(fileId).substr(0, fileId.size() - SK_OUT.size());
++        path.clear();
++        for (const auto& [channel, out] : pimpl_->outgoings_) {
++            if (out && out->skActive() && out->skFileId() == real) {
++                total = out->skTotal();
++                progress = out->skSent();
++                return true;
++            }
++        }
++        return false;
++    }
++
+     auto itI = pimpl_->incomings_.find(fileId);
+     auto itW = pimpl_->waitingIds_.find(fileId);
+     std::filesystem::path transferPath;
+diff --git a/src/data_transfer.h b/src/data_transfer.h
+index 9687f5eec..87b2e1ae2 100644
+--- a/src/data_transfer.h
++++ b/src/data_transfer.h
+@@ -21,6 +21,7 @@
+ 
+ #include <dhtnet/multiplexed_socket.h>
+ 
++#include <atomic>
+ #include <fstream>
+ #include <functional>
+ #include <memory>
+@@ -127,10 +128,19 @@ public:
+     void process() override;
+     void cancel() override;
+ 
++    // SK-OUTPROGRESS: how far this copy has been written to the peer, for the sender's own display.
++    bool skActive() const { return skActive_; }
++    int64_t skSent() const { return skSent_; }
++    int64_t skTotal() const { return skTotal_; }
++    const std::string& skFileId() const { return fileId_; }
++
+ private:
+     std::ifstream stream_;
+     size_t start_ {0};
+     size_t end_ {0};
++    std::atomic_bool skActive_ {false};
++    std::atomic<int64_t> skSent_ {0};
++    std::atomic<int64_t> skTotal_ {0};
+ };
+ 
+ class TransferManager : public std::enable_shared_from_this<TransferManager>

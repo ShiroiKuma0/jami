@@ -11,7 +11,9 @@ import cx.ring.utils.PushEvidence
 import net.jami.daemon.JamiService
 import net.jami.model.Account
 import net.jami.model.Uri
+import net.jami.model.interaction.DataTransfer
 import net.jami.model.interaction.Interaction
+import net.jami.services.JamiFileTransferInfoProvider
 import net.jami.utils.InboundEvidence
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -27,7 +29,7 @@ import java.util.concurrent.TimeUnit
  * automation switch before anything here runs.
  */
 object BridgeMethods {
-    const val VERSION = "3"
+    const val VERSION = "4"
 
     private val METHODS = listOf(
         Triple("bridge_describe", "", "version, items[method,args,returns]"),
@@ -39,7 +41,9 @@ object BridgeMethods {
         Triple("bridge_messages_since", "account,conversation,after_seq|after_id,limit", "items[event], last_seq, count"),
         Triple("bridge_send_text", "account,conversation,text,reply_to?", "message_id, pending"),
         Triple("bridge_send_file", "account,conversation,fd|uri,name,reply_to?", "message_id, file_id, pending"),
-        Triple("bridge_accept_file", "account,conversation,message_id,file_id", ""),
+        Triple("bridge_accept_file", "account,conversation,message_id,file_id", "state (started|already_finished|already_in_progress)"),
+        Triple("bridge_file_state", "account,conversation,message_id,file_id",
+            "state (finished|in_progress|accepted_waiting|not_started|unknown), bytes, total, transfer_state, file_name, file_size"),
         Triple("bridge_open_file", "account,conversation,message_id,file_id", "fd, file_name, file_size, file_uri"),
         Triple("bridge_status", "account?", "app fields + items[per account]"),
         Triple("bridge_react", "account,conversation,message_id,emoji", "reaction_id, pending"),
@@ -88,6 +92,7 @@ object BridgeMethods {
             "bridge_send_text" -> sendText(x)
             "bridge_send_file" -> sendFile(ctx, x)
             "bridge_accept_file" -> acceptFile(x)
+            "bridge_file_state" -> fileState(x)
             "bridge_open_file" -> openFile(x)
             "bridge_status" -> status(ctx, x)
             "bridge_react" -> react(x)
@@ -232,17 +237,85 @@ object BridgeMethods {
         }
     }
 
+    /**
+     * Start (or resume) the download of a received file. The daemon needs only the four ids, so this
+     * must not depend on Jami's UI model: on a phone whose Jami nobody opens the message is in the
+     * model only while the process that received it lives, and the event reaches a bridge caller
+     * BEFORE the model has it. It used to answer "message not loaded" in both cases and the accept
+     * silently never happened (2026-11-22, a remote update that never arrived).
+     */
     private fun acceptFile(x: Bundle): Bundle {
-        val svc = JamiApplication.instance?.mAccountService ?: return err("app not initialized")
+        val app = JamiApplication.instance ?: return err("app not initialized")
+        val svc = app.mAccountService
         val acc = account(x) ?: return err("no such account")
         val conv = conversation(x) ?: return err("missing conversation")
         val messageId = x.getString("message_id")
         val fileId = x.getString("file_id")
         if (messageId.isNullOrEmpty() || fileId.isNullOrEmpty()) return err("missing message_id or file_id")
-        svc.getAccount(acc)?.getSwarm(conv)?.getMessage(messageId)
-            ?: return err("message not loaded in this conversation")
-        svc.acceptFileTransfer(acc, Uri(Uri.SWARM_SCHEME, conv), messageId, fileId)
-        return ok()
+        when (daemonFileState(acc, conv, fileId).state) {
+            "finished" -> return ok().apply { putString("state", "already_finished") }
+            "in_progress" -> return ok().apply { putString("state", "already_in_progress") }
+        }
+        val swarm = svc.getAccount(acc)?.getSwarm(conv)
+        val transfer = swarm?.getMessage(messageId) as? DataTransfer
+        if (swarm != null && transfer != null) {
+            if (transfer.hasExactContent) return ok().apply { putString("state", "already_finished") }
+            svc.acceptFileTransfer(swarm, fileId, transfer)
+            return ok().apply { putString("state", "started") }
+        }
+        // Not in the model: ask the daemon directly, with the destination the app itself would use.
+        val name = (Bridge.readJournal(acc, conv)
+            .lastOrNull { it["type"] == Bridge.TYPE_FILE && it["message_id"] == messageId }
+            ?.get("file_name")?.takeIf { it.isNotEmpty() } ?: fileId).let { File(it).name }
+        val dest = app.mDeviceRuntimeService.getNewConversationPath(acc, conv, name)
+        val accepted = Bridge.daemon { JamiService.downloadFile(acc, conv, messageId, fileId, dest.absolutePath) } != 0L
+        if (!accepted) return err("daemon refused the download (message or file id unknown to it)")
+        return ok().apply { putString("state", "started") }
+    }
+
+    private class FileState(val state: String, val bytes: Long, val total: Long)
+
+    /**
+     * Where a received file stands, from the daemon alone:
+     *  finished          — complete and checksum-verified, bridge_open_file will hand it over
+     *  in_progress       — a channel is open and bytes are arriving
+     *  accepted_waiting  — download requested, no channel now; bytes > 0 means an interrupted partial
+     *                      that the next bridge_accept_file resumes
+     *  not_started       — the daemon was never asked for this file
+     *  unknown           — the daemon could not answer (conversation not ready, or it timed out)
+     */
+    private fun daemonFileState(acc: String, conv: String, fileId: String): FileState {
+        val info = runCatching { Bridge.daemon { JamiFileTransferInfoProvider.get(acc, conv, fileId) } }.getOrNull()
+            ?: return FileState("unknown", 0, 0)
+        if (!info.isSuccess) return FileState(if (info.isRetryable) "unknown" else "not_started", 0, 0)
+        val total = info.total.coerceAtLeast(0)
+        val progress = info.progress.coerceAtLeast(0)
+        if (info.path?.let { File(it).isFile } == true && progress >= total) return FileState("finished", progress, total)
+        if (progress > 0) return FileState("in_progress", progress, total)
+        // The daemon receives into a hidden partial beside the destination and keeps it for a resume.
+        val partial = runCatching {
+            JamiApplication.instance?.mDeviceRuntimeService?.getConversationPath(acc, conv, "x")?.parentFile
+                ?.let { File(it, ".jami-$acc-$conv-$fileId.tmp") }?.takeIf { it.isFile }?.length()
+        }.getOrNull() ?: 0L
+        return FileState("accepted_waiting", partial, total)
+    }
+
+    private fun fileState(x: Bundle): Bundle {
+        val acc = account(x) ?: return err("no such account")
+        val conv = conversation(x) ?: return err("missing conversation")
+        val messageId = x.getString("message_id").orEmpty()
+        val fileId = x.getString("file_id")?.takeIf { it.isNotEmpty() } ?: return err("missing file_id")
+        val st = daemonFileState(acc, conv, fileId)
+        return ok().apply {
+            putString("state", st.state)
+            putString("bytes", st.bytes.toString())
+            putString("total", st.total.toString())
+            putString("transfer_state", Bridge.lastTransferState(acc, fileId))
+            if (st.state == "finished") Bridge.resolveFile(acc, conv, messageId, fileId)?.let { f ->
+                putString("file_name", f.name)
+                putString("file_size", f.length().toString())
+            }
+        }
     }
 
     private fun openFile(x: Bundle): Bundle {
