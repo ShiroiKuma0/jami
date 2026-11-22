@@ -7,6 +7,27 @@ listed is built on top of stock.
 
 ---
 
+## `20261023-01+2026-10-23.21-54.g2ec1e272+036` — 2026-11-22
+
+Same upstream base (**20261023-01** at `2ec1e272f`). Two paragraphs of the connectivity help page
+described a state that ended in July; both are corrected, in English, Japanese and Czech.
+
+### 📖 Connectivity help page
+
+- **Automatic recovery** said that every account runs on the full DHT by default. It now says what
+  the app does: every account rests on the **DHT proxy with push**, the light mode that lets the
+  phone sleep; the watcher switches to the full DHT only when the proxy link itself is stuck, and
+  returns once things are stable. The hexagon in the search bar switches the mode by hand.
+- **Data cost** said that both modes cost the same. It now gives the later measurement, on a phone
+  with four accounts: the full DHT moved about **110–130 MiB/h** and never let the Wi-Fi radio
+  sleep; the proxy with push rests at about **5 MiB/h**. The earlier one-account figures
+  (24.6 vs 24.8 MiB/h) are kept in the text, named as the older measurement.
+
+Everything else is as in `+034`, including its note that the new look was compared in the code
+and not walked through on a device before release.
+
+---
+
 ## `20261023-01+2026-10-23.21-54.g2ec1e272+034` — 2026-11-22
 
 Same upstream base (**20261023-01** at `2ec1e272f`). The whole look is rebuilt on one rule set —
