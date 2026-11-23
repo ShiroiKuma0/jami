@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
  * automation switch before anything here runs.
  */
 object BridgeMethods {
-    const val VERSION = "4"
+    const val VERSION = "5"
 
     private val METHODS = listOf(
         Triple("bridge_describe", "", "version, items[method,args,returns]"),
@@ -51,6 +51,7 @@ object BridgeMethods {
         Triple("bridge_edit", "account,conversation,message_id,text", "message_id"),
         Triple("bridge_delete", "account,conversation,message_id", "message_id"),
         Triple("bridge_message_status", "account,conversation,message_id", "delivered, read, items[peer,status]"),
+        Triple("bridge_mark_read", "account,conversation", "message_id (\"\" = nothing to mark), notifications_cancelled"),
         Triple("bridge_wake", "minutes? (default 2, max 30)", "asleep_before"),
         Triple("bridge_keep_awake", "on? (\"1\"|\"0\"; omit to read)", "keep_awake"),
     )
@@ -100,6 +101,7 @@ object BridgeMethods {
             "bridge_edit" -> editTo(x, "message_id", x.getString("text") ?: return err("missing text"))
             "bridge_delete" -> editTo(x, "message_id", "")
             "bridge_message_status" -> messageStatus(x)
+            "bridge_mark_read" -> markRead(x)
             "bridge_wake" -> {
                 val app = JamiApplication.instance ?: return err("app not initialized")
                 val min = x.getString("minutes")?.toLongOrNull()?.coerceIn(1, 30) ?: 2
@@ -408,6 +410,41 @@ object BridgeMethods {
             putString("delivered", b(delivered))
             putString("read", b(read))
             putParcelableArray("items", peers.map { (peer, st) -> flat("peer" to peer, "status" to st.name) }.toTypedArray())
+        }
+    }
+
+    /**
+     * What opening the chat does, with no UI: mark the conversation read up to its last message,
+     * tell the daemon (which records our read position and, if the account sends read receipts,
+     * tells the peers), and cancel the conversation's text and file notifications.
+     *
+     * The bridge tap hands an event to the caller BEFORE the model has the message, so a caller that
+     * has just consumed the newest message can get here first. The journal's last incoming message
+     * is therefore marked too: `lastRead` makes the model count it as read the moment it arrives,
+     * and an already-read arrival raises no notification.
+     */
+    private fun markRead(x: Bundle): Bundle {
+        val app = JamiApplication.instance ?: return err("app not initialized")
+        val acc = account(x) ?: return err("no such account")
+        val conv = conversation(x) ?: return err("missing conversation")
+        val account = app.mAccountService.getAccount(acc) ?: return err("no such account")
+        val swarm = account.getSwarm(conv) ?: return err("no such conversation on this account")
+        var marked = app.mConversationFacade.readMessages(account, swarm, true).orEmpty()
+        // Only when the conversation's NEWEST message is an incoming one: an older id here would
+        // move the read position backwards.
+        val ahead = Bridge.readJournal(acc, conv)
+            .lastOrNull { it["type"] == Bridge.TYPE_TEXT || it["type"] == Bridge.TYPE_FILE }
+            ?.takeIf { it["own"] != "1" }?.get("message_id").orEmpty()
+        if (ahead.isNotEmpty() && ahead != marked && swarm.getMessage(ahead) == null) {
+            swarm.setLastMessageRead(ahead)
+            app.mAccountService.setMessageDisplayed(acc, swarm.uri, ahead)
+            marked = ahead
+        }
+        val files = (app.mNotificationService as? cx.ring.services.NotificationServiceImpl)
+            ?.cancelConversationFileNotifications(acc, swarm.uri) ?: 0
+        return ok().apply {
+            putString("message_id", marked)
+            putString("notifications_cancelled", files.toString())
         }
     }
 

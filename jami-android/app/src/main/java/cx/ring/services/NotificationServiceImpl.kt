@@ -1064,6 +1064,7 @@ class NotificationServiceImpl(
         if(event.isOver){
             val notif = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_FILE_TRANSFER)
                 .setSmallIcon(R.drawable.ic_ring_logo_white)
+                .addExtras(Bundle().apply { putString(EXTRA_CONVERSATION_PATH, path.toString()) })
                 .setContentIntent(PendingIntent.getActivity(mContext, random.nextInt(), intentViewConversation, ContentUri.immutable()))
                 .setAutoCancel(true)
             if (info.showPicture()) {
@@ -1108,6 +1109,7 @@ class NotificationServiceImpl(
                 else
                     info.displayName + ": " + cx.ring.utils.TextUtils.getReadableFileTransferStatus(mContext, event)
             )
+            .addExtras(Bundle().apply { putString(EXTRA_CONVERSATION_PATH, path.toString()) })
             .setContentIntent(PendingIntent.getActivity(mContext, random.nextInt(), intentViewConversation, ContentUri.immutable()))
             .color = ResourcesCompat.getColor(mContext.resources, R.color.color_primary_dark, null)
         val picture = getContactPicture(conversation)
@@ -1234,6 +1236,31 @@ class NotificationServiceImpl(
         val notificationId = getTextNotificationId(accountId, contact)
         notificationManager.cancel(notificationId)
         mNotificationBuilders.remove(notificationId)
+    }
+
+    /**
+     * Cancels the file notifications of one conversation — the "incoming picture / file" card a
+     * finished transfer leaves behind (posted under a random id, so it can only be found by the
+     * [EXTRA_CONVERSATION_PATH] it carries) and a pending accept/decline card. A transfer that is
+     * still running keeps its ongoing foreground notification.
+     *
+     * @return how many notifications were cancelled
+     */
+    fun cancelConversationFileNotifications(accountId: String, conversationUri: net.jami.model.Uri): Int {
+        val path = ConversationPath.toUri(accountId, conversationUri).toString()
+        val manager = mContext.getSystemService(android.app.NotificationManager::class.java) ?: return 0
+        var cancelled = 0
+        for (sbn in manager.activeNotifications) {
+            val n = sbn.notification
+            if (n.channelId != NOTIF_CHANNEL_FILE_TRANSFER) continue
+            if (n.extras?.getString(EXTRA_CONVERSATION_PATH) != path) continue
+            if (n.flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE) != 0) continue
+            manager.cancel(sbn.tag, sbn.id)
+            mNotificationBuilders.remove(sbn.id)
+            dataTransferNotifications.remove(sbn.id)
+            cancelled++
+        }
+        return cancelled
     }
 
     override fun cancelTrustRequestNotification(accountID: String) {
@@ -1364,6 +1391,8 @@ class NotificationServiceImpl(
         /** Private marker the companion app keys on; the ONLY signal on a protected notification.
          *  Verbatim per the companion contract — do not rename. */
         const val EXTRA_PROTECTED_MARKER = "shiroikuma.jami.protected"
+        /** On every file_transfer notification: the conversation it belongs to (its path Uri). */
+        const val EXTRA_CONVERSATION_PATH = "shiroikuma.jami.conversation"
         const val NOTIF_CHANNEL_PUSH_SYNC = "sync_channel"
         const val NOTIF_CHANNEL_SYNC = "sync"
         private const val NOTIF_CHANNEL_SERVICE = "service"
