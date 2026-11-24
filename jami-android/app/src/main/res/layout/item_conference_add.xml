@@ -57,7 +57,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         android:textColor="@color/white"
         android:textIsSelectable="false"
         android:textSize="16sp"
-        android:text="Add new participant"
+        android:text="@string/add_participant_btn_description"
         tools:text="Add new user" />
 
 

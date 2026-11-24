@@ -361,7 +361,7 @@ object SettingsExport {
         val path = if (uri.scheme == "file") uri.path else null
         if (path != null && File(path).isFile) return FileZipSource(File(path))
         return StreamZipSource { c.contentResolver.openInputStream(uri)
-            ?: throw java.io.IOException("cannot read the selected file") }
+            ?: throw java.io.IOException(c.getString(R.string.sk_misc_export_cannot_read)) }
     }
 
     fun openSource(file: File): ZipSource = FileZipSource(file)
@@ -520,7 +520,7 @@ object SettingsExport {
         for (a in accountService.getAccounts().filter { it.isJami }) {
             val label = a.registeredName.ifBlank { a.alias.orEmpty() }.ifBlank { a.accountId.take(8) }
             if (a.hasPassword()) {
-                notes.append("\n$label: archive has a password — not included.")
+                notes.append("\n").append(app.getString(R.string.sk_misc_export_acc_password, label))
                 continue
             }
             val f = File(cacheDir, "${a.accountId}.gz")
@@ -532,7 +532,7 @@ object SettingsExport {
                     .put("alias", a.alias ?: "")
                     .put("registeredName", a.registeredName))
             } catch (e: Exception) {
-                notes.append("\n$label: export failed — ${e.message}")
+                notes.append("\n").append(app.getString(R.string.sk_misc_export_acc_failed, label, e.message.orEmpty()))
             } finally {
                 f.delete()
             }
@@ -607,15 +607,15 @@ object SettingsExport {
     /** The "last export" status line — call off the main thread (SAF listing can be slow). */
     fun lastExportStatus(c: Context): String {
         directDir(c)?.let { dir ->
-            val newest = directExports(c).firstOrNull() ?: return "No exports yet in ${dir.absolutePath}"
+            val newest = directExports(c).firstOrNull() ?: return c.getString(R.string.sk_misc_export_none_in, dir.absolutePath)
             // The folder goes on every line, not just the empty one: it is the only place the
             // settings page states it, now that the permission pill no longer does.
-            return "Latest export: ${newest.name}  (${stamp(newest.lastModified())}, " +
-                    "${ChatArchive.human(newest.length())})\n${dir.absolutePath}"
+            return c.getString(R.string.sk_misc_export_latest_in, newest.name, stamp(newest.lastModified()),
+                ChatArchive.human(newest.length()), dir.absolutePath)
         }
-        if (getExportDir(c) == null) return "Export directory not set"
-        val newest = latestExport(c) ?: return "No exports yet"
-        return "Latest export: ${newest.name}  (${stamp(newest.lastModified())})"
+        if (getExportDir(c) == null) return c.getString(R.string.sk_misc_export_dir_unset)
+        val newest = latestExport(c) ?: return c.getString(R.string.sk_misc_export_none)
+        return c.getString(R.string.sk_misc_export_latest, newest.name.orEmpty(), stamp(newest.lastModified()))
     }
 
     private fun stamp(t: Long): String =

@@ -20,7 +20,7 @@
     <string name="sk_exim_perm_granted">Granted</string>
     <string name="sk_exim_perm_missing">Not granted — tap to allow</string>
     <string name="sk_exim_perm_required">Allow “All files access” first</string>
-    <string name="sk_exim_folder_label">Backup folder (tap to change)</string>
+    <string name="sk_exim_folder_label">Backup directory (tap to change)</string>
     <string name="sk_exim_export_cats">Categories to export</string>
     <string name="sk_exim_select_all">Select all</string>
     <string name="sk_exim_measuring">Measuring chats…</string>
@@ -43,7 +43,7 @@
     <string name="sk_exim_loading">Reading…</string>
     <string name="sk_exim_pick_backup">Choose a backup</string>
     <string name="sk_exim_no_backups_title">No backups</string>
-    <string name="sk_exim_no_backups_body">No exported ZIP found in %1$s.\nChange the folder, or export first.</string>
+    <string name="sk_exim_no_backups_body">No exported ZIP found in %1$s.\nChange the directory, or export first.</string>
     <string name="sk_exim_cant_restore_title">Cannot restore</string>
     <string name="sk_exim_cant_restore_body">No 白い熊 GNU Jami backup found in %1$s.</string>
     <string name="sk_exim_pick_cats_title">Choose what to restore</string>
@@ -52,10 +52,10 @@
     <string name="sk_exim_chat_texts_detail">%1$s — %2$d conversations, %3$s</string>
     <string name="sk_exim_chat_files_detail">%1$s — %2$d files, %3$s</string>
 
-    <!-- folder browser -->
-    <string name="sk_exim_no_subfolders">(no subfolders)</string>
-    <string name="sk_exim_use_folder">✅ Use this folder</string>
-    <string name="sk_exim_folder_set">Folder: %1$s</string>
+    <!-- directory browser -->
+    <string name="sk_exim_no_subfolders">(no subdirectories)</string>
+    <string name="sk_exim_use_folder">✅ Use this directory</string>
+    <string name="sk_exim_folder_set">Directory: %1$s</string>
 
     <!-- deleted conversations -->
     <string name="sk_exim_deleted_entry">Restore deleted conversations  ⌫</string>
@@ -209,4 +209,7 @@
     <string name="sk_overlay_later">Not now</string>
     <!-- new-swarm contact picker: the create button (upstream labels it like the sheet title) -->
     <string name="sk_picker_create_swarm">Create new SWARM chat</string>
+    <!-- Settings → Diagnostics → the connection trace switch (ConnTrace) -->
+    <string name="sk_diag_conn_trace">Connection trace</string>
+    <string name="sk_diag_conn_trace_desc">Keeps the daemon\'s connection, message and sync lines in a file, together with every diagnostic line switched on here. Logcat loses them within minutes. Up to 16 MB.</string>
 </resources>

@@ -74,13 +74,13 @@
     <string name="notif_deaf_hard">アカウント受信沈黙 %1$d 分 → フルDHT回復 (%2$s)</string>
     <string name="notif_stuck_hard">配信詰まり継続 → ハードリセット (%s)</string>
     <string name="notif_stuck_giveup">配信不能 (%1$s) — 回復を %2$d 分停止</string>
-    <string name="notif_restricted">制限ネットワーク検出（UDP遮断）→ プロキシ固定ON・中継モード (%s)</string>
-    <string name="notif_transport_hostile">UDP遮断を検出（TCPは可）— このネットワークではDHTプロキシを推奨 (%s)</string>
+    <string name="notif_restricted">制限ネットワーク検出（UDP遮断）→ 代理固定ON・中継モード (%s)</string>
+    <string name="notif_transport_hostile">UDP遮断を検出（TCPは可）— このネットワークではDHT代理を推奨 (%s)</string>
     <string name="notif_network_down">ネットワーク切断の可能性 — 接続を確認してください (%s)</string>
     <string name="notif_restricted_exit">通常ネットワーク復帰 — UDP開通 (%s)</string>
     <string name="notif_uniform_wedge">全アカウント沈黙・プローブ無応答 → 回復します (%s)</string>
     <string name="notif_mode_deaf">モード切替後に受信なし → 再登録します (%s)</string>
-    <string name="notif_push_down">プッシュ経路遮断 — ntfy自己テスト無応答。プロキシ受信は届きません (%s)</string>
+    <string name="notif_push_down">プッシュ経路遮断 — ntfy自己テスト無応答。代理受信は届きません (%s)</string>
     <string name="notif_push_up">プッシュ経路復旧 — ntfy自己テスト応答あり (%s)</string>
     <string name="notif_nopush_on">プッシュ経路遮断 → ストリーミング受信に切替（復旧まで電池消費増）(%s)</string>
     <string name="notif_nopush_off">プッシュ経路復旧 → プッシュ受信に復帰 (%s)</string>
@@ -110,7 +110,7 @@
     <string name="info_b_dash_rows">アカウント行 — 行をタップすると連絡先とそのライブ接続（接続中 → ICE → TLS → 接続済み）が展開します。各行には専用の ⚡ があり、そのアカウントだけを回復します（正常なアカウントはそのまま）。</string>
     <string name="info_b_dash_recover">⚡ 今すぐ回復 — メイン画面のフラッシュと同じ強力な修復を全アカウントに実行します。</string>
     <string name="info_b_dash_probe">受信テスト（ダッシュボード上部）— ネットワークが自分に応答するかを静かに確認します。在席情報を再要求し、60秒以内の実応答で判定。テスト開始から判定までウォッチャーのログをその場に流す画面が開くので、経過を見られます。「何も届いていないのでは」と疑ったときに。応答がなければ回復を提案します。</string>
-    <string name="info_b_dash_monitor">モニタ — デバイス単位の最も詳細な情報を見る接続モニタを開きます。</string>
+    <string name="info_b_dash_monitor">モニタ — 端末単位の最も詳細な情報を見る接続モニタを開きます。</string>
     <string name="info_b_dash_info">ⓘ 情報 — このページ。</string>
     <string name="info_b_dash_longpress">ボタン・行・アイコン（ここでもメイン画面でも）を長押しすると、その説明が表示されます。</string>
 

@@ -485,7 +485,7 @@ object ChatArchive {
                 else -> {
                     runCatching { f.copyTo(target, overwrite = false) }
                         .onSuccess { r.filesRestored++ }
-                        .onFailure { r.notes.add("could not restore ${f.name}: ${it.message}") }
+                        .onFailure { r.notes.add(restoreFailedNote(f.name, it.message.orEmpty())) }
                 }
             }
         }
@@ -557,6 +557,12 @@ object ChatArchive {
     }
 
     // --- misc ----------------------------------------------------------------------------------
+
+    /** A report line (shown in the result dialog); the app context, since the merge has none. */
+    private fun restoreFailedNote(name: String, why: String): String =
+        cx.ring.application.JamiApplication.instance
+            ?.getString(cx.ring.R.string.sk_misc_restore_file_failed, name, why)
+            ?: "could not restore $name: $why"
 
     fun stagingDir(c: Context): File = File(c.filesDir, ".exim-staging")
 

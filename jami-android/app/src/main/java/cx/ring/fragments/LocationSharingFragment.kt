@@ -534,7 +534,7 @@ class LocationSharingFragment : Fragment() {
                 ContextCompat.startForegroundService(ctx, intent)
             }
         } catch (e: Exception) {
-            Flash.show(ctx, "Error starting location sharing: " + e.localizedMessage, Toast.LENGTH_SHORT)
+            Flash.show(ctx, ctx.getString(R.string.sk_conn_location_start_error, e.localizedMessage), Toast.LENGTH_SHORT)
         }
     }
 

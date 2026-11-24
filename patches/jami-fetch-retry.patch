@@ -1,0 +1,118 @@
+--- a/src/jamidht/conversation_module.cpp
++++ b/src/jamidht/conversation_module.cpp
+@@ -40,6 +40,28 @@
+ #include <algorithm>
+ #include <fstream>
+ 
++// SK-FETCHRETRY (2026-11-23): one retry for a fetch that failed, on a fresh git channel.
++//
++// A conversation keeps one git channel per peer device and reuses it. When the peer's process is
++// killed (an app update, a crash, the OOM killer) nothing closes that channel: the death is only
++// discovered by the first write. If that first write is the fetch of a commit the peer's NEW process
++// has just announced over a NEW connection, the fetch fails on the dead channel, the channel is
++// dropped -- and upstream stops there, logging "Relaunch sync" without relaunching anything. The
++// commit then waits for the next unrelated notification. Measured 2026-11-23: a message announced
++// and fetchable over a connection 80 ms old sat for five minutes, because the fetch went down the
++// 43-second-old channel to the killed process.
++//
++// The retry drops the cached channel for that device first, so it asks the connection manager for a
++// new one: on whatever live connection exists, or a fresh dial. Once only; a second failure ends
++// as before. Lines go to SK-SWARMSYNC (Settings -> Diagnostics -> Swarm sync, group 32).
++#ifdef __ANDROID__
++#include <android/log.h>
++extern "C" int sk_diag_on(int group);
++#define SK_FR(...) do { if (sk_diag_on(32)) __android_log_print(ANDROID_LOG_ERROR, "SK-SWARMSYNC", __VA_ARGS__); } while (0)
++#else
++#define SK_FR(...) do { } while (0)
++#endif
++
+ namespace jami {
+ 
+ using ConvInfoMap = std::map<std::string, ConvInfo>;
+@@ -297,7 +319,8 @@
+     void fetchNewCommits(const std::string& peer,
+                          const std::string& deviceId,
+                          const std::string& conversationId,
+-                         const std::string& commitId = "");
++                         const std::string& commitId = "",
++                         bool skRetried = false); // SK-FETCHRETRY
+     /**
+      * Handle events to receive new commits
+      */
+@@ -744,7 +767,8 @@
+ ConversationModule::Impl::fetchNewCommits(const std::string& peer,
+                                           const std::string& deviceId,
+                                           const std::string& conversationId,
+-                                          const std::string& commitId)
++                                          const std::string& commitId,
++                                          bool skRetried)
+ {
+     auto conv = getConversation(conversationId);
+     {
+@@ -872,13 +896,16 @@
+         onNeedSocket_(
+             conversationId,
+             deviceId,
+-            [w = weak(), conv, conversationId, peer = std::move(peer), deviceId, commitId = std::move(commitId)](
++            [w = weak(), conv, conversationId, peer = std::move(peer), deviceId, commitId = std::move(commitId), skRetried](
+                 const auto& channel) {
+                 auto sthis = w.lock();
+                 auto acc = sthis ? sthis->account_.lock() : nullptr;
+                 std::unique_lock lk(conv->mtx);
+                 auto conversation = conv->conversation;
+                 if (!channel || !acc || !conversation) {
++                    if (!channel)
++                        SK_FR("fetch conv=%.8s from=%.8s NO CHANNEL (wanted %.8s, retried=%d)",
++                              conversationId.c_str(), deviceId.c_str(), commitId.c_str(), (int) skRetried);
+                     auto deferred = conv->finishFetch(deviceId);
+                     lk.unlock();
+                     if (sthis && deferred)
+@@ -892,7 +919,7 @@
+                 conversation->sync(
+                     peer,
+                     deviceId,
+-                    [w, conv, conversationId = std::move(conversationId), peer, deviceId, commitId](bool ok) {
++                    [w, conv, conversationId = std::move(conversationId), peer, deviceId, commitId, skRetried](bool ok) {
+                         auto shared = w.lock();
+                         if (!shared)
+                             return;
+@@ -913,9 +940,15 @@
+                         }
+ 
+                         std::optional<SyncedConversation::DeferredFetch> deferred;
++                        bool skRetry = false; // SK-FETCHRETRY
+                         {
+                             std::lock_guard lk(conv->mtx);
+                             deferred = conv->finishFetch(deviceId);
++                            // SK-FETCHRETRY: a deferred fetch from this device is a retry already.
++                            if (!ok && !skRetried && !deferred && conv->conversation && !conv->info.isRemoved()) {
++                                conv->conversation->removeGitSocket(DeviceId(deviceId));
++                                skRetry = true;
++                            }
+                             // Notify peers that a new commit is there (DRT)
+                             if (not commitId.empty() && ok && conv->conversation && !conv->info.isRemoved()) {
+                                 shared->sendMessageNotification(*conv->conversation, false, commitId, deviceId);
+@@ -926,6 +959,23 @@
+                                                     deferred->deviceId,
+                                                     conversationId,
+                                                     deferred->commitId);
++                        else if (skRetry) {
++                            SK_FR("fetch conv=%.8s from=%.8s failed -> RETRY in 2 s on a fresh channel (wanted %.8s)",
++                                  conversationId.c_str(), deviceId.c_str(), commitId.c_str());
++                            // Not at once: the connection the fetch died on is still being torn down,
++                            // and an immediate request could be handed that same connection again.
++                            auto skTimer = std::make_shared<asio::steady_timer>(*Manager::instance().ioContext(),
++                                                                                std::chrono::seconds(2));
++                            skTimer->async_wait([skTimer, w, peer, deviceId, conversationId, commitId](
++                                                    const asio::error_code& ec) {
++                                if (ec)
++                                    return;
++                                if (auto s = w.lock())
++                                    s->fetchNewCommits(peer, deviceId, conversationId, commitId, true);
++                            });
++                        } else if (!ok)
++                            SK_FR("fetch conv=%.8s from=%.8s failed, no retry (retried=%d)",
++                                  conversationId.c_str(), deviceId.c_str(), (int) skRetried);
+                         if (shared->syncCnt.fetch_sub(1) == 1) {
+                             emitSignal<libjami::ConversationSignal::ConversationSyncFinished>(shared->accountId_);
+                         }

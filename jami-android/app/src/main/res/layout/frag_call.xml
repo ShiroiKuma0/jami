@@ -346,7 +346,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:scaleType="fitCenter"
                         android:src="@drawable/baseline_call_end_24"
                         android:stateListAnimator="@animator/button_press_scale"
-                        android:tint="@color/sk_role_call_decline" />
+                        android:tint="@color/sk_role_call_decline_glyph" />
 
                     <ImageView
                         android:id="@+id/call_accept_btn"
@@ -361,7 +361,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         android:scaleType="fitCenter"
                         android:src="@drawable/baseline_call_24"
                         android:stateListAnimator="@animator/button_press_scale"
-                        android:tint="@color/sk_role_call_accept" />
+                        android:tint="@color/sk_role_call_accept_glyph" />
 
                 </LinearLayout>
 
@@ -383,24 +383,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 app:layout_constraintStart_toStartOf="parent"
                 app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Small"
                 tools:visibility="visible" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/call_end_btn"
-                style="@style/Widget.Material3Expressive.Button.ElevatedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/contact_bubble_bottom_margin"
-                android:contentDescription="@string/action_call_hangup"
-                android:stateListAnimator="@animator/button_press_scale"
-                android:text="@string/action_call_hangup"
-                android:visibility="gone"
-                app:backgroundTint="@color/call_decline"
-                app:icon="@drawable/baseline_call_end_24"
-                app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium"
-                app:rippleColor="@color/call_button_ripple"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -581,7 +563,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                             android:contentDescription="@string/action_call_hangup"
                             android:padding="16dp"
                             app:srcCompat="@drawable/baseline_call_end_24"
-                            app:tint="@color/white" />
+                            app:tint="@color/sk_role_call_decline_glyph" />
 
                         <TextView
                             android:id="@+id/textView_call_hng_up_btn"
@@ -997,6 +979,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </androidx.constraintlayout.widget.ConstraintLayout>
         </FrameLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <!-- 白い熊: the hang-up pill of an outgoing ringing call. It sits AFTER the control sheet so it is
+         drawn above it (the sheet is fixed in this fork and used to cover the pill); filled red with
+         yellow content, and kept out of the pill restyling by its tag. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/call_end_btn"
+        style="@style/Widget.Material3Expressive.Button.ElevatedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="@dimen/contact_bubble_bottom_margin"
+        android:contentDescription="@string/action_call_hangup"
+        android:stateListAnimator="@animator/button_press_scale"
+        android:tag="sk_keep"
+        android:text="@string/action_call_hangup"
+        android:textColor="@color/sk_role_call_decline_glyph"
+        android:visibility="gone"
+        app:backgroundTint="@color/sk_role_call_decline"
+        app:icon="@drawable/baseline_call_end_24"
+        app:iconTint="@color/sk_role_call_decline_glyph"
+        app:strokeWidth="0dp"
+        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium"
+        app:rippleColor="@color/call_button_ripple" />
 
     <com.google.android.material.button.MaterialButtonGroup
         android:id="@+id/hold_action_row"

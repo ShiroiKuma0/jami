@@ -27,6 +27,7 @@ object DiagPrefs {
         EXEC("exec", 0),               // SK-EXECDIAG — app daemon-executor heartbeat, bridge send markers
         WAKE("wake", 0),               // SK-WAKE — push classification and background sleep/wake decisions
         MEMORY("memory", 0),           // SK-MEMDIAG — 10-min memory/thread/retained-screen samples (MemDiag)
+        CONN_TRACE("conntrace", 0),    // SK-CONNTRACE — the daemon's connection lines kept in a file (ConnTrace)
     }
 
     private val on = BooleanArray(Group.entries.size)

@@ -10,7 +10,7 @@
     <string name="sk_exim_perm_granted">許可済み</string>
     <string name="sk_exim_perm_missing">未許可 — タップして許可</string>
     <string name="sk_exim_perm_required">先に「全ファイルアクセス」を許可してください</string>
-    <string name="sk_exim_folder_label">保存先フォルダ（タップで変更）</string>
+    <string name="sk_exim_folder_label">保存先ディレクトリ（タップで変更）</string>
     <string name="sk_exim_export_cats">書き出す区分</string>
     <string name="sk_exim_select_all">すべて選択</string>
     <string name="sk_exim_measuring">会話を計測中…</string>
@@ -31,7 +31,7 @@
     <string name="sk_exim_loading">読み込み中…</string>
     <string name="sk_exim_pick_backup">バックアップを選択</string>
     <string name="sk_exim_no_backups_title">バックアップがありません</string>
-    <string name="sk_exim_no_backups_body">%1$s に書き出し済みの ZIP が見つかりません。\nフォルダを変更するか、先に保存してください。</string>
+    <string name="sk_exim_no_backups_body">%1$s に書き出し済みの ZIP が見つかりません。\nディレクトリを変更するか、先に保存してください。</string>
     <string name="sk_exim_cant_restore_title">復元できません</string>
     <string name="sk_exim_cant_restore_body">%1$s に 白い熊 GNU Jami のバックアップが見つかりません。</string>
     <string name="sk_exim_pick_cats_title">復元する区分を選択</string>
@@ -40,8 +40,8 @@
     <string name="sk_exim_chat_texts_detail">%1$s — 会話 %2$d 件 %3$s</string>
     <string name="sk_exim_chat_files_detail">%1$s — %2$d 個 %3$s</string>
 
-    <string name="sk_exim_no_subfolders">（サブフォルダはありません）</string>
-    <string name="sk_exim_use_folder">✅ このフォルダを使う</string>
+    <string name="sk_exim_no_subfolders">（サブディレクトリはありません）</string>
+    <string name="sk_exim_use_folder">✅ このディレクトリを使う</string>
     <string name="sk_exim_folder_set">保存先: %1$s</string>
 
     <string name="sk_exim_deleted_entry">削除済み会話の復元  ⌫</string>
@@ -183,4 +183,7 @@
     <string name="sk_overlay_later">後で</string>
     <!-- new-swarm contact picker: the create button (upstream labels it like the sheet title) -->
     <string name="sk_picker_create_swarm">新しいSWARMチャットを作成</string>
+    <!-- Settings → Diagnostics → the connection trace switch (ConnTrace) -->
+    <string name="sk_diag_conn_trace">接続記録</string>
+    <string name="sk_diag_conn_trace_desc">デーモンの接続・メッセージ・同期の行を、ここでオンにした診断の行とともにファイルに保存します。logcatでは数分で消えてしまいます。最大16 MB。</string>
 </resources>

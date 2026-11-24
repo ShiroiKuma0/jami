@@ -35,7 +35,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         android:id="@+id/item_image"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:contentDescription="image for options"
+        android:contentDescription="@string/sk_left_option_image"
         android:layout_gravity="center_vertical" />
 
     <LinearLayout

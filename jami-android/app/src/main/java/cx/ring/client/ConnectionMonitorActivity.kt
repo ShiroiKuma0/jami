@@ -22,7 +22,7 @@ class ConnectionMonitorActivity : AppCompatActivity() {
         setContentView(R.layout.activity_connection_monitor)
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Connection monitor"
+        supportActionBar?.title = getString(R.string.sk_conn_monitor_title)
         if (savedInstanceState == null)
             supportFragmentManager.beginTransaction()
                 .replace(R.id.monitor_container, ConnectionMonitorFragment())

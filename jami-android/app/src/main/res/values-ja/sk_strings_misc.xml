@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — values/sk_strings_misc.xml（英語）の日本語版。キーの集合は英語版と必ず一致させること。 -->
+<resources>
+    <!-- 色の役割: 区分 -->
+    <string name="sk_role_section_foundation">基本</string>
+    <string name="sk_role_section_text">文字</string>
+    <string name="sk_role_section_buttons">ボタン</string>
+    <string name="sk_role_section_dialogs">ダイアログ</string>
+    <string name="sk_role_section_switches">スイッチ</string>
+    <string name="sk_role_section_marks">チェックボックスとラジオボタン</string>
+    <string name="sk_role_section_menus">メニュー</string>
+    <string name="sk_role_section_lists">一覧</string>
+    <string name="sk_role_section_fields">入力欄</string>
+    <string name="sk_role_section_bars">上部バー</string>
+    <string name="sk_role_section_calls">通話の操作ボタン</string>
+    <string name="sk_role_section_pages">設定画面</string>
+
+    <!-- 色の役割: 名前 -->
+    <string name="sk_role_label_background">背景</string>
+    <string name="sk_role_label_surface">一段上の面（カード・シート・バー）</string>
+    <string name="sk_role_label_accent">強調色</string>
+    <string name="sk_role_label_on_accent">強調色の上に載る文字とアイコン</string>
+    <string name="sk_role_label_icon">アイコン</string>
+    <string name="sk_role_label_icon_active">操作中の部品（スライダー・カーソル）</string>
+    <string name="sk_role_label_outline">輪郭と枠</string>
+    <string name="sk_role_label_divider">区切り線</string>
+    <string name="sk_role_label_pressed">押したときの反応色</string>
+    <string name="sk_role_label_danger">削除と警告</string>
+    <string name="sk_role_label_progress">進捗バー（進行中）</string>
+    <string name="sk_role_label_progress_track">進捗バーの下地</string>
+    <string name="sk_role_label_text">文字</string>
+    <string name="sk_role_label_text_secondary">補助の文字</string>
+    <string name="sk_role_label_text_disabled">無効な文字</string>
+    <string name="sk_role_label_text_hint">入力欄の案内文</string>
+    <string name="sk_role_label_text_selection">文字の選択範囲</string>
+    <string name="sk_role_label_link">リンク</string>
+    <string name="sk_role_label_pill_text">ボタンの文字</string>
+    <string name="sk_role_label_pill_frame">ボタンの枠</string>
+    <string name="sk_role_label_pill_ground">ボタンの背景</string>
+    <string name="sk_role_label_fab_ring">フローティングボタンの輪</string>
+    <string name="sk_role_label_fab_glyph">フローティングボタンの記号</string>
+    <string name="sk_role_label_fab_ground">フローティングボタンの背景</string>
+    <string name="sk_role_label_dialog_ground">ダイアログの背景</string>
+    <string name="sk_role_label_dialog_frame">ダイアログの枠</string>
+    <string name="sk_role_label_dialog_title">ダイアログの題名</string>
+    <string name="sk_role_label_dialog_text">ダイアログの本文</string>
+    <string name="sk_role_label_switch_on">スイッチ（オン）</string>
+    <string name="sk_role_label_switch_off">スイッチ（オフ）</string>
+    <string name="sk_role_label_mark_on">選択の印（選択済み）</string>
+    <string name="sk_role_label_mark_off">選択の印（未選択）</string>
+    <string name="sk_role_label_menu_ground">メニューの背景</string>
+    <string name="sk_role_label_menu_frame">メニューの枠</string>
+    <string name="sk_role_label_menu_label">メニューの文字</string>
+    <string name="sk_role_label_menu_row_frame">メニュー項目の枠</string>
+    <string name="sk_role_label_menu_divider">メニューのまとまりを分ける線</string>
+    <string name="sk_role_label_menu_icon_call">アイコン: 通話・接続</string>
+    <string name="sk_role_label_menu_icon_message">アイコン: メッセージ・作成</string>
+    <string name="sk_role_label_menu_icon_contact">アイコン: 連絡先・人物</string>
+    <string name="sk_role_label_menu_icon_share">アイコン: コピー・共有・書き出し</string>
+    <string name="sk_role_label_menu_icon_view">アイコン: 表示・開く・設定</string>
+    <string name="sk_role_label_menu_icon_block">アイコン: ブロック・消音・退出</string>
+    <string name="sk_role_label_menu_icon_delete">アイコン: 削除・除去</string>
+    <string name="sk_role_label_list_divider">一覧の区切り線</string>
+    <string name="sk_role_label_list_selected">選択した行の背景</string>
+    <string name="sk_role_label_list_selected_text">選択した行の文字</string>
+    <string name="sk_role_label_field_text">入力した文字</string>
+    <string name="sk_role_label_field_ground">入力欄の背景</string>
+    <string name="sk_role_label_field_frame">入力欄の枠と下線</string>
+    <string name="sk_role_label_bar_ground">上部バーの背景</string>
+    <string name="sk_role_label_call_ctrl">操作ボタンの輪と記号</string>
+    <string name="sk_role_label_call_ctrl_ground">操作ボタンの背景</string>
+    <string name="sk_role_label_call_ctrl_active">オンにした操作ボタン（消音中・カメラ停止中）</string>
+    <string name="sk_role_label_call_accept">応答</string>
+    <string name="sk_role_label_call_decline">拒否と通話終了</string>
+    <string name="sk_role_label_call_accept_glyph">応答ボタンの受話器</string>
+    <string name="sk_role_label_call_decline_glyph">拒否・通話終了ボタンの受話器</string>
+    <string name="sk_role_label_call_missed">不在着信</string>
+    <string name="sk_role_label_page_heading">各節の見出し</string>
+    <string name="sk_role_label_page_chip">目次のチップ</string>
+    <string name="sk_role_label_page_note">説明文と左の縦線</string>
+    <string name="sk_role_label_section_words">見出しのアイコン: 言葉（読み書き）</string>
+
+    <!-- フォント (FontUtil) -->
+    <string name="sk_misc_font_default_family">既定のフォント</string>
+    <string name="sk_misc_font_weight_thin">極細 (100)</string>
+    <string name="sk_misc_font_weight_light">細字 (300)</string>
+    <string name="sk_misc_font_weight_normal">標準 (400)</string>
+    <string name="sk_misc_font_weight_medium">中太 (500)</string>
+    <string name="sk_misc_font_weight_bold">太字 (700)</string>
+    <string name="sk_misc_font_weight_black">極太 (900)</string>
+
+    <!-- 設定画面: フォークが足した行と、会話一覧の上部バーのアイコン -->
+    <string name="sk_misc_ui_page_title">白い熊 GNU Jami UI</string>
+    <string name="sk_misc_ui_page_summary">画面の各要素のフォントと色、アプリの言語</string>
+    <string name="sk_misc_status_icon_title">メッセージ状態アイコンの高さ</string>
+    <string name="sk_misc_status_icon_summary">送信済み・既読の印の大きさを、文字の行数で指定します</string>
+    <string name="sk_misc_status_icon_lines">%1$.2f 行</string>
+    <string name="sk_misc_split_view">分割表示</string>
+    <string name="sk_misc_split_view_summary">幅の広い画面では、一覧の横に会話を表示します</string>
+    <string name="sk_misc_menu_account_status">アカウントのオンライン／オフライン</string>
+    <string name="sk_misc_menu_dht_mode">DHT 方式</string>
+    <string name="sk_misc_menu_lightning">DHT代理／回復</string>
+    <string name="sk_misc_reconnect">再接続</string>
+
+    <!-- 自動化の画面 -->
+    <string name="sk_misc_automation_title">自動化</string>
+    <string name="sk_misc_automation_intro">Tasker、OpenTasker、`am` シェルコマンド、姉妹アプリといった外部の自動化から、このアプリを操作できるようにします。初期化した端末でも、何も設定しないうちに復元できるよう、自動化は既定で開放されています。ただし、開放されるのはバックアップだけではありません。トークンのスイッチがオフのあいだは、この端末のどのアプリも、あなたになりすましてメッセージを送ったり通話を発信したりできます。例外はバックアップと復元の入口で、ここは呼び出し元を確かめられるため、トークンの設定にかかわらず、呼び出したアプリのパッケージ名・uid・署名証明書を照合します。トークンをオンにすると、すべての操作でトークンが必須になります。最初のスイッチをオフにすると、自動化を完全に遮断します。</string>
+    <string name="sk_misc_automation_enable">自動化を有効にする</string>
+    <string name="sk_misc_automation_use_token">認証トークンを使いますか？</string>
+    <string name="sk_misc_automation_secret_token">秘密のトークン</string>
+    <string name="sk_misc_automation_regenerate">再生成</string>
+    <string name="sk_misc_automation_token_copied">トークンをコピーしました</string>
+    <string name="sk_misc_automation_token_regenerated">トークンを再生成しました — スクリプトも書き換えてください</string>
+    <string name="sk_misc_automation_clip_label">白い熊 GNU Jami 自動化トークン</string>
+    <string name="sk_misc_automation_accounts">アカウント（ID を &lt;account&gt; に指定します。\"default\" も使えます）</string>
+    <string name="sk_misc_automation_no_accounts">アカウントが見つかりません — アプリのアカウント一覧を一度開いてから、ここに戻ってください。</string>
+    <string name="sk_misc_automation_unnamed_account">（白い熊 GNU Jami アカウント）</string>
+    <string name="sk_misc_automation_howto">呼び出し方</string>
+    <string name="sk_misc_automation_help_deeplink">ディープリンク（URL を開けるものなら何でも / am）:</string>
+    <string name="sk_misc_automation_help_intent">明示的インテント（Tasker / OpenTasker、extras で指定）:</string>
+    <string name="sk_misc_automation_help_note">&lt;account&gt; に \"default\" と書くと、現在のアカウントを指します。&lt;peer&gt; は swarm:&lt;id&gt;、jami:&lt;40桁の16進数&gt;、または sip: の URI です。ディープリンクでは、&lt;peer&gt; とメッセージ本文を URL エンコードしてください。</string>
+
+    <!-- 診断: 保存されているファイル (DiagFiles) -->
+    <string name="sk_misc_diag_kind_recovery">回復の記録</string>
+    <string name="sk_misc_diag_kind_incidents">監視機能が検知した異常</string>
+    <string name="sk_misc_diag_kind_data">データ使用量</string>
+    <string name="sk_misc_diag_kind_presence">在席情報の一覧</string>
+    <string name="sk_misc_diag_kind_push">プッシュの記録</string>
+    <string name="sk_misc_diag_kind_memory">メモリ</string>
+    <string name="sk_misc_diag_kind_other">その他</string>
+    <plurals name="sk_misc_diag_files">
+        <item quantity="other">%1$d 個、%2$.1f MB</item>
+    </plurals>
+    <string name="sk_misc_diag_export_not_writable">選んだディレクトリに書き込めません</string>
+    <string name="sk_misc_diag_export_create_failed">%1$s を作成できませんでした</string>
+
+    <!-- 保存・復元: 状態の行と報告の注記 -->
+    <string name="sk_misc_export_none_in">%1$s にはまだ保存したものがありません</string>
+    <string name="sk_misc_export_latest_in">"最新の保存: %1$s  (%2$s、%3$s)\n%4$s"</string>
+    <string name="sk_misc_export_dir_unset">保存先が設定されていません</string>
+    <string name="sk_misc_export_none">まだ保存したものがありません</string>
+    <string name="sk_misc_export_latest">"最新の保存: %1$s  (%2$s)"</string>
+    <string name="sk_misc_export_acc_password">%1$s: アーカイブにパスワードがかかっているため、含めませんでした。</string>
+    <string name="sk_misc_export_acc_failed">%1$s: 書き出しに失敗 — %2$s</string>
+    <string name="sk_misc_export_cannot_read">選んだファイルを読み込めません</string>
+    <string name="sk_misc_restore_file_failed">%1$s を復元できませんでした: %2$s</string>
+</resources>

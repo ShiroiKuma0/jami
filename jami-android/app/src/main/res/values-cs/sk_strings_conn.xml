@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — monitor připojení / živý monitor kontaktu / záznam obnovy, čeština.
+     Výchozí je angličtina ve values/sk_strings_conn.xml; sady klíčů musí zůstat shodné. -->
+<resources>
+    <!-- Connection monitor screen (ConnectionMonitorFragment / ConnectionMonitorActivity) -->
+    <string name="sk_conn_monitor_title">Monitor připojení</string>
+    <string name="sk_conn_mon_reconnecting_all">Znovu připojuji všechny účty…</string>
+    <string name="sk_conn_mon_account_header">"%1$s  %2$s  —  %3$s · kontaktů: %4$d"</string>
+    <string name="sk_conn_mon_kind_text">text</string>
+    <string name="sk_conn_mon_stuck_unreachable">nedosažitelný — zařízení je zřejmě vypnuté (zastaralá přítomnost)</string>
+    <string name="sk_conn_mon_away_announced">ohlášen, otevírám kanál…</string>
+    <string name="sk_conn_mon_away_offline">příjemce offline — doručí se po návratu</string>
+    <string name="sk_conn_mon_delivering">⏳ doručuji… → %1$s · %2$s</string>
+    <string name="sk_conn_mon_summary">účtů: %1$d · v pořádku: %2$d · připojeno: %3$d</string>
+    <string name="sk_conn_mon_summary_attention">⚠ pozornost vyžaduje: %1$d</string>
+    <string name="sk_conn_age_just_now">právě teď</string>
+    <string name="sk_conn_age_min">před %1$d min</string>
+    <string name="sk_conn_age_hours">před %1$d h</string>
+
+    <!-- Transport row and its dialog -->
+    <string name="sk_conn_transport_testing">"Přenos:  testuji…"</string>
+    <string name="sk_conn_transport_untested">"Přenos:  zatím netestováno — klepnutím otestujete"</string>
+    <string name="sk_conn_transport_ok">plné DHT je použitelné</string>
+    <string name="sk_conn_transport_hostile">nepřátelská síť — doporučena DHT proxy</string>
+    <string name="sk_conn_transport_dead">ven neprojde vůbec nic</string>
+    <string name="sk_conn_transport_unknown">neznámý stav</string>
+    <string name="sk_conn_transport_line">"Přenos:  %1$s  %2$s  — %3$s\n%4$s · klepnutím otestujete znovu, podržením zobrazíte podrobnosti"</string>
+    <string name="sk_conn_transport_state_ok">Právě teď: UDP prochází ven, takže plné DHT zde funguje.</string>
+    <string name="sk_conn_transport_state_hostile">Právě teď: UDP je blokováno, ale TCP funguje. To je případ, kdy je DHT proxy jednoznačně správná volba — plné DHT v této síti fungovat nemůže.</string>
+    <string name="sk_conn_transport_state_dead">Právě teď: ven neprochází UDP ani TCP. To není potíž s režimem DHT — nepoužitelná je sama síť.</string>
+    <string name="sk_conn_transport_state_untested">Zatím netestováno.</string>
+    <string name="sk_conn_transport_what">Co se testuje: jeden požadavek STUN binding přes obyčejné UDP a jedno holé spojení TCP, obojí na TURN server Jami. Žádný provoz 白い熊 GNU Jami; nic, co by mohl vidět některý kontakt.</string>
+    <string name="sk_conn_transport_why">Proč na tom záleží: plné DHT běží přes UDP. Sítě, které UDP blokují — mnohé hotelové, kavárenské, univerzitní a firemní Wi-Fi a někteří operátoři — je vyřadí úplně, kdežto DHT proxy dál funguje přes TCP.</string>
+    <string name="sk_conn_transport_where">Kde je UDP v pořádku, je plné DHT lepší výchozí volbou: žádný proxy server, na kterém byste záviseli, a nikdo uprostřed, kdo by viděl vaše odběry.</string>
+    <string name="sk_conn_transport_advice">Tato obrazovka jen měří a radí. Režim se vždy přepíná šestiúhelníkem v horní liště.</string>
+    <string name="sk_conn_transport_title">Test přenosu</string>
+    <string name="sk_conn_transport_again">Otestovat znovu</string>
+
+    <!-- Legend dialog (the monitor's help) -->
+    <string name="sk_conn_legend_title">Co to znamená</string>
+    <string name="sk_conn_got_it">Rozumím</string>
+    <string name="sk_conn_legend_h_health">Stav účtu</string>
+    <string name="sk_conn_legend_healthy">V pořádku — účet je registrován a nic nenasvědčuje opaku</string>
+    <string name="sk_conn_legend_connecting">Připojování — navazuje se spojení, nebo právě běží ověřovací sonda. Probíhající děj, sám o sobě nikdy závada</string>
+    <string name="sk_conn_legend_deaf">NEPŘIJÍMÁ — tichá sonda přítomnosti zůstala 60 s bez odpovědi. Jde o ověřenou hluchotu, ne jen o tichý telefon</string>
+    <string name="sk_conn_legend_not_syncing">NESYNCHRONIZUJE — odchozí zpráva zůstala 90 s nepotvrzená, přestože je protistrana dosažitelná</string>
+    <string name="sk_conn_legend_offline">OFFLINE — účet není vůbec registrován</string>
+    <string name="sk_conn_legend_h_contacts">Jednotlivé kontakty (úplný seznam)</string>
+    <string name="sk_conn_legend_c_connected">Připojen nebo dosažitelný — zprávy projdou</string>
+    <string name="sk_conn_legend_c_connecting">Připojování — navazuje se spojení</string>
+    <string name="sk_conn_legend_c_offline">Offline — právě teď nedosažitelný; zprávy čekají ve frontě, dokud se nevrátí</string>
+    <string name="sk_conn_legend_h_icons">Ikony spojení (fáze navazování)</string>
+    <string name="sk_conn_legend_i_radar">Radar — vyhledávání protistrany / čekání</string>
+    <string name="sk_conn_legend_i_p2p">Dva telefony — ICE: hledání přímé cesty</string>
+    <string name="sk_conn_legend_i_shield">Štít — zabezpečeno (TLS) &amp; připojeno</string>
+    <string name="sk_conn_legend_h_transport">Přenos — a kdy se DHT proxy vyplatí</string>
+    <string name="sk_conn_legend_t_row">Řádek Přenos nahoře na této obrazovce testuje dvě věci: zda z této sítě projde ven UDP a zda projde TCP. Klepnutím otestujete znovu, podržením zobrazíte podrobnosti.</string>
+    <string name="sk_conn_legend_t_case">"⚠  UDP blokováno, TCP funguje = jediný případ, kdy je DHT proxy jednoznačně správný režim."</string>
+    <string name="sk_conn_legend_t_udp">Plné DHT se přenáší přes UDP. V síti, která UDP blokuje — mnohé hotelové, kavárenské, univerzitní a firemní Wi-Fi a někteří mobilní operátoři — plné DHT prostě fungovat nemůže, ať všechno ostatní vypadá sebezdravěji. DHT proxy se ke svému serveru dostává přes TCP, takže funguje právě tam, kde plné DHT umírá. To je nejsilnější důvod k přepnutí režimu.</string>
+    <string name="sk_conn_legend_t_default">Když je UDP v pořádku, je plné DHT lepší výchozí volbou: žádná závislost na proxy serveru, nikdo uprostřed, kdo by viděl vaše odběry, a žádný výpadek proxy se nemůže stát výpadkem vaším.</string>
+    <string name="sk_conn_legend_t_switch">Režim se vždy přepíná šestiúhelníkem v horní liště. Tato obrazovka jen měří a radí — režim za vašimi zády nikdy nezmění.</string>
+    <string name="sk_conn_legend_h_note">Poznámka</string>
+    <string name="sk_conn_legend_note">Každý kontakt je uveden se svým stavem. Spojení se neustále otevírají &amp; zavírají — to je běžná synchronizace swarmu, ne závada. Klepnutím na kontakt jeho spojení otestujete/probudíte; klepnutím na řádek zařízení zobrazíte jeho ID. Tlačítko Data ukazuje zaznamenanou spotřebu dat po jednotlivých úsecích.</string>
+
+    <!-- Device detail dialog -->
+    <string name="sk_conn_detail_title">Podrobnosti spojení</string>
+    <string name="sk_conn_detail_contact">Kontakt: %1$s</string>
+    <string name="sk_conn_detail_device">Zařízení:\n%1$s</string>
+    <string name="sk_conn_detail_peer_id">ID kontaktu (protistrany):\n%1$s</string>
+    <string name="sk_conn_detail_status">Stav: %1$s</string>
+    <string name="sk_conn_detail_remote">Vzdálená adresa: %1$s</string>
+    <string name="sk_conn_detail_channels">Kanálů: %1$d</string>
+    <string name="sk_conn_detail_own_account">Toto je jeden z VAŠICH účtů (stejné zařízení).</string>
+    <string name="sk_conn_copied">Zkopírováno: %1$s</string>
+    <string name="sk_conn_reconnect_named">Znovu připojit: %1$s</string>
+    <string name="sk_conn_account_fallback">účet</string>
+    <string name="sk_conn_reconnecting_named">Znovu připojuji: %1$s…</string>
+    <string name="sk_conn_copy_device_id">Kopírovat ID zařízení</string>
+    <string name="sk_conn_device_id">ID zařízení</string>
+    <string name="sk_conn_copy_contact_id">Kopírovat ID kontaktu</string>
+    <string name="sk_conn_contact_id">ID kontaktu</string>
+    <string name="sk_conn_refreshed">Aktualizováno %1$s</string>
+
+    <!-- Contact live monitor dialog (ContactConnectionDialog) -->
+    <string name="sk_conn_live_title">Živý monitor kontaktu</string>
+    <string name="sk_conn_live_note">● živě —\nkontrola každé 2 s</string>
+    <string name="sk_conn_live_checking">○ zjišťuji kanály…</string>
+    <string name="sk_conn_live_ping_button">Zkušební zpráva ⌁</string>
+    <string name="sk_conn_live_up">spojeno %1$s</string>
+    <string name="sk_conn_dur_s">%1$d s</string>
+    <string name="sk_conn_dur_m">%1$d min</string>
+    <string name="sk_conn_dur_hm">%1$d h %2$d min</string>
+    <string name="sk_conn_live_last_attempt">↻ poslední pokus — před %1$d s (%2$s)</string>
+    <string name="sk_conn_live_snapshot_note">Toto jsou kanály z vašeho posledního pokusu — monitor už je živě nesleduje. Je-li kontakt dosažitelný, připojí se během chvilky znovu; pokud se nic nezmění, je nejspíš offline. Klepnutím na Zkušební zpráva ⌁ to zkusíte znovu; jde-li o vaše vlastní spojení, použijte blesk ⚡ (horní lišta).</string>
+    <string name="sk_conn_live_row_unreachable">nedosažitelný — vaše zpráva vázne a k jeho zařízení nevede žádná cesta; záznam o přítomnosti byl zastaralý (zařízení vypnuté nebo spí?). Sleduji DHT — zpráva se doručí, jakmile se vrátí.</string>
+    <string name="sk_conn_live_row_queued">zatím žádný kanál — ⌁ čeká ve frontě; vyhlížím kontakt v DHT, kanál se otevře, jakmile bude dosažitelný…</string>
+    <string name="sk_conn_live_row_reachable">dosažitelný — žádný otevřený kanál (otevře se, až napíšete)</string>
+    <string name="sk_conn_live_row_offline">offline — není ohlášen v DHT; vyhlížím ho. Kanál se zde otevře, jakmile bude online.</string>
+    <string name="sk_conn_live_sum_delivered">✓ dosažitelný — zkušební zpráva byla doručena</string>
+    <string name="sk_conn_live_sum_connected">● připojeno · kanálů: %1$d</string>
+    <string name="sk_conn_live_sum_connecting">● připojování · kanálů: %1$d</string>
+    <string name="sk_conn_live_sum_reachable">● dosažitelný — online, žádný otevřený kanál (otevře se, až napíšete)</string>
+    <string name="sk_conn_live_sum_unreachable">✕ nedosažitelný — zpráva vázne, k jeho zařízení nevede žádná cesta</string>
+    <string name="sk_conn_live_sum_offline">○ offline — žádná přítomnost, žádný kanál</string>
+    <string name="sk_conn_live_diag_unreachable">ⓘ Ověřeně nedosažitelný: poslední zpráva vázne a k jeho zařízení nevede žádná cesta — záznam o přítomnosti byl zastaralý. Na vaší straně není co opravovat; zpráva se doručí, jakmile se jeho zařízení vrátí.</string>
+    <string name="sk_conn_live_diag_pending_long">⏳ Potvrzení o doručení stále nepřišlo — kontakt může být offline; zpráva projde, až se vrátí. Máte-li podezření na vlastní spojení, zkuste blesk ⚡ (horní lišta).</string>
+    <string name="sk_conn_live_diag_pending">⏳ Doručuji — čekám na potvrzení o doručení…</string>
+    <string name="sk_conn_live_diag_stall">⚠ Připojeno, ale vaše poslední zpráva nebyla doručena — vázne synchronizace, ne spojení. Blesk ⚡ ji může znovu rozhýbat.</string>
+    <string name="sk_conn_live_diag_ice">ⓘ Dosaženo fáze ICE. Pokud se nedokončí, je potíž v cestě přes NAT/relé, nebo kontakt právě odchází offline — pomoci může blesk ⚡.</string>
+    <string name="sk_conn_live_diag_connecting">ⓘ Stále se připojuje. Pokud nedojde ani k fázi ICE, protistrana nejspíš neodpovídá.</string>
+    <string name="sk_conn_live_diag_online">ⓘ V DHT je online, ale kanál zatím není — otevřete ho klepnutím na Zkušební zpráva ⌁.</string>
+    <string name="sk_conn_live_ping_sent">Zkušební zpráva (⌁) odeslána — sleduji…</string>
+    <string name="sk_conn_live_pending_when">" (poslední ⌁ v %1$s)"</string>
+    <string name="sk_conn_live_pending_body">"Vaše poslední zpráva pro %1$s stále nebyla doručena%2$s — démon ji už sám posílá znovu, takže další ⌁ její doručení nijak neurychlí.\n\nPokud by měl být kontakt dosažitelný, je potíž spíše ve vašem spojení než v jeho. Přitvrďte bleskem ⚡ v horní liště:\n   •  klepnutí — chytrá obnova\n   •  podržení — tvrdý reset\n\n⚠  Blesk obnovuje CELÉ vaše připojení — každý účet, VŠECHNY vaše konverzace — ne jen tento kontakt."</string>
+    <string name="sk_conn_live_pending_title">Stále se doručuje…</string>
+    <string name="sk_conn_live_send_anyway">Přesto poslat další</string>
+
+    <!-- Home screen (HomeFragment): dashboard, top-bar icons, recovery log -->
+    <string name="sk_conn_dash_error">Chyba: %1$s</string>
+    <string name="sk_conn_net_cellular">Mobilní data</string>
+    <string name="sk_conn_net_ethernet">Ethernet</string>
+    <string name="sk_conn_net_other">Jiná</string>
+    <string name="sk_conn_home_reconnecting">Znovu připojuji…</string>
+    <string name="sk_conn_home_recovering">Obnovuji spojení…</string>
+    <string name="sk_conn_log_empty">(zatím žádné události obnovy)</string>
+    <string name="sk_conn_log_recovery_pill">ⓘ Obnova</string>
+    <string name="sk_conn_log_title">Záznam obnovy</string>
+    <string name="sk_conn_log_clear_hint">Záznam obnovy smažete podržením tlačítka Vymazat — všechny položky budou ZTRACENY.</string>
+    <string name="sk_conn_log_cleared">Záznam obnovy vymazán.</string>
+
+    <!-- Location sharing (LocationSharingFragment) -->
+    <string name="sk_conn_location_start_error">Chyba při spouštění sdílení polohy: %1$s</string>
+</resources>

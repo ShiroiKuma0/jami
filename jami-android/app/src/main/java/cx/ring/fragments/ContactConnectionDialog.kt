@@ -115,7 +115,7 @@ fun showContactConnectionDialog(
         ).apply { bottomMargin = dp(16) }
         // Big title (weighted, so the note never clips) + the small live note beside it on two lines.
         addView(TextView(ctx).apply {
-            text = "Contact live monitor"
+            text = ctx.getString(R.string.sk_conn_live_title)
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(C_CONNECTED)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
@@ -123,7 +123,7 @@ fun showContactConnectionDialog(
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
         addView(TextView(ctx).apply {
-            text = android.text.SpannableString("● live —\nre-checks every 2 s").apply {
+            text = android.text.SpannableString(ctx.getString(R.string.sk_conn_live_note)).apply {
                 setSpan(android.text.style.ForegroundColorSpan(C_CONNECTED), 0, 1, 0)   // dot — yellow
                 setSpan(android.text.style.ForegroundColorSpan(C_DIM), 1, length, 0)     // caption — grey
             }
@@ -138,7 +138,7 @@ fun showContactConnectionDialog(
         setTextColor(C_DIM)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
         setPadding(0, dp(16), 0, dp(6))
-        text = "○ checking channels…"
+        text = ctx.getString(R.string.sk_conn_live_checking)
     }
     val diagTv = TextView(ctx).apply {
         setTextColor(C_DIM)
@@ -156,8 +156,8 @@ fun showContactConnectionDialog(
 
     val dialog = DialogTheme.builder(ctx)
         .setView(scroll)
-        .setNeutralButton("Message ping ⌁", null)   // neutral = far-left edge, away from Close
-        .setPositiveButton("Close", null)
+        .setNeutralButton(R.string.sk_conn_live_ping_button, null)   // neutral = far-left edge, away from Close
+        .setPositiveButton(R.string.conn_dash_close, null)
         .create()
     dialog.setOnDismissListener { disposable.clear(); handler.removeCallbacksAndMessages(null) }
 
@@ -179,13 +179,13 @@ fun showContactConnectionDialog(
 
     fun addChannelRow(c: AccountService.DeviceConnection) {
         val color = if (c.status == ConnectionStatus.Connected) C_CONNECTED else C_ATTEMPT
-        val statusText = when (c.status) {
-            ConnectionStatus.Waiting -> "waiting…"
-            ConnectionStatus.Connecting -> "connecting…"
-            ConnectionStatus.ICE -> "negotiating (ICE)…"
-            ConnectionStatus.TLS -> "securing (TLS)…"
-            ConnectionStatus.Connected -> "connected"
-        }
+        val statusText = ctx.getString(when (c.status) {
+            ConnectionStatus.Waiting -> R.string.conn_state_waiting
+            ConnectionStatus.Connecting -> R.string.conn_state_connecting
+            ConnectionStatus.ICE -> R.string.conn_state_ice
+            ConnectionStatus.TLS -> R.string.conn_state_tls
+            ConnectionStatus.Connected -> R.string.conn_state_connected
+        })
         val iconRes = when (c.status) {
             ConnectionStatus.ICE -> R.drawable.p2p_24
             ConnectionStatus.TLS, ConnectionStatus.Connected -> R.drawable.baseline_private_connectivity_24
@@ -193,14 +193,17 @@ fun showContactConnectionDialog(
         }
         val up = if (c.connectionTime > 0L) {
             val s = (System.currentTimeMillis() - c.connectionTime) / 1000L
-            if (s in 0..2_592_000L) "  ·  up " + (if (s < 60) "${s}s" else if (s < 3600) "${s / 60}m" else "${s / 3600}h${(s % 3600) / 60}m") else ""
+            if (s in 0..2_592_000L) "  ·  " + ctx.getString(R.string.sk_conn_live_up,
+                if (s < 60) ctx.getString(R.string.sk_conn_dur_s, s.toInt())
+                else if (s < 3600) ctx.getString(R.string.sk_conn_dur_m, (s / 60).toInt())
+                else ctx.getString(R.string.sk_conn_dur_hm, (s / 3600).toInt(), ((s % 3600) / 60).toInt())) else ""
         } else ""
         val dev = if (c.device.length > 18) c.device.take(10) + "…" + c.device.takeLast(6) else c.device
         val chans = c.channels.joinToString(", ").let { if (it.length > 36) it.take(34) + "…" else it }
         val detail = buildString {
             append(dev)
             if (!c.remoteAddress.isNullOrEmpty()) append("  ·  ").append(c.remoteAddress)
-            append("  ·  ").append(c.channels.size).append(" ch")
+            append("  ·  ").append(ctx.getString(R.string.conn_channels, c.channels.size))
             if (chans.isNotEmpty()) append(" (").append(chans).append(")")
         }
         val texts = LinearLayout(ctx).apply {
@@ -219,8 +222,8 @@ fun showContactConnectionDialog(
             addView(texts)
             setOnClickListener {
                 (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
-                    .setPrimaryClip(android.content.ClipData.newPlainText("Device ID", c.device))
-                Flash.show(ctx, "Device ID copied")
+                    .setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.sk_conn_device_id), c.device))
+                Flash.show(ctx, ctx.getString(R.string.sk_conn_copied, ctx.getString(R.string.sk_conn_device_id)))
             }
         })
     }
@@ -242,12 +245,12 @@ fun showContactConnectionDialog(
             val ageS = ((System.currentTimeMillis() - cacheTs) / 1000L).toInt()
             val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(cacheTs))
             membersContainer.addView(TextView(ctx).apply {
-                text = "↻ last attempt — ${ageS}s ago ($stamp)"
+                text = ctx.getString(R.string.sk_conn_live_last_attempt, ageS, stamp)
                 setTextColor(C_ATTEMPT); setTypeface(typeface, Typeface.BOLD)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f); setPadding(dp(4), dp(8), 0, dp(2))
             })
             membersContainer.addView(TextView(ctx).apply {
-                text = "These are the channels from your last attempt — the monitor is no longer live for it. If the contact is reachable they reconnect within moments; if nothing changes, they're likely offline. Tap Message ping ⌁ to try again, or the ⚡ lightning (top bar) if it's your own link."
+                text = ctx.getString(R.string.sk_conn_live_snapshot_note)
                 setTextColor(C_DIM); setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f); setPadding(dp(4), 0, 0, dp(6))
             })
         }
@@ -278,10 +281,10 @@ fun showContactConnectionDialog(
             // No channel to show (live empty + no snapshot) → say what's happening, never a blank.
             if (rowConns.isEmpty()) membersContainer.addView(TextView(ctx).apply {
                 text = "   " + when {
-                    mUnreachable -> "unreachable — your message is stuck and no route to their device exists; their presence record was stale (device off or asleep?). Watching the DHT — delivers the moment they return."
-                    pingAtMs != 0L && lastUndelivered -> "no channel yet — ⌁ queued; watching the DHT for them, opens the moment they're reachable…"
-                    mOnline -> "reachable — no open channel (opens when you message)"
-                    else -> "offline — not announced on the DHT; watching for them. A channel opens here the moment they come online."
+                    mUnreachable -> ctx.getString(R.string.sk_conn_live_row_unreachable)
+                    pingAtMs != 0L && lastUndelivered -> ctx.getString(R.string.sk_conn_live_row_queued)
+                    mOnline -> ctx.getString(R.string.sk_conn_live_row_reachable)
+                    else -> ctx.getString(R.string.sk_conn_live_row_offline)
                 }
                 setTextColor(C_DIM); setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f); setPadding(dp(4), if (isGroup) 0 else dp(6), 0, dp(2))
             })
@@ -296,13 +299,13 @@ fun showContactConnectionDialog(
         val pingPending = pinged && lastUndelivered
         val pendingLong = pingPending && (System.currentTimeMillis() - pingAtMs) > SOFT_PENDING_MS
         summaryTv.text = when {
-            pingDelivered -> "✓ reachable — the ping was delivered"
-            anyConnected -> "● connected · $totalCh channel(s)"
-            anyAttempt -> "● connecting · $totalCh channel(s)"
-            anyOnline -> "● reachable — online, no open channel (opens when you message)"
-            memberVms.isEmpty() -> "○ checking channels…"
-            anyUnreachable -> "✕ unreachable — message stuck, no route to their device"
-            else -> "○ offline — no presence, no channel"
+            pingDelivered -> ctx.getString(R.string.sk_conn_live_sum_delivered)
+            anyConnected -> ctx.getString(R.string.sk_conn_live_sum_connected, totalCh)
+            anyAttempt -> ctx.getString(R.string.sk_conn_live_sum_connecting, totalCh)
+            anyOnline -> ctx.getString(R.string.sk_conn_live_sum_reachable)
+            memberVms.isEmpty() -> ctx.getString(R.string.sk_conn_live_checking)
+            anyUnreachable -> ctx.getString(R.string.sk_conn_live_sum_unreachable)
+            else -> ctx.getString(R.string.sk_conn_live_sum_offline)
         }
         summaryTv.setTextColor(when {
             pingDelivered || anyConnected -> C_CONNECTED
@@ -312,14 +315,14 @@ fun showContactConnectionDialog(
 
         val diag = when {
             pingDelivered -> ""
-            anyUnreachable -> "ⓘ Verified unreachable: the last message is stuck and no route to their device exists — the presence record was stale. Nothing on your side to fix; it delivers the moment their device returns."
-            pendingLong -> "⏳ Still no delivery receipt after a while — they may be offline; it'll go through once they're back. Try the ⚡ lightning (top bar) if you suspect it's your link."
-            pingPending -> "⏳ Delivering — waiting for the delivery receipt…"
-            anyConnected && lastUndelivered -> "⚠ Connected, but your last message hasn't delivered — a sync stall, not a connection problem. The ⚡ lightning may re-kick it."
+            anyUnreachable -> ctx.getString(R.string.sk_conn_live_diag_unreachable)
+            pendingLong -> ctx.getString(R.string.sk_conn_live_diag_pending_long)
+            pingPending -> ctx.getString(R.string.sk_conn_live_diag_pending)
+            anyConnected && lastUndelivered -> ctx.getString(R.string.sk_conn_live_diag_stall)
             anyConnected -> ""
-            maxP >= 2 -> "ⓘ Reached ICE. If it doesn't complete, it's a NAT/relay path or they're going offline — the ⚡ lightning may help."
-            maxP >= 0 -> "ⓘ Still connecting. If it never reaches ICE, the peer likely isn't answering."
-            anyOnline -> "ⓘ Online on the DHT but no channel yet — tap Message ping ⌁ to open one."
+            maxP >= 2 -> ctx.getString(R.string.sk_conn_live_diag_ice)
+            maxP >= 0 -> ctx.getString(R.string.sk_conn_live_diag_connecting)
+            anyOnline -> ctx.getString(R.string.sk_conn_live_diag_online)
             else -> ""
         }
         diagTv.text = diag
@@ -350,7 +353,7 @@ fun showContactConnectionDialog(
         lastUndelivered = true   // the ⌁ is pending now — show "delivering", not a stale "delivered"
         accountService.openConnectionTo(accountId, conversation)
         render()
-        Flash.show(ctx, "Sent a message ping (⌁) — watching…")
+        Flash.show(ctx, ctx.getString(R.string.sk_conn_live_ping_sent))
         handler.postDelayed({ render() }, SOFT_PENDING_MS + 500L)
     }
 
@@ -359,22 +362,19 @@ fun showContactConnectionDialog(
     fun showPendingPrompt() {
         val name = nameTv.text
         val whenStr = if (pingAtMs != 0L)
-            " (last ⌁ at " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(pingAtMs)) + ")" else ""
+            ctx.getString(R.string.sk_conn_live_pending_when,
+                java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(pingAtMs))) else ""
         val body = TextView(ctx).apply {
             setTextColor(C_DIM)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(dp(22), dp(18), dp(22), dp(8))
-            text = "Your last message to $name still hasn't been delivered$whenStr — the daemon is already retrying it on its own, so sending another ⌁ won't make it arrive any faster.\n\n" +
-                "If they should be reachable, the problem is more likely your own link than theirs. Escalate with the ⚡ lightning in the top bar:\n" +
-                "   •  tap — smart recover\n" +
-                "   •  long-press — hard reset\n\n" +
-                "⚠  The lightning recovers your WHOLE account — every account, ALL your chats — not just this contact."
+            text = ctx.getString(R.string.sk_conn_live_pending_body, name, whenStr)
         }
         DialogTheme.builder(ctx)
-            .setTitle("Still delivering…")
+            .setTitle(R.string.sk_conn_live_pending_title)
             .setView(ScrollView(ctx).apply { addView(body) })
-            .setNeutralButton("Send another anyway") { _, _ -> doPing() }   // neutral = far-left edge
-            .setPositiveButton("Got it", null)
+            .setNeutralButton(R.string.sk_conn_live_send_anyway) { _, _ -> doPing() }   // neutral = far-left edge
+            .setPositiveButton(R.string.sk_conn_got_it, null)
             .create().also { it.show(); DialogTheme.theme(it, ctx) }
     }
 

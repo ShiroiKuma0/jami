@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork: the last user-visible literals moved to resources (2026-11-23) — data-meter
+  network label, stuck-message age, inbound-evidence kind, font family labels, and text that was
+  typed straight into upstream layouts and menus. English: values/sk_strings_left.xml, Japanese:
+  values-ja/, Czech: values-cs/. The key sets of the three files must stay identical.
+-->
+<resources>
+    <string name="sk_left_net_none">ネットワークなし</string>
+    <string name="sk_left_age_sec">%1$d 秒</string>
+    <string name="sk_left_age_min">%1$d 分</string>
+    <string name="sk_left_age_hour_min">%1$d 時間 %2$d 分</string>
+    <string name="sk_left_age_day_hour">%1$d 日 %2$d 時間</string>
+    <string name="sk_left_kind_push">プッシュ</string>
+    <string name="sk_left_kind_own_key_push">このアカウント自身の鍵へのプッシュ</string>
+    <string name="sk_left_kind_msg">メッセージ</string>
+    <string name="sk_left_kind_receipt">配信の確認</string>
+    <string name="sk_left_kind_typing">入力中の表示</string>
+    <string name="sk_left_kind_request">招待</string>
+    <string name="sk_left_kind_call">着信</string>
+    <string name="sk_left_kind_presence">在席情報</string>
+    <string name="sk_left_kind_swarm">会話の更新</string>
+    <string name="sk_left_kind_probe">テストへの応答</string>
+    <string name="sk_left_font_sans">ゴシック体</string>
+    <string name="sk_left_font_sans_light">ゴシック体（細字）</string>
+    <string name="sk_left_font_sans_medium">ゴシック体（中太）</string>
+    <string name="sk_left_font_sans_condensed">ゴシック体（幅狭）</string>
+    <string name="sk_left_font_sans_thin">ゴシック体（極細）</string>
+    <string name="sk_left_font_serif">明朝体</string>
+    <string name="sk_left_font_monospace">等幅</string>
+    <string name="sk_left_font_cursive">筆記体</string>
+    <string name="sk_left_push_total_received">受信合計：</string>
+    <string name="sk_left_crash_report_title">前回のクラッシュ報告</string>
+    <string name="sk_left_menu_crashes">クラッシュ</string>
+    <string name="sk_left_menu_clear_all">すべて消去</string>
+    <string name="sk_left_realm_hint">レルム…</string>
+    <string name="sk_left_option_image">選択肢の画像</string>
+    <string name="sk_left_import_confirm_title">アカウントのインポートを確認</string>
+    <string name="sk_left_location_sharing_title">現在地の共有</string>
+</resources>

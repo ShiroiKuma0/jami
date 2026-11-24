@@ -6,7 +6,7 @@
   <string name="pref_category_system">システム</string>
   <string name="pref_category_privacy">プライバシー</string>
   <string name="pref_category_diagnostic">診断</string>
-  <string name="pref_category_appearance">着せかえ</string>
+  <string name="pref_category_appearance">外観</string>
   <string name="pref_category_connectivity">接続性</string>
   <string name="pref_category_extensions">拡張機能</string>
   <string name="pref_category_video_settings">ビデオの高度な設定</string>

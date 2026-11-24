@@ -836,7 +836,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:padding="8dp"
-                android:text="Appearance"
+                android:text="@string/pref_category_appearance"
                 style="@style/SettingsHeader"
                 android:layout_marginStart="8dp" />
 
@@ -852,13 +852,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     style="@style/ListPrimary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="白い熊 GNU Jami UI" />
+                    android:text="@string/sk_misc_ui_page_title" />
 
                 <TextView
                     style="@style/ListSecondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Fonts, colours and app language for each UI element"
+                    android:text="@string/sk_misc_ui_page_summary"
                     android:layout_below="@id/fonts_title" />
 
             </RelativeLayout>
@@ -885,14 +885,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_toStartOf="@id/settings_status_icon_value"
-                    android:text="Message status icon height" />
+                    android:text="@string/sk_misc_status_icon_title" />
 
                 <TextView
                     style="@style/ListSecondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_toStartOf="@id/settings_status_icon_value"
-                    android:text="Sent / read indicator size, in text lines"
+                    android:text="@string/sk_misc_status_icon_summary"
                     android:layout_below="@id/status_icon_title" />
 
             </RelativeLayout>
@@ -918,14 +918,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_toStartOf="@id/settings_split_view"
-                    android:text="Split view" />
+                    android:text="@string/sk_misc_split_view" />
 
                 <TextView
                     style="@style/ListSecondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_toStartOf="@id/settings_split_view"
-                    android:text="Show the conversation beside the list on wide screens"
+                    android:text="@string/sk_misc_split_view_summary"
                     android:layout_below="@id/split_view_title" />
 
             </RelativeLayout>

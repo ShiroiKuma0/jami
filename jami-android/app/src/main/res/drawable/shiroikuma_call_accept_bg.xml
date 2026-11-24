@@ -2,4 +2,4 @@
 <!-- 白い熊 fork: no colour here. A stub drawn in code from colour roles — see cx.ring.sk.SkShape. -->
 <drawable xmlns:android="http://schemas.android.com/apk/res/android"
     class="cx.ring.sk.SkShape"
-    shape="oval" fill="sk_role_call_ctrl_ground" stroke="sk_role_call_accept" strokeDp="3" ripple="sk_role_pressed" />
+    shape="oval" fill="sk_role_call_accept" stroke="sk_role_call_accept" strokeDp="3" ripple="sk_role_pressed" />

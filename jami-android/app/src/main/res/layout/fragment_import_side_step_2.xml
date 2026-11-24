@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginVertical="16dp"
-        android:text="Confirm account import"
+        android:text="@string/sk_left_import_confirm_title"
         android:textAlignment="center"
         app:layout_constraintBottom_toTopOf="@+id/identityContainer"
         app:layout_constraintEnd_toEndOf="parent"

@@ -1530,6 +1530,16 @@ class ConversationAdapter(
             // SK-HANDOVER: a peer is pulling this sent file right now (bytes written / total), or
             // has pulled every byte of it (see FileHandover).
             val pull = if (file.isOutgoing) cx.ring.utils.FileHandover.progress(file.messageId) else null
+            // The same count as a bar above the numbers, for as long as the pull runs.
+            if (file.isOutgoing) viewHolder.progress?.let { bar ->
+                if (pull != null) {
+                    bar.max = (pull.second / 1024).toInt().coerceAtLeast(1)
+                    bar.setProgress((pull.first / 1024).toInt(), true)
+                    bar.visibility = View.VISIBLE
+                } else if (file.transferStatus != TransferStatus.TRANSFER_ONGOING) {
+                    bar.visibility = View.GONE
+                }
+            }
             viewHolder.mFileSize?.text = when {
                 pull != null -> String.format("%s / %s",
                     Formatter.formatFileSize(context, pull.first), Formatter.formatFileSize(context, pull.second))
@@ -1538,6 +1548,7 @@ class ConversationAdapter(
                 else -> sizeLine
             }
         }
+        styleTransferProgress(viewHolder.progress)
         viewHolder.compositeDisposable.add(timestampUpdateTimer
             .observeOn(DeviceUtils.uiScheduler)
             .subscribe { renderSizeLine() })
@@ -1691,7 +1702,9 @@ class ConversationAdapter(
                     }
 
                     else -> {
-                        viewHolder.progress?.hide()
+                        // A sent file a peer is pulling keeps the bar renderSizeLine put up.
+                        if (!(file.isOutgoing && cx.ring.utils.FileHandover.progress(file.messageId) != null))
+                            viewHolder.progress?.hide()
                         viewHolder.mIcon?.setImageResource(
                             if (status.isError) R.drawable.baseline_warning_24
                             else R.drawable.baseline_attach_file_24
@@ -1831,6 +1844,39 @@ class ConversationAdapter(
     }
 
     /** shiroikuma: recolour a card/badge shape (fill + 2dp border) from ColorPrefs. */
+    /**
+     * The file card's transfer bar: 6 dp thick, in the in-progress blue over a dim track. Built in
+     * code from the roles, so it follows the palette; the stock bar is a hairline in the accent.
+     */
+    private fun styleTransferProgress(bar: android.widget.ProgressBar?) {
+        bar ?: return
+        val d = bar.resources.displayMetrics.density
+        val thick = (6 * d).toInt()
+        fun pill(color: Int) = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = thick / 2f
+            setColor(color)
+        }
+        val layers = android.graphics.drawable.LayerDrawable(arrayOf(
+            pill(cx.ring.sk.skColor(cx.ring.sk.SkRole.PROGRESS_TRACK)),
+            android.graphics.drawable.ClipDrawable(pill(cx.ring.sk.skColor(cx.ring.sk.SkRole.PROGRESS)),
+                android.view.Gravity.START, android.graphics.drawable.ClipDrawable.HORIZONTAL)))
+        layers.setId(0, android.R.id.background)
+        layers.setId(1, android.R.id.progress)
+        bar.progressTintList = null
+        bar.progressBackgroundTintList = null
+        bar.progressDrawable = layers
+        bar.minimumHeight = thick
+        (bar.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            if (lp.height != thick) {
+                lp.height = thick
+                lp.topMargin = (3 * d).toInt()
+                lp.bottomMargin = (3 * d).toInt()
+                bar.layoutParams = lp
+            }
+        }
+    }
+
     private fun applyCardColors(view: View?, fillRole: String, borderRole: String) {
         view ?: return
         val ctx = view.context

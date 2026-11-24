@@ -104,13 +104,13 @@ class ConnectionMonitorFragment: Fragment() {
             Health.OFFLINE, Health.NOT_SYNCING, Health.DEAF -> ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
         }
     }
-    private fun healthWord(h: Health): String = when (h) {
-        Health.HEALTHY -> "online · healthy"
-        Health.CONNECTING -> "connecting…"
-        Health.NOT_SYNCING -> "NOT SYNCING"
-        Health.DEAF -> "NOT RECEIVING"
-        Health.OFFLINE -> "OFFLINE"
-    }
+    private fun healthWord(h: Health): String = getString(when (h) {
+        Health.HEALTHY -> R.string.conn_state_healthy
+        Health.CONNECTING -> R.string.conn_state_connecting
+        Health.NOT_SYNCING -> R.string.conn_state_not_syncing
+        Health.DEAF -> R.string.conn_state_deaf
+        Health.OFFLINE -> R.string.conn_state_offline
+    })
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         FragConnectionMonitorBinding.inflate(inflater, container, false).apply {
@@ -137,14 +137,14 @@ class ConnectionMonitorFragment: Fragment() {
             }
             reconnect.setOnClickListener {
                 service.forceReconnectAllAccounts()
-                Flash.show(context, "Reconnecting all accounts…")
+                Flash.show(context, getString(R.string.sk_conn_mon_reconnecting_all))
             }
         }.root
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         (parentFragment as? AppBarStateListener)?.apply {
-            onToolbarTitleChanged(getText(R.string.pref_connection_monitor))
+            onToolbarTitleChanged(getText(R.string.sk_conn_monitor_title))
             onAppBarScrollTargetViewChanged(list)
         }
     }
@@ -263,7 +263,7 @@ class ConnectionMonitorFragment: Fragment() {
                     // Filled disclosure triangle (▶ folded / ▼ open) — immediately apparent, unlike the
                     // old "⌄" that read as a "v". Size is settable in the UI page (default 0.94×).
                     val arrow = if (h.collapsed) "▶" else "▼"
-                    val text = "$arrow  ${h.name}  —  ${h.statusWord} · ${h.total} contact(s)"
+                    val text = tv.context.getString(R.string.sk_conn_mon_account_header, arrow, h.name, h.statusWord, h.total)
                     tv.text = SpannableString(text).apply {
                         setSpan(RelativeSizeSpan(UiPrefs.getMonitorFoldScale(tv.context)), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                         setSpan(StyleSpan(Typeface.BOLD), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -282,11 +282,11 @@ class ConnectionMonitorFragment: Fragment() {
                 val idleColor = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
                 it.name.text = connection.device
                 val stage = when (connection.status) {
-                    ConnectionStatus.Waiting -> "waiting…"
-                    ConnectionStatus.Connecting -> "connecting…"
-                    ConnectionStatus.ICE -> "negotiating (ICE)…"
-                    ConnectionStatus.TLS -> "securing (TLS)…"
-                    ConnectionStatus.Connected -> connection.remoteAddress ?: "connected"
+                    ConnectionStatus.Waiting -> ctx.getString(R.string.conn_state_waiting)
+                    ConnectionStatus.Connecting -> ctx.getString(R.string.conn_state_connecting)
+                    ConnectionStatus.ICE -> ctx.getString(R.string.conn_state_ice)
+                    ConnectionStatus.TLS -> ctx.getString(R.string.conn_state_tls)
+                    ConnectionStatus.Connected -> connection.remoteAddress ?: ctx.getString(R.string.conn_state_connected)
                 }
                 val tint = if (connected) connectedColor else idleColor
                 it.device.text = stage
@@ -300,7 +300,13 @@ class ConnectionMonitorFragment: Fragment() {
                     ConnectionStatus.Connected -> R.drawable.baseline_private_connectivity_24
                 })
                 it.icon.imageTintList = ColorStateList.valueOf(tint)
-                it.icon.contentDescription = connection.status.toString()
+                it.icon.contentDescription = ctx.getString(when (connection.status) {
+                    ConnectionStatus.Waiting -> R.string.conn_state_waiting
+                    ConnectionStatus.Connecting -> R.string.conn_state_connecting
+                    ConnectionStatus.ICE -> R.string.conn_state_ice
+                    ConnectionStatus.TLS -> R.string.conn_state_tls
+                    ConnectionStatus.Connected -> R.string.conn_state_connected
+                })
                 if (connected) {
                     it.channels.text = connection.channels.size.toString()
                     it.channels.isVisible = true
@@ -431,7 +437,7 @@ class ConnectionMonitorFragment: Fragment() {
             val chats = stuckChats[ac.accountId] ?: emptyList()
             // Only FAULT-class (red) messages count as the account's "N msg stuck".
             val faultCount = chats.count { it.severity == ConnectionHealth.StuckSeverity.FAULT }
-            val word = healthWord(health) + if (faultCount > 0) " ($faultCount msg stuck)" else ""
+            val word = healthWord(health) + if (faultCount > 0) " (${ctx.getString(R.string.conn_msg_stuck_count, faultCount)})" else ""
             rows.add(DeviceConnectionViewModel(accountHeader =
                 AccountHeader(ac.accountId, ac.name, word, healthColor(health), la.peers.size, isCollapsed)))
             // Stuck-message sub-rows — shown even when the account is collapsed. COLOUR is the cause
@@ -439,17 +445,17 @@ class ConnectionMonitorFragment: Fragment() {
             // ours to fix); PENDING = blue ("delivering…" — recipient away, benign, we're attempting).
             for (sc in chats) {
                 val fault = sc.severity == ConnectionHealth.StuckSeverity.FAULT
-                val age = ConnectionHealth.ageLabel(now - sc.timestamp)
+                val age = ConnectionHealth.ageLabel(ctx, now - sc.timestamp)
                 val kind = if (sc.isFile) "📎 " + sc.preview
-                    else if (sc.preview.isNotEmpty()) "💬 " + sc.preview else "text"
+                    else if (sc.preview.isNotEmpty()) "💬 " + sc.preview else ctx.getString(R.string.sk_conn_mon_kind_text)
                 val label = if (fault) {
                     val why = if (PeerReachability.isUnreachable(ac.accountId, sc.memberUri))
-                        " · unreachable — their device looks off (stale presence)" else ""
-                    "⚠ message not delivered → ${recipientLabel(sc.memberUri)}$why"
+                        " · " + ctx.getString(R.string.sk_conn_mon_stuck_unreachable) else ""
+                    ctx.getString(R.string.conn_msg_not_delivered, recipientLabel(sc.memberUri)) + why
                 } else {
                     val away = if (sc.presence == Contact.PresenceStatus.AVAILABLE)
-                        "announced, opening a channel…" else "recipient offline — delivers when they return"
-                    "⏳ delivering… → ${recipientLabel(sc.memberUri)} · $away"
+                        ctx.getString(R.string.sk_conn_mon_away_announced) else ctx.getString(R.string.sk_conn_mon_away_offline)
+                    ctx.getString(R.string.sk_conn_mon_delivering, recipientLabel(sc.memberUri), away)
                 }
                 rows.add(DeviceConnectionViewModel(
                     accountId = ac.accountId,
@@ -472,18 +478,18 @@ class ConnectionMonitorFragment: Fragment() {
                     val peerKey = cvm.contact.uri.rawRingId ?: cvm.contact.uri.uri
                     if (connected) connectedContacts++
                     val (stext, scolor) = when {
-                        connected -> "connected" to connectedColor                  // yellow — live link
-                        attempting -> "connecting…" to idleColor                     // blue — establishing (in progress, not a problem)
+                        connected -> ctx.getString(R.string.conn_state_connected) to connectedColor                  // yellow — live link
+                        attempting -> ctx.getString(R.string.conn_state_connecting) to idleColor                     // blue — establishing (in progress, not a problem)
                         // Verified unreachable (stuck outgoing message, no live channel): the dot is
                         // demoted red by the presence gate — say WHY instead of a bare "offline".
                         PeerReachability.isUnreachable(ac.accountId, peerKey) ->
-                            "unreachable — msg stuck, device off?" to problemColor
+                            ctx.getString(R.string.conn_state_unreachable) to problemColor
                         // A same-device account of mine (always reachable here), or a contact present on
                         // the network → reachable. Same-device accounts don't publish presence to each
                         // other, so without this they'd falsely read "offline".
                         peerKey in myOnlineUris || cvm.presence != Contact.PresenceStatus.OFFLINE ->
-                            "reachable" to connectedColor
-                        else -> "offline" to offlineColor                           // grey — not reachable now
+                            ctx.getString(R.string.conn_state_reachable) to connectedColor
+                        else -> ctx.getString(R.string.conn_state_peer_offline) to offlineColor                           // grey — not reachable now
                     }
                     rows.add(DeviceConnectionViewModel(contact = cvm, contactStatusText = stext,
                         contactStatusColor = scolor, accountId = ac.accountId))
@@ -492,9 +498,9 @@ class ConnectionMonitorFragment: Fragment() {
                 }
             }
         }
-        val base = "${lastLoaded.size} account(s) · $healthy healthy · $connectedContacts connected"
+        val base = ctx.getString(R.string.sk_conn_mon_summary, lastLoaded.size, healthy, connectedContacts)
         summaryView?.text = if (problem > 0) {
-            val warn = " · ⚠ $problem need attention"
+            val warn = " · " + ctx.getString(R.string.sk_conn_mon_summary_attention, problem)
             SpannableStringBuilder(base).append(warn).apply {
                 setSpan(ForegroundColorSpan(problemColor), base.length, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 setSpan(StyleSpan(Typeface.BOLD), base.length, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -515,9 +521,9 @@ class ConnectionMonitorFragment: Fragment() {
     private fun ageLabel(ms: Long): String {
         val s = ms / 1000
         return when {
-            s < 60 -> "just now"
-            s < 3600 -> "${s / 60} min ago"
-            else -> "${s / 3600} h ago"
+            s < 60 -> getString(R.string.sk_conn_age_just_now)
+            s < 3600 -> getString(R.string.sk_conn_age_min, (s / 60).toInt())
+            else -> getString(R.string.sk_conn_age_hours, (s / 3600).toInt())
         }
     }
 
@@ -527,13 +533,13 @@ class ConnectionMonitorFragment: Fragment() {
         val tv = transportView ?: return
         val ctx = context ?: return
         if (transportProbing) {
-            tv.text = "Transport:  testing…"
+            tv.text = ctx.getString(R.string.sk_conn_transport_testing)
             tv.setTextColor(ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_CONNECTING))
             return
         }
         val v = NetProbe.lastVerdict()
         if (v == null) {
-            tv.text = "Transport:  not tested yet — tap to test"
+            tv.text = ctx.getString(R.string.sk_conn_transport_untested)
             tv.setTextColor(ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE))
             return
         }
@@ -541,14 +547,14 @@ class ConnectionMonitorFragment: Fragment() {
         val tcp = if (v.tcp) "TCP ✓" else "TCP ✗"
         val (verdict, color) = when (v.transport) {
             NetProbe.Transport.OK ->
-                "full DHT viable" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_HEALTHY)
+                ctx.getString(R.string.sk_conn_transport_ok) to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_HEALTHY)
             NetProbe.Transport.HOSTILE ->
-                "hostile network — DHT proxy advised" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
+                ctx.getString(R.string.sk_conn_transport_hostile) to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
             NetProbe.Transport.DEAD ->
-                "no egress at all" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
-            else -> "unknown" to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
+                ctx.getString(R.string.sk_conn_transport_dead) to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_PROBLEM)
+            else -> ctx.getString(R.string.sk_conn_transport_unknown) to ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_IDLE)
         }
-        tv.text = "Transport:  $udp  $tcp  — $verdict\n${ageLabel(System.currentTimeMillis() - v.atMs)} · tap to re-test, hold for detail"
+        tv.text = ctx.getString(R.string.sk_conn_transport_line, udp, tcp, verdict, ageLabel(System.currentTimeMillis() - v.atMs))
         tv.setTextColor(color)
     }
 
@@ -567,26 +573,26 @@ class ConnectionMonitorFragment: Fragment() {
         val ctx = context ?: return
         val v = NetProbe.lastVerdict()
         val state = when (v?.transport) {
-            NetProbe.Transport.OK -> "Right now: UDP is getting out, so the full DHT works here."
-            NetProbe.Transport.HOSTILE -> "Right now: UDP is blocked but TCP works. This is the case where DHT proxy is clearly right — the full DHT cannot function on this network."
-            NetProbe.Transport.DEAD -> "Right now: neither UDP nor TCP is getting out. That is not a DHT-mode problem — the network itself is unusable."
-            else -> "Not tested yet."
+            NetProbe.Transport.OK -> ctx.getString(R.string.sk_conn_transport_state_ok)
+            NetProbe.Transport.HOSTILE -> ctx.getString(R.string.sk_conn_transport_state_hostile)
+            NetProbe.Transport.DEAD -> ctx.getString(R.string.sk_conn_transport_state_dead)
+            else -> ctx.getString(R.string.sk_conn_transport_state_untested)
         }
         val body = state + "\n\n" +
-            "What is tested: one STUN binding request over plain UDP, and one bare TCP connect, both to Jami's TURN server. No 白い熊 GNU Jami traffic; nothing a contact can see.\n\n" +
-            "Why it matters: the full DHT rides UDP. Networks that block UDP — many hotel, café, campus and corporate Wi-Fi networks, and some carriers — break it completely, while DHT proxy keeps working over TCP.\n\n" +
-            "Where UDP is fine, full DHT is the better default: no proxy server to depend on, nothing central seeing your subscriptions.\n\n" +
-            "This screen only measures and advises. Switching modes is always the hexagon in the top bar."
+            ctx.getString(R.string.sk_conn_transport_what) + "\n\n" +
+            ctx.getString(R.string.sk_conn_transport_why) + "\n\n" +
+            ctx.getString(R.string.sk_conn_transport_where) + "\n\n" +
+            ctx.getString(R.string.sk_conn_transport_advice)
         val tv = TextView(ctx).apply {
             text = body; setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             val p = (16 * ctx.resources.displayMetrics.density).toInt()
             setPadding(p, p, p, p); setTextIsSelectable(true)
         }
         DialogTheme.builder(ctx)
-            .setTitle("Transport test")
+            .setTitle(R.string.sk_conn_transport_title)
             .setView(android.widget.ScrollView(ctx).apply { addView(tv) })
-            .setPositiveButton("Close", null)
-            .setNegativeButton("Test again") { _, _ -> probeTransport() }
+            .setPositiveButton(R.string.conn_dash_close, null)
+            .setNegativeButton(R.string.sk_conn_transport_again) { _, _ -> probeTransport() }
             .show().let { DialogTheme.theme(it, ctx) }
     }
 
@@ -649,37 +655,37 @@ class ConnectionMonitorFragment: Fragment() {
         val cOffline = ColorPrefs.getColor(ctx, ColorPrefs.MONITOR_OFFLINE)
         // Wording mirrors ConnectionHealth.classify() exactly — priority OFFLINE → DEAF →
         // NOT_SYNCING → CONNECTING → HEALTHY. Keep these in step if the classifier changes.
-        header("Account health")
-        row(dot(cHealthy), "Healthy — registered, and nothing says otherwise")
-        row(dot(cConnecting), "Connecting — a link is being established, or a verification probe is in flight. In progress, never itself a fault")
-        row(dot(cProblem), "NOT RECEIVING — a silent presence probe went unanswered for 60 s. This is verified deafness, not merely a quiet phone")
-        row(dot(cProblem), "NOT SYNCING — an outgoing message has gone unacknowledged for 90 s while the peer is reachable")
-        row(dot(cProblem), "OFFLINE — the account is not registered at all")
-        header("Each contact (full list)")
-        row(dot(cConnected), "Connected or reachable — messages will get through")
-        row(dot(cIdle), "Connecting — a link is being established")
-        row(dot(cOffline), "Offline — not reachable right now; messages queue until they return")
-        header("Connection icons (handshake stage)")
-        row(icon(R.drawable.baseline_radar_24, cIdle), "Radar — looking up the peer / waiting")
-        row(icon(R.drawable.p2p_24, cIdle), "Two phones — ICE: finding a direct path")
-        row(icon(R.drawable.baseline_private_connectivity_24, cConnected), "Shield — secured (TLS) & connected")
-        header("Transport — and when DHT proxy is worth it")
-        para("The Transport row at the top of this screen tests two things: whether UDP can leave this network, and whether TCP can. Tap it to re-test, hold it for detail.")
-        para("⚠  UDP blocked, TCP working = the one case where DHT proxy is clearly the right mode.", emphasis = true)
-        para("The full DHT is carried over UDP. On a network that blocks UDP — many hotel, café, campus and corporate Wi-Fi networks, and some mobile carriers — the full DHT simply cannot work, no matter how healthy everything else looks. The DHT proxy reaches its server over TCP instead, so it keeps working exactly where the full DHT dies. This is the strongest reason to switch modes.")
-        para("When UDP is fine, the full DHT is the better default: no dependency on a proxy server, nothing central seeing your subscriptions, and no proxy outage can become your outage.")
-        para("Switching modes is always the hexagon in the top bar. This screen only measures and advises — it never changes the mode behind your back.")
-        header("Note")
+        header(ctx.getString(R.string.sk_conn_legend_h_health))
+        row(dot(cHealthy), ctx.getString(R.string.sk_conn_legend_healthy))
+        row(dot(cConnecting), ctx.getString(R.string.sk_conn_legend_connecting))
+        row(dot(cProblem), ctx.getString(R.string.sk_conn_legend_deaf))
+        row(dot(cProblem), ctx.getString(R.string.sk_conn_legend_not_syncing))
+        row(dot(cProblem), ctx.getString(R.string.sk_conn_legend_offline))
+        header(ctx.getString(R.string.sk_conn_legend_h_contacts))
+        row(dot(cConnected), ctx.getString(R.string.sk_conn_legend_c_connected))
+        row(dot(cIdle), ctx.getString(R.string.sk_conn_legend_c_connecting))
+        row(dot(cOffline), ctx.getString(R.string.sk_conn_legend_c_offline))
+        header(ctx.getString(R.string.sk_conn_legend_h_icons))
+        row(icon(R.drawable.baseline_radar_24, cIdle), ctx.getString(R.string.sk_conn_legend_i_radar))
+        row(icon(R.drawable.p2p_24, cIdle), ctx.getString(R.string.sk_conn_legend_i_p2p))
+        row(icon(R.drawable.baseline_private_connectivity_24, cConnected), ctx.getString(R.string.sk_conn_legend_i_shield))
+        header(ctx.getString(R.string.sk_conn_legend_h_transport))
+        para(ctx.getString(R.string.sk_conn_legend_t_row))
+        para(ctx.getString(R.string.sk_conn_legend_t_case), emphasis = true)
+        para(ctx.getString(R.string.sk_conn_legend_t_udp))
+        para(ctx.getString(R.string.sk_conn_legend_t_default))
+        para(ctx.getString(R.string.sk_conn_legend_t_switch))
+        header(ctx.getString(R.string.sk_conn_legend_h_note))
         row(TextView(ctx).apply {
             text = "ⓘ"; setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams((30 * d).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
                 .apply { marginEnd = (14 * d).toInt() }
-        }, "Every contact is listed with its status. Connections constantly open & close — that's normal swarm sync, not a fault. Tap a contact to test/wake its link; tap a device row for its IDs. The Data button shows recorded data usage per window.")
+        }, ctx.getString(R.string.sk_conn_legend_note))
         val scroll = android.widget.ScrollView(ctx).apply { addView(root) }
         DialogTheme.builder(ctx)
-            .setTitle("What this means")
+            .setTitle(R.string.sk_conn_legend_title)
             .setView(scroll)
-            .setPositiveButton("Got it", null)
+            .setPositiveButton(R.string.sk_conn_got_it, null)
             .show().let { DialogTheme.theme(it, ctx) }
     }
 
@@ -688,33 +694,41 @@ class ConnectionMonitorFragment: Fragment() {
         val ctx = context ?: return
         val name = peerNames[conn.peer]
         val ourAccount = uriToAccountId[conn.peer]  // non-null when the peer is one of OUR accounts
+        val statusWord = ctx.getString(when (conn.status) {
+            ConnectionStatus.Waiting -> R.string.conn_state_waiting
+            ConnectionStatus.Connecting -> R.string.conn_state_connecting
+            ConnectionStatus.ICE -> R.string.conn_state_ice
+            ConnectionStatus.TLS -> R.string.conn_state_tls
+            ConnectionStatus.Connected -> R.string.conn_state_connected
+        })
         val msg = buildString {
-            if (name != null) append("Contact: $name\n")
-            append("Device:\n${conn.device}\n\n")
-            append("Contact (peer) ID:\n${conn.peer}\n\n")
-            append("Status: ${conn.status}\n")
-            if (!conn.remoteAddress.isNullOrEmpty()) append("Remote: ${conn.remoteAddress}\n")
-            if (conn.channels.isNotEmpty()) append("Channels: ${conn.channels.size}\n")
-            if (ourAccount != null) append("\nThis is one of YOUR accounts (same device).")
+            if (name != null) append(ctx.getString(R.string.sk_conn_detail_contact, name)).append("\n")
+            append(ctx.getString(R.string.sk_conn_detail_device, conn.device)).append("\n\n")
+            append(ctx.getString(R.string.sk_conn_detail_peer_id, conn.peer)).append("\n\n")
+            append(ctx.getString(R.string.sk_conn_detail_status, statusWord)).append("\n")
+            if (!conn.remoteAddress.isNullOrEmpty()) append(ctx.getString(R.string.sk_conn_detail_remote, conn.remoteAddress)).append("\n")
+            if (conn.channels.isNotEmpty()) append(ctx.getString(R.string.sk_conn_detail_channels, conn.channels.size)).append("\n")
+            if (ourAccount != null) append("\n").append(ctx.getString(R.string.sk_conn_detail_own_account))
         }
         fun copy(label: String, text: String) {
             (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
                 .setPrimaryClip(android.content.ClipData.newPlainText(label, text))
-            Flash.show(ctx, "$label copied")
+            Flash.show(ctx, ctx.getString(R.string.sk_conn_copied, label))
         }
         val builder = DialogTheme.builder(ctx)
-            .setTitle("Connection detail")
+            .setTitle(R.string.sk_conn_detail_title)
             .setMessage(msg)
-            .setNegativeButton("Close", null)
+            .setNegativeButton(R.string.conn_dash_close, null)
         if (ourAccount != null) {
-            builder.setPositiveButton("Reconnect ${name ?: "account"}") { _, _ ->
+            val who = name ?: ctx.getString(R.string.sk_conn_account_fallback)
+            builder.setPositiveButton(ctx.getString(R.string.sk_conn_reconnect_named, who)) { _, _ ->
                 service.forceReconnectAccount(ourAccount)
-                Flash.show(ctx, "Reconnecting ${name ?: "account"}…")
+                Flash.show(ctx, ctx.getString(R.string.sk_conn_reconnecting_named, who))
             }
-            builder.setNeutralButton("Copy device ID") { _, _ -> copy("Device ID", conn.device) }
+            builder.setNeutralButton(R.string.sk_conn_copy_device_id) { _, _ -> copy(ctx.getString(R.string.sk_conn_device_id), conn.device) }
         } else {
-            builder.setPositiveButton("Copy device ID") { _, _ -> copy("Device ID", conn.device) }
-            builder.setNeutralButton("Copy contact ID") { _, _ -> copy("Contact ID", conn.peer) }
+            builder.setPositiveButton(R.string.sk_conn_copy_device_id) { _, _ -> copy(ctx.getString(R.string.sk_conn_device_id), conn.device) }
+            builder.setNeutralButton(R.string.sk_conn_copy_contact_id) { _, _ -> copy(ctx.getString(R.string.sk_conn_contact_id), conn.peer) }
         }
         builder.show().let { DialogTheme.theme(it, ctx) }
     }
@@ -728,7 +742,7 @@ class ConnectionMonitorFragment: Fragment() {
         val name = cvm.displayName
         val conv = service.getAccount(accountId)?.getByUri(cvm.contact.uri)
         if (conv != null) showContactConnectionDialog(ctx, service, conversationFacade, conv)
-        else { service.refreshBuddyPresence(accountId, cvm.contact.uri.uri); Flash.show(ctx, "Refreshed $name") }
+        else { service.refreshBuddyPresence(accountId, cvm.contact.uri.uri); Flash.show(ctx, ctx.getString(R.string.sk_conn_refreshed, name)) }
     }
 
     override fun onStart() {

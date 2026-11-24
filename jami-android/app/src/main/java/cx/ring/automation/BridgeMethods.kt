@@ -68,8 +68,10 @@ object BridgeMethods {
     private fun dispatch(ctx: Context, method: String, x: Bundle): Bundle {
         // SK-BRIDGEWAKE: anything that must reach a peer wakes the accounts first and holds them
         // up long enough for the peer to fetch it. Asleep, a send only committed locally.
-        if (method in SENDING)
+        if (method in SENDING) {
             JamiApplication.instance?.automationWake(Bridge.SEND_HOLD_MS, method)
+            awaitRegistered(x, method)
+        }
         return when (method) {
             "bridge_describe" -> ok().apply {
                 putString("version", VERSION)
@@ -115,6 +117,35 @@ object BridgeMethods {
             else -> err("unknown method: $method")
         }
     }
+
+    /**
+     * Hold a send until its account is registered, for at most [REGISTERED_WAIT_MS] (2026-11-23).
+     * A send handed over while the account is between an unregister and its re-register — just
+     * after a process start, or inside one of the watchdog's recoveries — commits locally and
+     * dials on connections that are being torn down. Measured on a relay phone: the answer to an
+     * install was handed over six seconds into a new process and its dial was destroyed 60 ms
+     * later. Never refuses: when the wait runs out the send goes ahead as it always did.
+     */
+    private fun awaitRegistered(x: Bundle, method: String) {
+        val app = JamiApplication.instance ?: return
+        val start = android.os.SystemClock.elapsedRealtime()
+        fun ready(): Boolean {
+            val raw = x.getString("account")?.trim()
+            val id = if (raw.isNullOrEmpty() || raw.equals("default", true)) app.mAccountService.currentAccount?.accountId else raw
+            // An unknown or disabled account is not ours to wait for — the method reports it.
+            val a = id?.let { app.mAccountService.getAccount(it) } ?: return app.mAccountService.currentAccount != null
+            return !a.isEnabled || a.isRegistered
+        }
+        if (ready()) return
+        while (android.os.SystemClock.elapsedRealtime() - start < REGISTERED_WAIT_MS) {
+            try { Thread.sleep(250) } catch (_: InterruptedException) { break }
+            if (ready()) break
+        }
+        if (cx.ring.utils.DiagPrefs.isOn(cx.ring.utils.DiagPrefs.Group.EXEC))
+            app.diagLog("SK-EXECDIAG $method waited ${android.os.SystemClock.elapsedRealtime() - start} ms for registration (registered=${ready()})")
+    }
+
+    private const val REGISTERED_WAIT_MS = 15_000L
 
     // ------------------------------------------------------------------ methods
 

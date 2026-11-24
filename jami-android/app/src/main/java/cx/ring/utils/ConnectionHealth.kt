@@ -174,6 +174,36 @@ object ConnectionHealth {
         }
     }
 
+    /** [ageLabel] as shown on screen, in the reader's language. */
+    fun ageLabel(c: android.content.Context, ms: Long): String {
+        val s = ms / 1000
+        return when {
+            s < 60 -> c.getString(cx.ring.R.string.sk_left_age_sec, s.toInt())
+            s < 3600 -> c.getString(cx.ring.R.string.sk_left_age_min, (s / 60).toInt())
+            s < 86_400 -> c.getString(cx.ring.R.string.sk_left_age_hour_min, (s / 3600).toInt(), ((s % 3600) / 60).toInt())
+            else -> c.getString(cx.ring.R.string.sk_left_age_day_hour, (s / 86_400).toInt(), ((s % 86_400) / 3600).toInt())
+        }
+    }
+
+    /** An `InboundEvidence` kind as shown on screen. The kind itself is a machine label that is also
+     *  logged and handed to automation, so it stays as it is; an unknown kind is shown unchanged. */
+    fun inboundKindLabel(c: android.content.Context, kind: String): String {
+        val res = when (kind) {
+            "push" -> cx.ring.R.string.sk_left_kind_push
+            "own-key push" -> cx.ring.R.string.sk_left_kind_own_key_push
+            "msg" -> cx.ring.R.string.sk_left_kind_msg
+            "receipt" -> cx.ring.R.string.sk_left_kind_receipt
+            "typing" -> cx.ring.R.string.sk_left_kind_typing
+            "request" -> cx.ring.R.string.sk_left_kind_request
+            "call" -> cx.ring.R.string.sk_left_kind_call
+            "presence" -> cx.ring.R.string.sk_left_kind_presence
+            "swarm" -> cx.ring.R.string.sk_left_kind_swarm
+            "probe" -> cx.ring.R.string.sk_left_kind_probe
+            else -> return kind
+        }
+        return c.getString(res)
+    }
+
     /** Account health (2026-07-23 metric redesign: "registered" is NOT "receiving" — the watchdog's
      *  probe-VERIFIED verdicts outrank the registration table). Priority: OFFLINE → DEAF (verified
      *  not-receiving: an unanswered 60-s probe, never the bare quiet clock — that false-positives on

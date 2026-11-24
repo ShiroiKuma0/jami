@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Upstream strings that upstream has no Czech for (first half of values/strings.xml, up to
+but not including contact_request_sent). If upstream ever ships values-cs with one of
+these keys, the build reports a duplicate and the entry is deleted here.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- About -->
+    <string name="submit_issue_title">Nahlásit problém</string>
+    <string name="submit_issue_action_description"><u>Vytvořit nové hlášení</u></string>
+    <string name="section_license">Licence</string>
+    <string name="switch_conversation">Přepnout konverzaci</string>
+    <string name="delete_conversation_confirmation">Opravdu chcete tuto konverzaci smazat?</string>
+    <string name="acc_profile_photo_capture">Pořídit fotografii</string>
+    <string name="view_switch_camera">Přepnout kameru</string>
+    <string name="sponsor_section">Jami je svobodný software, který vyvíjí a podporuje</string>
+    <string name="copyright_section">Autorská práva</string>
+    <string name="contribute_section">Zapojte se</string>
+    <string name="version_section">Verze</string>
+    <string name="no_browser_app_installed">Nebyl nalezen žádný webový prohlížeč. Chcete-li tuto stránku zobrazit, nějaký nainstalujte.</string>
+    <string name="website_chooser_title">Zobrazit web pomocí…</string>
+    <string name="license">Tento software je poskytován „tak, jak je“, bez jakékoli záruky. Podrobnosti najdete v licenci <u>GNU General Public License verze 3 nebo novější</u></string>
+    <string name="description">白い熊 GNU Jami je svobodný software pro univerzální komunikaci, který respektuje svobodu a soukromí svých uživatelů.</string>
+    <string name="conversation_creation_error">Konverzaci se nepodařilo vytvořit</string>
+    <string name="credits">Poděkování</string>
+    <string name="pip_title">Konference 白い熊 GNU Jami</string>
+
+    <string name="call_service_description">Tato služba je nutná k tomu, aby hovory běžely na popředí. Běží pouze během hovorů.</string>
+    <string name="data_transfer_service_description">Tato služba je nutná k zobrazení trvalých oznámení během přenosu souborů. Běží pouze během přenosu souborů.</string>
+
+    <!-- About dialog -->
+    <string name="thank_note">Rádi bychom poděkovali našim přispěvatelům, jejichž mnohaleté úsilí udělalo z tohoto softwaru to, čím je.</string>
+    <string name="developers">Vývojáři</string>
+    <string name="media">Média</string>
+    <string name="community_management">Správa komunity</string>
+    <string name="special_thanks">Zvláštní poděkování patří</string>
+    <string name="end_note">Toto je seznam lidí, kteří do Jami vložili značné množství času s užitečnými výsledky. Přispěvatelé, kteří by chtěli být na seznam doplněni, se mohou obrátit na tým Jami na adrese contact@jami.net.</string>
+
+    <!-- RingActivity -->
+    <string name="error_no_network">Žádné připojení k síti</string>
+    <string name="error_account_offline">Účet je offline</string>
+
+    <!-- AB menus -->
+    <string name="ab_action_chat">Textové zprávy</string>
+
+    <!-- Sections -->
+    <string name="menu_item_contact_request">Žádosti o kontakt</string>
+    <string name="menu_item_accounts">Spravovat účty</string>
+    <string name="menu_item_account">Spravovat účet</string>
+    <string name="menu_item_settings">Nastavení</string>
+    <string name="menu_item_app_settings">Nastavení aplikace</string>
+    <string name="menu_item_account_settings">Nastavení účtu</string>
+    <string name="menu_item_sync">Synchronizovat všechny účty</string>
+    <string name="menu_item_extension_list">Nastavení rozšíření</string>
+    <string name="menu_item_share">Sdílet můj účet</string>
+    <string name="menu_item_about">O aplikaci 白い熊 GNU Jami</string>
+
+    <string name="video_setting_title">Nastavení videa</string>
+    <string name="pref_conference_resolution_title">Rozlišení videa v konferenci</string>
+    <string name="pref_conference_resolution_summary">Zvoleno: %1$s. Platí pro nové konference hostované z tohoto zařízení.</string>
+
+    <!-- Dialing Fragment -->
+    <string name="dial_number">Vytočit číslo</string>
+
+    <!-- Home Fragment -->
+    <string name="invitation_card_title">Obdržené žádosti</string>
+    <string name="joinable_feeds">Kanály, ke kterým se lze připojit</string>
+    <string name="join_feed">Připojit se</string>
+    <string name="joinable_feed_message">Byli jste pozváni do kanálu %1$s.</string>
+    <plurals name="home_conferences_title">
+        <item quantity="one">%d konverzace</item>
+        <item quantity="few">%d konverzace</item>
+        <item quantity="many">%d konverzace</item>
+        <item quantity="other">%d konverzací</item>
+    </plurals>
+
+    <!-- ContactList Fragment -->
+    <string name="searchbar_hint">Hledat nebo přidat</string>
+    <string name="choose_number">Vyberte číslo</string>
+
+    <!-- Notifications -->
+    <string name="notif_missed_incoming_call">Zmeškaný příchozí hovor</string>
+    <string name="notif_missed_outgoing_call">Nespojený odchozí hovor</string>
+    <string name="notif_incoming_call_title">Příchozí hovor: %1$s</string>
+    <string name="notif_incoming_call">Příchozí hovor</string>
+    <string name="notif_outgoing_call_title">Odchozí hovor: %1$s</string>
+    <string name="notif_outgoing_call">Odchozí hovor</string>
+    <string name="notif_current_call_title">Probíhající hovor: %1$s</string>
+    <string name="notif_current_call">Probíhající hovor</string>
+    <string name="notif_channel_call_in_progress">Probíhající hovor</string>
+    <string name="notif_channel_calls">Hovory</string>
+    <string name="notif_channel_missed_calls">Zmeškané hovory</string>
+    <string name="notif_channel_incoming_calls">Příchozí hovory</string>
+    <string name="notif_channel_messages">Zprávy</string>
+    <string name="notif_channel_protected">Chráněné kontakty</string>
+    <string name="notif_channel_requests">Žádosti</string>
+    <string name="notif_channel_file_transfer">Přenos souboru</string>
+    <string name="notif_channel_sync">Synchronizace dat</string>
+    <string name="notif_channel_background_service">Služba na pozadí</string>
+    <string name="notif_channel_background_service_descr">Umožňuje kdykoli přijímat hovory a zprávy.</string>
+    <string name="notif_group_calls">Hovory</string>
+    <string name="notif_inprogress_group_call">Probíhající hovor</string>
+    <string name="notif_background_service">白い熊 GNU Jami právě běží na pozadí</string>
+    <string name="notif_mark_as_read">Označit jako přečtené</string>
+    <string name="notif_dismiss">Zavřít</string>
+    <string name="notif_reply">Odpovědět</string>
+    <string name="notif_incoming_file_transfer_title">Příchozí soubor: %1$s</string>
+    <string name="notif_outgoing_file_transfer_title">Odesílání souboru: %1$s</string>
+    <string name="notif_incoming_picture">Obrázek: %1$s</string>
+    <string name="notif_sync_title">Synchronizace dat…</string>
+    <string name="notif_location_title">Sdílení polohy: %1$s</string>
+    <string name="notif_channel_reconnect">Synchronizace na pozadí</string>
+    <string name="notif_reconnect_title">白い熊 GNU Jami synchronizuje…</string>
+    <string name="location_share_contact">Kontakt %1$s s vámi sdílí polohu</string>
+    <string name="notif_location_multi_title">Sdílení polohy, počet kontaktů: %1$d</string>
+    <string name="notif_location_remaining">Zbývá minut: %1$d</string>
+    <string name="notif_location_action_stop">Ukončit sdílení polohy</string>
+    <string name="location_share_action_start">Zahájit sdílení</string>
+    <string name="location_share_action_stop">Ukončit sdílení</string>
+    <string name="location_share_about_title">Informace o mapě</string>
+
+    <!-- Call Fragment -->
+    <string name="you_txt_prefix">Vy:</string>
+    <string name="action_call_hangup">Ukončit hovor</string>
+    <string name="action_call_resume">Pokračovat</string>
+    <string name="action_call_maximize">Maximalizovat</string>
+    <string name="action_call_minimize">Minimalizovat</string>
+    <string name="action_call_mute">Ztlumit</string>
+    <string name="action_call_unmute">Zrušit ztlumení</string>
+    <string name="ongoing_call">Probíhající hovor</string>
+    <string name="hist_in_call">Příchozí hovor, %1$s</string>
+    <string name="hist_out_call">Odchozí hovor, %1$s</string>
+    <string name="call_duration">Délka: %s</string>
+    <string name="call_on_hold">Hovor je přidržen</string>
+    <string name="start_error_title">Aplikaci 白い熊 GNU Jami se nepodařilo spustit</string>
+    <string name="action_call_accept">Přijmout hovor</string>
+    <string name="action_call_accept_audio">Přijmout se zvukem</string>
+    <string name="action_call_accept_video">Přijmout s videem</string>
+    <string name="action_call_hold_accept">Přijmout příchozí hovor jen se zvukem a přidržet probíhající hovor</string>
+    <string name="switch_to_audio">Vypnout video</string>
+    <string name="switch_to_video">Zapnout video</string>
+    <string name="action_call_hold_accept_video">Přijmout příchozí hovor s videem a přidržet probíhající hovor</string>
+    <string name="action_call_end_accept">Přijmout příchozí hovor a ukončit probíhající hovor</string>
+    <string name="action_call_decline">Odmítnout</string>
+    <string name="action_call_mic_mute">Ztlumit mikrofon</string>
+    <string name="action_call_mic_unmute">Zrušit ztlumení mikrofonu</string>
+    <string name="action_call_camera_on">Zapnout kameru</string>
+    <string name="action_call_camera_off">Vypnout kameru</string>
+    <string name="action_call_stop_screen_share">Ukončit sdílení obrazovky</string>
+    <string name="action_call_lower_hand">Dát ruku dolů</string>
+    <string name="action_call_show_extensions">Zobrazit rozšíření</string>
+    <string name="action_call_show_participants">Zobrazit účastníky</string>
+    <string name="action_load_extension">Načíst rozšíření</string>
+    <string name="ab_action_speakerphone">Zapnout reproduktor</string>
+    <string name="ab_action_contact_add">Přidat do kontaktů</string>
+    <string name="ab_action_contact_add_question">Přidat do kontaktů?</string>
+    <string name="ab_action_audio_call">Zahájit hlasový hovor</string>
+    <string name="ab_action_video_call">Zahájit videohovor</string>
+    <string name="ab_action_change_screen_orientation">Změnit orientaci obrazovky</string>
+    <string name="share_via">Sdílet přes</string>
+    <string name="write_a_message">Napište zprávu</string>
+    <string name="scan_qr">Naskenovat QR kód</string>
+    <string name="qr_code">QR kód</string>
+    <string name="qr_code_not_contact">Toto není QR kód kontaktu 白い熊 GNU Jami</string>
+    <string name="conversation_filter_all">Vše</string>
+    <string name="conversation_filter_groups">Skupiny</string>
+    <string name="conversation_filter_feeds">Kanály</string>
+    <string name="new_group">Nová skupina</string>
+    <string name="new_feed">Nový kanál</string>
+    <string name="feed_creation_hint">Vyhrazený prostor pro sdílení oznámení a novinek.</string>
+    <string name="feed_conversation_name">Kanál: %1$s</string>
+    <string name="feed_created">Kanál vytvořen</string>
+    <string name="feed_created_at">Kanál vytvořen, %1$s</string>
+    <string name="feed_name">Název kanálu</string>
+    <string name="create_feed">Vytvořit kanál</string>
+    <string name="feed_details">Podrobnosti kanálu</string>
+    <string name="conversation_type_feed">Kanál</string>
+    <string name="leave_feed">Opustit kanál</string>
+    <string name="leave_feed_title">Opustit tento kanál?</string>
+    <string name="leave_feed_message">Kanál bude odebrán z vašeho seznamu konverzací.</string>
+    <string name="feed_edit_title">Upravit název kanálu</string>
+    <string name="feed_edit_description">Upravit popis kanálu</string>
+    <string name="feed_not_admin">Údaje tohoto kanálu mohou upravovat pouze správci</string>
+    <string name="ab_action_flipcamera">Otočit kameru</string>
+    <string name="ab_action_hidepreview">Skrýt náhled</string>
+    <string name="remote_recording">%s nahrává…</string>
+
+    <!-- Text messages -->
+    <string name="send_message">Odeslat zprávu</string>
+    <string name="message_sending">Odesílání zprávy…</string>
+    <string name="message_failed">Nepodařilo se</string>
+    <string name="time_just_now">Právě teď</string>
+    <string name="send_file">Odeslat soubor</string>
+    <string name="select_media">Otevřít galerii</string>
+    <string name="hist_file_sent">Soubor odeslán</string>
+    <string name="hist_file_received">Soubor přijat</string>
+    <string name="conversation_send_audio">Nahrát zvukový záznam</string>
+    <string name="conversation_send_video">Nahrát videozáznam</string>
+    <string name="conversation_share_location">Sdílet polohu</string>
+    <string name="ongoing_group_call">Probíhající hovor</string>
+    <string name="started_call">Hovor zahájen</string>
+    <string name="in_reply_to">V odpovědi na</string>
+
+    <!-- MediaPreferenceFragment -->
+    <string name="permission_dialog_camera_title">Oprávnění ke kameře</string>
+    <string name="permission_dialog_camera_message">Videokonverzace vyžadují oprávnění ke kameře. To je nyní zakázáno. Chcete-li tuto funkci používat, povolte ho v nastavení zařízení.</string>
+    <string name="camera_error">Při spouštění kamery došlo k chybě.</string>
+
+    <!-- Ringtone activity -->
+    <string name="ringtone_error_title">Chyba</string>
+    <string name="ringtone_error_format_not_supported">Tento formát není podporován.</string>
+    <string name="ringtone_error_size_too_big">Soubor je příliš velký. Největší povolená velikost je %1$dkB.</string>
+    <string name="ringtone_custom_prompt">Nastavit vlastní vyzvánění</string>
+    <string name="ringtone_custom_label">Vlastní</string>
+    <string name="ringtone_jami_tones">Vyzvánění 白い熊 GNU Jami</string>
+
+    <!-- Read contacts permission -->
+    <string name="permission_dialog_read_contacts_message">白い熊 GNU Jami vyžaduje oprávnění „Čtení kontaktů“. Chcete-li tuto funkci používat, povolte ho v nastavení zařízení.</string>
+
+    <!-- Write call log permission -->
+    <string name="permission_dialog_write_call_log_message">白い熊 GNU Jami vyžaduje oprávnění „Zápis do seznamu hovorů“. Chcete-li tuto funkci používat, povolte ho v nastavení zařízení.</string>
+
+    <!-- Post notifications permission -->
+    <string name="permission_dialog_post_notifications_title">Povolit oznámení</string>
+    <string name="permission_dialog_post_notifications_message">白い熊 GNU Jami potřebuje oprávnění k oznámením, aby vás mohla upozornit na příchozí hovory a zprávy, i když aplikace běží na pozadí. Bez něj vám mohou hovory uniknout.</string>
+    <string name="permission_dialog_post_notifications_blocked_message">Oznámení jsou pro 白い熊 GNU Jami vypnutá. Bez nich vám uniknou příchozí hovory a zprávy. Povolte prosím oznámení pro 白い熊 GNU Jami v nastavení zařízení.</string>
+    <string name="permission_dialog_local_network_title">Povolit přístup k místní síti</string>
+    <string name="permission_dialog_local_network_message">白い熊 GNU Jami potřebuje přístup k místní síti, aby mohla hovory spojovat přímo se zařízeními ve vaší síti. Bez něj mohou hovory vést přes prostředníka a mít nižší kvalitu.</string>
+    <string name="permission_dialog_local_network_blocked_message">Přístup k místní síti je pro 白い熊 GNU Jami zakázán. Hovory se zařízeními ve vaší síti mohou vést přes prostředníka a mít nižší kvalitu. Povolte prosím přístup k místní síti pro 白い熊 GNU Jami v nastavení zařízení.</string>
+    <string name="permission_dialog_open_settings">Otevřít nastavení</string>
+    <string name="permission_dialog_later">Později</string>
+
+    <!-- QRCode Scan -->
+    <string name="scan_qr_account_message">Naskenujte QR kód účtu, který chcete přidat.</string>
+    <string name="title_activity_qrcode">Sdílet můj účet</string>
+    <string name="error_scan_no_camera_permissions">Čtečka QR kódů vyžaduje oprávnění ke kameře. To je nyní zakázáno. Chcete-li tuto funkci používat, povolte ho v nastavení zařízení.</string>
+    <string name="tab_code">Můj kód</string>
+    <string name="tab_scan">Naskenovat kód</string>
+
+    <!-- Settings -->
+    <string name="clear_history_dialog_title">Vymazat historii?</string>
+    <string name="clear_history_dialog_message">Tuto akci nelze vrátit zpět.</string>
+    <string name="clear_history_completed">Historie byla vymazána.</string>
+    <string name="clear_history">Vymazat</string>
+
+    <!-- Conversation -->
+    <string name="conversation_details">Podrobnosti konverzace</string>
+    <string name="contact_details">Podrobnosti kontaktu</string>
+    <string name="conversation_action_delete_this">Smazat tuto konverzaci</string>
+    <string name="conversation_action_delete_this_title">Smazat tuto konverzaci?</string>
+    <string name="leave_conversation">Opustit konverzaci</string>
+    <string name="conversation_action_delete_this_message">Tuto akci nelze vrátit zpět.</string>
+    <string name="conversation_action_history_clear">Vymazat historii</string>
+    <string name="conversation_action_history_clear_title">Vymazat historii konverzace?</string>
+    <string name="conversation_action_history_clear_message">Historie konverzace bude nenávratně vymazána.</string>
+    <string name="delete_contact">Smazat kontakt</string>
+    <string name="conversation_action_remove_this_title">Smazat tento kontakt?</string>
+    <string name="conversation_action_remove_this_message">Kontakt bude smazán a historie konverzace nenávratně vymazána.</string>
+    <string name="conversation_action_add_this_message">Bude odeslána žádost o spojení.</string>
+    <string name="remove_conversation">Odebrat konverzaci</string>
+    <string name="conversation_action_remove_title">Odebrat konverzaci?</string>
+    <string name="conversation_action_remove_message">Konverzace bude odebrána, kontakt zůstane zachován.</string>
+    <string name="swarm_group_action_leave">Opustit skupinu</string>
+    <string name="swarm_group_action_leave_title">Opustit tuto skupinu?</string>
+    <string name="swarm_group_action_leave_message">Konverzace bude odebrána z vašeho seznamu konverzací</string>
+    <string name="conversation_action_copy_peer_number">Kopírovat identifikátor kontaktu</string>
+    <string name="copied_to_clipboard">Zkopírováno do schránky: %1$s.</string>
+    <string name="conversation_action_select_peer_number">Vyberte číslo</string>
+    <string name="conversation_action_block_this">Zablokovat kontakt</string>
+    <string name="conversation_action_unblock_this">Odblokovat kontakt</string>
+    <string name="conversation_action_go_to_call">Zpět k hovoru</string>
+    <string name="conversation_action_incoming_call">Příchozí hovor</string>
+    <string name="conversation_action_latest">Přejít na nejnovější</string>
+    <string name="conversation_open_file_error">Není nainstalována žádná aplikace, která by tento typ souboru dokázala otevřít.</string>
+    <string name="clip_contact_uri">Adresa kontaktu</string>
+    <string name="clip_message">Obsah zprávy</string>
+    <string name="block_contact_dialog_title">Zablokovat kontakt %1$s?</string>
+    <string name="block_contact_dialog_message">Kontakt %1$s vás nebude moci kontaktovat, dokud ho neodblokujete.</string>
+    <string name="block_contact_completed">Kontakt %1$s byl zablokován.</string>
+    <string name="unblock_contact_dialog_title">Odblokovat kontakt %1$s?</string>
+    <string name="unblock_contact_dialog_message">Kontakt %1$s vás bude moci znovu kontaktovat.</string>
+    <string name="unblock_contact_completed">Kontakt %1$s byl odblokován.</string>
+    <string name="conversation_contact_is_typing">Kontakt píše…</string>
+    <string name="conversation_info_contact_you">Vy</string>
+    <string name="conversation_members">Členové</string>
+    <string name="conversation_syncing">Stahování konverzace od protistrany</string>
+    <string name="conversation_blocked">Tento kontakt je zablokován.</string>
+    <string name="conversation_ended">Konverzace skončila.</string>
+    <string name="conversation_message_deleted">%s: zpráva smazána</string>
+    <string name="conversation_reply_you">Vy</string>
+    <string name="video_not_found">Soubor s videem nebyl nalezen</string>
+
+    <string name="conversation_preference_color">Barva konverzace</string>
+    <string name="conversation_preference_emoji">Emoji konverzace</string>
+    <string name="conversation_type_contact">Kontakt 白い熊 GNU Jami</string>
+    <string name="conversation_type_private">Soukromá</string>
+    <string name="conversation_type_group">Skupina</string>
+    <string name="conversation_contact_invited">Kontakt %1$s byl pozván do konverzace.</string>
+    <string name="conversation_contact_added">Kontakt %1$s se připojil ke konverzaci.</string>
+    <string name="conversation_contact_left">Kontakt %1$s opustil konverzaci.</string>
+    <string name="conversation_contact_blocked">Kontakt %1$s byl v konverzaci zablokován.</string>
+    <string name="conversation_contact_unblocked">Kontakt %1$s byl v konverzaci odblokován.</string>
+    <string name="conversation_search_hint">Hledat v konverzaci</string>
+
+    <string name="audio_recorder_error">Nahrávání zvuku se nepodařilo spustit.</string>
+    <string name="audio_recording_in_progress">Nahrávání…</string>
+    <string name="audio_recording_ready">Klepnutím přehrajete, tažením po křivce zvuku se posunete</string>
+    <string name="audio_recording_playing">Přehrávání…</string>
+    <string name="audio_recording_send">Odeslat</string>
+    <string name="audio_recording_play">Přehrát</string>
+    <string name="audio_recording_pause">Pozastavit</string>
+    <string name="audio_recording_stop">Zastavit nahrávání</string>
+    <string name="audio_recording_extend">Pokračovat v nahrávání</string>
+    <string name="audio_recording_restart">Nahrát znovu</string>
+    <string name="audio_recording_delete">Zahodit</string>
+    <string name="audio_recording_discard_title">Zahodit nahrávku?</string>
+    <string name="audio_recording_discard_message">O nahrávku přijdete.</string>
+    <string name="audio_recording_discard_keep">Pokračovat v úpravách</string>
+    <string name="audio_recording_discard_confirm">Zahodit</string>
+    <string name="audio_recording_limit_reached">Nahrávka dosáhla největší délky. Odešlete ji, nebo zrušte.</string>
+    <string name="audio_recording_gesture_hint">Uvolněním odešlete · tažením ◀ zrušíte · ▲ zkontrolujete</string>
+    <string name="audio_recording_release_cancel">Uvolněním zrušíte</string>
+    <string name="audio_recording_release_review">Uvolněním otevřete editor</string>
+    <string name="audio_recording_slide_cancel">Zrušit nahrávání</string>
+    <string name="audio_recording_slide_review">Otevřít editor</string>
+    <string name="audio_recording_review_short">Zkontrolovat</string>
+    <string name="audio_recording_too_short">Hlasovou zprávu nahrajete podržením</string>
+    <string name="video_recorder_error">Není k dispozici žádná aplikace pro nahrávání videa.</string>
+    <string name="taking_picture_error">Při pořizování snímku došlo k chybě.</string>
+    <string name="find_picture_error">Při hledání snímku došlo k chybě.</string>
+    <string name="open_camera_error">Při otevírání kamery došlo k chybě.</string>
+    <string name="starting_recorder_error">Při spouštění nahrávání došlo k chybě.</string>
+    <string name="starting_camera_error">Při spouštění kamery došlo k chybě.</string>
+    <string name="browser_error">V tomto zařízení není k dispozici žádný správce souborů.</string>
+    <string name="import_archive_error">Při importu archivu došlo k chybě.</string>
+    <string name="export_archive_error">Při exportu archivu došlo k chybě.</string>
+    <string name="load_ringtone_error">Při načítání vyzvánění došlo k chybě.</string>
+    <string name="sharing_log_error">Při sdílení záznamů došlo k chybě.</string>
+    <string name="no_native_crash">Žádný nedávný pád nativního kódu</string>
+
+    <string name="today">Dnes</string>
+    <string name="yesterday">Včera</string>
+
+    <!-- Contacts -->
+    <string name="add_call_contact_number_to_contacts">Přidat %1$s?</string>
+    <string name="prompt_new_password">Nové heslo</string>
+    <string name="prompt_new_password_optional">Nové heslo (nepovinné)</string>
+    <string name="prompt_new_password_repeat">Potvrďte nové heslo</string>
+    <string name="account_create_title">Vytvořit účet 白い熊 GNU Jami</string>
+    <string name="prompt_new_username">Zadejte nové uživatelské jméno</string>
+    <string name="prompt_hint_username">Uživatelské jméno</string>
+    <string name="help_password_choose">Zvolte si silné heslo, které si zapamatujete, a ochraňte jím svůj účet 白い熊 GNU Jami.</string>
+    <string name="help_password_enter">Zadejte heslo svého hlavního účtu 白い熊 GNU Jami.</string>
+    <string name="help_server_enter">Zadejte URL serveru pro správu.</string>
+    <string name="pin_copied">Ověřovací kód zkopírován do schránky.</string>
+    <string name="copied_clipboard">Zkopírováno do schránky.</string>
+    <string name="wizard_next">Další</string>
+    <string name="wizard_back">Zpět</string>
+    <string name="wizard_skip">Přeskočit</string>
+    <string name="hist_contact_invited">Kontakt pozván</string>
+    <string name="hist_contact_added">Kontakt přidán</string>
+    <string name="hist_contact_left">Kontakt odešel</string>
+    <string name="hist_contact_blocked">Kontakt zablokován</string>
+    <string name="hist_contact_unblocked">Kontakt odblokován</string>
+    <string name="hist_invitation_received">Obdržena žádost</string>
+    <string name="conversation_joined_date">Připojení</string>
+    <string name="contact_added_date">Přidání</string>
+    <string name="contact_removed_date">Odebrání</string>
+
+    <!-- Account summary -->
+    <string name="profile">Profil</string>
+    <string name="profile_name">Jméno v profilu</string>
+    <string name="profile_message_warning">Profil je sdílen pouze s kontakty</string>
+    <string name="custom_profile_message_warning">Vlastní profil vidí pouze účet na tomto zařízení</string>
+    <string name="open_the_gallery">Otevřít galerii</string>
+    <string name="take_a_photo">Pořídit fotografii</string>
+    <string name="remove_photo">Odebrat fotografii</string>
+    <string name="profile_name_hint">Zadejte své jméno</string>
+    <string name="registered_name">Registrované jméno</string>
+    <string name="no_registered_name">Žádné registrované jméno</string>
+    <string name="identity">Identita</string>
+    <string name="identifier">Identifikátor</string>
+    <string name="account">Účet</string>
+    <string name="link_new_device">Propojit nové zařízení</string>
+    <string name="devices_header">Zařízení</string>
+    <string name="devices">Propojená zařízení</string>
+    <string name="total_devices">Zařízení celkem: </string>
+
+    <!-- Share fragment -->
+    <string name="share_message">Naskenujte tento kód v aplikaci 白い熊 GNU Jami</string>
+    <string name="share_message_no_account">Vyberte prosím účet, který chcete sdílet.</string>
+    <string name="share_your_account_information">Sdílet mé kontaktní údaje</string>
+    <string name="share_contact_information">Sdílet kontaktní údaje</string>
+    <string name="share_label">Sdílet</string>
+    <string name="menu_message_jami_share" tools:ignore="MissingTranslation">Sdílet přes 白い熊 GNU Jami</string>
+    <string name="generic_error_migration">Chyba</string>
+    <string name="generic_error_migration_message">Při migraci účtu došlo k chybě.</string>
+    <string name="title_share_with">Sdílet s…</string>
+
+    <!-- Pending invitations -->
+    <string name="accept">Přijmout</string>
+    <string name="decline">Odmítnout</string>
+    <string name="block">Zablokovat</string>
+    <string name="decline_invitation">Odmítnout žádost</string>
+    <string name="accept_invitation">Přijmout žádost</string>
+    <string name="accept_invitation_body">Obdržena žádost od: %s.</string>
+    <string name="new_invitation_request_title">Nová žádost</string>
+    <string name="invitation_message">Počet žádostí o kontakt: %1$d</string>
+    <string name="no_invitations">Nejsou tu žádné žádosti.</string>
+    <string name="invitation_received_message">Obdržena žádost od: %s.\nPřijmout, nebo odmítnout?</string>
+    <string name="outgoing_contact_invitation_message">Tento kontakt není ve vašem seznamu kontaktů.</string>
+
+    <!-- Blacklist -->
+    <string name="no_blocked_contact">Žádné zablokované kontakty</string>
+
+    <!-- Smartlist -->
+    <string name="no_contact_request">Nebyla odeslána žádná žádost o kontakt</string>
+    <string name="conversation_placeholder">Zatím nemáte žádné konverzace</string>
+</resources>

@@ -1285,7 +1285,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
                 rebuild()
             }, { e ->
                 container.removeAllViews()
-                container.addView(TextView(ctx).apply { setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER)); text = "Error: ${e.message}" })
+                container.addView(TextView(ctx).apply { setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.DANGER)); text = ctx.getString(R.string.sk_conn_dash_error, e.message) })
             }))
         dialog.show()
         dialog.window?.setBackgroundDrawable(
@@ -1378,7 +1378,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             logView.text = if (lines.isEmpty()) "…" else lines.joinToString("\n")
             logScroll.post { logScroll.fullScroll(android.view.View.FOCUS_DOWN) }
             if (answered) {
-                header.text = ctx.getString(R.string.probe_ok, kind)
+                header.text = ctx.getString(R.string.probe_ok, cx.ring.utils.ConnectionHealth.inboundKindLabel(ctx, kind))
                 header.setTextColor(yellow)
             } else {
                 header.text = ctx.getString(R.string.probe_fail, 60)
@@ -1616,7 +1616,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             val pendingCol = amber   // MONITOR_CONNECTING (blue) — "in progress / attempting"
             for (sc in stuckConvs.distinctBy { it.convId }) {
                 val fault = sc.severity == cx.ring.utils.ConnectionHealth.StuckSeverity.FAULT
-                val age = cx.ring.utils.ConnectionHealth.ageLabel(now - sc.timestamp)
+                val age = cx.ring.utils.ConnectionHealth.ageLabel(ctx, now - sc.timestamp)
                 val kind = if (sc.isFile) "📎 " + sc.preview
                     else if (sc.preview.isNotEmpty()) "💬 " + sc.preview
                     else ctx.getString(R.string.conn_msg_text)
@@ -1717,15 +1717,16 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
     }
 
     private fun networkLabel(): String? {
-        val cm = context?.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return null
+        val ctx = context ?: return null
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return null
         val n = cm.activeNetwork ?: return null
         val caps = cm.getNetworkCapabilities(n) ?: return null
         return when {
             caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> ctx.getString(R.string.sk_conn_net_cellular)
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> ctx.getString(R.string.sk_conn_net_ethernet)
             caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "VPN"
-            else -> "Other"
+            else -> ctx.getString(R.string.sk_conn_net_other)
         }
     }
 
@@ -1734,7 +1735,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
      *  The dot blinks hollow→filled as the account re-registers (built-in feedback). */
     private fun reconnectAllWithFeedback() {
         mAccountService.forceReconnectAllAccounts()
-        showReconnectFlash("Reconnecting…")
+        showReconnectFlash(getString(R.string.sk_conn_home_reconnecting))
     }
 
     /**
@@ -1746,7 +1747,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
      */
     private fun syncAllWithFeedback() {
         cx.ring.utils.ConnectionWatchdog.manualRecover(requireContext(), mAccountService)
-        showReconnectFlash("Recovering connections…")
+        showReconnectFlash(getString(R.string.sk_conn_home_recovering))
     }
 
     /** Tap Sync: show the online-recovery event log (stale detected, recovered, backoff, …). */
@@ -1754,7 +1755,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val ctx = context ?: return
         val d = ctx.resources.displayMetrics.density
         val log = cx.ring.utils.UiPrefs.getRecoveryLog(ctx)
-        val logText = if (log.isEmpty()) "(no recovery events yet)" else log.reversed().joinToString("\n")
+        val logText = if (log.isEmpty()) ctx.getString(R.string.sk_conn_log_empty) else log.reversed().joinToString("\n")
         val tv = TextView(ctx).apply {
             this.text = logText
             setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
@@ -1765,7 +1766,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
         // Custom title: "Recovery log" left, an "ⓘ Recovery" pill top-right → Online-recovery settings.
         val recoveryPill = TextView(ctx).apply {
-            text = "ⓘ Recovery"
+            text = ctx.getString(R.string.sk_conn_log_recovery_pill)
             setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding((12 * d).toInt(), (5 * d).toInt(), (12 * d).toInt(), (5 * d).toInt())
@@ -1776,7 +1777,7 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
             gravity = android.view.Gravity.CENTER_VERTICAL
             setPadding((16 * d).toInt(), (12 * d).toInt(), (12 * d).toInt(), 0)
             addView(TextView(ctx).apply {
-                text = "Recovery log"
+                text = ctx.getString(R.string.sk_conn_log_title)
                 setTextColor(cx.ring.sk.skColor(cx.ring.sk.SkRole.TEXT))
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
@@ -1787,10 +1788,10 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         val dialog = MaterialAlertDialogBuilder(ctx, R.style.ShiroikumaDialog)
             .setCustomTitle(titleRow)
             .setView(scroll)
-            .setPositiveButton("Close", null)
+            .setPositiveButton(R.string.conn_dash_close, null)
             // Clear is the NEUTRAL button so it sits bottom-LEFT, away from Close. Guarded below:
             // a tap only warns; it clears the log only on a long-tap (prevents accidental loss).
-            .setNeutralButton("Clear", null)
+            .setNeutralButton(R.string.data_meter_clear, null)
             .create()
         dialog.show()
         dialog.window?.setBackgroundDrawable(AppCompatResources.getDrawable(ctx, R.drawable.dialog_black_yellow))
@@ -1799,12 +1800,12 @@ class HomeFragment: BaseSupportFragment<HomePresenter, HomeView>(),
         dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL)?.let { clearBtn ->
             styleDialogButton(clearBtn)
             clearBtn.setOnClickListener {
-                Flash.show(ctx, "Long-tap Clear to wipe the recovery log — every entry will be LOST.",
+                Flash.show(ctx, ctx.getString(R.string.sk_conn_log_clear_hint),
                     android.widget.Toast.LENGTH_LONG)
             }
             clearBtn.setOnLongClickListener {
                 cx.ring.utils.UiPrefs.clearRecoveryLog(ctx)
-                Flash.show(ctx, "Recovery log cleared.")
+                Flash.show(ctx, ctx.getString(R.string.sk_conn_log_cleared))
                 dialog.dismiss()
                 true
             }

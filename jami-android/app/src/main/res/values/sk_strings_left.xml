@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork: the last user-visible literals moved to resources (2026-11-23) — data-meter
+  network label, stuck-message age, inbound-evidence kind, font family labels, and text that was
+  typed straight into upstream layouts and menus. English: values/sk_strings_left.xml, Japanese:
+  values-ja/, Czech: values-cs/. The key sets of the three files must stay identical.
+-->
+<resources>
+    <string name="sk_left_net_none">no network</string>
+    <string name="sk_left_age_sec">%1$ds</string>
+    <string name="sk_left_age_min">%1$dm</string>
+    <string name="sk_left_age_hour_min">%1$dh%2$dm</string>
+    <string name="sk_left_age_day_hour">%1$dd%2$dh</string>
+    <string name="sk_left_kind_push">push</string>
+    <string name="sk_left_kind_own_key_push">push on this account\'s own key</string>
+    <string name="sk_left_kind_msg">message</string>
+    <string name="sk_left_kind_receipt">delivery receipt</string>
+    <string name="sk_left_kind_typing">typing indicator</string>
+    <string name="sk_left_kind_request">invitation</string>
+    <string name="sk_left_kind_call">call</string>
+    <string name="sk_left_kind_presence">presence</string>
+    <string name="sk_left_kind_swarm">conversation update</string>
+    <string name="sk_left_kind_probe">test answer</string>
+    <string name="sk_left_font_sans">Sans Serif</string>
+    <string name="sk_left_font_sans_light">Sans Serif Light</string>
+    <string name="sk_left_font_sans_medium">Sans Serif Medium</string>
+    <string name="sk_left_font_sans_condensed">Sans Serif Condensed</string>
+    <string name="sk_left_font_sans_thin">Sans Serif Thin</string>
+    <string name="sk_left_font_serif">Serif</string>
+    <string name="sk_left_font_monospace">Monospace</string>
+    <string name="sk_left_font_cursive">Cursive</string>
+    <string name="sk_left_push_total_received">Total received:</string>
+    <string name="sk_left_crash_report_title">Last crash report</string>
+    <string name="sk_left_menu_crashes">Crashes</string>
+    <string name="sk_left_menu_clear_all">Clear all</string>
+    <string name="sk_left_realm_hint">Realm…</string>
+    <string name="sk_left_option_image">Option image</string>
+    <string name="sk_left_import_confirm_title">Confirm account import</string>
+    <string name="sk_left_location_sharing_title">Location sharing</string>
+</resources>

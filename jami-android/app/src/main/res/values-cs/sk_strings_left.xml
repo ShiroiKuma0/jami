@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork: the last user-visible literals moved to resources (2026-11-23) — data-meter
+  network label, stuck-message age, inbound-evidence kind, font family labels, and text that was
+  typed straight into upstream layouts and menus. English: values/sk_strings_left.xml, Japanese:
+  values-ja/, Czech: values-cs/. The key sets of the three files must stay identical.
+-->
+<resources>
+    <string name="sk_left_net_none">bez sítě</string>
+    <string name="sk_left_age_sec">%1$d s</string>
+    <string name="sk_left_age_min">%1$d min</string>
+    <string name="sk_left_age_hour_min">%1$d h %2$d min</string>
+    <string name="sk_left_age_day_hour">%1$d d %2$d h</string>
+    <string name="sk_left_kind_push">push</string>
+    <string name="sk_left_kind_own_key_push">push na vlastní klíč tohoto účtu</string>
+    <string name="sk_left_kind_msg">zpráva</string>
+    <string name="sk_left_kind_receipt">potvrzení o doručení</string>
+    <string name="sk_left_kind_typing">oznámení o psaní</string>
+    <string name="sk_left_kind_request">pozvánka</string>
+    <string name="sk_left_kind_call">hovor</string>
+    <string name="sk_left_kind_presence">přítomnost</string>
+    <string name="sk_left_kind_swarm">aktualizace konverzace</string>
+    <string name="sk_left_kind_probe">odpověď na test</string>
+    <string name="sk_left_font_sans">Bezpatkové</string>
+    <string name="sk_left_font_sans_light">Bezpatkové – slabé</string>
+    <string name="sk_left_font_sans_medium">Bezpatkové – střední</string>
+    <string name="sk_left_font_sans_condensed">Bezpatkové – zúžené</string>
+    <string name="sk_left_font_sans_thin">Bezpatkové – vlasové</string>
+    <string name="sk_left_font_serif">Patkové</string>
+    <string name="sk_left_font_monospace">Neproporcionální</string>
+    <string name="sk_left_font_cursive">Psací</string>
+    <string name="sk_left_push_total_received">Přijato celkem:</string>
+    <string name="sk_left_crash_report_title">Poslední hlášení o pádu</string>
+    <string name="sk_left_menu_crashes">Pády</string>
+    <string name="sk_left_menu_clear_all">Vymazat vše</string>
+    <string name="sk_left_realm_hint">Realm…</string>
+    <string name="sk_left_option_image">Obrázek volby</string>
+    <string name="sk_left_import_confirm_title">Potvrzení importu účtu</string>
+    <string name="sk_left_location_sharing_title">Sdílení polohy</string>
+</resources>

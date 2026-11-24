@@ -680,6 +680,13 @@ r bash -c 'find jami-android/app/build/intermediates/cxx -name libjami-core-jni.
 
 # SWIG import APIs (idempotent; daemon's OWN .i files — MUST precede make-swig.sh, it feeds it)
 r bash -c 'grep -q "const std::string& accountId" <(grep "^std::string addAccount" daemon/bin/jni/configurationmanager.i) || (cd daemon && patch -flp1) < patches/jami-swig-import-apis.patch'
+# fetch retry (SK-FETCHRETRY, 2026-11-23; idempotent; daemon's OWN source). A fetch that failed on a dead git
+# channel (peer process killed, nothing closed the channel) is retried once, 2 s later, on a fresh channel.
+r bash -c 'grep -q SK-FETCHRETRY daemon/src/jamidht/conversation_module.cpp || (cd daemon && patch -flp1) < patches/jami-fetch-retry.patch'
+# channel diagnostics (SK-CHANDIAG, 2026-11-23; idempotent; daemon's OWN source). AFTER jami-dht-client-mode,
+# which also edits jamiaccount.cpp. Logs each incoming channel request with its verdict, and the swarm
+# channel's results, at ERROR level under the Connections switch.
+r bash -c 'grep -q SK-CHANDIAG daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-channel-diag.patch'
 
 # CONTRIB SANITY GATE (2026-08-08) — MUST sit between the patch steps and the build.
 #

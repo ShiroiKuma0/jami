@@ -132,6 +132,44 @@ object FontUtil {
         }
     }
 
+    /** [WEIGHTS]' label → its string resource; the table text is the fallback. */
+    private val WEIGHT_RES: Map<Int, Int> = mapOf(
+        0 to R.string.default_value,
+        100 to R.string.sk_misc_font_weight_thin,
+        300 to R.string.sk_misc_font_weight_light,
+        400 to R.string.sk_misc_font_weight_normal,
+        500 to R.string.sk_misc_font_weight_medium,
+        700 to R.string.sk_misc_font_weight_bold,
+        900 to R.string.sk_misc_font_weight_black,
+    )
+
+    /** [FAMILIES]' stored value → its label's string resource; the table text is the fallback. */
+    private val FAMILY_RES: Map<String, Int> = mapOf(
+        "" to R.string.default_value,
+        "sans-serif" to R.string.sk_left_font_sans,
+        "sans-serif-light" to R.string.sk_left_font_sans_light,
+        "sans-serif-medium" to R.string.sk_left_font_sans_medium,
+        "sans-serif-condensed" to R.string.sk_left_font_sans_condensed,
+        "sans-serif-thin" to R.string.sk_left_font_sans_thin,
+        "serif" to R.string.sk_left_font_serif,
+        "monospace" to R.string.sk_left_font_monospace,
+        "cursive" to R.string.sk_left_font_cursive,
+    )
+
+    /** [FAMILIES] as shown in a picker. The stored value of each family never changes. */
+    fun families(c: Context): List<Pair<String, String>> =
+        FAMILIES.map { (label, value) -> (FAMILY_RES[value]?.let { c.getString(it) } ?: label) to value }
+
+    /** [WEIGHTS] as shown in a picker. */
+    fun weights(c: Context): List<Pair<String, Int>> =
+        WEIGHTS.map { (label, weight) -> (WEIGHT_RES[weight]?.let { c.getString(it) } ?: label) to weight }
+
+    fun labelForFamily(c: Context, value: String): String =
+        FAMILY_RES[value]?.let { c.getString(it) } ?: labelForFamily(value)
+
+    fun labelForWeight(c: Context, weight: Int): String =
+        WEIGHT_RES[weight]?.let { c.getString(it) } ?: weight.toString()
+
     fun labelForFamily(value: String): String {
         FAMILIES.firstOrNull { it.second == value }?.let { return it.first }
         if (value.startsWith("file:")) return File(value.removePrefix("file:")).name
@@ -143,10 +181,10 @@ object FontUtil {
         val family = FontPrefs.getFamily(c, category)
         val weight = FontPrefs.getWeight(c, category)
         val size = FontPrefs.getSize(c, category)
-        if (family.isEmpty() && weight == 0 && size <= 0f) return "Default"
+        if (family.isEmpty() && weight == 0 && size <= 0f) return c.getString(R.string.default_value)
         val parts = ArrayList<String>()
-        parts.add(if (family.isEmpty()) "Default family" else labelForFamily(family))
-        if (weight != 0) parts.add(labelForWeight(weight))
+        parts.add(if (family.isEmpty()) c.getString(R.string.sk_misc_font_default_family) else labelForFamily(c, family))
+        if (weight != 0) parts.add(labelForWeight(c, weight))
         if (size > 0f) parts.add("${size.toInt()}sp")
         return parts.joinToString("  \u00B7  ")
     }

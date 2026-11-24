@@ -14,7 +14,7 @@
         style="@style/Widget.Material3.Toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:title="Last crash report"
+        app:title="@string/sk_left_crash_report_title"
         app:menu="@menu/logs_menu"/>
 
     <androidx.core.widget.NestedScrollView

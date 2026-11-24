@@ -44,7 +44,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
-            android:text="Data"
+            android:text="@string/data_meter_title"
             android:textColor="@color/sk_role_text"
             app:strokeColor="@color/sk_role_outline" />
 
@@ -63,7 +63,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Reconnect"
+            android:text="@string/sk_misc_reconnect"
             android:textColor="@color/sk_role_text"
             app:strokeColor="@color/sk_role_outline" />
     </LinearLayout>

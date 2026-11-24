@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — 接続モニタ・連絡先ライブモニタ・回復の記録の文字列（日本語）。
+     既定は values/sk_strings_conn.xml（英語）。 -->
+<resources>
+    <!-- Connection monitor screen (ConnectionMonitorFragment / ConnectionMonitorActivity) -->
+    <string name="sk_conn_monitor_title">接続モニタ</string>
+    <string name="sk_conn_mon_reconnecting_all">全アカウントを再接続しています…</string>
+    <string name="sk_conn_mon_account_header">"%1$s  %2$s  —  %3$s · 連絡先 %4$d 件"</string>
+    <string name="sk_conn_mon_kind_text">テキスト</string>
+    <string name="sk_conn_mon_stuck_unreachable">到達不能 — 相手の端末はオフのようです（在席情報が古い）</string>
+    <string name="sk_conn_mon_away_announced">DHT告知済み — チャネルを開いています…</string>
+    <string name="sk_conn_mon_away_offline">相手はオフライン — 復帰時に配信されます</string>
+    <string name="sk_conn_mon_delivering">⏳ 配信中… → %1$s · %2$s</string>
+    <string name="sk_conn_mon_summary">アカウント %1$d 個 · 正常 %2$d 個 · 接続 %3$d 件</string>
+    <string name="sk_conn_mon_summary_attention">⚠ %1$d 個に注意</string>
+    <string name="sk_conn_age_just_now">たった今</string>
+    <string name="sk_conn_age_min">%1$d 分前</string>
+    <string name="sk_conn_age_hours">%1$d 時間前</string>
+
+    <!-- Transport row and its dialog -->
+    <string name="sk_conn_transport_testing">"通信経路:  試験中…"</string>
+    <string name="sk_conn_transport_untested">"通信経路:  未試験 — タップで試験"</string>
+    <string name="sk_conn_transport_ok">フルDHTが使えます</string>
+    <string name="sk_conn_transport_hostile">UDPを遮断するネットワーク — DHT代理を推奨</string>
+    <string name="sk_conn_transport_dead">外部へまったく出られません</string>
+    <string name="sk_conn_transport_unknown">不明</string>
+    <string name="sk_conn_transport_line">"通信経路:  %1$s  %2$s  — %3$s\n%4$s · タップで再試験、長押しで詳細"</string>
+    <string name="sk_conn_transport_state_ok">現在：UDPが外へ出られるので、ここではフルDHTが使えます。</string>
+    <string name="sk_conn_transport_state_hostile">現在：UDPは遮断されていますが、TCPは通ります。DHT代理が明らかに適している状況です——このネットワークではフルDHTは機能しません。</string>
+    <string name="sk_conn_transport_state_dead">現在：UDPもTCPも外へ出られません。DHTのモードの問題ではなく、ネットワークそのものが使えない状態です。</string>
+    <string name="sk_conn_transport_state_untested">まだ試験していません。</string>
+    <string name="sk_conn_transport_what">試験の内容：JamiのTURNサーバーに対して、素のUDPでSTUNのバインディング要求を1回、TCP接続を1回だけ試みます。白い熊 GNU Jami の通信は一切流れず、連絡先からは何も見えません。</string>
+    <string name="sk_conn_transport_why">なぜ重要か：フルDHTはUDPで動きます。UDPを遮断するネットワーク——ホテル・喫茶店・大学・企業のWi-Fiの多くや、一部の携帯通信会社——ではまったく使えなくなりますが、DHT代理はTCPで動き続けます。</string>
+    <string name="sk_conn_transport_where">UDPが通るところでは、フルDHTを標準にするほうが優れています。頼るべき代理サーバーがなく、購読内容を中央で見られることもありません。</string>
+    <string name="sk_conn_transport_advice">この画面は計測と助言をするだけです。モードの切替は、いつでも上部バーの六角形から行います。</string>
+    <string name="sk_conn_transport_title">通信経路の試験</string>
+    <string name="sk_conn_transport_again">もう一度試験</string>
+
+    <!-- Legend dialog (the monitor's help) -->
+    <string name="sk_conn_legend_title">表示の見方</string>
+    <string name="sk_conn_got_it">了解</string>
+    <string name="sk_conn_legend_h_health">アカウントの状態</string>
+    <string name="sk_conn_legend_healthy">正常 — 登録済みで、異常を示すものがありません</string>
+    <string name="sk_conn_legend_connecting">接続中 — 接続を確立しているか、確認のための試験を実行しています。進行中であり、それ自体は障害ではありません</string>
+    <string name="sk_conn_legend_deaf">受信不能 — 在席を静かに問い直す試験に60秒間応答がありませんでした。単に静かなのではなく、受信できないことが確認された状態です</string>
+    <string name="sk_conn_legend_not_syncing">同期していません — 相手が到達可能なのに、送信したメッセージが90秒間確認されていません</string>
+    <string name="sk_conn_legend_offline">オフライン — アカウントがまったく登録されていません</string>
+    <string name="sk_conn_legend_h_contacts">各連絡先（全件）</string>
+    <string name="sk_conn_legend_c_connected">接続済みまたは到達可能 — メッセージは届きます</string>
+    <string name="sk_conn_legend_c_connecting">接続中 — 接続を確立しています</string>
+    <string name="sk_conn_legend_c_offline">オフライン — 現在は到達できません。メッセージは相手が戻るまで待機します</string>
+    <string name="sk_conn_legend_h_icons">接続アイコン（接続手順の段階）</string>
+    <string name="sk_conn_legend_i_radar">レーダー — 相手を検索中／待機中</string>
+    <string name="sk_conn_legend_i_p2p">2台の電話 — ICE：直接の経路を探しています</string>
+    <string name="sk_conn_legend_i_shield">盾 — 暗号化（TLS）して接続済み</string>
+    <string name="sk_conn_legend_h_transport">通信経路 — DHT代理が役立つ場面</string>
+    <string name="sk_conn_legend_t_row">この画面の上部にある「通信経路」の行は、UDPがこのネットワークから外へ出られるか、TCPが出られるかの2点を試験します。タップで再試験、長押しで詳細を表示します。</string>
+    <string name="sk_conn_legend_t_case">"⚠  UDPが遮断され、TCPは通る——DHT代理が明らかに適したモードとなる唯一の場合です。"</string>
+    <string name="sk_conn_legend_t_udp">フルDHTはUDPで運ばれます。UDPを遮断するネットワーク——ホテル・喫茶店・大学・企業のWi-Fiの多くや、一部の携帯通信会社——では、ほかがどれほど正常に見えても、フルDHTはまったく機能しません。DHT代理はサーバーにTCPで接続するので、フルDHTが使えないまさにその場面でも動き続けます。モードを切り替える最大の理由がこれです。</string>
+    <string name="sk_conn_legend_t_default">UDPが通るなら、フルDHTを標準にするほうが優れています。代理サーバーに依存せず、購読内容を中央で見られることもなく、代理の障害に巻き込まれることもありません。</string>
+    <string name="sk_conn_legend_t_switch">モードの切替は、いつでも上部バーの六角形から行います。この画面は計測と助言をするだけで、勝手にモードを変えることは決してありません。</string>
+    <string name="sk_conn_legend_h_note">補足</string>
+    <string name="sk_conn_legend_note">すべての連絡先が状態とともに一覧表示されます。接続は絶えず開いたり閉じたりしますが、これはSwarmの通常の同期であり、障害ではありません。連絡先をタップすると、その接続を試験して起こせます。端末の行をタップするとIDを表示します。「データ」ボタンでは、記録されたデータ使用量を窓ごとに確認できます。</string>
+
+    <!-- Device detail dialog -->
+    <string name="sk_conn_detail_title">接続の詳細</string>
+    <string name="sk_conn_detail_contact">連絡先: %1$s</string>
+    <string name="sk_conn_detail_device">端末:\n%1$s</string>
+    <string name="sk_conn_detail_peer_id">連絡先（相手）ID:\n%1$s</string>
+    <string name="sk_conn_detail_status">状態: %1$s</string>
+    <string name="sk_conn_detail_remote">相手アドレス: %1$s</string>
+    <string name="sk_conn_detail_channels">チャネル数: %1$d</string>
+    <string name="sk_conn_detail_own_account">これはあなた自身のアカウントの一つです（同じ端末）。</string>
+    <string name="sk_conn_copied">%1$s をコピーしました</string>
+    <string name="sk_conn_reconnect_named">%1$s を再接続</string>
+    <string name="sk_conn_account_fallback">アカウント</string>
+    <string name="sk_conn_reconnecting_named">%1$s を再接続しています…</string>
+    <string name="sk_conn_copy_device_id">端末IDをコピー</string>
+    <string name="sk_conn_device_id">端末ID</string>
+    <string name="sk_conn_copy_contact_id">連絡先IDをコピー</string>
+    <string name="sk_conn_contact_id">連絡先ID</string>
+    <string name="sk_conn_refreshed">%1$s の在席情報を更新しました</string>
+
+    <!-- Contact live monitor dialog (ContactConnectionDialog) -->
+    <string name="sk_conn_live_title">連絡先ライブモニタ</string>
+    <string name="sk_conn_live_note">● ライブ —\n2秒ごとに再確認</string>
+    <string name="sk_conn_live_checking">○ チャネルを確認中…</string>
+    <string name="sk_conn_live_ping_button">確認メッセージ ⌁</string>
+    <string name="sk_conn_live_up">接続から %1$s</string>
+    <string name="sk_conn_dur_s">%1$d秒</string>
+    <string name="sk_conn_dur_m">%1$d分</string>
+    <string name="sk_conn_dur_hm">%1$d時間%2$d分</string>
+    <string name="sk_conn_live_last_attempt">↻ 前回の試行 — %1$d 秒前（%2$s）</string>
+    <string name="sk_conn_live_snapshot_note">これは前回の試行時のチャネルで、現在の状況をそのまま映したものではありません。連絡先が到達可能ならすぐに再接続されます。何も変わらなければ、相手はオフラインと思われます。もう一度試すには「確認メッセージ ⌁」を、自分側の接続が疑わしいときは上部バーの ⚡ をタップしてください。</string>
+    <string name="sk_conn_live_row_unreachable">到達不能 — メッセージが滞留しており、相手の端末への経路がありません。在席情報が古くなっていました（端末がオフか休止中？）。DHTを見張っており、相手が戻りしだい配信します。</string>
+    <string name="sk_conn_live_row_queued">チャネルはまだありません — ⌁ は送信待ちです。DHTで相手を見張っており、到達可能になりしだい開きます…</string>
+    <string name="sk_conn_live_row_reachable">到達可能 — 開いているチャネルなし（メッセージを送ると開きます）</string>
+    <string name="sk_conn_live_row_offline">オフライン — DHTに告知されていません。相手を見張っています。オンラインになりしだい、ここにチャネルが開きます。</string>
+    <string name="sk_conn_live_sum_delivered">✓ 到達可能 — 確認メッセージが配信されました</string>
+    <string name="sk_conn_live_sum_connected">● 接続済み · チャネル %1$d 本</string>
+    <string name="sk_conn_live_sum_connecting">● 接続中 · チャネル %1$d 本</string>
+    <string name="sk_conn_live_sum_reachable">● 到達可能 — オンライン、開いているチャネルなし（メッセージを送ると開きます）</string>
+    <string name="sk_conn_live_sum_unreachable">✕ 到達不能 — メッセージ滞留、相手の端末への経路なし</string>
+    <string name="sk_conn_live_sum_offline">○ オフライン — 在席情報もチャネルもなし</string>
+    <string name="sk_conn_live_diag_unreachable">ⓘ 到達不能を確認：最後のメッセージが滞留しており、相手の端末への経路がありません——在席情報が古くなっていました。こちら側で直すことはありません。相手の端末が戻りしだい配信されます。</string>
+    <string name="sk_conn_live_diag_pending_long">⏳ しばらく待っても配信確認が届きません——相手はオフラインかもしれません。戻りしだい配信されます。自分側の接続が疑わしいときは、上部バーの ⚡ を試してください。</string>
+    <string name="sk_conn_live_diag_pending">⏳ 配信中 — 配信確認を待っています…</string>
+    <string name="sk_conn_live_diag_stall">⚠ 接続済みですが、最後のメッセージがまだ配信されていません——接続の問題ではなく、同期の停滞です。⚡ で再開できることがあります。</string>
+    <string name="sk_conn_live_diag_ice">ⓘ ICEの段階まで進みました。完了しない場合は、NAT／中継の経路の問題か、相手がオフラインになりつつあります——⚡ が役立つことがあります。</string>
+    <string name="sk_conn_live_diag_connecting">ⓘ まだ接続中です。ICEの段階まで進まない場合、相手が応答していないと思われます。</string>
+    <string name="sk_conn_live_diag_online">ⓘ DHT上ではオンラインですが、チャネルはまだありません——「確認メッセージ ⌁」をタップすると開きます。</string>
+    <string name="sk_conn_live_ping_sent">確認メッセージ（⌁）を送信しました — 経過を見ています…</string>
+    <string name="sk_conn_live_pending_when">（最後の ⌁ は %1$s）</string>
+    <string name="sk_conn_live_pending_body">"%1$s への最後のメッセージは、まだ配信されていません%2$s——デーモンがすでに自動で再送を続けているので、⌁ をもう一度送っても早く届くわけではありません。\n\n相手が到達可能なはずなら、原因は相手側よりも自分側の接続にある可能性が高いです。上部バーの ⚡ で一段強い手段を試してください：\n   •  タップ — スマート回復\n   •  長押し — ハードリセット\n\n⚠  ⚡ はこの連絡先だけでなく、アカウント全体——すべてのアカウントとすべてのチャット——を回復します。"</string>
+    <string name="sk_conn_live_pending_title">まだ配信中…</string>
+    <string name="sk_conn_live_send_anyway">それでももう一度送る</string>
+
+    <!-- Home screen (HomeFragment): dashboard, top-bar icons, recovery log -->
+    <string name="sk_conn_dash_error">エラー: %1$s</string>
+    <string name="sk_conn_net_cellular">モバイル通信</string>
+    <string name="sk_conn_net_ethernet">有線LAN</string>
+    <string name="sk_conn_net_other">その他</string>
+    <string name="sk_conn_home_reconnecting">再接続しています…</string>
+    <string name="sk_conn_home_recovering">接続を回復しています…</string>
+    <string name="sk_conn_log_empty">（回復の記録はまだありません）</string>
+    <string name="sk_conn_log_recovery_pill">ⓘ 回復</string>
+    <string name="sk_conn_log_title">回復の記録</string>
+    <string name="sk_conn_log_clear_hint">回復の記録を消すには「消去」を長押ししてください——すべての記録が失われます。</string>
+    <string name="sk_conn_log_cleared">回復の記録を消去しました。</string>
+
+    <!-- Location sharing (LocationSharingFragment) -->
+    <string name="sk_conn_location_start_error">現在地の共有を開始できませんでした: %1$s</string>
+</resources>

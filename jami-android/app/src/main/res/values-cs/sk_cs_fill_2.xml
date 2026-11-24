@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — čeština, druhá polovina values/strings.xml (od klíče contact_request_sent
+     do konce souboru). Upstream strings that upstream has no Czech for: upstream Jami ships no
+     values-cs at all. If upstream ever ships values-cs with one of these keys, the build reports
+     a duplicate resource and the entry is deleted here. -->
+<resources>
+    <string name="contact_request_sent">Žádost o kontakt odeslána</string>
+    <string name="start_conversation">Zahájit konverzaci</string>
+
+    <string name="search_results">Výsledky hledání</string>
+    <string name="tv_contact_row_header">Kontakty</string>
+    <string name="gallery_error_title">Nenalezena žádná aplikace Galerie</string>
+    <string name="gallery_error_message">V zařízení není žádná aplikace, která by otevřela galerii</string>
+
+    <string name="generic_error">Došlo k neznámé chybě.</string>
+
+    <!-- Přenos souborů -->
+    <string name="invalid_file">Neplatný soubor.</string>
+    <string name="not_able_to_write_file">Soubor se nepodařilo zapsat.</string>
+    <string name="file_transfer_status_created">Zahajuje se</string>
+    <string name="file_transfer_status_unsupported">Nepodporováno</string>
+    <string name="file_transfer_status_wait_peer_acceptance">Čeká se na přijetí protistranou…</string>
+    <string name="file_transfer_status_wait_host_acceptance">Čeká se na přijetí hostitelem…</string>
+    <string name="file_transfer_status_ongoing">Probíhá</string>
+    <string name="file_transfer_status_finished">Dokončeno</string>
+    <string name="file_transfer_status_closed_by_host">Ukončeno hostitelem</string>
+    <string name="file_transfer_status_closed_by_peer">Ukončeno protistranou</string>
+    <string name="file_transfer_status_invalid_file">Neplatný soubor</string>
+    <string name="file_transfer_status_unjoinable_peer">Protistrana je nedostupná</string>
+    <string name="file_transfer_status_canceled">Zrušeno</string>
+    <string name="file_transfer_status_error">Při přenosu souboru došlo k chybě.</string>
+    <string name="file_transfer_status_timed_out">Časový limit operace vypršel.</string>
+    <string name="file_saved_in">Soubor uložen do %s.</string>
+    <string name="file_saved_successfully">Soubor byl úspěšně uložen.</string>
+    <string name="media_suppressed_badge">Skryto</string>
+    <string name="media_suppressed_flash">Skryto — při listování se nezobrazí</string>
+    <string name="media_unsuppressed_flash">Obnoveno — při listování se opět zobrazí</string>
+    <string name="menu_location_sharing">Stav sdílení polohy</string>
+    <string name="location_status_title">Sdílení polohy</string>
+    <string name="location_status_checking">Zjišťuje se…</string>
+    <string name="location_status_none">Vaše poloha se právě nesdílí s žádnou konverzací.\n\nSkutečné sdílení vždy provází trvalé oznámení. Pokud nástroj pro kontrolu baterie nebo služeb uvádí službu polohy jako „spuštěnou“ a žádné oznámení není vidět, jde o neškodnou nečinnou vazbu — není to aktivní sdílení a baterii to nevybíjí.</string>
+    <string name="location_status_active">Svou aktuální polohu právě sdílíte s:\n\n%1$s</string>
+    <string name="location_status_stop_all">Ukončit veškeré sdílení</string>
+    <string name="media_view_suppressed">Zobrazit skrytá média</string>
+    <string name="media_no_suppressed">Žádná skrytá média</string>
+    <string name="media_viewing_suppressed">Zobrazují se skrytá média</string>
+    <string name="media_viewing_all">Zobrazují se všechna média</string>
+    <string name="file_download">Stáhnout</string>
+    <string name="no_space_left_on_device">V zařízení není volné místo.</string>
+    <string name="title_media_viewer">Prohlížeč médií</string>
+    <string name="menu_file_open">Otevřít soubor</string>
+    <string name="menu_file_download">Stáhnout soubor</string>
+    <string name="menu_file_save">Uložit soubor</string>
+    <string name="menu_file_delete">Smazat soubor</string>
+    <string name="menu_file_share">Sdílet soubor</string>
+    <string name="menu_message_copy">Kopírovat</string>
+    <string name="menu_message_edit">Upravit zprávu</string>
+    <string name="menu_message_history">Historie zprávy</string>
+    <string name="menu_message_delete">Smazat zprávu</string>
+    <string name="menu_message_cancel">Zrušit zprávu</string>
+    <string name="menu_message_reply">Odpovědět</string>
+    <string name="menu_message_cancel_reply">Zrušit odpověď</string>
+    <string name="menu_delete">Smazat</string>
+    <string name="pref_darkTheme_title">Tmavý motiv</string>
+    <string name="pref_darkTheme_summary">Vždy používat tmavý motiv bez ohledu na nastavení systému</string>
+
+    <!-- Spodní navigace -->
+    <string name="navigation_item_conversation">Konverzace</string>
+    <string name="navigation_item_contact_request">Žádosti</string>
+    <string name="navigation_item_account">Účet</string>
+    <string name="search_results_public_directory">Veřejný adresář</string>
+
+    <!-- TV -->
+    <string name="tv_send_audio_dialog_message">Odeslat hlasovou zprávu?</string>
+    <string name="tv_send_image_dialog_message">Odeslat obrázek?</string>
+    <string name="tv_send_video_dialog_message">Odeslat video?</string>
+    <string name="tv_media_preview">Náhled</string>
+    <string name="tv_audio_play">Přehrát</string>
+    <string name="tv_audio_pause">Pozastavit</string>
+    <string name="tv_dialog_send">Odeslat</string>
+    <string name="tv_audio_recording">Nahrává se…</string>
+    <string name="tv_send_text">Odeslat text</string>
+    <string name="tv_send_audio">Odeslat zvuk</string>
+    <string name="tv_send_video">Odeslat média</string>
+    <string name="tv_action_more">Více</string>
+    <string name="conversation_input_speech_hint">Řekněte něco…</string>
+    <string name="audio_permission_denied">Oprávnění k mikrofonu je vypnuté. Chcete-li tuto funkci používat, povolte je v nastavení zařízení.</string>
+    <string name="camera_permission_denied">Oprávnění k fotoaparátu je vypnuté. Chcete-li tuto funkci používat, povolte je v nastavení zařízení.</string>
+    <string name="speech_recogniton_unavailable">Rozpoznávání řeči není k dispozici.</string>
+    <string name="audio_permission_rationale_title">Je potřeba oprávnění k mikrofonu</string>
+    <string name="camera_permission_rationale_title">Je potřeba oprávnění k fotoaparátu</string>
+    <string name="audio_permission_rationale_message">白い熊 GNU Jami potřebuje oprávnění k mikrofonu pro převod řeči na text a nahrávání zvuku. O povolení požádá v dalším kroku.</string>
+    <string name="camera_permission_rationale_message">白い熊 GNU Jami potřebuje oprávnění k fotoaparátu pro nahrávání videa a videohovory. O povolení požádá v dalším kroku.</string>
+    <string name="unable_to_start_recorder">Nahrávání zvuku se nepodařilo spustit.</string>
+    <string name="error_sharing_file">Při sdílení souboru došlo k chybě.</string>
+    <string name="error_opening_file">Při otevírání souboru došlo k chybě.</string>
+
+    <!-- Průvodce -->
+    <string name="wizard_status_recommended">Doporučeno</string>
+    <string name="wizard_status_optional">Volitelné</string>
+    <string name="wizard_status_required">Povinné</string>
+    <string name="wizard_username_info">Zvolte uživatelské jméno pro svůj účet</string>
+    <string name="wizard_username_button">Zvolit uživatelské jméno</string>
+    <string name="wizard_username_skip">Přeskočit volbu uživatelského jména</string>
+    <string name="wizard_password_info">Heslo k účtu</string>
+    <string name="wizard_password_placeholder">Zvolte heslo, kterým se zašifruje klíč účtu v tomto zařízení</string>
+    <string name="wizard_password_button">Zvolit heslo</string>
+    <string name="wizard_password_skip">Vytvořit účet</string>
+    <string name="wizard_password_switch">Zašifrovat účet heslem</string>
+    <string name="wizard_password_warning">Pozor, heslo nelze obnovit</string>
+    <string name="wizard_profile_info">Profil se sdílí pouze s kontakty</string>
+    <string name="wizard_profile_button">Uložit profil</string>
+    <string name="wizard_profile_skip">Přeskočit a udělat později</string>
+    <string name="fab_path_choose">Vybrat jiný soubor</string>
+    <string name="chat_extensions">Rozšíření konverzace</string>
+
+    <!-- Spodní panel -->
+    <string name="bottomSheet_share_btn">Sdílet</string>
+    <string name="bottomSheet_dialpad_btn">Číselník</string>
+    <string name="bottomSheet_extensions_btn">Rozšíření</string>
+    <string name="bottomSheet_add_participants_btn">Přidat</string>
+    <string name="bottomSheet_change_camera_btn">Přepnout</string>
+    <string name="bottomSheet_camera_onoff_switch_btn">Kamera</string>
+    <string name="bottomSheet_hangup_btn">Zavěsit</string>
+    <string name="bottomSheet_mute_microphone_btn">Mikrofon</string>
+    <string name="bottomSheet_sound_output_btn">Zvuk</string>
+    <string name="audio_output_dialog_title">Zvukový výstup</string>
+    <string name="audio_output_content_description">Zvukový výstup: %1$s</string>
+    <string name="audio_output_speaker">Reproduktor</string>
+    <string name="audio_output_earpiece">Sluchátko telefonu</string>
+    <string name="audio_output_headset">Náhlavní souprava</string>
+    <string name="audio_output_bluetooth">Bluetooth</string>
+    <string name="audio_output_mute">Ztlumit</string>
+    <string name="bottomSheet_raiseHand_btn">Zvednout ruku</string>
+    <string name="camera_toggle_btn_description">Zapnout nebo vypnout kameru</string>
+    <string name="camera_flip_btn_description">Přepnout kameru</string>
+    <string name="add_participant_btn_description">Přidat účastníka</string>
+    <string name="screen_share_btn_description">Sdílet obrazovku</string>
+    <string name="open_account_extension_settings">Otevřít nastavení rozšíření účtu</string>
+    <string name="open_general_extension_settings">Otevřít obecné nastavení rozšíření</string>
+    <string name="uninstall">Odinstalovat</string>
+    <string name="reset">Obnovit výchozí</string>
+
+    <!-- Podrobnosti swarmu -->
+    <string name="rename_btn">Potvrdit</string>
+    <string name="rename_error">Nesmí být prázdné.</string>
+    <string name="swarm_description">Přidat popis</string>
+    <string name="tab_members">Členové</string>
+    <string name="tab_files">Soubory</string>
+    <string name="tab_settings">Nastavení</string>
+    <string name="not_admin_toast">Údaje této skupiny mohou upravovat jen správci</string>
+    <string name="dialog_title_contact">Upravit zobrazované jméno</string>
+    <string name="dialogtitle_title">Upravit název skupiny</string>
+    <string name="dialogtitle_description">Upravit popis skupiny</string>
+    <string name="dialog_hint_title">Název</string>
+    <string name="dialog_hint_description">Popis</string>
+    <string name="picker_title">Vybrat kontakty</string>
+    <string name="picker_btn">Vybrat kontakty</string>
+    <string name="picker_close">Zavřít výběr kontaktů</string>
+    <string name="picker_search_hint">Hledat kontakty</string>
+    <string name="picker_create_group">Vytvořit skupinu</string>
+    <string name="picker_add_members">Přidat členy</string>
+    <string name="picker_no_matches">Žádné odpovídající kontakty</string>
+    <string name="picker_remove_contact">Odebrat %1$s</string>
+    <plurals name="picker_selection_count">
+        <item quantity="one">Vybrán %d</item>
+        <item quantity="few">Vybrány %d</item>
+        <item quantity="many">Vybráno %d</item>
+        <item quantity="other">Vybráno %d</item>
+    </plurals>
+    <string name="no_contact_to_add">Nemáte žádný kontakt, který by šlo přidat</string>
+    <string name="bottomsheet_contact">Kontaktovat přes 白い熊 GNU Jami\n%1$s</string>
+    <string name="bottomsheet_block">Zablokovat člena</string>
+    <string name="bottomsheet_unblock">Odblokovat člena</string>
+    <string name="error_open_no_app_found">Nenalezena žádná aplikace, která by tento soubor otevřela: %1$s</string>
+    <string name="swarm_detail_no_document">Zatím nemáte žádné dokumenty.</string>
+    <string name="group_admin">Správce</string>
+    <string name="group_member_blocked">Zablokován</string>
+    <string name="group_member_invited">Pozván</string>
+    <string name="share_contact_intent_title">Přidejte si tento kontakt v 白い熊 GNU Jami!</string>
+    <string name="share_contact_intent_body">Kontakt „%1$s“ si můžete přidat na distribuované komunikační platformě 白い熊 GNU Jami: %2$s</string>
+
+    <!-- JamiId -->
+    <string name="jami_id_copy">Kopírovat JamiId</string>
+    <string name="jami_id_share">Sdílet JamiId</string>
+    <string name="jami_id_validate">Zaregistrovat uživatelské jméno</string>
+    <string name="jami_id_available">Uživatelské jméno je volné.</string>
+    <string name="jami_id_not_available">Uživatelské jméno není k dispozici.</string>
+    <string name="jami_id_info">• Nejvýše 32 znaků\n• Povolené zvláštní znaky: spojovník (-), podtržítko (_)</string>
+    <string name="jami_id_looking_for_availability">Ověřuje se dostupnost uživatelského jména…</string>
+    <string name="jami_id_choose_username">Zvolte uživatelské jméno</string>
+
+    <!-- WelcomeJami -->
+    <string name="welcome_jami_title">Vítejte v 白い熊 GNU Jami</string>
+    <string name="welcome_jami_description">Sdílejte svůj identifikátor 白い熊 GNU Jami, ať vás ostatní snáze najdou!</string>
+
+    <!-- Podrobnosti konverzace -->
+    <string name="details">Podrobnosti</string>
+    <string name="secure_p2p_connection">Zabezpečené spojení peer-to-peer</string>
+    <string name="swarm_type">Typ konverzace</string>
+    <string name="Private">Soukromá</string>
+    <string name="swarm_id">ID swarmu</string>
+    <string name="show_qr_code">Zobrazit QR kód</string>
+    <string name="show_certificate">Zobrazit certifikát</string>
+    <string name="mute_conversation">Ztlumit konverzaci</string>
+
+    <!-- Dary -->
+    <string name="donation_card_description">Pokud vás 白い熊 GNU Jami těší a věříte v naše poslání, nechcete nás podpořit darem?</string>
+    <string name="donation_card_not_now">Teď ne</string>
+    <string name="donation_donate">Přispět</string>
+    <string name="donation_setting_title">Připomínka daru</string>
+    <string name="donation_setting_description">Zapnout připomínku daru</string>
+
+    <!-- Rozšíření -->
+    <string name="unable_to_load">Nepodařilo se načíst %1$s</string>
+    <string name="load_success">%1$s: zapnuto</string>
+    <string name="unload_success">%1$s: vypnuto</string>
+    <string name="install_success">Rozšíření %1$s bylo úspěšně nainstalováno.</string>
+    <string name="install_error">Při importu rozšíření došlo k chybě.</string>
+
+    <string name="export_side_main_title">Exportovat účet</string>
+    <string name="import_side_main_title">Importovat účet</string>
+
+    <string name="link_device_dialog_stop_title">Chcete propojování zařízení ukončit?</string>
+    <string name="link_device_dialog_stop_export_body">Ukončením se export účtu zruší.</string>
+    <string name="link_device_dialog_stop_import_body">Ukončením se import účtu zruší.</string>
+
+    <string name="export_side_step1_advice_qr">Na novém zařízení začněte vytvářet nový účet.\nZvolte <b>Účet > Přidat účet > Připojit z jiného zařízení</b>\nPoté naskenujte QR kód</string>
+    <string name="export_side_step1_switch_to_code">Nebo klepněte sem a zadejte ověřovací kód</string>
+    <string name="export_side_step1_switch_to_qr">Nebo klepněte sem a naskenujte QR kód</string>
+    <string name="export_side_step1_error_malformed">Identifikátor nového zařízení nebyl rozpoznán. Postupujte prosím podle pokynů výše.</string>
+    <string name="export_side_step1_code_connect">Připojit</string>
+
+    <string name="export_side_step2_advice">Nové zařízení se nachází zde. Jste to vy?\nChcete-li v exportu účtu pokračovat, klepněte na Potvrdit.</string>
+    <string name="export_side_step2_advice_ip_only">Nové zařízení se připojilo z adresy uvedené níže. Jste to vy?\nChcete-li v exportu účtu pokračovat, klepněte na Potvrdit.</string>
+    <string name="export_side_step2_ip_only">IP adresa nového zařízení: %1$s</string>
+    <string name="export_side_step2_cancel">Zrušit</string>
+    <string name="export_side_step2_confirm">Potvrdit</string>
+    <string name="export_side_step2_password">Účet je chráněn heslem.\nChcete-li pokračovat, ověřte se na novém zařízení.</string>
+
+    <string name="export_side_step3_body_loading">Probíhá export účtu do nového zařízení. Čekejte prosím…</string>
+    <string name="export_side_step3_body_done">Účet byl do nového zařízení úspěšně importován.</string>
+    <string name="export_side_step3_exit">Dokončit</string>
+
+    <string name="import_side_step1_advice_qr">Na zdrojovém zařízení zahajte export.\n<b>Zvolte Účet > Nastavení účtu > Propojit nové zařízení</b>\nPoté naskenujte QR kód níže.</string>
+    <string name="import_side_step1_advice_code">Na zdrojovém zařízení zahajte export.\n<b>Zvolte Účet > Nastavení účtu > Propojit nové zařízení</b>\nPoté zadejte kód níže.</string>
+    <string name="import_side_step1_share">Sdílet</string>
+    <string name="import_side_step1_switch_to_code">Nebo klepněte sem a zobrazte ověřovací kód</string>
+    <string name="import_side_step1_switch_to_qr">Nebo klepněte sem a zobrazte QR kód</string>
+    <string name="import_side_step1_connecting">Připojování ke zdrojovému zařízení…</string>
+    <string name="import_side_step1_preparing_device">Příprava zařízení…</string>
+
+    <string name="import_side_step2_password_prompt">Účet je chráněn heslem.\nChcete-li pokračovat, odemkněte jej.</string>
+    <string name="import_side_step2_password_import">Importovat</string>
+    <string name="import_side_step2_password_unlocking">Odemykání účtu…</string>
+    <string name="import_side_step2_action_required">Je potřeba váš zásah. Potvrďte prosím účet na zdrojovém zařízení.</string>
+
+    <string name="import_side_step3_body_loading">Účet se importuje do nového zařízení. Čekejte prosím…</string>
+    <string name="import_side_step3_body_done">Účet byl úspěšně importován.</string>
+    <string name="import_side_step3_go_to_account">Přejít na nový účet</string>
+    <string name="import_side_step3_exit">Dokončit</string>
+
+    <string name="link_device_share_title">Sdílet ověřovací kód</string>
+
+    <string name="link_device_error_network">Při propojování zařízení došlo k chybě sítě. Zkontrolujte připojení a zkuste to znovu.</string>
+    <string name="link_device_error_authentication">Při propojování zařízení došlo k chybě ověření. Zkontrolujte přihlašovací údaje a zkuste to znovu.</string>
+    <string name="link_device_error_timeout">Časový limit operace vypršel.</string>
+    <string name="link_device_error_canceled">Operaci zrušil uživatel.</string>
+    <string name="link_device_error_unknown">Došlo k chybě.</string>
+    <string name="link_device_error_bad_password">Zkontrolujte přihlašovací údaje a zkuste to znovu.</string>
+    <string name="test_push">Vyzkoušet push</string>
+
+    <!-- Přístupnost -->
+    <string name="step_title_create_username">Vytvoření uživatelského jména</string>
+    <string name="step_title_set_password">Nastavení hesla</string>
+    <string name="step_title_create_profile">Vytvoření profilu</string>
+    <string name="step_format">Krok %1$d z %2$d: %3$s</string>
+
+    <!-- Služby protistrany -->
+    <string name="peer_services_title">Sdílené služby</string>
+    <string name="peer_services_refresh">Obnovit seznam služeb</string>
+    <string name="peer_services_connect">Připojit</string>
+    <string name="peer_services_disconnect">Odpojit</string>
+    <string name="peer_services_empty">Žádné sdílené služby nejsou k dispozici</string>
+    <string name="peer_services_link_copied">Odkaz zkopírován do schránky</string>
+    <string name="peer_services_error_offline">Kontakt je offline</string>
+    <string name="peer_services_error_unreachable">Kontakt je nedostupný</string>
+    <string name="peer_services_error_timeout">Časový limit požadavku vypršel</string>
+    <string name="peer_services_error_unknown">Služby se nepodařilo načíst</string>
+    <string name="notif_channel_peer_tunnel">Sdílené služby</string>
+    <string name="notif_channel_peer_tunnel_descr">Zobrazuje se, dokud na pozadí běží tunely ke službám protistrany.</string>
+    <string name="notif_peer_tunnel_title">Sdílené služby jsou aktivní</string>
+    <string name="notif_peer_tunnel_text">白い熊 GNU Jami udržuje na pozadí vaše spojení se službami</string>
+    <string name="notif_peer_tunnel_stop_all">Ukončit vše</string>
+
+    <!-- Zpřístupněné / hostované služby -->
+    <string name="shared_services_settings_title">Sdílené služby</string>
+    <string name="shared_services_settings_description">Zpřístupněte místní služby uživatelům 白い熊 GNU Jami</string>
+    <string name="shared_services_empty">Nejsou nastaveny žádné služby</string>
+    <string name="shared_services_add">Přidat službu</string>
+    <string name="shared_services_add_title">Přidat sdílenou službu</string>
+    <string name="shared_services_edit_title">Upravit sdílenou službu</string>
+    <string name="shared_services_edit">Upravit</string>
+    <string name="shared_services_delete">Smazat</string>
+    <string name="shared_services_name_hint">Název služby</string>
+    <string name="shared_services_name_required">Název služby je povinný</string>
+    <string name="shared_services_description_hint">Popis (nepovinný)</string>
+    <string name="shared_services_port_hint">Místní port</string>
+    <string name="shared_services_port_required">Číslo portu je povinné</string>
+    <string name="shared_services_port_invalid">Port musí být v rozmezí 1 až 65535</string>
+    <string name="shared_services_port">Port: %d</string>
+    <string name="shared_services_no_description">Bez popisu</string>
+    <string name="shared_services_empty_subtitle">Sdílejte místní soubory nebo služby s uživateli 白い熊 GNU Jami</string>
+    <string name="shared_services_more_options">Další možnosti</string>
+    <string name="shared_services_open_in_browser">Otevřít v prohlížeči</string>
+    <string name="shared_services_disconnect_all">Odpojit vše</string>
+    <string name="shared_services_disconnect_all_title">Odpojit vše?</string>
+    <string name="shared_services_disconnect_all_message">Odpojí se:\n\n%1$s\n\nHostované služby se vypnou a spojení s ostatními zařízeními se ukončí.</string>
+    <string name="shared_services_disconnect_all_confirm">Odpojit</string>
+    <string name="shared_services_nothing_active">Právě není nic aktivní</string>
+    <string name="shared_services_hosting_item">Hostováno: %1$s (%2$s)</string>
+    <string name="shared_services_tunnel_item">%1$s (poskytuje %2$s)</string>
+    <string name="shared_services_type_website_label">Web</string>
+    <string name="shared_services_type_custom_label">Vlastní</string>
+    <string name="shared_services_local_port">Místní port %d</string>
+    <string name="shared_services_local_address">%1$s:%2$d</string>
+    <string name="shared_services_type_custom">Vlastní server</string>
+    <string name="shared_services_type_website">Přidat web</string>
+    <string name="shared_services_add_custom_title">Přidat vlastní server</string>
+    <string name="shared_services_add_website_title">Přidat web</string>
+    <string name="shared_services_host_hint">Místní hostitel</string>
+    <string name="shared_services_scheme_hint">Schéma URI (např. http, ftp)</string>
+    <string name="shared_services_directory_hint">Místní adresář</string>
+    <string name="shared_services_directory_required">Vyberte prosím adresář</string>
+    <string name="shared_services_choose">Vybrat</string>
+    <string name="shared_services_policy_hint">Přístup mají</string>
+    <string name="shared_services_policy_contacts">Moje kontakty</string>
+    <string name="shared_services_policy_public">Kdokoli</string>
+    <string name="shared_services_policy_specific">Vybrané kontakty</string>
+    <string name="shared_services_allowed_contacts_hint">Povolené kontakty (oddělené čárkou)</string>
+    <string name="shared_services_save">Uložit</string>
+
+    <!-- Společné dokumenty -->
+    <string name="collab_documents">Dokumenty</string>
+    <string name="collab_new_document">Nový dokument</string>
+    <string name="collab_untitled">Dokument bez názvu</string>
+    <string name="collab_document_name_hint">Název dokumentu</string>
+    <string name="collab_create">Vytvořit</string>
+    <string name="collab_rename">Přejmenovat</string>
+    <string name="collab_open_error">Tento dokument se nepodařilo otevřít.</string>
+    <string name="collab_no_documents">V této konverzaci zatím nikdo žádný dokument nenapsal.</string>
+    <string name="collab_created_by">Vytvořil(a) %1$s</string>
+    <string name="collab_editing_alone">Upravujete jen vy</string>
+    <plurals name="collab_editing_others">
+        <item quantity="one">Upravuje i %1$d další člověk</item>
+        <item quantity="few">Upravují i %1$d další lidé</item>
+        <item quantity="many">Upravuje i %1$d dalšího člověka</item>
+        <item quantity="other">Upravuje i %1$d dalších lidí</item>
+    </plurals>
+    <string name="collab_history">Historie verzí</string>
+    <string name="collab_no_history">Tento dokument zatím nemá žádnou uloženou verzi.</string>
+    <string name="collab_version_leave">Zpět na aktuální verzi</string>
+    <string name="collab_version_shown">Verze: %1$s</string>
+    <string name="collab_version_restore">Obnovit</string>
+    <string name="collab_version_restored">Dokument byl obnoven do této verze.</string>
+    <string name="collab_version_unchanged">Tato verze je shodná s dokumentem, který už máte.</string>
+    <string name="collab_version_restore_error">Tuto verzi se nepodařilo obnovit.</string>
+    <string name="collab_version_by">%1$s — %2$s</string>
+    <string name="collab_version_deltas">%1$s — %2$s, počet změn: %3$d</string>
+    <string name="collab_link_title">Odkaz</string>
+    <string name="collab_link_hint">Adresa</string>
+    <string name="collab_link_add">Přidat</string>
+    <string name="collab_link_remove">Odebrat</string>
+    <string name="collab_format_normal_text">Běžný text</string>
+    <string name="collab_format_default_font">Výchozí písmo</string>
+    <string name="collab_format_unavailable_font">Nedostupné písmo</string>
+    <string name="collab_format_default_size">Výchozí velikost</string>
+    <string name="collab_export">Exportovat místní kopii</string>
+    <string name="collab_export_pdf">Exportovat do PDF</string>
+    <string name="collab_export_html">Exportovat do HTML</string>
+    <string name="collab_export_markdown">Exportovat do Markdownu</string>
+    <string name="collab_export_text">Exportovat jako prostý text</string>
+    <plurals name="collab_export_missing_images">
+        <item quantity="one">%1$d obrázek v tomto dokumentu ještě nedorazil a v exportovaném souboru bude chybět.</item>
+        <item quantity="few">%1$d obrázky v tomto dokumentu ještě nedorazily a v exportovaném souboru budou chybět.</item>
+        <item quantity="many">%1$d obrázku v tomto dokumentu ještě nedorazilo a v exportovaném souboru bude chybět.</item>
+        <item quantity="other">%1$d obrázků v tomto dokumentu ještě nedorazilo a v exportovaném souboru bude chybět.</item>
+    </plurals>
+    <string name="collab_export_anyway">Přesto exportovat</string>
+    <string name="collab_export_error">Tento dokument se nepodařilo exportovat.</string>
+    <string name="collab_image_error">Tento obrázek se nepodařilo přidat.</string>
+    <string name="collab_image_too_large">Tento obrázek je příliš velký a do dokumentu jej nelze přidat.</string>
+    <string name="collab_send_error">Vaše změny se nepodařilo odeslat.</string>
+    <string name="collab_editable_document">Upravitelný dokument</string>
+    <string name="collab_create_error">Tento dokument se nepodařilo vytvořit.</string>
+    <string name="collab_remove">Odebrat</string>
+    <string name="collab_remove_title">Odebrat dokument</string>
+    <string name="collab_remove_message">„%1$s“ se odebere všem členům této konverzace. Tento krok nelze vrátit zpět.</string>
+    <string name="collab_remove_error">Tento dokument se nepodařilo odebrat.</string>
+    <string name="collab_remove_locally_title">Odebrat z tohoto zařízení</string>
+    <string name="collab_remove_locally_message">„%1$s“ se odebere pouze z tohoto zařízení. Ostatním členům zůstane a při příštím otevření se stáhne znovu.</string>
+    <string name="collab_remove_locally_error">Tento dokument se z tohoto zařízení nepodařilo odebrat.</string>
+    <string name="collab_not_on_this_device">není v tomto zařízení</string>
+    <string name="collab_document_removed">Dokument odebrán</string>
+    <string name="collab_document_removed_message">„%1$s“ odebral jeho autor.</string>
+    <string name="collab_document_removed_locally">Dokument odebrán z tohoto zařízení</string>
+    <string name="collab_document_removed_locally_message">„%1$s“ už v tomto zařízení není. Při příštím otevření se stáhne znovu.</string>
+
+    <!-- Konverzace ve vláknech -->
+    <string name="conversation_threaded_view">Zobrazení ve vláknech</string>
+    <string name="conversation_threaded_view_summary">Zobrazovat odpovědi ve vláknech. Vlákno si otevřete, chcete-li je číst a odpovídat v něm</string>
+    <string name="conversation_thread_title">Vlákno</string>
+    <string name="conversation_thread_reply_hint">Odpovědět ve vlákně</string>
+    <string name="conversation_thread_missing">Původní zpráva není k dispozici. Chcete-li pokračovat, vraťte se do konverzace.</string>
+    <string name="conversation_thread_finding">Hledání zprávy v historii konverzace&#8230;</string>
+    <string name="conversation_thread_unavailable">Zpráva nebo její původní zpráva není k dispozici.</string>
+    <string name="conversation_thread_close">Zpět do konverzace</string>
+    <plurals name="conversation_thread_replies">
+        <item quantity="one">%d komentář</item>
+        <item quantity="few">%d komentáře</item>
+        <item quantity="many">%d komentáře</item>
+        <item quantity="other">%d komentářů</item>
+    </plurals>
+</resources>

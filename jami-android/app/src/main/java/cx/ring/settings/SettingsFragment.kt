@@ -396,7 +396,7 @@ class SettingsFragment :
             .apply { if (addToStack) addToBackStack("FontsSettings") }.commit()
         binding.fragmentContainer.isVisible = true
         binding.donateButton.isVisible = false
-        onToolbarTitleChanged("白い熊 GNU Jami UI")
+        onToolbarTitleChanged(getString(R.string.sk_misc_ui_page_title))
         backPressedCallback.isEnabled = true
     }
 
@@ -412,7 +412,7 @@ class SettingsFragment :
             .addToBackStack("AutomationSettings").commit()
         binding.fragmentContainer.isVisible = true
         binding.donateButton.isVisible = false
-        onToolbarTitleChanged("Automation")
+        onToolbarTitleChanged(getString(R.string.sk_misc_automation_title))
         backPressedCallback.isEnabled = true
     }
 
@@ -521,11 +521,11 @@ class SettingsFragment :
             progress = ((current - 0.5f) / 0.25f).toInt().coerceIn(0, 10)
         }
         val label = TextView(ctx).apply {
-            text = String.format(java.util.Locale.US, "%.2f lines", lines(seek.progress))
+            text = String.format(java.util.Locale.US, getString(R.string.sk_misc_status_icon_lines), lines(seek.progress))
         }
         seek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: android.widget.SeekBar, pr: Int, fromUser: Boolean) {
-                label.text = String.format(java.util.Locale.US, "%.2f lines", lines(pr))
+                label.text = String.format(java.util.Locale.US, getString(R.string.sk_misc_status_icon_lines), lines(pr))
             }
             override fun onStartTrackingTouch(s: android.widget.SeekBar) {}
             override fun onStopTrackingTouch(s: android.widget.SeekBar) {}
@@ -538,7 +538,7 @@ class SettingsFragment :
             addView(seek)
         }
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Message status icon height")
+            .setTitle(R.string.sk_misc_status_icon_title)
             .setView(box)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val v = lines(seek.progress)

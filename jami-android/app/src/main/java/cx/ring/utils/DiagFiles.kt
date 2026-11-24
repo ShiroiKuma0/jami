@@ -3,6 +3,7 @@ package cx.ring.utils
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import cx.ring.R
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -43,6 +44,8 @@ object DiagFiles {
     const val PRESENCE_MAP = "presence-map.txt"
     const val PUSH_LOG = "firebaselog.txt"
     const val MEMORY_LOG = "memory-log.txt"
+    const val CONN_TRACE = "connection-trace.txt"
+    const val CONN_TRACE_OLD = "connection-trace.1.txt"
 
     /** Files that used to sit in the external files root. */
     private val EXTERNAL_ROOT_NAMES = listOf(RECOVERY_LOG, INCIDENTS, OLD_INCIDENTS, DATA_HOURLY, DATA_MEASURE, PRESENCE_MAP)
@@ -119,7 +122,22 @@ object DiagFiles {
         PRESENCE_MAP -> "Presence map"
         PUSH_LOG -> "Push log"
         MEMORY_LOG -> "Memory"
+        CONN_TRACE, CONN_TRACE_OLD -> "Connection trace"
         else -> "Other"
+    }
+
+    /** The name of a [kindOf] kind as shown on the Diagnostics page. [kindOf] itself stays the
+     *  English key: [Summary.kinds] is keyed by it and callers compare against it. */
+    fun kindLabel(c: Context, kind: String): String = when (kind) {
+        "Recovery log" -> c.getString(R.string.sk_misc_diag_kind_recovery)
+        "Watchdog incidents" -> c.getString(R.string.sk_misc_diag_kind_incidents)
+        "Data usage" -> c.getString(R.string.sk_misc_diag_kind_data)
+        "Presence map" -> c.getString(R.string.sk_misc_diag_kind_presence)
+        "Push log" -> c.getString(R.string.sk_misc_diag_kind_push)
+        "Memory" -> c.getString(R.string.sk_misc_diag_kind_memory)
+        "Connection trace" -> c.getString(R.string.sk_diag_conn_trace)
+        "Other" -> c.getString(R.string.sk_misc_diag_kind_other)
+        else -> kind
     }
 
     class Span(var first: Long = Long.MAX_VALUE, var last: Long = Long.MIN_VALUE) {
@@ -190,6 +208,12 @@ object DiagFiles {
         return out
     }
 
+    /** “3 files, 1.2 MB” in the app's language (the number format stays that of [filesLabel]). */
+    fun filesLabel(c: Context, count: Int, bytes: Long): String =
+        String.format(Locale.US, c.resources.getQuantityText(R.plurals.sk_misc_diag_files, count).toString(),
+            count, bytes / 1048576.0)
+
+    /** English only — prefer the overload that takes a Context. */
     fun filesLabel(count: Int, bytes: Long): String =
         String.format(Locale.US, "%d %s, %.1f MB", count, if (count == 1) "file" else "files", bytes / 1048576.0)
 
@@ -212,9 +236,9 @@ object DiagFiles {
      *  Returns (subdirectory name, files copied). Off the main thread. */
     fun export(c: Context, tree: Uri): Pair<String, Int> {
         val root = DocumentFile.fromTreeUri(c, tree)
-        check(root != null && root.canWrite()) { "the chosen directory is not writable" }
+        check(root != null && root.canWrite()) { c.getString(R.string.sk_misc_diag_export_not_writable) }
         val name = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date()) + "_jami-diag"
-        val sub = root.createDirectory(name) ?: error("could not create $name")
+        val sub = root.createDirectory(name) ?: error(c.getString(R.string.sk_misc_diag_export_create_failed, name))
         var n = 0
         for (f in files(c)) {
             val doc = sub.createFile("application/octet-stream", f.name) ?: error(f.name)

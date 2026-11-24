@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="sk_decline_msg">Zpráva</string>
+    <string name="sk_decline_msg">Rychlá odpověď</string>
     <string name="sk_decline_msg_desc">Ztiší hovor a odmítne ho se zprávou</string>
     <string name="sk_decline_title">Odmítnout se zprávou</string>
     <string name="sk_decline_for_contact">Pro: %1$s</string>

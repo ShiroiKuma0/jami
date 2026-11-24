@@ -14,6 +14,7 @@
  */
 package cx.ring.sk
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
@@ -60,6 +61,8 @@ enum class SkRole(val key: String, val section: SkSection, val label: String, va
     DIVIDER("sk_divider", SkSection.FOUNDATION, "Dividers", SkDefault.Mix({ BACKGROUND }, { ACCENT }, 0.70f)),
     PRESSED("sk_pressed", SkSection.FOUNDATION, "Pressed highlight", SkDefault.Alpha({ ACCENT }, 0x4D)),
     DANGER("sk_danger", SkSection.FOUNDATION, "Delete and warnings", SkDefault.Const(0xFFFF0000.toInt())),
+    PROGRESS("sk_progress", SkSection.FOUNDATION, "Progress bar (in progress)", SkDefault.Const(0xFF4D94FF.toInt())),
+    PROGRESS_TRACK("sk_progress_track", SkSection.FOUNDATION, "Progress bar track", SkDefault.Alpha({ PROGRESS }, 0x4D)),
 
     // --- Text
     TEXT("sk_text", SkSection.TEXT, "Text", SkDefault.Const(YELLOW)),
@@ -122,14 +125,18 @@ enum class SkRole(val key: String, val section: SkSection, val label: String, va
     CALL_CTRL("sk_call_ctrl", SkSection.CALLS, "Control ring and glyph", SkDefault.Same { ACCENT }),
     CALL_CTRL_GROUND("sk_call_ctrl_ground", SkSection.CALLS, "Control ground", SkDefault.Same { BACKGROUND }),
     CALL_CTRL_ACTIVE("sk_call_ctrl_active", SkSection.CALLS, "Control switched on (muted, camera off)", SkDefault.Const(0xFFFF5252.toInt())),
-    CALL_ACCEPT("sk_call_accept", SkSection.CALLS, "Answer", SkDefault.Const(0xFF00E676.toInt())),
-    CALL_DECLINE("sk_call_decline", SkSection.CALLS, "Decline and hang up", SkDefault.Const(0xFFFF5252.toInt())),
+    CALL_ACCEPT("sk_call_accept", SkSection.CALLS, "Answer", SkDefault.Same { ACCENT }),
+    CALL_ACCEPT_GLYPH("sk_call_accept_glyph", SkSection.CALLS, "Phone on the answer button", SkDefault.Same { ON_ACCENT }),
+    CALL_DECLINE("sk_call_decline", SkSection.CALLS, "Decline and hang up", SkDefault.Const(0xFFB00000.toInt())),
+    CALL_DECLINE_GLYPH("sk_call_decline_glyph", SkSection.CALLS, "Phone on the decline and hang-up buttons", SkDefault.Const(0xFFFFFFFF.toInt())),
     CALL_MISSED("sk_call_missed", SkSection.CALLS, "Missed call", SkDefault.Const(0xFFFA2E30.toInt())),
 
     // --- Settings pages
     PAGE_HEADING("sk_page_heading", SkSection.PAGES, "Section headings", SkDefault.Same { ACCENT }),
     PAGE_CHIP("sk_page_chip", SkSection.PAGES, "Index chips", SkDefault.Same { ACCENT }),
     PAGE_NOTE(ColorPrefs.SETTINGS_NOTE, SkSection.PAGES, "Explanations and the left rule", SkDefault.Const(0xFFC8C800.toInt())),
+    /** One of the seven section-icon colours: words, written and read (App language). */
+    SECTION_WORDS("sk_section_words", SkSection.PAGES, "Section icon: words, written and read", SkDefault.Const(0xFF00B0FF.toInt())),
     ;
 
     companion object {
@@ -193,6 +200,24 @@ object SkRoles {
 }
 
 fun skColor(role: SkRole): Int = SkRoles.color(role)
+
+/**
+ * The names shown on the UI page. The English text in the tables above is the fallback; the shown
+ * text is the string resource found BY NAME — `sk_role_section_<section>` / `sk_role_label_<role>`,
+ * lower case, in `values/sk_strings_misc.xml` and its translations — so the tables need no Context.
+ * (String resources: the colour resource of a role is `sk_role_<role>`, a different name and type.)
+ */
+@SuppressLint("DiscouragedApi")
+private fun skNamedString(c: Context, name: String, fallback: String): String {
+    val id = c.resources.getIdentifier(name, "string", c.packageName)   // the resource package is the application id
+    return if (id != 0) c.getString(id) else fallback
+}
+
+fun SkSection.displayTitle(c: Context): String =
+    skNamedString(c, "sk_role_section_" + name.lowercase(), title)
+
+fun SkRole.displayLabel(c: Context): String =
+    skNamedString(c, "sk_role_label_" + name.lowercase(), label)
 
 /** One of the older per-surface roles of ColorPrefs, by its key. */
 fun skPref(key: String): Int =

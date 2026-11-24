@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shiroikuma fork — connection monitor / contact live monitor / recovery-log strings moved out of
+     the Kotlin sources. English is the default locale; values-ja carries the Japanese. Strings that
+     already existed in shiroikuma_conn.xml are reused from there, not repeated here. -->
+<resources>
+    <!-- Connection monitor screen (ConnectionMonitorFragment / ConnectionMonitorActivity) -->
+    <string name="sk_conn_monitor_title">Connection monitor</string>
+    <string name="sk_conn_mon_reconnecting_all">Reconnecting all accounts…</string>
+    <string name="sk_conn_mon_account_header">"%1$s  %2$s  —  %3$s · %4$d contact(s)"</string>
+    <string name="sk_conn_mon_kind_text">text</string>
+    <string name="sk_conn_mon_stuck_unreachable">unreachable — their device looks off (stale presence)</string>
+    <string name="sk_conn_mon_away_announced">announced, opening a channel…</string>
+    <string name="sk_conn_mon_away_offline">recipient offline — delivers when they return</string>
+    <string name="sk_conn_mon_delivering">⏳ delivering… → %1$s · %2$s</string>
+    <string name="sk_conn_mon_summary">%1$d account(s) · %2$d healthy · %3$d connected</string>
+    <string name="sk_conn_mon_summary_attention">⚠ %1$d need attention</string>
+    <string name="sk_conn_age_just_now">just now</string>
+    <string name="sk_conn_age_min">%1$d min ago</string>
+    <string name="sk_conn_age_hours">%1$d h ago</string>
+
+    <!-- Transport row and its dialog -->
+    <string name="sk_conn_transport_testing">"Transport:  testing…"</string>
+    <string name="sk_conn_transport_untested">"Transport:  not tested yet — tap to test"</string>
+    <string name="sk_conn_transport_ok">full DHT viable</string>
+    <string name="sk_conn_transport_hostile">hostile network — DHT proxy advised</string>
+    <string name="sk_conn_transport_dead">no egress at all</string>
+    <string name="sk_conn_transport_unknown">unknown</string>
+    <string name="sk_conn_transport_line">"Transport:  %1$s  %2$s  — %3$s\n%4$s · tap to re-test, hold for detail"</string>
+    <string name="sk_conn_transport_state_ok">Right now: UDP is getting out, so the full DHT works here.</string>
+    <string name="sk_conn_transport_state_hostile">Right now: UDP is blocked but TCP works. This is the case where DHT proxy is clearly right — the full DHT cannot function on this network.</string>
+    <string name="sk_conn_transport_state_dead">Right now: neither UDP nor TCP is getting out. That is not a DHT-mode problem — the network itself is unusable.</string>
+    <string name="sk_conn_transport_state_untested">Not tested yet.</string>
+    <string name="sk_conn_transport_what">What is tested: one STUN binding request over plain UDP, and one bare TCP connect, both to Jami\'s TURN server. No 白い熊 GNU Jami traffic; nothing a contact can see.</string>
+    <string name="sk_conn_transport_why">Why it matters: the full DHT rides UDP. Networks that block UDP — many hotel, café, campus and corporate Wi-Fi networks, and some carriers — break it completely, while DHT proxy keeps working over TCP.</string>
+    <string name="sk_conn_transport_where">Where UDP is fine, full DHT is the better default: no proxy server to depend on, nothing central seeing your subscriptions.</string>
+    <string name="sk_conn_transport_advice">This screen only measures and advises. Switching modes is always the hexagon in the top bar.</string>
+    <string name="sk_conn_transport_title">Transport test</string>
+    <string name="sk_conn_transport_again">Test again</string>
+
+    <!-- Legend dialog (the monitor's help) -->
+    <string name="sk_conn_legend_title">What this means</string>
+    <string name="sk_conn_got_it">Got it</string>
+    <string name="sk_conn_legend_h_health">Account health</string>
+    <string name="sk_conn_legend_healthy">Healthy — registered, and nothing says otherwise</string>
+    <string name="sk_conn_legend_connecting">Connecting — a link is being established, or a verification probe is in flight. In progress, never itself a fault</string>
+    <string name="sk_conn_legend_deaf">NOT RECEIVING — a silent presence probe went unanswered for 60 s. This is verified deafness, not merely a quiet phone</string>
+    <string name="sk_conn_legend_not_syncing">NOT SYNCING — an outgoing message has gone unacknowledged for 90 s while the peer is reachable</string>
+    <string name="sk_conn_legend_offline">OFFLINE — the account is not registered at all</string>
+    <string name="sk_conn_legend_h_contacts">Each contact (full list)</string>
+    <string name="sk_conn_legend_c_connected">Connected or reachable — messages will get through</string>
+    <string name="sk_conn_legend_c_connecting">Connecting — a link is being established</string>
+    <string name="sk_conn_legend_c_offline">Offline — not reachable right now; messages queue until they return</string>
+    <string name="sk_conn_legend_h_icons">Connection icons (handshake stage)</string>
+    <string name="sk_conn_legend_i_radar">Radar — looking up the peer / waiting</string>
+    <string name="sk_conn_legend_i_p2p">Two phones — ICE: finding a direct path</string>
+    <string name="sk_conn_legend_i_shield">Shield — secured (TLS) &amp; connected</string>
+    <string name="sk_conn_legend_h_transport">Transport — and when DHT proxy is worth it</string>
+    <string name="sk_conn_legend_t_row">The Transport row at the top of this screen tests two things: whether UDP can leave this network, and whether TCP can. Tap it to re-test, hold it for detail.</string>
+    <string name="sk_conn_legend_t_case">"⚠  UDP blocked, TCP working = the one case where DHT proxy is clearly the right mode."</string>
+    <string name="sk_conn_legend_t_udp">The full DHT is carried over UDP. On a network that blocks UDP — many hotel, café, campus and corporate Wi-Fi networks, and some mobile carriers — the full DHT simply cannot work, no matter how healthy everything else looks. The DHT proxy reaches its server over TCP instead, so it keeps working exactly where the full DHT dies. This is the strongest reason to switch modes.</string>
+    <string name="sk_conn_legend_t_default">When UDP is fine, the full DHT is the better default: no dependency on a proxy server, nothing central seeing your subscriptions, and no proxy outage can become your outage.</string>
+    <string name="sk_conn_legend_t_switch">Switching modes is always the hexagon in the top bar. This screen only measures and advises — it never changes the mode behind your back.</string>
+    <string name="sk_conn_legend_h_note">Note</string>
+    <string name="sk_conn_legend_note">Every contact is listed with its status. Connections constantly open &amp; close — that\'s normal swarm sync, not a fault. Tap a contact to test/wake its link; tap a device row for its IDs. The Data button shows recorded data usage per window.</string>
+
+    <!-- Device detail dialog -->
+    <string name="sk_conn_detail_title">Connection detail</string>
+    <string name="sk_conn_detail_contact">Contact: %1$s</string>
+    <string name="sk_conn_detail_device">Device:\n%1$s</string>
+    <string name="sk_conn_detail_peer_id">Contact (peer) ID:\n%1$s</string>
+    <string name="sk_conn_detail_status">Status: %1$s</string>
+    <string name="sk_conn_detail_remote">Remote: %1$s</string>
+    <string name="sk_conn_detail_channels">Channels: %1$d</string>
+    <string name="sk_conn_detail_own_account">This is one of YOUR accounts (same device).</string>
+    <string name="sk_conn_copied">%1$s copied</string>
+    <string name="sk_conn_reconnect_named">Reconnect %1$s</string>
+    <string name="sk_conn_account_fallback">account</string>
+    <string name="sk_conn_reconnecting_named">Reconnecting %1$s…</string>
+    <string name="sk_conn_copy_device_id">Copy device ID</string>
+    <string name="sk_conn_device_id">Device ID</string>
+    <string name="sk_conn_copy_contact_id">Copy contact ID</string>
+    <string name="sk_conn_contact_id">Contact ID</string>
+    <string name="sk_conn_refreshed">Refreshed %1$s</string>
+
+    <!-- Contact live monitor dialog (ContactConnectionDialog) -->
+    <string name="sk_conn_live_title">Contact live monitor</string>
+    <string name="sk_conn_live_note">● live —\nre-checks every 2 s</string>
+    <string name="sk_conn_live_checking">○ checking channels…</string>
+    <string name="sk_conn_live_ping_button">Message ping ⌁</string>
+    <string name="sk_conn_live_up">up %1$s</string>
+    <string name="sk_conn_dur_s">%1$ds</string>
+    <string name="sk_conn_dur_m">%1$dm</string>
+    <string name="sk_conn_dur_hm">%1$dh%2$dm</string>
+    <string name="sk_conn_live_last_attempt">↻ last attempt — %1$ds ago (%2$s)</string>
+    <string name="sk_conn_live_snapshot_note">These are the channels from your last attempt — the monitor is no longer live for it. If the contact is reachable they reconnect within moments; if nothing changes, they\'re likely offline. Tap Message ping ⌁ to try again, or the ⚡ lightning (top bar) if it\'s your own link.</string>
+    <string name="sk_conn_live_row_unreachable">unreachable — your message is stuck and no route to their device exists; their presence record was stale (device off or asleep?). Watching the DHT — delivers the moment they return.</string>
+    <string name="sk_conn_live_row_queued">no channel yet — ⌁ queued; watching the DHT for them, opens the moment they\'re reachable…</string>
+    <string name="sk_conn_live_row_reachable">reachable — no open channel (opens when you message)</string>
+    <string name="sk_conn_live_row_offline">offline — not announced on the DHT; watching for them. A channel opens here the moment they come online.</string>
+    <string name="sk_conn_live_sum_delivered">✓ reachable — the ping was delivered</string>
+    <string name="sk_conn_live_sum_connected">● connected · %1$d channel(s)</string>
+    <string name="sk_conn_live_sum_connecting">● connecting · %1$d channel(s)</string>
+    <string name="sk_conn_live_sum_reachable">● reachable — online, no open channel (opens when you message)</string>
+    <string name="sk_conn_live_sum_unreachable">✕ unreachable — message stuck, no route to their device</string>
+    <string name="sk_conn_live_sum_offline">○ offline — no presence, no channel</string>
+    <string name="sk_conn_live_diag_unreachable">ⓘ Verified unreachable: the last message is stuck and no route to their device exists — the presence record was stale. Nothing on your side to fix; it delivers the moment their device returns.</string>
+    <string name="sk_conn_live_diag_pending_long">⏳ Still no delivery receipt after a while — they may be offline; it\'ll go through once they\'re back. Try the ⚡ lightning (top bar) if you suspect it\'s your link.</string>
+    <string name="sk_conn_live_diag_pending">⏳ Delivering — waiting for the delivery receipt…</string>
+    <string name="sk_conn_live_diag_stall">⚠ Connected, but your last message hasn\'t delivered — a sync stall, not a connection problem. The ⚡ lightning may re-kick it.</string>
+    <string name="sk_conn_live_diag_ice">ⓘ Reached ICE. If it doesn\'t complete, it\'s a NAT/relay path or they\'re going offline — the ⚡ lightning may help.</string>
+    <string name="sk_conn_live_diag_connecting">ⓘ Still connecting. If it never reaches ICE, the peer likely isn\'t answering.</string>
+    <string name="sk_conn_live_diag_online">ⓘ Online on the DHT but no channel yet — tap Message ping ⌁ to open one.</string>
+    <string name="sk_conn_live_ping_sent">Sent a message ping (⌁) — watching…</string>
+    <string name="sk_conn_live_pending_when">" (last ⌁ at %1$s)"</string>
+    <string name="sk_conn_live_pending_body">"Your last message to %1$s still hasn\'t been delivered%2$s — the daemon is already retrying it on its own, so sending another ⌁ won\'t make it arrive any faster.\n\nIf they should be reachable, the problem is more likely your own link than theirs. Escalate with the ⚡ lightning in the top bar:\n   •  tap — smart recover\n   •  long-press — hard reset\n\n⚠  The lightning recovers your WHOLE account — every account, ALL your chats — not just this contact."</string>
+    <string name="sk_conn_live_pending_title">Still delivering…</string>
+    <string name="sk_conn_live_send_anyway">Send another anyway</string>
+
+    <!-- Home screen (HomeFragment): dashboard, top-bar icons, recovery log -->
+    <string name="sk_conn_dash_error">Error: %1$s</string>
+    <string name="sk_conn_net_cellular">Cellular</string>
+    <string name="sk_conn_net_ethernet">Ethernet</string>
+    <string name="sk_conn_net_other">Other</string>
+    <string name="sk_conn_home_reconnecting">Reconnecting…</string>
+    <string name="sk_conn_home_recovering">Recovering connections…</string>
+    <string name="sk_conn_log_empty">(no recovery events yet)</string>
+    <string name="sk_conn_log_recovery_pill">ⓘ Recovery</string>
+    <string name="sk_conn_log_title">Recovery log</string>
+    <string name="sk_conn_log_clear_hint">Long-tap Clear to wipe the recovery log — every entry will be LOST.</string>
+    <string name="sk_conn_log_cleared">Recovery log cleared.</string>
+
+    <!-- Location sharing (LocationSharingFragment) -->
+    <string name="sk_conn_location_start_error">Error starting location sharing: %1$s</string>
+</resources>

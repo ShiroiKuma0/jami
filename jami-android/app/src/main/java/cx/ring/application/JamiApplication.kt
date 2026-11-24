@@ -696,6 +696,7 @@ abstract class JamiApplication : Application() {
         cx.ring.utils.MemDiag.init(this)
         // …and move every old diagnostic file into files/diag/ (off the main thread, idempotent).
         cx.ring.utils.DiagFiles.init(this)
+        cx.ring.utils.ConnTrace.init(this)
         // SMS-over-Jami bridge: tap the daemon callbacks before any account loads (cx.ring.automation.Bridge).
         cx.ring.automation.Bridge.install(this)
         setupActivityListener()

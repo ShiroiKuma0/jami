@@ -68,6 +68,8 @@ object ConnectionWatchdog {
     private const val WEDGE_RECOVER_BACKOFF_MS = 2 * 60_000L // after a per-account wedge recover, wait this long before re-recovering the SAME account
     private const val PROBE_VERDICT_MS = 60_000L           // silent presence probe must be answered within this
     private const val UNIFORM_PROBE_VERDICT_MS = 75_000L   // uniform (0-healthy) probe window: the 60 s gate + echo-suppression slack
+    private const val FULL_DHT_QUIET_RECOVER_MS = 3 * 60 * 60_000L   // full DHT: silence alone earns one recover per this long
+    @Volatile private var lastFullDhtQuietRecoverMs = 0L
     private const val UNIFORM_PROBE_FAIL_CAP = 2           // consecutive unanswered-probe recovers before standing down (dead-quiet night ≠ churn)
     private const val PROBE_PUSH_GRACE_MS = 60_000L        // …a real push this close to the probe window refutes a UNIFORM wedge (full DHT only; proxy mode uses PROXY_ALIVE_MS — see startUniformProbe)
     // A proxy that delivered within this window is working, so an account riding it is quiet rather
@@ -1925,7 +1927,21 @@ object ConnectionWatchdog {
                 // its own strike counter and backoff, and it recovers only the implicated account
                 // instead of all of them.
                 log(c, "probe: ${silent.size}/${regd.size} silent but $answered answered — not a global fault; leaving it to the per-account detector")
+            } else if (silent.minOf { InboundEvidence.quietMs(it.accountId) } < FULL_DHT_QUIET_RECOVER_MS ||
+                t - lastFullDhtQuietRecoverMs < FULL_DHT_QUIET_RECOVER_MS) {
+                // FULL DHT, and the only charge is silence (2026-11-23). Silence is not evidence
+                // here: the presence re-arm cannot answer (see the proxy branches above), there is
+                // no push leg and no proxy to ask, so "unanswered" was simply "nobody wrote". A
+                // relay phone that waits for messages did this 45 times in one day, and every
+                // recover is an unregister that drops every peer socket. The real signals keep
+                // their own paths and are not gated here: a message stuck to a reachable peer
+                // ([wedgeWithLedger]), a failed network check, an account that fell out of
+                // registration. What remains is a slow safety net for a node that went deaf with
+                // nothing queued to reveal it: one recover per [FULL_DHT_QUIET_RECOVER_MS] of
+                // unbroken silence. No strike — there is no suspicion to count.
+                log(c, "probe: ${silent.size}/${regd.size} silent on full DHT, nothing stuck — quiet, not wedged; no recover")
             } else {
+                lastFullDhtQuietRecoverMs = t
                 uniformProbeFails++
                 uniformWedgeSeq++
                 val who = silent.joinToString { it.accountId.take(8) }

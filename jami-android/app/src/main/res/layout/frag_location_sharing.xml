@@ -22,7 +22,7 @@
         android:layout_height="wrap_content"
         android:elevation="4dp"
         app:navigationIcon="@drawable/baseline_close_24"
-        app:title="Location Sharing"
+        app:title="@string/sk_left_location_sharing_title"
         android:visibility="gone"
         tools:subtitle="Jean is sharing his location with you"
         tools:visibility="gone"/>

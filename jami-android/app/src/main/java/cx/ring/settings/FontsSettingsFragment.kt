@@ -43,6 +43,8 @@ import cx.ring.sk.SkRole
 import cx.ring.sk.SkRoles
 import cx.ring.sk.SkSection
 import cx.ring.sk.SkSectionIndex
+import cx.ring.sk.displayLabel
+import cx.ring.sk.displayTitle
 import cx.ring.sk.skColor
 import cx.ring.sk.skPillBackground
 
@@ -68,100 +70,102 @@ class FontsSettingsFragment : Fragment() {
         val colors: List<ColorRole>,
         val scale: ScaleRole? = null,
     )
-    private data class Group(val title: String, val elements: List<Element>)
+    private data class Group(val key: String, val title: String, val elements: List<Element>)
 
-    private val groups = listOf(
-        Group("Default", listOf(
-            Element("Default (all text)", FontPrefs.DEFAULT, emptyList()))),
-        Group("Chat list", listOf(
-            Element("Contact name", FontPrefs.LIST_TITLE, listOf(ColorRole("Color", ColorPrefs.LIST_NAME))),
-            Element("Last-message preview", FontPrefs.LIST_PREVIEW, listOf(ColorRole("Color", ColorPrefs.LIST_PREVIEW))),
-            Element("Timestamp", FontPrefs.LIST_DATE, listOf(ColorRole("Color", ColorPrefs.LIST_DATE))))),
-        Group("Conversation", listOf(
-            Element("Conversation title", FontPrefs.CONV_TITLE, listOf(ColorRole("Color", ColorPrefs.CONV_TITLE))),
-            Element("Sent message", FontPrefs.CHAT_TEXT, listOf(ColorRole("Text", ColorPrefs.MSG_SENT), ColorRole("Bubble fill", ColorPrefs.MSG_SENT_FILL), ColorRole("Bubble border", ColorPrefs.MSG_SENT_BORDER))),
-            Element("Received message", null, listOf(ColorRole("Text", ColorPrefs.MSG_RECEIVED), ColorRole("Bubble fill", ColorPrefs.MSG_RECEIVED_FILL), ColorRole("Bubble border", ColorPrefs.MSG_RECEIVED_BORDER))),
-            Element("Message timestamp", FontPrefs.MSG_TIME, listOf(ColorRole("Color", ColorPrefs.MSG_TIME))),
-            Element("Link-preview card", null, listOf(
-                ColorRole("Title", ColorPrefs.LINK_TITLE),
-                ColorRole("Description", ColorPrefs.LINK_DESC),
-                ColorRole("Domain", ColorPrefs.LINK_DOMAIN),
-                ColorRole("Card fill", ColorPrefs.LINK_CARD_FILL),
-                ColorRole("Card border", ColorPrefs.LINK_CARD_BORDER))),
-            Element("File message", null, listOf(
-                ColorRole("Name / size", ColorPrefs.FILE_NAME),
-                ColorRole("Download arrow", ColorPrefs.FILE_ARROW),
-                ColorRole("Card fill", ColorPrefs.FILE_CARD_FILL),
-                ColorRole("Card border", ColorPrefs.FILE_CARD_BORDER))))),
-        Group("Call events", listOf(
-            Element("Call message", null, listOf(
-                ColorRole("Text", ColorPrefs.CALL_TEXT),
-                ColorRole("Pill fill", ColorPrefs.CALL_FILL),
-                ColorRole("Pill border", ColorPrefs.CALL_BORDER))))),
-        Group("Invitations", listOf(
-            Element("Invitations card & list", null, listOf(
-                ColorRole("Text", ColorPrefs.INVITE_TEXT),
-                ColorRole("Fill", ColorPrefs.INVITE_FILL),
-                ColorRole("Border", ColorPrefs.INVITE_BORDER))),
-            Element("Block / Decline / Accept bar", null, listOf(
-                ColorRole("Buttons", ColorPrefs.REQUEST_TEXT),
-                ColorRole("Fill", ColorPrefs.REQUEST_FILL),
-                ColorRole("Border", ColorPrefs.REQUEST_BORDER))))),
-        Group("Message menu", listOf(
-            Element("Long-press menu", null, listOf(
-                ColorRole("Text", ColorPrefs.MENU_TEXT),
-                ColorRole("Fill", ColorPrefs.MENU_FILL),
-                ColorRole("Border", ColorPrefs.MENU_BORDER))))),
-        Group("Top bar", listOf(
-            Element("Search hint", FontPrefs.SEARCH_HINT, listOf(ColorRole("Color", ColorPrefs.SEARCH_HINT))))),
-        Group("Settings", listOf(
-            Element("Settings text", FontPrefs.SETTINGS, listOf(ColorRole("Color", ColorPrefs.SETTINGS))),
-            Element("Settings icons", null, listOf(ColorRole("Tint", ColorPrefs.SETTINGS_ICON))),
-            Element("Settings notes & item rules", null, listOf(ColorRole("Color", ColorPrefs.SETTINGS_NOTE))))),
-        Group("Presence dots (chat list)", listOf(
-            Element("Online (connected)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_CONNECTED))),
-            Element("Reachable (available)", null, listOf(ColorRole("Dot", ColorPrefs.PRESENCE_AVAILABLE))))),
-        Group("Account list", listOf(
-            Element("Invitation badge", null, listOf(
-                ColorRole("Fill", ColorPrefs.BADGE_FILL),
-                ColorRole("Border", ColorPrefs.BADGE_BORDER))))),
-        Group("Status & indicators", listOf(
-            Element("Sending icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SENDING))),
-            Element("Sent / delivered icon", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_SUCCESS))),
-            Element("Connection dot — connected", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_ONLINE))),
-            Element("Connection dot — connecting", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_CONNECTING))),
-            Element("Connection dot — disconnected", null, listOf(ColorRole("Tint", ColorPrefs.STATUS_OFFLINE))),
-            Element("Account dot size", null, emptyList(), ScaleRole("Size (% of default)",
+    // Built on first use (the fragment is attached by then): the labels are string resources.
+    // A group's key is its stable English name — the stored section order and fold state use it.
+    private val groups by lazy { listOf(
+        Group("Default", getString(R.string.sk_set_grp_default), listOf(
+            Element(getString(R.string.sk_set_el_default), FontPrefs.DEFAULT, emptyList()))),
+        Group("Chat list", getString(R.string.sk_set_grp_chat_list), listOf(
+            Element(getString(R.string.sk_set_el_contact_name), FontPrefs.LIST_TITLE, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.LIST_NAME))),
+            Element(getString(R.string.sk_set_el_last_message), FontPrefs.LIST_PREVIEW, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.LIST_PREVIEW))),
+            Element(getString(R.string.sk_set_el_timestamp), FontPrefs.LIST_DATE, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.LIST_DATE))))),
+        Group("Conversation", getString(R.string.sk_set_grp_conversation), listOf(
+            Element(getString(R.string.sk_set_el_conv_title), FontPrefs.CONV_TITLE, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.CONV_TITLE))),
+            Element(getString(R.string.sk_set_el_sent), FontPrefs.CHAT_TEXT, listOf(ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.MSG_SENT), ColorRole(getString(R.string.sk_set_c_bubble_fill), ColorPrefs.MSG_SENT_FILL), ColorRole(getString(R.string.sk_set_c_bubble_border), ColorPrefs.MSG_SENT_BORDER))),
+            Element(getString(R.string.sk_set_el_received), null, listOf(ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.MSG_RECEIVED), ColorRole(getString(R.string.sk_set_c_bubble_fill), ColorPrefs.MSG_RECEIVED_FILL), ColorRole(getString(R.string.sk_set_c_bubble_border), ColorPrefs.MSG_RECEIVED_BORDER))),
+            Element(getString(R.string.sk_set_el_msg_time), FontPrefs.MSG_TIME, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MSG_TIME))),
+            Element(getString(R.string.sk_set_el_link_card), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_title), ColorPrefs.LINK_TITLE),
+                ColorRole(getString(R.string.sk_set_c_description), ColorPrefs.LINK_DESC),
+                ColorRole(getString(R.string.sk_set_c_domain), ColorPrefs.LINK_DOMAIN),
+                ColorRole(getString(R.string.sk_set_c_card_fill), ColorPrefs.LINK_CARD_FILL),
+                ColorRole(getString(R.string.sk_set_c_card_border), ColorPrefs.LINK_CARD_BORDER))),
+            Element(getString(R.string.sk_set_el_file), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_name_size), ColorPrefs.FILE_NAME),
+                ColorRole(getString(R.string.sk_set_c_download_arrow), ColorPrefs.FILE_ARROW),
+                ColorRole(getString(R.string.sk_set_c_card_fill), ColorPrefs.FILE_CARD_FILL),
+                ColorRole(getString(R.string.sk_set_c_card_border), ColorPrefs.FILE_CARD_BORDER))))),
+        Group("Call events", getString(R.string.sk_set_grp_call_events), listOf(
+            Element(getString(R.string.sk_set_el_call), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.CALL_TEXT),
+                ColorRole(getString(R.string.sk_set_c_pill_fill), ColorPrefs.CALL_FILL),
+                ColorRole(getString(R.string.sk_set_c_pill_border), ColorPrefs.CALL_BORDER))))),
+        Group("Invitations", getString(R.string.sk_set_grp_invitations), listOf(
+            Element(getString(R.string.sk_set_el_invite_card), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.INVITE_TEXT),
+                ColorRole(getString(R.string.sk_set_c_fill), ColorPrefs.INVITE_FILL),
+                ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.INVITE_BORDER))),
+            Element(getString(R.string.sk_set_el_request_bar), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_buttons), ColorPrefs.REQUEST_TEXT),
+                ColorRole(getString(R.string.sk_set_c_fill), ColorPrefs.REQUEST_FILL),
+                ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.REQUEST_BORDER))))),
+        Group("Message menu", getString(R.string.sk_set_grp_message_menu), listOf(
+            Element(getString(R.string.sk_set_el_longpress_menu), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.MENU_TEXT),
+                ColorRole(getString(R.string.sk_set_c_fill), ColorPrefs.MENU_FILL),
+                ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.MENU_BORDER))))),
+        Group("Top bar", getString(R.string.sk_set_grp_top_bar), listOf(
+            Element(getString(R.string.sk_set_el_search_hint), FontPrefs.SEARCH_HINT, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.SEARCH_HINT))))),
+        Group("Settings", getString(R.string.sk_set_grp_settings), listOf(
+            Element(getString(R.string.sk_set_el_settings_text), FontPrefs.SETTINGS, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.SETTINGS))),
+            Element(getString(R.string.sk_set_el_settings_icons), null, listOf(ColorRole(getString(R.string.sk_set_c_tint), ColorPrefs.SETTINGS_ICON))),
+            Element(getString(R.string.sk_set_el_settings_notes), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.SETTINGS_NOTE))))),
+        Group("Presence dots (chat list)", getString(R.string.sk_set_grp_presence), listOf(
+            Element(getString(R.string.sk_set_el_presence_connected), null, listOf(ColorRole(getString(R.string.sk_set_c_dot), ColorPrefs.PRESENCE_CONNECTED))),
+            Element(getString(R.string.sk_set_el_presence_available), null, listOf(ColorRole(getString(R.string.sk_set_c_dot), ColorPrefs.PRESENCE_AVAILABLE))))),
+        Group("Account list", getString(R.string.sk_set_grp_account_list), listOf(
+            Element(getString(R.string.sk_set_el_invite_badge), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_fill), ColorPrefs.BADGE_FILL),
+                ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.BADGE_BORDER))))),
+        Group("Status & indicators", getString(R.string.sk_set_grp_status), listOf(
+            Element(getString(R.string.sk_set_el_sending), null, listOf(ColorRole(getString(R.string.sk_set_c_tint), ColorPrefs.STATUS_SENDING))),
+            Element(getString(R.string.sk_set_el_sent_icon), null, listOf(ColorRole(getString(R.string.sk_set_c_tint), ColorPrefs.STATUS_SUCCESS))),
+            Element(getString(R.string.sk_set_el_dot_connected), null, listOf(ColorRole(getString(R.string.sk_set_c_tint), ColorPrefs.STATUS_ONLINE))),
+            Element(getString(R.string.sk_set_el_dot_connecting), null, listOf(ColorRole(getString(R.string.sk_set_c_tint), ColorPrefs.STATUS_CONNECTING))),
+            Element(getString(R.string.sk_set_el_dot_disconnected), null, listOf(ColorRole(getString(R.string.sk_set_c_tint), ColorPrefs.STATUS_OFFLINE))),
+            Element(getString(R.string.sk_set_el_dot_size), null, emptyList(), ScaleRole(getString(R.string.sk_set_scale_of_default),
                 { c -> (UiPrefs.getStatusDotScale(c) * 100f).toInt() },
                 { c, v -> UiPrefs.setStatusDotScale(c, v / 100f) }, 50, 300)),
-            Element("Unread row border", null, listOf(ColorRole("Border", ColorPrefs.UNREAD_BORDER))))),
-        Group("Flashes (toasts)", listOf(
-            Element("Flash message (e.g. \"Copied to clipboard\")", FontPrefs.FLASH, listOf(
-                ColorRole("Text", ColorPrefs.FLASH_TEXT),
-                ColorRole("Background", ColorPrefs.FLASH_FILL),
-                ColorRole("Border", ColorPrefs.FLASH_BORDER))))),
-        Group("Connection monitor", listOf(
-            Element("Account healthy", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_HEALTHY))),
-            Element("Account connecting", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_CONNECTING))),
-            Element("Account problem (offline / not syncing)", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_PROBLEM))),
-            Element("Connection: connected", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_CONNECTED))),
-            Element("Connection: in progress", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_IDLE))),
-            Element("Contact: disconnected / offline", null, listOf(ColorRole("Color", ColorPrefs.MONITOR_OFFLINE))),
-            Element("Fold triangle size", null, emptyList(), ScaleRole("Size (% of row text)",
+            Element(getString(R.string.sk_set_el_unread_border), null, listOf(ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.UNREAD_BORDER))))),
+        Group("Flashes (toasts)", getString(R.string.sk_set_grp_flashes), listOf(
+            Element(getString(R.string.sk_set_el_flash), FontPrefs.FLASH, listOf(
+                ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.FLASH_TEXT),
+                ColorRole(getString(R.string.sk_set_c_background), ColorPrefs.FLASH_FILL),
+                ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.FLASH_BORDER))))),
+        Group("Connection monitor", getString(R.string.sk_set_grp_monitor), listOf(
+            Element(getString(R.string.sk_set_el_mon_healthy), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MONITOR_HEALTHY))),
+            Element(getString(R.string.sk_set_el_mon_connecting), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MONITOR_CONNECTING))),
+            Element(getString(R.string.sk_set_el_mon_problem), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MONITOR_PROBLEM))),
+            Element(getString(R.string.sk_set_el_mon_connected), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MONITOR_CONNECTED))),
+            Element(getString(R.string.sk_set_el_mon_idle), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MONITOR_IDLE))),
+            Element(getString(R.string.sk_set_el_mon_offline), null, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.MONITOR_OFFLINE))),
+            Element(getString(R.string.sk_set_el_fold_size), null, emptyList(), ScaleRole(getString(R.string.sk_set_scale_of_row_text),
                 { c -> (UiPrefs.getMonitorFoldScale(c) * 100f).toInt() },
                 { c, v -> UiPrefs.setMonitorFoldScale(c, v / 100f) }, 20, 300)))),
-        Group("Connectivity help page", listOf(
-            Element("Headings", FontPrefs.INFO_HEADING, listOf(ColorRole("Color", ColorPrefs.INFO_HEADING))),
-            Element("Body text", FontPrefs.INFO_BODY, listOf(ColorRole("Color", ColorPrefs.INFO_BODY))),
-            Element("Button pills", null, listOf(
-                ColorRole("Text", ColorPrefs.INFO_PILL_TEXT),
-                ColorRole("Border", ColorPrefs.INFO_PILL_BORDER),
-                ColorRole("Fill", ColorPrefs.INFO_PILL_FILL))))),
-        Group("Launcher shortcuts", listOf(
-            Element("Chat / call badge (applies to newly created shortcuts)", null, listOf(
-                ColorRole("Glyph + ring", ColorPrefs.SHORTCUT_ICON),
-                ColorRole("Glyph outline", ColorPrefs.SHORTCUT_FILL))))),
-    )
+        Group("Connectivity help page", getString(R.string.sk_set_grp_help_page), listOf(
+            Element(getString(R.string.sk_set_el_headings), FontPrefs.INFO_HEADING, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.INFO_HEADING))),
+            Element(getString(R.string.sk_set_el_body), FontPrefs.INFO_BODY, listOf(ColorRole(getString(R.string.sk_set_c_color), ColorPrefs.INFO_BODY))),
+            Element(getString(R.string.sk_set_el_pills), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_text), ColorPrefs.INFO_PILL_TEXT),
+                ColorRole(getString(R.string.sk_set_c_border), ColorPrefs.INFO_PILL_BORDER),
+                ColorRole(getString(R.string.sk_set_c_fill), ColorPrefs.INFO_PILL_FILL))))),
+        Group("Launcher shortcuts", getString(R.string.sk_set_grp_shortcuts), listOf(
+            Element(getString(R.string.sk_set_el_shortcut_badge), null, listOf(
+                ColorRole(getString(R.string.sk_set_c_glyph_ring), ColorPrefs.SHORTCUT_ICON),
+                ColorRole(getString(R.string.sk_set_c_glyph_outline), ColorPrefs.SHORTCUT_FILL))))),
+    ) }
 
     // Every colour of this page is a role (black-yellow theme: nothing hard-coded).
     private val yellow: Int get() = skColor(SkRole.TEXT)
@@ -186,10 +190,10 @@ class FontsSettingsFragment : Fragment() {
             val file = FontPrefs.addFontFile(ctx, name, bytes)
             if (cat != null) FontPrefs.setFont(ctx, cat, "file:${file.absolutePath}",
                 FontPrefs.getWeight(ctx, cat), FontPrefs.getSize(ctx, cat))
-            Flash.show(ctx, "Added $name", Toast.LENGTH_SHORT)
+            Flash.show(ctx, ctx.getString(R.string.sk_set_font_added, name), Toast.LENGTH_SHORT)
             rebuild()
         } catch (e: Exception) {
-            Flash.show(ctx, "Import failed: ${e.message}", Toast.LENGTH_LONG)
+            Flash.show(ctx, ctx.getString(R.string.sk_set_font_import_failed, e.message.toString()), Toast.LENGTH_LONG)
         }
     }
 
@@ -199,12 +203,13 @@ class FontsSettingsFragment : Fragment() {
         val app = context?.applicationContext ?: return@registerForActivityResult
         cx.ring.utils.DiagFiles.setExportTree(app, tree)
         val where = cx.ring.utils.DiagFiles.treeLabel(tree)
+        val res = context ?: app     // the app language lives on the activity's resources
         Thread({
             val msg = try {
                 val (sub, n) = cx.ring.utils.DiagFiles.export(app, tree)
-                "Exported $n ${if (n == 1) "file" else "files"} to $where/$sub."
+                res.resources.getQuantityString(R.plurals.sk_set_diag_exported, n, n, where, sub)
             } catch (e: Exception) {
-                "Export failed: ${e.message}"
+                res.getString(R.string.sk_set_diag_export_failed, e.message.toString())
             }
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 Flash.show(app, msg, Toast.LENGTH_LONG)
@@ -328,7 +333,10 @@ class FontsSettingsFragment : Fragment() {
     // ---------------------------------------------------------------- the page: index + folding sections
 
     private class UiSection(val key: String, val title: String, val glyph: SkGlyph, val role: SkIconRole,
-                            val ownHeader: Boolean, val build: (LinearLayout) -> Unit)
+                            val ownHeader: Boolean, val tone: SkRole? = null, val build: (LinearLayout) -> Unit) {
+        /** The colour of the section's icon, on its heading and on its chip alike. */
+        fun iconColor(): Int = if (tone != null) skColor(tone) else skColor(role)
+    }
 
     /** Set while a section that adds its own group header builds: that header is the folding one now. */
     private var swallowHeader = false
@@ -347,22 +355,40 @@ class FontsSettingsFragment : Fragment() {
 
     private fun uiSections(): List<UiSection> {
         val list = ArrayList<UiSection>()
-        list += UiSection("exim", "Export / Import", SkGlyph.EXPORT, SkIconRole.SHARE, true) { addExportImportSection(it) }
-        list += UiSection("recovery", "Online recovery", SkGlyph.PULSE, SkIconRole.CALL, true) { addOnlineRecoverySection(it) }
-        list += UiSection("decline", "Call decline messages", SkGlyph.MESSAGE, SkIconRole.MESSAGE, true) { addDeclineMessagesSection(it) }
-        list += UiSection("diag", "Diagnostics", SkGlyph.BARS, SkIconRole.VIEW, true) { addDiagnosticsSection(it) }
-        list += UiSection("language", "App language", SkGlyph.GLOBE, SkIconRole.VIEW, false) { it.addView(languageRow()) }
+        // “App language” is the first section of every 白い熊 app's UI page, and so the first chip.
+        list += UiSection("language", getString(R.string.sk_set_sec_language), SkGlyph.GLOBE, SkIconRole.VIEW, false,
+            tone = SkRole.SECTION_WORDS) { addLanguageSection(it) }
+        list += UiSection("exim", getString(R.string.sk_set_sec_exim), SkGlyph.EXPORT, SkIconRole.SHARE, true) { addExportImportSection(it) }
+        list += UiSection("recovery", getString(R.string.sk_set_sec_recovery), SkGlyph.PULSE, SkIconRole.CALL, true) { addOnlineRecoverySection(it) }
+        list += UiSection("decline", getString(R.string.sk_set_sec_decline), SkGlyph.MESSAGE, SkIconRole.MESSAGE, true) { addDeclineMessagesSection(it) }
+        list += UiSection("diag", getString(R.string.sk_set_sec_diag), SkGlyph.BARS, SkIconRole.VIEW, true) { addDiagnosticsSection(it) }
         for (g in groups)
-            list += UiSection("g:" + g.title, g.title, SkGlyph.TEXT, SkIconRole.VIEW, false) { c ->
+            list += UiSection("g:" + g.key, g.title, SkGlyph.TEXT, SkIconRole.VIEW, false) { c ->
                 for (e in g.elements) c.addView(elementView(e))
             }
         for (sec in SkSection.entries)
-            list += UiSection("r:" + sec.name, sec.title, SkGlyph.DROP, SkIconRole.VIEW, false) { c -> addRoleRows(c, sec) }
-        list += UiSection("maintenance", "Maintenance", SkGlyph.RESET, SkIconRole.BLOCK, false) { addMaintenanceSection(it) }
+            list += UiSection("r:" + sec.name, sec.displayTitle(requireContext()), SkGlyph.DROP, SkIconRole.VIEW, false) { c -> addRoleRows(c, sec) }
+        list += UiSection("maintenance", getString(R.string.sk_set_sec_maintenance), SkGlyph.RESET, SkIconRole.BLOCK, false) { addMaintenanceSection(it) }
         // The stored order first; a section it does not know yet keeps its built-in place after them.
+        languageFirstOnce()
         val order = storedOrder()
         val known = list.associateBy { it.key }
         return order.mapNotNull { known[it] } + list.filter { it.key !in order }
+    }
+
+    /** Once: the default order used to have “App language” fifth, right after Diagnostics. A stored
+     *  order that still has it exactly there never moved it, so it goes first there too; an order
+     *  in which it was dragged somewhere else is left alone. */
+    private fun languageFirstOnce() {
+        val prefs = pagePrefs()
+        if (prefs.getBoolean(KEY_LANG_FIRST, false)) return
+        val order = storedOrder()
+        val i = order.indexOf("language")
+        val untouched = i > 0 && order[i - 1] == "diag" && (i + 1 >= order.size || order[i + 1].startsWith("g:"))
+        prefs.edit().apply {
+            putBoolean(KEY_LANG_FIRST, true)
+            if (untouched) putString(KEY_ORDER, (listOf("language") + order.filter { it != "language" }).joinToString("\n"))
+        }.apply()
     }
 
     private fun rebuild() {
@@ -376,7 +402,7 @@ class FontsSettingsFragment : Fragment() {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
             setPadding(dp(16f), dp(6f), dp(16f), dp(2f))
-            addView(actionRow("App settings", "Connectivity, notifications, media and everything else the app itself sets.",
+            addView(actionRow(getString(R.string.sk_set_app_settings), getString(R.string.sk_set_app_settings_desc),
                 main = true, opens = true, glyph = SkGlyph.GEAR) {
                 (activity as? cx.ring.client.HomeActivity)?.goToAdvancedSettings()
             }.first)
@@ -387,7 +413,7 @@ class FontsSettingsFragment : Fragment() {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
             setPadding(dp(16f), dp(4f), dp(16f), dp(4f))
-            addView(SkSectionIndex.build(ctx, sections.map { SkSectionIndex.Item(it.key, it.title) },
+            addView(SkSectionIndex.build(ctx, sections.map { SkSectionIndex.Item(it.key, it.title, it.glyph, it.iconColor()) },
                 skColor(SkRole.PAGE_CHIP), skColor(SkRole.PAGE_CHIP),
                 onJump = { key ->
                     sectionOpeners[key]?.invoke()
@@ -436,7 +462,7 @@ class FontsSettingsFragment : Fragment() {
             setPadding(dp(16f), dp(8f), dp(14f), dp(6f))
             isClickable = true
             addView(android.widget.ImageView(ctx).apply {
-                setImageDrawable(SkGlyphDrawable(s.glyph, skColor(s.role), iconSize))
+                setImageDrawable(SkGlyphDrawable(s.glyph, s.iconColor(), iconSize))
             }, LinearLayout.LayoutParams(iconSize, iconSize).apply { marginEnd = dp(10f) })
             addView(title, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
@@ -498,7 +524,7 @@ class FontsSettingsFragment : Fragment() {
             layoutParams = matchWrap()
             setPadding(dp(54f), dp(2f), dp(16f), dp(4f))
         }
-        for (role in SkRole.ofSection(section)) if (role.key !in shown) box.addView(colorRow(ColorRole(role.label, role.key)))
+        for (role in SkRole.ofSection(section)) if (role.key !in shown) box.addView(colorRow(ColorRole(role.displayLabel(ctx), role.key)))
         c.addView(box)
     }
 
@@ -509,17 +535,17 @@ class FontsSettingsFragment : Fragment() {
             layoutParams = matchWrap()
             setPadding(dp(36f), dp(4f), dp(16f), dp(4f))
         }
-        box.addView(actionRow("Reset section order", "Put the sections of this page back in their built-in order.",
+        box.addView(actionRow(getString(R.string.sk_set_reset_order), getString(R.string.sk_set_reset_order_desc),
             opens = false, glyph = SkGlyph.RESET) {
             pagePrefs().edit().remove(KEY_ORDER).apply()
             rebuild()
         }.first)
-        box.addView(actionRow("Reset all colours", "Every colour of the app goes back to its default: yellow on black.",
+        box.addView(actionRow(getString(R.string.sk_set_reset_colours), getString(R.string.sk_set_reset_colours_desc),
             opens = false, glyph = SkGlyph.RESET, danger = true) {
             cx.ring.utils.DialogTheme.builder(ctx)
-                .setTitle("Reset all colours?")
-                .setMessage("Every colour you set on this page is discarded.")
-                .setPositiveButton("Reset") { _, _ ->
+                .setTitle(ctx.getString(R.string.sk_set_reset_colours_title))
+                .setMessage(ctx.getString(R.string.sk_set_reset_colours_msg))
+                .setPositiveButton(ctx.getString(R.string.sk_set_reset)) { _, _ ->
                     SkRoles.resetAll(ctx)
                     for (g in groups) for (e in g.elements) for (r in e.colors) ColorPrefs.reset(ctx, r.key)
                     rebuild()
@@ -534,24 +560,24 @@ class FontsSettingsFragment : Fragment() {
     private fun roleColor(key: String): Int =
         SkRole.byKey(key)?.let { skColor(it) } ?: ColorPrefs.getColor(requireContext(), key)
 
-    /** A tappable row showing the current app language; opens a locale picker. Overrides the
-     *  phone locale for this app only (AppCompat per-app locales; localeConfig is declared). */
-    private fun languageRow(): View {
+    /** “Language: ‹current›” — a pill with a › that opens the locale picker. Overrides the phone
+     *  locale for this app only (AppCompat per-app locales; localeConfig is declared). */
+    private fun addLanguageSection(c: LinearLayout) {
         val ctx = requireContext()
         val current = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
-        val label = if (current.isEmpty) "System default" else {
-            val loc = java.util.Locale.forLanguageTag(current.toLanguageTags())
+        val label = if (current.isEmpty) getString(R.string.sk_set_lang_system) else {
+            val loc = java.util.Locale.forLanguageTag(current.toLanguageTags().substringBefore(','))
             loc.getDisplayName(loc).replaceFirstChar { it.uppercase() }
         }
-        return TextView(ctx).apply {
-            text = "Language: $label"
-            setTextColor(yellow)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            rowIcon(this, SkGlyph.GLOBE)
-            setPadding(dp(54f), dp(2f), dp(16f), dp(2f))
+        val box = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
-            setOnClickListener { showLanguageDialog() }
+            setPadding(dp(36f), dp(4f), dp(16f), dp(4f))
         }
+        box.addView(actionRow(getString(R.string.sk_set_lang_row, label), opens = true, glyph = SkGlyph.GLOBE) {
+            showLanguageDialog()
+        }.first)
+        c.addView(box)
     }
 
     private fun readSupportedLocaleTags(): List<String> {
@@ -571,30 +597,101 @@ class FontsSettingsFragment : Fragment() {
         return tags
     }
 
+    /** The language list (black-yellow-theme, settled 2026-11-24): plain rows — the mark, the
+     *  language in its own language with its country beneath in dim gold, the tag in a column at
+     *  the right — a hairline between rows, and ONLY the current language inside a thick pill. */
     private fun showLanguageDialog() {
         val ctx = context ?: return
-        val pairs = ArrayList<Pair<String, String>>()
-        pairs.add("" to "System default")
+        class Lang(val tag: String, val name: String, val country: String)
+        val langs = ArrayList<Lang>()
         readSupportedLocaleTags().forEach { tag ->
             val loc = java.util.Locale.forLanguageTag(tag)
-            pairs.add(tag to "${loc.getDisplayName(loc).replaceFirstChar { it.uppercase() }}  ($tag)")
+            val name = loc.getDisplayLanguage(loc).replaceFirstChar { it.uppercase() }.ifEmpty { tag }
+            langs.add(Lang(tag, name, loc.getDisplayCountry(loc)))
         }
-        val ordered = listOf(pairs.first()) + pairs.drop(1).sortedBy { it.second }
-        val names = ordered.map { it.second }.toTypedArray()
+        val ordered = listOf(Lang("", getString(R.string.sk_set_lang_system), "")) +
+            langs.sortedWith(compareBy({ it.name }, { it.tag }))
         val currentTag = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
-        val checked = ordered.indexOfFirst { it.first == currentTag }.let { if (it < 0) 0 else it }
-        cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("App language")
-            .setSingleChoiceItems(names, checked) { d, which ->
-                val tag = ordered[which].first
-                cx.ring.utils.UiPrefs.setAppLanguage(ctx, tag)   // survives updates; re-asserted on start
-                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
-                    if (tag.isEmpty()) androidx.core.os.LocaleListCompat.getEmptyLocaleList()
-                    else androidx.core.os.LocaleListCompat.forLanguageTags(tag))
-                d.dismiss()
+        val checked = ordered.indexOfFirst { it.tag == currentTag }.let { if (it < 0) 0 else it }
+
+        val density = resources.displayMetrics.density
+        val ink = skColor(SkRole.DIALOG_TEXT)
+        val noteC = skColor(SkRole.PAGE_NOTE)
+        fun mark(on: Boolean): android.graphics.drawable.Drawable {
+            val c = skColor(if (on) SkRole.MARK_ON else SkRole.MARK_OFF)
+            val ring = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL; setColor(Color.TRANSPARENT); setStroke(dp(2f), c)
             }
+            if (!on) return ring
+            val dot = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(c) }
+            return android.graphics.drawable.LayerDrawable(arrayOf(ring, dot)).apply {
+                setLayerInset(1, dp(6f), dp(6f), dp(6f), dp(6f))
+            }
+        }
+        val list = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10f), dp(6f), dp(10f), dp(6f))
+        }
+        var dialog: androidx.appcompat.app.AlertDialog? = null
+        var currentRow: View? = null
+        ordered.forEachIndexed { index, lang ->
+            val on = index == checked
+            // No hairline right above or below the pill of the current row.
+            if (index > 0 && !on && index - 1 != checked) list.addView(View(ctx).apply {
+                setBackgroundColor(skColor(SkRole.LIST_DIVIDER))
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
+                marginStart = dp(52f); marginEnd = dp(14f)
+            })
+            val row = LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                // The tag column stays at the right for right-to-left languages too.
+                layoutDirection = View.LAYOUT_DIRECTION_LTR
+                setPadding(dp(14f), dp(7f), dp(16f), dp(7f))
+                background = if (on) skPillBackground(density, skColor(SkRole.PILL_FRAME), Color.TRANSPARENT, true)
+                             else skPillBackground(density, Color.TRANSPARENT)
+                isClickable = true
+                setOnClickListener {
+                    cx.ring.utils.UiPrefs.setAppLanguage(ctx, lang.tag)   // survives updates; re-asserted on start
+                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                        if (lang.tag.isEmpty()) androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                        else androidx.core.os.LocaleListCompat.forLanguageTags(lang.tag))
+                    dialog?.dismiss()
+                }
+                addView(View(ctx).apply { background = mark(on) },
+                    LinearLayout.LayoutParams(dp(22f), dp(22f)).apply { marginEnd = dp(16f) })
+                addView(LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(TextView(ctx).apply {
+                        text = lang.name; setTextColor(ink); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                        textDirection = View.TEXT_DIRECTION_LTR
+                        if (on) setTypeface(typeface, Typeface.BOLD)
+                    })
+                    if (lang.country.isNotEmpty()) addView(TextView(ctx).apply {
+                        text = lang.country; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                        textDirection = View.TEXT_DIRECTION_LTR
+                    })
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                if (lang.tag.isNotEmpty()) addView(TextView(ctx).apply {
+                    text = lang.tag; setTextColor(noteC); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    typeface = Typeface.MONOSPACE
+                    setPadding(dp(10f), 0, 0, 0)
+                })
+            }
+            if (on) currentRow = row
+            list.addView(row, matchWrap())
+        }
+        val scroller = android.widget.ScrollView(ctx).apply {
+            tag = FontUtil.SKIP_SETTINGS_FONT_TAG
+            addView(list)
+        }
+        dialog = cx.ring.utils.DialogTheme.builder(ctx)
+            .setTitle(ctx.getString(R.string.sk_set_sec_language))
+            .setView(scroller)
             .setNegativeButton(android.R.string.cancel, null)
-            .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
+            .show().also { cx.ring.utils.DialogTheme.theme(it, ctx) }
+        // Open with the current language in view.
+        currentRow?.let { r -> scroller.post { scroller.scrollTo(0, (r.top - dp(120f)).coerceAtLeast(0)) } }
     }
 
     // ---- Call decline messages ---------------------------------------------------------------
@@ -603,32 +700,32 @@ class FontsSettingsFragment : Fragment() {
     // (DeclineMessagesEditor — the contact's details screen opens the very same dialogs).
     private fun addDeclineMessagesSection(c: LinearLayout) {
         val ctx = requireContext()
-        c.addView(groupHeader("Call decline messages"))
+        c.addView(groupHeader(getString(R.string.sk_set_sec_decline)))
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
             setPadding(dp(72f), dp(6f), dp(16f), dp(4f))
         }
-        box.addView(orMini("General — offered for every caller. Tap a message to edit, move or delete it."))
+        box.addView(orMini(getString(R.string.sk_set_decline_general_note)))
         DeclineMessagesPrefs.global(ctx).forEachIndexed { i, m ->
             box.addView(orTapRow("•  $m") {
                 context?.let { DeclineMessagesEditor.showItemActions(it, null, i, { rebuild() }) }
             })
         }
-        box.addView(actionRow("Add message") {
+        box.addView(actionRow(getString(R.string.sk_set_decline_add), glyph = SkGlyph.EDIT) {
             context?.let { c3 ->
-                DeclineMessagesEditor.showEdit(c3, "Add message", "") { DeclineMessagesPrefs.addGlobal(c3, it); rebuild() }
+                DeclineMessagesEditor.showEdit(c3, c3.getString(R.string.sk_set_decline_add), "") { DeclineMessagesPrefs.addGlobal(c3, it); rebuild() }
             }
         }.first)
-        box.addView(orMini("Per contact — offered first, above the general ones."))
+        box.addView(orMini(getString(R.string.sk_set_decline_contact_note)))
         for (id in DeclineMessagesPrefs.contactsWithOwn(ctx)) {
             val name = DeclineMessagesPrefs.contactName(ctx, id) ?: (id.take(8) + "…")
             val n = DeclineMessagesPrefs.forContact(ctx, id).size
-            box.addView(orTapRow("$name  —  $n message${if (n == 1) "" else "s"}") {
+            box.addView(orTapRow(resources.getQuantityString(R.plurals.sk_set_decline_contact_row, n, name, n)) {
                 context?.let { DeclineMessagesEditor.showList(it, id, DeclineMessagesPrefs.contactName(it, id)) { rebuild() } }
             })
         }
-        box.addView(actionRow("Add contact…") { showDeclineContactPicker() }.first)
+        box.addView(actionRow(getString(R.string.sk_set_decline_add_contact), glyph = SkGlyph.EDIT) { showDeclineContactPicker() }.first)
         c.addView(box)
     }
 
@@ -649,7 +746,7 @@ class FontsSettingsFragment : Fragment() {
                 singles.add(mConversationFacade.getConversationProfile(acc.accountId, conv.uri))
             }
         }
-        if (singles.isEmpty()) { Flash.show(ctx, "No contacts"); return }
+        if (singles.isEmpty()) { Flash.show(ctx, ctx.getString(R.string.sk_set_no_contacts)); return }
         recoveryDisposable.add(
             io.reactivex.rxjava3.core.Single.zip(singles) { arr ->
                 arr.map { it as net.jami.smartlist.ConversationItemViewModel } }
@@ -664,10 +761,10 @@ class FontsSettingsFragment : Fragment() {
                                 .withViewModel(vm).withCircleCrop(true).withPresence(false).build(c2),
                             payload = ids[i])
                     }.sortedBy { it.title.lowercase() }
-                    PickListDialog.show(c2, "Pick a contact", items) { item ->
+                    PickListDialog.show(c2, c2.getString(R.string.sk_set_pick_contact), items) { item ->
                         DeclineMessagesEditor.showList(c2, item.payload as String, item.title) { rebuild() }
                     }
-                }, { context?.let { Flash.show(it, "Could not load contacts") } })
+                }, { context?.let { Flash.show(it, it.getString(R.string.sk_set_contacts_failed)) } })
         )
     }
 
@@ -678,7 +775,7 @@ class FontsSettingsFragment : Fragment() {
         val ctx = requireContext()
         val D = cx.ring.utils.DiagPrefs
         val F = cx.ring.utils.DiagFiles
-        c.addView(groupHeader("Diagnostics"))
+        c.addView(groupHeader(getString(R.string.sk_set_sec_diag)))
         // Tight layout (白い熊, 2026-11-03): minimal padding everywhere; each sub-heading underlined,
         // its rows indented one further step beneath it.
         val box = LinearLayout(ctx).apply {
@@ -759,48 +856,46 @@ class FontsSettingsFragment : Fragment() {
                 addView(body)
             })
         }
-        note("All off by default — while off they cost nothing. Turn one on only to chase a " +
-            "problem; it takes effect within 3 s, no restart. Daemon lines go to logcat (read over adb); " +
-            "app lines go to the recovery log (Online recovery → View recovery log).", box)
+        note(getString(R.string.sk_set_diag_note), box)
 
-        section("Connections & network").let { s ->
-            sw(s, "Connection attempts", DG.CONNECTIONS,
-                "SK-ICEDIAG (logcat): every connect, ICE/TLS failure, local hand-off and stuck socket.")
-            sw(s, "DHT proxy & push", DG.DHT_PROXY,
-                "SK-PROXYDIAG (logcat): proxy subscriptions, pushes received, HTTP connects.")
-            sw(s, "DHT message counters", DG.DHT_STATS,
-                "SK-DHTSTATS (logcat): per-message DHT traffic counts.")
+        section(getString(R.string.sk_set_diag_sec_network)).let { s ->
+            sw(s, getString(R.string.sk_set_diag_connections), DG.CONNECTIONS,
+                "SK-ICEDIAG (logcat): " + getString(R.string.sk_set_diag_connections_desc))
+            sw(s, getString(R.string.sk_diag_conn_trace), DG.CONN_TRACE,
+                "SK-CONNTRACE (connection-trace.txt): " + getString(R.string.sk_diag_conn_trace_desc))
+            sw(s, getString(R.string.sk_set_diag_dht_proxy), DG.DHT_PROXY,
+                "SK-PROXYDIAG (logcat): " + getString(R.string.sk_set_diag_dht_proxy_desc))
+            sw(s, getString(R.string.sk_set_diag_dht_stats), DG.DHT_STATS,
+                "SK-DHTSTATS (logcat): " + getString(R.string.sk_set_diag_dht_stats_desc))
         }
-        section("Conversations").let { s ->
-            sw(s, "Conversation loading", DG.OPEN,
-                "SK-OPENDIAG (recovery log): each step of opening a chat, history requests and their answers.")
-            sw(s, "History loads & daemon workers", DG.HISTORY,
-                "SK-LOADDIAG (logcat): slow history loads and a starved daemon worker pool.")
-            sw(s, "Swarm sync", DG.SWARM_SYNC,
-                "SK-SWARMSYNC (logcat): every fetch and merge from a peer, and which message each new one attaches to.")
+        section(getString(R.string.sk_set_diag_sec_conversations)).let { s ->
+            sw(s, getString(R.string.sk_set_diag_open), DG.OPEN,
+                "SK-OPENDIAG (" + getString(R.string.sk_set_diag_dest_recovery_log) + "): " + getString(R.string.sk_set_diag_open_desc))
+            sw(s, getString(R.string.sk_set_diag_history), DG.HISTORY,
+                "SK-LOADDIAG (logcat): " + getString(R.string.sk_set_diag_history_desc))
+            sw(s, getString(R.string.sk_set_diag_swarm_sync), DG.SWARM_SYNC,
+                "SK-SWARMSYNC (logcat): " + getString(R.string.sk_set_diag_swarm_sync_desc))
         }
-        section("Calls").let { s ->
-            sw(s, "Audio path", DG.AUDIO,
-                "SK-AUDIODIAG (logcat): per-call packets in and out, decode levels, silence.")
+        section(getString(R.string.sk_set_diag_sec_calls)).let { s ->
+            sw(s, getString(R.string.sk_set_diag_audio), DG.AUDIO,
+                "SK-AUDIODIAG (logcat): " + getString(R.string.sk_set_diag_audio_desc))
         }
-        section("Background & automation").let { s ->
-            sw(s, "Push wake decisions", DG.WAKE,
-                "SK-WAKE (recovery log): how each push was classified and whether it woke the accounts.")
-            sw(s, "App work queue & bridge sends", DG.EXEC,
-                "SK-EXECDIAG (recovery log): a 30-s heartbeat of the app's daemon queue, and each bridge send's progress.")
+        section(getString(R.string.sk_set_diag_sec_background)).let { s ->
+            sw(s, getString(R.string.sk_set_diag_wake), DG.WAKE,
+                "SK-WAKE (" + getString(R.string.sk_set_diag_dest_recovery_log) + "): " + getString(R.string.sk_set_diag_wake_desc))
+            sw(s, getString(R.string.sk_set_diag_exec), DG.EXEC,
+                "SK-EXECDIAG (" + getString(R.string.sk_set_diag_dest_recovery_log) + "): " + getString(R.string.sk_set_diag_exec_desc))
         }
-        section("App health").let { s ->
-            sw(s, "Memory & retained screens", DG.MEMORY,
-                "SK-MEMDIAG (memory-log.txt): every 10 min — total, daemon (native) and Java memory, GPU, " +
-                    "threads by name, and any closed screen still held in memory, by name.")
+        section(getString(R.string.sk_set_diag_sec_health)).let { s ->
+            sw(s, getString(R.string.sk_set_diag_memory), DG.MEMORY,
+                "SK-MEMDIAG (memory-log.txt): " + getString(R.string.sk_set_diag_memory_desc))
         }
 
         // ---- Stored files, Export, Purge (2026-11-03) ----
-        section("Diagnostic data").let { s ->
-            note("Every diagnostic file is kept in " + F.dir(ctx).absolutePath +
-                " — the recovery log, watchdog incidents, data-usage logs, presence map and push log.", s)
+        section(getString(R.string.sk_set_diag_sec_data)).let { s ->
+            note(getString(R.string.sk_set_diag_kept_in, F.dir(ctx).absolutePath), s)
             val stored = TextView(ctx).apply {
-                text = "Stored: …"; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                text = getString(R.string.sk_set_diag_stored_pending); setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 setPadding(0, 0, 0, dp(2f)); layoutParams = matchWrap()
             }
             s.addView(stored)
@@ -808,18 +903,18 @@ class FontsSettingsFragment : Fragment() {
                 val sum = runCatching { F.summarize(ctx) }.getOrNull()
                 stored.post {
                     stored.text = when {
-                        sum == null -> "Stored: ?"
-                        sum.files == 0 -> "Stored: nothing"
-                        else -> "Stored: " + F.filesLabel(sum.files, sum.bytes) + ", " + F.spanLabel(sum.span)
+                        sum == null -> ctx.getString(R.string.sk_set_diag_stored_unknown)
+                        sum.files == 0 -> ctx.getString(R.string.sk_set_diag_stored_nothing)
+                        else -> ctx.getString(R.string.sk_set_diag_stored, F.filesLabel(ctx, sum.files, sum.bytes), F.spanLabel(sum.span))
                     }
                 }
             }, "sk-diag-summary").start()
             val last = F.getExportTree(ctx)
-            s.addView(actionRow("Export diagnostic data",
-                "Copies every file into a new dated subdirectory of the directory you pick " +
-                    "(starts at ${last?.let { F.treeLabel(it) } ?: "/sdcard/tmp"}).") { exportDiagData() }.first)
-            s.addView(actionRow("Purge diagnostic data",
-                "Shows what is stored and asks before deleting anything.", opens = false) { confirmDiagPurge() }.first)
+            s.addView(actionRow(getString(R.string.sk_set_diag_export),
+                getString(R.string.sk_set_diag_export_desc, last?.let { F.treeLabel(it) } ?: "/sdcard/tmp"),
+                glyph = SkGlyph.EXPORT) { exportDiagData() }.first)
+            s.addView(actionRow(getString(R.string.sk_set_diag_purge),
+                getString(R.string.sk_set_diag_purge_desc), opens = false, glyph = SkGlyph.TRASH) { confirmDiagPurge() }.first)
         }
         c.addView(box)
     }
@@ -827,7 +922,7 @@ class FontsSettingsFragment : Fragment() {
     private fun exportDiagData() {
         val ctx = requireContext()
         if (cx.ring.utils.DiagFiles.files(ctx).isEmpty()) {
-            Flash.show(ctx, "Nothing to export.", Toast.LENGTH_SHORT); return
+            Flash.show(ctx, getString(R.string.sk_set_diag_nothing_to_export), Toast.LENGTH_SHORT); return
         }
         val tree = cx.ring.utils.DiagFiles.getExportTree(ctx)
         val initial = runCatching {
@@ -839,7 +934,7 @@ class FontsSettingsFragment : Fragment() {
         try {
             pickDiagExportTree.launch(initial)
         } catch (e: Exception) {
-            Flash.show(ctx, "No directory picker: ${e.message}", Toast.LENGTH_LONG)
+            Flash.show(ctx, getString(R.string.sk_set_diag_no_picker, e.message.toString()), Toast.LENGTH_LONG)
         }
     }
 
@@ -850,12 +945,12 @@ class FontsSettingsFragment : Fragment() {
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 val ctx = context ?: return@post
                 if (s == null || s.files == 0) {
-                    Flash.show(ctx, "Stored: nothing", Toast.LENGTH_SHORT); return@post
+                    Flash.show(ctx, ctx.getString(R.string.sk_set_diag_stored_nothing), Toast.LENGTH_SHORT); return@post
                 }
                 val df = cx.ring.utils.DiagFiles
                 val msg = StringBuilder()
                 for ((kind, k) in s.kinds)
-                    msg.append(kind).append(": ").append(df.filesLabel(k.files, k.bytes)).append(",\n    ")
+                    msg.append(df.kindLabel(ctx, kind)).append(": ").append(df.filesLabel(ctx, k.files, k.bytes)).append(",\n    ")
                         .append(df.spanLabel(k.span)).append('\n')
                 msg.append('\n')
                 val day = java.text.SimpleDateFormat("EEE yyyy-MM-dd", java.util.Locale.US)
@@ -864,14 +959,14 @@ class FontsSettingsFragment : Fragment() {
                     msg.append(day.format(java.util.Date(d.first))).append("  ")
                         .append(time.format(java.util.Date(d.first))).append("–")
                         .append(time.format(java.util.Date(d.last))).append('\n')
-                msg.append('\n').append("Total: ").append(df.filesLabel(s.files, s.bytes)).append(", ")
-                    .append(df.spanLabel(s.span)).append('.')
+                msg.append('\n').append(ctx.getString(R.string.sk_set_diag_total,
+                    df.filesLabel(ctx, s.files, s.bytes), df.spanLabel(s.span)))
                 cx.ring.utils.DialogTheme.builder(ctx)
-                    .setTitle("Purge diagnostic data?")
+                    .setTitle(ctx.getString(R.string.sk_set_diag_purge_title))
                     .setMessage(msg.toString())
-                    .setPositiveButton("Delete forever") { _, _ ->
+                    .setPositiveButton(ctx.getString(R.string.sk_set_diag_delete_forever)) { _, _ ->
                         val n = df.purge(ctx)
-                        Flash.show(ctx, "Deleted $n ${if (n == 1) "file" else "files"}.", Toast.LENGTH_SHORT)
+                        Flash.show(ctx, ctx.resources.getQuantityString(R.plurals.sk_set_diag_deleted, n, n), Toast.LENGTH_SHORT)
                         if (isAdded) rebuild()
                     }
                     .setNegativeButton(android.R.string.cancel, null)
@@ -883,7 +978,7 @@ class FontsSettingsFragment : Fragment() {
     // ---- Online recovery section (top of the page) -----------------------------------------
     private fun addOnlineRecoverySection(c: LinearLayout) {
         val ctx = requireContext()
-        c.addView(groupHeader("Online recovery"))
+        c.addView(groupHeader(getString(R.string.sk_set_sec_recovery)))
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = matchWrap()
@@ -899,56 +994,56 @@ class FontsSettingsFragment : Fragment() {
         // search bar remains as the one manual override. Only these two settings rows are removed —
         // UiPrefs.isFullDhtMode / isFullDhtWhileCharging still exist and still read false by default,
         // so the charging branch is simply never armed.
-        box.addView(orSwitchRow("Base check — detect a stuck link, no pings", UiPrefs.isRecoveryBaseEnabled(ctx)) {
+        box.addView(orSwitchRow(getString(R.string.sk_set_rec_base), UiPrefs.isRecoveryBaseEnabled(ctx)) {
             UiPrefs.setRecoveryBaseEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect ping
         })
-        box.addView(actionRow("How this works") { showRecoveryInfo() }.first)
-        box.addView(orSwitchRow("Ping check — send test pings", UiPrefs.isRecoveryPingEnabled(ctx)) {
+        box.addView(actionRow(getString(R.string.sk_set_rec_how), glyph = SkGlyph.INFO) { showRecoveryInfo() }.first)
+        box.addView(orSwitchRow(getString(R.string.sk_set_rec_ping), UiPrefs.isRecoveryPingEnabled(ctx)) {
             UiPrefs.setRecoveryPingEnabled(ctx, it); rebuild()   // mutually exclusive → rebuild to reflect base
         })
-        box.addView(orTapRow("①  Send pings from:  ${recoveryAccountLabel(ctx)}") { showRecoveryAccountPicker() })
-        box.addView(actionRow("②  Pick test conversation…") { showRecoverySwarmPicker() }.first)
-        box.addView(orMini("…or paste the conversation ID (without “swarm:”)"))
+        box.addView(orTapRow(getString(R.string.sk_set_rec_from_row, recoveryAccountLabel(ctx))) { showRecoveryAccountPicker() })
+        box.addView(actionRow(getString(R.string.sk_set_rec_pick_conv_row), glyph = SkGlyph.MESSAGE) { showRecoverySwarmPicker() }.first)
+        box.addView(orMini(getString(R.string.sk_set_rec_paste_note)))
         box.addView(orSwarmField(ctx))
-        box.addView(orTapRow("Check every:  ${UiPrefs.getRecoveryTickMinutes(ctx)} min") {
-            showRecoveryNumber("Check interval (minutes)", UiPrefs.getRecoveryTickMinutes(ctx), 1, 60) {
+        box.addView(orTapRow(getString(R.string.sk_set_rec_every_row, UiPrefs.getRecoveryTickMinutes(ctx))) {
+            showRecoveryNumber(getString(R.string.sk_set_rec_every_title), UiPrefs.getRecoveryTickMinutes(ctx), 1, 60) {
                 UiPrefs.setRecoveryTickMinutes(ctx, it); rebuild()
             }
         })
-        box.addView(orTapRow("Prune test pings older than:  ${UiPrefs.getRecoveryPruneDays(ctx)} days") {
-            showRecoveryNumber("Prune pings older than (days)", UiPrefs.getRecoveryPruneDays(ctx), 0, 90) {
+        box.addView(orTapRow(getString(R.string.sk_set_rec_prune_row, UiPrefs.getRecoveryPruneDays(ctx))) {
+            showRecoveryNumber(getString(R.string.sk_set_rec_prune_title), UiPrefs.getRecoveryPruneDays(ctx), 0, 90) {
                 UiPrefs.setRecoveryPruneDays(ctx, it); rebuild()
             }
         })
-        box.addView(actionRow("View recovery log") { showRecoveryLog() }.first)
+        box.addView(actionRow(getString(R.string.sk_set_rec_view_log), glyph = SkGlyph.LIST) { showRecoveryLog() }.first)
         // ---- Data-usage meter (2026-07-25, from the 36-GiB runaway investigation) ----
-        box.addView(orSwitchRow("Measure data usage", DataMeter.isActive(ctx)) { on ->
+        box.addView(orSwitchRow(getString(R.string.sk_set_meter_measure), DataMeter.isActive(ctx)) { on ->
             if (on) {
                 DataMeter.start(ctx)
                 startMeterLive()
             } else {
                 val rec = DataMeter.stop(ctx, meterModeInfo())
-                meterLiveRow?.text = "saved: $rec"
+                meterLiveRow?.text = ctx.getString(R.string.sk_set_meter_saved, rec)
             }
         })
         box.addView(TextView(ctx).apply {
             setTextColor(dim); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(dp(8f), 0, 0, dp(4f)); layoutParams = matchWrap()
-            text = if (DataMeter.isActive(ctx)) "measuring…" else "(off — flip on to start a measurement session)"
+            text = if (DataMeter.isActive(ctx)) getString(R.string.sk_set_meter_measuring) else getString(R.string.sk_set_meter_off)
             meterLiveRow = this
         })
-        box.addView(actionRow("Measurement history") { showDataMeasureHistory() }.first)
+        box.addView(actionRow(getString(R.string.sk_set_meter_history), glyph = SkGlyph.LIST) { showDataMeasureHistory() }.first)
         // ---- Unattended sampler (2026-07-26): records without a human at either end ----
-        box.addView(orSwitchRow("Record data usage automatically", DataMeter.isSamplingOn(ctx)) { on ->
+        box.addView(orSwitchRow(getString(R.string.sk_set_meter_auto), DataMeter.isSamplingOn(ctx)) { on ->
             DataMeter.setSamplingOn(ctx, on); rebuild()
         })
         if (DataMeter.isSamplingOn(ctx)) {
-            box.addView(orTapRow("Sample window:  ${DataMeter.windowLabel(DataMeter.getWindowMinutes(ctx))}") {
+            box.addView(orTapRow(getString(R.string.sk_set_meter_window_row, DataMeter.windowLabel(DataMeter.getWindowMinutes(ctx)))) {
                 showWindowSlider()
             })
-            box.addView(orMini("One line per window. Windows land on the ${UiPrefs.getRecoveryTickMinutes(ctx)}-min check tick, so they are approximate."))
+            box.addView(orMini(getString(R.string.sk_set_meter_window_note, UiPrefs.getRecoveryTickMinutes(ctx))))
         }
-        box.addView(actionRow("Data usage log") { showDataHistory(DataMeter.hourlyFile(ctx), "Data usage log", clearable = false) }.first)
+        box.addView(actionRow(getString(R.string.sk_set_meter_usage_log), glyph = SkGlyph.LIST) { showDataHistory(DataMeter.hourlyFile(ctx), getString(R.string.sk_set_meter_usage_log), clearable = false) }.first)
         if (DataMeter.isActive(ctx)) startMeterLive()
         c.addView(box)
     }
@@ -962,7 +1057,7 @@ class FontsSettingsFragment : Fragment() {
             val row = meterLiveRow?.takeIf { it.isAttachedToWindow } ?: return
             if (!DataMeter.isActive(ctx)) return
             val (el, rx, tx) = DataMeter.snapshot(ctx)
-            row.text = "measuring ${DataMeter.elapsedLabel(el)} · ↓${DataMeter.bytesLabel(rx)} ↑${DataMeter.bytesLabel(tx)} · ${DataMeter.netLabel(ctx)}"
+            row.text = ctx.getString(R.string.sk_set_meter_live, DataMeter.elapsedLabel(el), DataMeter.bytesLabel(rx), DataMeter.bytesLabel(tx), DataMeter.netDisplayLabel(ctx))
             meterHandler.postDelayed(this, 1000L)
         }
     }
@@ -979,7 +1074,7 @@ class FontsSettingsFragment : Fragment() {
 
     private fun showDataMeasureHistory() {
         val ctx = context ?: return
-        showDataHistory(DataMeter.historyFile(ctx), "Data measurements")
+        showDataHistory(DataMeter.historyFile(ctx), ctx.getString(R.string.sk_set_meter_measurements))
     }
 
     /** Shared renderer for both data logs — the manual session history and the unattended hourly
@@ -1035,7 +1130,7 @@ class FontsSettingsFragment : Fragment() {
 
     private fun orSwarmField(ctx: android.content.Context): View = EditText(ctx).apply {
         setText(UiPrefs.getRecoveryTestSwarm(ctx))
-        hint = "paste conversation ID"
+        hint = ctx.getString(R.string.sk_set_rec_paste_hint)
         setTextColor(yellow)
         setHintTextColor(skColor(SkRole.TEXT_HINT))
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -1052,40 +1147,16 @@ class FontsSettingsFragment : Fragment() {
 
     private fun recoveryAccountLabel(ctx: android.content.Context): String {
         val id = UiPrefs.getRecoveryTestAccount(ctx)
-        if (id.isEmpty()) return "not set"
+        if (id.isEmpty()) return ctx.getString(R.string.sk_set_rec_not_set)
         val a = mAccountService.getAccount(id) ?: return id.take(8)
         return a.registeredName.ifBlank { a.alias.orEmpty() }.ifBlank { a.accountId.take(8) }
     }
 
     private fun showRecoveryInfo() {
         val ctx = context ?: return
-        val html = """
-            <b><u>What this does</u></b><br>
-            When DHT proxy is on, the single proxy link carries the setup of every connection. If it
-            wedges, messages quietly stop flowing in and out while the app still shows “connected”.
-            Online recovery notices that and briefly drops every account to the full distributed DHT
-            (proxy off → settle → on) to recover — keeping the battery benefit of proxy mode the rest of
-            the time.<br><br>
-            <b><u>Base check (no pings)</u></b><br>
-            Passive. Watches for “nothing is connecting” — registered accounts that are trying but have
-            nothing actually established for a few minutes. Sends no messages: zero traffic, zero battery
-            cost. A good always-on safety net.<br><br>
-            <b><u>Ping check (test swarm)</u></b><br>
-            Active and sharper. Pick an always-online account (e.g. your own account on another device),
-            choose a one-to-one test conversation with it, and the watchdog sends a timestamp ping every
-            interval. If a ping isn’t delivered, that is the cue to recover. Set the <b>Send pings from</b>
-            account and the <b>test conversation</b> below (clear the account to switch the pings off).<br><br>
-            <b><u>Choosing a mode</u></b><br>
-            The two checks are <b>mutually exclusive</b> — turning one on turns the other off. With
-            <b>both off, online recovery is disabled</b>: no detection and no automatic recovery. Either
-            way, the <b>Sync</b> button still recovers on demand.<br><br>
-            <b><u>Recovery action</u></b><br>
-            On a detected wedge every account is briefly switched proxy off → settle → on; repeated
-            wedges back off to a longer settle. Every event is written to the recovery log
-            (<b>View recovery log</b>, or tap the Sync icon).
-        """.trimIndent()
+        val html = ctx.getString(R.string.sk_set_rec_info_html)
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Online recovery")
+            .setTitle(getString(R.string.sk_set_sec_recovery))
             .setMessage(androidx.core.text.HtmlCompat.fromHtml(html, androidx.core.text.HtmlCompat.FROM_HTML_MODE_COMPACT))
             .setPositiveButton(android.R.string.ok, null)
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
@@ -1094,17 +1165,17 @@ class FontsSettingsFragment : Fragment() {
     private fun showRecoveryAccountPicker() {
         val ctx = context ?: return
         val accs = mAccountService.getAccounts().filter { it.isJami }
-        if (accs.isEmpty()) { Flash.show(ctx, "No accounts"); return }
+        if (accs.isEmpty()) { Flash.show(ctx, ctx.getString(R.string.sk_set_no_accounts)); return }
         val labels = accs.map { it.registeredName.ifBlank { it.alias.orEmpty() }.ifBlank { it.accountId.take(8) } }.toTypedArray()
         val current = accs.indexOfFirst { it.accountId == UiPrefs.getRecoveryTestAccount(ctx) }
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Send pings from")
+            .setTitle(ctx.getString(R.string.sk_set_rec_from_title))
             .setSingleChoiceItems(labels, current) { d, which ->
                 UiPrefs.setRecoveryTestAccount(ctx, accs[which].accountId)
                 d.dismiss(); rebuild()
             }
             // Let it be un-set: clearing the account disables the ping check (nothing to send from).
-            .setNeutralButton("Clear") { _, _ -> UiPrefs.setRecoveryTestAccount(ctx, ""); rebuild() }
+            .setNeutralButton(ctx.getString(R.string.sk_set_rec_account_clear)) { _, _ -> UiPrefs.setRecoveryTestAccount(ctx, ""); rebuild() }
             .setNegativeButton(android.R.string.cancel, null)
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
@@ -1112,10 +1183,10 @@ class FontsSettingsFragment : Fragment() {
     private fun showRecoverySwarmPicker() {
         val ctx = context ?: return
         val accId = UiPrefs.getRecoveryTestAccount(ctx)
-        if (accId.isEmpty()) { Flash.show(ctx, "Pick the send-from account first (①)"); return }
+        if (accId.isEmpty()) { Flash.show(ctx, ctx.getString(R.string.sk_set_rec_pick_account_first)); return }
         val acc = mAccountService.getAccount(accId) ?: return
         val convs = acc.getConversations().toList()
-        if (convs.isEmpty()) { Flash.show(ctx, "No conversations on this account"); return }
+        if (convs.isEmpty()) { Flash.show(ctx, ctx.getString(R.string.sk_set_rec_no_conversations)); return }
         // Resolve each conversation's display title (same as the chat list shows), then pick by name.
         val singles = convs.map { mConversationFacade.getConversationProfile(accId, it.uri) }
         recoveryDisposable.add(
@@ -1127,14 +1198,14 @@ class FontsSettingsFragment : Fragment() {
                     val labels = vms.map {
                         it.title.ifBlank { (it.uri.rawRingId ?: it.uri.uri).take(16) + "…" } }.toTypedArray()
                     cx.ring.utils.DialogTheme.builder(c2)
-                        .setTitle("Pick test conversation")
+                        .setTitle(c2.getString(R.string.sk_set_rec_pick_conv_title))
                         .setItems(labels) { d, which ->
                             UiPrefs.setRecoveryTestSwarm(c2, vms[which].uri.rawRingId ?: vms[which].uri.uri)
                             d.dismiss(); rebuild()
                         }
                         .setNegativeButton(android.R.string.cancel, null)
                         .show().let { cx.ring.utils.DialogTheme.theme(it, c2) }
-                }, { context?.let { Flash.show(it, "Could not load conversations") } })
+                }, { context?.let { Flash.show(it, it.getString(R.string.sk_set_conversations_failed)) } })
         )
     }
 
@@ -1151,7 +1222,7 @@ class FontsSettingsFragment : Fragment() {
         var minutes = DataMeter.getWindowMinutes(ctx)
         fun paint() {
             val perDay = (24 * 60) / minutes
-            label.text = "${DataMeter.windowLabel(minutes)}   (~$perDay lines/day)"
+            label.text = ctx.getString(R.string.sk_set_meter_window_value, DataMeter.windowLabel(minutes), perDay)
         }
         paint()
         val bar = android.widget.SeekBar(ctx).apply {
@@ -1170,7 +1241,7 @@ class FontsSettingsFragment : Fragment() {
             orientation = LinearLayout.VERTICAL; addView(label); addView(bar)
         }
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Sample window")
+            .setTitle(ctx.getString(R.string.sk_set_meter_window_title))
             .setView(col)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 DataMeter.setWindowMinutes(ctx, minutes); rebuild()
@@ -1199,17 +1270,17 @@ class FontsSettingsFragment : Fragment() {
     private fun showRecoveryLog() {
         val ctx = context ?: return
         val log = UiPrefs.getRecoveryLog(ctx)
-        val text = if (log.isEmpty()) "(no events yet)" else log.reversed().joinToString("\n")
+        val text = if (log.isEmpty()) ctx.getString(R.string.sk_set_rec_log_empty) else log.reversed().joinToString("\n")
         val tv = TextView(ctx).apply {
             this.text = text; setTextColor(yellow); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(dp(20f), dp(12f), dp(20f), dp(12f)); setTextIsSelectable(true)
         }
         val scroll = android.widget.ScrollView(ctx).apply { addView(tv) }
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Recovery log")
+            .setTitle(ctx.getString(R.string.sk_set_rec_log_title))
             .setView(scroll)
-            .setPositiveButton("Close", null)
-            .setNegativeButton("Clear") { _, _ -> UiPrefs.clearRecoveryLog(ctx) }
+            .setPositiveButton(ctx.getString(R.string.sk_set_close), null)
+            .setNegativeButton(ctx.getString(R.string.sk_set_rec_log_clear)) { _, _ -> UiPrefs.clearRecoveryLog(ctx) }
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
 
@@ -1222,11 +1293,11 @@ class FontsSettingsFragment : Fragment() {
     /** First section of the page: heading + a tappable summary row that opens the panel. */
     private fun addExportImportSection(c: LinearLayout) {
         val ctx = requireContext()
-        c.addView(groupHeader("Export / Import", first = true))
+        c.addView(groupHeader(getString(R.string.sk_set_sec_exim), first = true))
         // The way in: the section's main action, so the thick pill (白い熊, 2026-07-28; the
         // settings-page pill rule, 2026-11-07). The status line sits beneath with the explanation.
         val (row, _) = actionRow(getString(R.string.sk_exim_open).removeSuffix("▸").trim(),
-            getString(R.string.sk_exim_page_summary), main = true) {
+            getString(R.string.sk_exim_page_summary), main = true, glyph = SkGlyph.IMPORT) {
             // onClosed, not onImported: the directory and the permission can both change inside
             // the panel, and cancelling out of it must still leave this page truthful.
             EximPanel.show(ctx, mAccountService, onClosed = {
@@ -1246,13 +1317,13 @@ class FontsSettingsFragment : Fragment() {
         //      It belongs in this section because the export made the shape of the problem plain:
         //      almost all of the weight is old chat attachments (白い熊, 2026-07-29).
         val (filesRow, _) = actionRow(getString(R.string.sk_files_open).removeSuffix("▸").trim(),
-            getString(R.string.sk_files_open_summary)) {
+            getString(R.string.sk_files_open_summary), glyph = SkGlyph.DIRECTORY) {
             startActivity(cx.ring.client.ChatFilesActivity.intent(ctx))
         }
         c.addView(filesRow, matchWrap().apply { leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(6f) })
         // ---- All-files access. Nothing in the panel can run without it, so it is a proper pill
         //      rather than a line of small print (白い熊, 2026-07-28). It opens the system screen.
-        val (permBox, perm) = actionRow("All-files access") { EximPanel.openAllFilesSettings(ctx) }
+        val (permBox, perm) = actionRow(getString(R.string.sk_set_all_files), glyph = SkGlyph.DIRECTORY) { EximPanel.openAllFilesSettings(ctx) }
         eximPermTv = perm
         eximPermBox = permBox
         c.addView(permBox, matchWrap().apply { leftMargin = dp(72f); rightMargin = dp(16f); bottomMargin = dp(8f) })
@@ -1269,7 +1340,7 @@ class FontsSettingsFragment : Fragment() {
         // requirement (default OFF), and the token itself, shown ONLY while it is being asked for.
         // A 48-character secret sitting under an off switch invites 白い熊 to paste it somewhere it
         // will do nothing.
-        autoBox.addView(orSwitchRow("Automation — external control & 保存復元 backups", AutomationPrefs.isEnabled(ctx)) {
+        autoBox.addView(orSwitchRow(getString(R.string.sk_set_auto_switch), AutomationPrefs.isEnabled(ctx)) {
             AutomationPrefs.setEnabled(ctx, it)
         })
 
@@ -1280,16 +1351,13 @@ class FontsSettingsFragment : Fragment() {
             visibility = if (AutomationPrefs.isTokenRequired(ctx)) View.VISIBLE else View.GONE
         }
 
-        autoBox.addView(orSwitchRow("Use authorization token?", AutomationPrefs.isTokenRequired(ctx)) {
+        autoBox.addView(orSwitchRow(getString(R.string.sk_set_auto_token_switch), AutomationPrefs.isTokenRequired(ctx)) {
             AutomationPrefs.setTokenRequired(ctx, it)
             tokenBox.visibility = if (it) View.VISIBLE else View.GONE
         })
-        autoBox.addView(orMini("Off: any app on this device may drive this app's automation — " +
-            "including sending a message and placing a call as you. On: a caller must present the " +
-            "token. The backup/restore door additionally checks the caller's package, uid and " +
-            "signing certificate, whichever way this is set."))
+        autoBox.addView(orMini(getString(R.string.sk_set_auto_token_note)))
 
-        tokenBox.addView(orMini("Secret token — tap to copy"))
+        tokenBox.addView(orMini(getString(R.string.sk_set_auto_token_label)))
         val tokenTv = TextView(ctx).apply {
             text = AutomationPrefs.getToken(ctx)
             setTextColor(yellow)
@@ -1298,17 +1366,17 @@ class FontsSettingsFragment : Fragment() {
             setPadding(0, dp(2f), 0, dp(2f))
             setOnClickListener {
                 val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                cm.setPrimaryClip(android.content.ClipData.newPlainText("白い熊 GNU Jami automation token", AutomationPrefs.getToken(ctx)))
-                Flash.show(ctx, "Token copied")
+                cm.setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.sk_set_auto_token_clip), AutomationPrefs.getToken(ctx)))
+                Flash.show(ctx, ctx.getString(R.string.sk_set_auto_token_copied))
             }
         }
         tokenBox.addView(tokenTv)
-        tokenBox.addView(actionRow("Regenerate token", opens = false) {
+        tokenBox.addView(actionRow(getString(R.string.sk_set_auto_token_regen), opens = false, glyph = SkGlyph.RESET) {
             tokenTv.text = AutomationPrefs.regenerateToken(ctx)
-            Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
+            Flash.show(ctx, ctx.getString(R.string.sk_set_auto_token_regenerated), Toast.LENGTH_LONG)
         }.first)
         autoBox.addView(tokenBox)
-        autoBox.addView(actionRow("Automation details & usage") {
+        autoBox.addView(actionRow(getString(R.string.sk_set_auto_details), glyph = SkGlyph.INFO) {
             (parentFragment as? SettingsFragment)?.goToAutomationSettings()
         }.first)
         c.addView(autoBox)
@@ -1336,7 +1404,8 @@ class FontsSettingsFragment : Fragment() {
         // State only — NO directory here. Showing the path made the pill read as "tap to change
         // the folder", and tapping it opens the system permission screen instead (白い熊,
         // 2026-07-28). The folder belongs to the status line and to the panel's own folder box.
-        tv.text = "All-files access: " + getString(if (ok) R.string.sk_exim_perm_granted else R.string.sk_exim_perm_missing)
+        tv.text = ctx.getString(R.string.sk_set_all_files_state,
+            ctx.getString(if (ok) R.string.sk_exim_perm_granted else R.string.sk_exim_perm_missing))
         tv.setTextColor(if (ok) yellow else warnRed)
         // Once granted this is settled business: fade it back so it stops competing with the
         // control that actually does something. It shouts only while it still needs attention.
@@ -1426,20 +1495,20 @@ class FontsSettingsFragment : Fragment() {
             layoutParams = matchWrap()
             setPadding(dp(18f), dp(6f), 0, 0)
         }
-        controls.addView(miniLabel("Font"))
+        controls.addView(miniLabel(getString(R.string.sk_set_font_label)))
         controls.addView(valueRow(
             FontPrefs.getFamily(ctx, category).let {
-                if (it.isEmpty()) "Inherit (default)" else FontUtil.labelForFamily(it)
+                if (it.isEmpty()) getString(R.string.sk_set_font_inherit) else FontUtil.labelForFamily(ctx, it)
             }) { showFamilyPicker(category) })
-        controls.addView(miniLabel("weight"))
+        controls.addView(miniLabel(getString(R.string.sk_set_font_weight_label)))
         val w = FontPrefs.getWeight(ctx, category)
-        controls.addView(valueRow(if (w == 0) "Inherit (default)" else FontUtil.labelForWeight(w)) {
+        controls.addView(valueRow(if (w == 0) getString(R.string.sk_set_font_inherit) else FontUtil.labelForWeight(ctx, w)) {
             showWeightPicker(category)
         })
-        controls.addView(miniLabel("size"))
+        controls.addView(miniLabel(getString(R.string.sk_set_font_size_label)))
         val size = FontPrefs.getSize(ctx, category)
         val sizeValue = TextView(ctx).apply {
-            text = if (size > 0f) "${size.toInt()} sp" else "default"
+            text = if (size > 0f) "${size.toInt()} sp" else ctx.getString(R.string.sk_set_font_size_default)
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(0, dp(2f), 0, dp(2f))
@@ -1467,7 +1536,7 @@ class FontsSettingsFragment : Fragment() {
                     val ns = if (p < 8) 0f else p.toFloat()
                     FontPrefs.setFont(ctx, category, FontPrefs.getFamily(ctx, category),
                         FontPrefs.getWeight(ctx, category), ns)
-                    sizeValue.text = if (ns > 0f) "${ns.toInt()} sp" else "default"
+                    sizeValue.text = if (ns > 0f) "${ns.toInt()} sp" else ctx.getString(R.string.sk_set_font_size_default)
                     val eff = FontPrefs.effectiveSize(ctx, category)
                     preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (eff > 0f) eff else 16f)
                 }
@@ -1534,7 +1603,7 @@ class FontsSettingsFragment : Fragment() {
             background = swatch(roleColor(role.key))
         })
         row.addView(TextView(ctx).apply {
-            text = if (ColorPrefs.isSet(ctx, role.key)) hex(roleColor(role.key)) else "Default"
+            text = if (ColorPrefs.isSet(ctx, role.key)) hex(roleColor(role.key)) else ctx.getString(R.string.sk_set_default_value)
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         })
@@ -1575,9 +1644,9 @@ class FontsSettingsFragment : Fragment() {
         val ctx = context ?: return
         val weight = FontPrefs.effectiveWeight(ctx, cat)
         val opts = ArrayList<Opt>()
-        for ((label, value) in FontUtil.FAMILIES) opts.add(Opt(label, value, false))
+        for ((label, value) in FontUtil.families(ctx)) opts.add(Opt(label, value, false))
         for (f in FontPrefs.getFontFiles(ctx)) opts.add(Opt(f.name, "file:${f.absolutePath}", false))
-        opts.add(Opt("Add custom font…", "", true))
+        opts.add(Opt(ctx.getString(R.string.sk_set_font_add), "", true))
         val adapter = object : ArrayAdapter<Opt>(ctx, android.R.layout.simple_list_item_1, opts) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val tv = super.getView(position, convertView, parent) as TextView
@@ -1590,7 +1659,7 @@ class FontsSettingsFragment : Fragment() {
             }
         }
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Font")
+            .setTitle(ctx.getString(R.string.sk_set_font_label))
             .setAdapter(adapter) { _, which ->
                 val o = opts[which]
                 if (o.addMarker) {
@@ -1606,9 +1675,9 @@ class FontsSettingsFragment : Fragment() {
 
     private fun showWeightPicker(cat: String) {
         val ctx = context ?: return
-        val labels = FontUtil.WEIGHTS.map { it.first }.toTypedArray()
+        val labels = FontUtil.weights(ctx).map { it.first }.toTypedArray()
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Weight")
+            .setTitle(ctx.getString(R.string.sk_set_font_weight_title))
             .setItems(labels) { _, which ->
                 FontPrefs.setFont(ctx, cat, FontPrefs.getFamily(ctx, cat),
                     FontUtil.WEIGHTS[which].second, FontPrefs.getSize(ctx, cat))
@@ -1621,19 +1690,19 @@ class FontsSettingsFragment : Fragment() {
         val ctx = context ?: return
         val input = EditText(ctx).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
-            hint = "sp (blank = default)"
+            hint = ctx.getString(R.string.sk_set_font_size_hint)
             val s = FontPrefs.getSize(ctx, cat)
             if (s > 0f) setText(s.toInt().toString())
         }
         cx.ring.utils.DialogTheme.builder(ctx)
-            .setTitle("Size")
+            .setTitle(ctx.getString(R.string.sk_set_font_size_title))
             .setView(input)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val v = (input.text.toString().toFloatOrNull() ?: 0f).coerceIn(0f, 300f)
                 FontPrefs.setFont(ctx, cat, FontPrefs.getFamily(ctx, cat), FontPrefs.getWeight(ctx, cat), v)
                 rebuild()
             }
-            .setNeutralButton("Default") { _, _ ->
+            .setNeutralButton(ctx.getString(R.string.sk_set_default_value)) { _, _ ->
                 FontPrefs.setFont(ctx, cat, FontPrefs.getFamily(ctx, cat), FontPrefs.getWeight(ctx, cat), 0f)
                 rebuild()
             }
@@ -1666,7 +1735,8 @@ class FontsSettingsFragment : Fragment() {
         }
         box.addView(hexInput)
 
-        val names = arrayOf("Alpha (opacity)", "Red", "Green", "Blue")
+        val names = arrayOf(ctx.getString(R.string.sk_set_col_alpha), ctx.getString(R.string.sk_set_col_red),
+            ctx.getString(R.string.sk_set_col_green), ctx.getString(R.string.sk_set_col_blue))
         val labels = arrayOfNulls<TextView>(4)
         val bars = arrayOfNulls<SeekBar>(4)
 
@@ -1713,7 +1783,7 @@ class FontsSettingsFragment : Fragment() {
             .setTitle(role.label)
             .setView(box)
             .setPositiveButton(android.R.string.ok) { _, _ -> ColorPrefs.setColor(ctx, role.key, current()); rebuild() }
-            .setNeutralButton("Default") { _, _ -> ColorPrefs.reset(ctx, role.key); rebuild() }
+            .setNeutralButton(ctx.getString(R.string.sk_set_default_value)) { _, _ -> ColorPrefs.reset(ctx, role.key); rebuild() }
             .setNegativeButton(android.R.string.cancel, null)
             .show().let { cx.ring.utils.DialogTheme.theme(it, ctx) }
     }
@@ -1721,6 +1791,7 @@ class FontsSettingsFragment : Fragment() {
     private companion object {
         const val KEY_ORDER = "sk_ui_section_order"
         const val KEY_OPEN = "sk_ui_sections_open"
+        const val KEY_LANG_FIRST = "sk_ui_language_first_v1"
         const val TAG_SWITCH = "sk_switch_row"
         const val TAG_NOTE = "sk_note"
     }

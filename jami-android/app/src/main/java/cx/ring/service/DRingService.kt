@@ -102,6 +102,9 @@ class DRingService : Service() {
 
     // --- Connectivity resilience: survive network-change signals + reconnect when stale ---
     private var mLastNetworkKey: String? = null
+    /** False until the first default-network report of this process. That first report has no
+     *  previous path to differ from; it is where the daemon is starting up anyway. */
+    private var mNetworkSeen = false
     private var mNetworkPathChanged = false
     private var mLastForceReconnect = 0L
     private val mNetworkSettleRunnable = Runnable { onNetworkSettled() }
@@ -367,6 +370,19 @@ class DRingService : Service() {
         } catch (e: Exception) { null }
         val key = "$network/${name ?: "?"}"
         if (key == mLastNetworkKey) return  // no real path change (capability/keepalive churn)
+        if (!mNetworkSeen) {
+            // The FIRST report after a process start is not a path change (2026-11-23). It used to
+            // count as one, because mLastNetworkKey starts out null — so about six seconds into every
+            // start, each full-DHT account was unregistered and registered again, on connections the
+            // daemon had only just begun to build. Measured on a relay phone: a bridge answer began
+            // dialling its peer 60 ms before that teardown destroyed the dial. An onLost resets the
+            // key to null as well, but by then mNetworkSeen is true and the next report counts.
+            mNetworkSeen = true
+            mLastNetworkKey = key
+            Log.w(TAG, "first network report: $key (not a path change)")
+            scheduleNetworkSettle()
+            return
+        }
         Log.w(TAG, "network path changed: $mLastNetworkKey -> $key")
         mLastNetworkKey = key
         mNetworkPathChanged = true

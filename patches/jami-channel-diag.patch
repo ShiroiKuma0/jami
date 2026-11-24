@@ -1,0 +1,83 @@
+--- a/src/jamidht/jamiaccount.cpp
++++ b/src/jamidht/jamiaccount.cpp
+@@ -115,6 +115,18 @@
+ 
+ using namespace std::placeholders;
+ 
++// SK-CHANDIAG (2026-11-23, diagnostic, Settings -> Diagnostics -> Connection attempts, group 1): which
++// channels a peer asks this device for, and whether we accept. The requesting side already logs its
++// "request device=... channel=..." (SK-ICEDIAG); the answering side logged nothing EMUI keeps, so a
++// phone that left four swarm channel requests unanswered for a minute could not be examined.
++#ifdef __ANDROID__
++#include <android/log.h>
++extern "C" int sk_diag_on(int group);
++#define SK_CH(...) do { if (sk_diag_on(1)) __android_log_print(ANDROID_LOG_ERROR, "SK-CHANDIAG", __VA_ARGS__); } while (0)
++#else
++#define SK_CH(...) do { } while (0)
++#endif
++
+ namespace jami {
+ 
+ static constexpr const char MIME_TYPE_IMDN[] {"message/imdn+xml"};
+@@ -2458,9 +2470,13 @@
+     auto uri = Uri(name);
+     std::shared_lock lk(connManagerMtx_);
+     auto itHandler = channelHandlers_.find(uri.scheme());
+-    if (itHandler != channelHandlers_.end() && itHandler->second)
+-        return itHandler->second->onRequest(cert, name);
+-    return name == "sip";
++    // SK-CHANDIAG: the verdict on every channel a peer asks us for, at a level EMUI keeps.
++    const bool skAccept = (itHandler != channelHandlers_.end() && itHandler->second)
++                              ? itHandler->second->onRequest(cert, name)
++                              : name == "sip";
++    SK_CH("chan-in device=%.8s %s name=%.60s", cert->getLongId().toString().c_str(),
++          skAccept ? "ACCEPT" : "DECLINE", name.c_str());
++    return skAccept;
+ }
+ 
+ void
+--- a/src/jamidht/swarm/swarm_channel_handler.cpp
++++ b/src/jamidht/swarm/swarm_channel_handler.cpp
+@@ -18,6 +18,15 @@
+ #include "swarm_channel_handler.h"
+ #include "jamidht/jamiaccount.h"
+ 
++// SK-CHANDIAG (see jamiaccount.cpp): the swarm channel's own results, both directions.
++#ifdef __ANDROID__
++#include <android/log.h>
++extern "C" int sk_diag_on(int group);
++#define SK_CH(...) do { if (sk_diag_on(1)) __android_log_print(ANDROID_LOG_ERROR, "SK-CHANDIAG", __VA_ARGS__); } while (0)
++#else
++#define SK_CH(...) do { } while (0)
++#endif
++
+ namespace jami {
+ 
+ SwarmChannelHandler::SwarmChannelHandler(const std::shared_ptr<JamiAccount>& acc, dhtnet::ConnectionManager& cm)
+@@ -39,7 +48,16 @@
+     if (disableSwarmManager)
+         return;
+ #endif
+-    connectionManager_.connectDevice(deviceId, fmt::format("swarm://{}", conversationId), cb);
++    // SK-CHANDIAG: how our own swarm channel request ended.
++    connectionManager_.connectDevice(deviceId,
++                                     fmt::format("swarm://{}", conversationId),
++                                     [cb = std::move(cb), conversationId](std::shared_ptr<dhtnet::ChannelSocket> socket,
++                                                                          const DeviceId& dev) {
++                                         SK_CH("swarm-out conv=%.8s device=%.8s %s", conversationId.c_str(),
++                                               dev.toString().c_str(), socket ? "OPEN" : "FAILED");
++                                         if (cb)
++                                             cb(socket, dev);
++                                     });
+ }
+ 
+ bool
+@@ -75,6 +93,8 @@
+ {
+     auto sep = uri.find_last_of('/');
+     auto conversationId = uri.substr(sep + 1);
++    SK_CH("swarm-ready conv=%.8s device=%.8s", conversationId.c_str(),
++          socket ? socket->deviceId().toString().c_str() : "?");
+     if (auto acc = account_.lock()) {
+         if (auto* convModule = acc->convModule(true)) {
+             convModule->addSwarmChannel(conversationId, socket);

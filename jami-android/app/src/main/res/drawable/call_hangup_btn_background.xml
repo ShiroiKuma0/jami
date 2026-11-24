@@ -2,7 +2,7 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android" android:enterFadeDuration="@android:integer/config_shortAnimTime" android:exitFadeDuration="@android:integer/config_shortAnimTime">
       <item>
         <shape android:shape="oval">
-            <solid android:color="@color/sk_role_call_ctrl_ground" />
+            <solid android:color="@color/sk_role_call_decline" />
             <stroke android:width="3dp" android:color="@color/sk_role_call_decline" />
         </shape>
     </item>

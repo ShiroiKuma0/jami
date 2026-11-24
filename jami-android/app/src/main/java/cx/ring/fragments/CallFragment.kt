@@ -217,6 +217,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
                 b.callDeclineMsgBtn.setOnClickListener { openDeclinePicker() }   // shiroikuma
                 b.callEndBtn.setOnClickListener { refuseClicked() }
                 b.callHngUpBtn.setOnClickListener { hangupClicked() }
+                b.callHngUpBtn.imageTintList = android.content.res.ColorStateList.valueOf(cx.ring.sk.skColor(cx.ring.sk.SkRole.CALL_DECLINE_GLYPH))
                 b.callSpeakerBtn.setOnClickListener { speakerClicked() }
                 b.callAudioMuteBtn.setOnClickListener { audioMuteClicked() }   // shiroikuma
                 b.callAudioBtBtn.setOnClickListener { audioBluetoothClicked() }   // shiroikuma
@@ -1296,6 +1297,7 @@ class CallFragment : BaseSupportFragment<CallPresenter, CallView>(), CallView,
     override fun initNormalStateDisplay() {
         Log.w(CallPresenter.TAG, "initNormalStateDisplay")
         outgoingRinging = false   // shiroikuma: answered — normal ongoing-call gating takes over
+        binding?.callEndBtn?.isGone = true   // shiroikuma: the ringing pill is drawn above the sheet; the sheet's own End call takes over
         binding?.apply {
             callModeToggleBtn.visibility = View.GONE
             callBtnRow.isVisible = false

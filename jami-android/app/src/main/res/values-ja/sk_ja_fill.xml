@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Upstream strings that upstream's own Japanese translation lacks.
+
+  Every key here exists in res/values/*.xml (strings.xml, strings_account.xml,
+  strings_preferences.xml, strings_content_description.xml, strings_certificate.xml,
+  strings_call.xml, arrays.xml) but in none of upstream's res/values-ja/*.xml files.
+  They are kept in this one fork-owned file so that upstream's values-ja files stay
+  untouched and a rebase does not conflict.
+
+  When a sync brings one of these keys into upstream's own values-ja file, the build
+  reports a duplicate resource — delete that entry from HERE.
+
+  The two string-arrays at the end are copies of the default arrays with their prose
+  items translated. Item order and count must stay identical to res/values/arrays.xml
+  (swarm_one_to_one_actions is indexed by ActionHelper.ACTION_*): when the default
+  array changes, change the copy here too.
+-->
+<resources>
+
+    <!-- ===== strings.xml ===== -->
+    <string name="submit_issue_action_description"><u>新しい報告を作成</u></string>
+    <string name="switch_conversation">会話を切り替え</string>
+    <string name="delete_conversation_confirmation">この会話を削除してもよろしいですか？</string>
+    <string name="acc_profile_photo_capture">写真を撮影</string>
+    <string name="sponsor_section">Jamiは自由ソフトウェアであり、開発と支援は次の団体が行っています</string>
+    <string name="no_browser_app_installed">Webブラウザーが見つかりません。このページを表示するには、ブラウザーをインストールしてください。</string>
+    <string name="conversation_creation_error">会話を作成できません</string>
+    <string name="end_note">これは、Jamiのために多くの時間を費やし、有益な成果をもたらしてくださった方々の一覧です。該当する貢献者で一覧への掲載を希望される方は、Jamiチーム（contact@jami.net）までご連絡ください。</string>
+    <string name="menu_item_app_settings">アプリの設定</string>
+    <string name="menu_item_sync">すべてのアカウントを同期</string>
+    <string name="menu_item_extension_list">拡張機能の設定</string>
+    <string name="pref_conference_resolution_title">会議のビデオ解像度</string>
+    <string name="pref_conference_resolution_summary">選択中: %1$s。この端末で主催する新しい会議に適用されます。</string>
+    <string name="dial_number">番号に発信</string>
+    <string name="joinable_feeds">参加できるフィード</string>
+    <string name="join_feed">参加</string>
+    <string name="joinable_feed_message">フィード「%1$s」に招待されました。</string>
+    <string name="notif_channel_protected">保護された連絡先</string>
+    <string name="notif_background_service">白い熊 GNU Jamiはバックグラウンドで実行中です</string>
+    <string name="notif_channel_reconnect">バックグラウンド同期</string>
+    <string name="notif_reconnect_title">白い熊 GNU Jamiが同期しています…</string>
+    <string name="action_call_resume">再開</string>
+    <string name="call_on_hold">通話は保留中です</string>
+    <string name="start_error_title">白い熊 GNU Jamiを起動できません</string>
+    <string name="action_call_hold_accept">現在の通話を保留にして、着信に音声のみで応答</string>
+    <string name="switch_to_audio">動画を無効化</string>
+    <string name="action_call_hold_accept_video">現在の通話を保留にして、着信にビデオで応答</string>
+    <string name="action_call_end_accept">現在の通話を終了して、着信に応答</string>
+    <string name="action_call_camera_on">カメラをオンにする</string>
+    <string name="action_call_camera_off">カメラをオフにする</string>
+    <string name="action_call_stop_screen_share">画面の共有を停止</string>
+    <string name="action_call_show_extensions">拡張機能を表示</string>
+    <string name="action_call_show_participants">参加者を表示</string>
+    <string name="action_load_extension">拡張機能を読み込む</string>
+    <string name="write_a_message">メッセージを書く</string>
+    <string name="qr_code_not_contact">白い熊 GNU Jamiの連絡先のQRコードではありません</string>
+    <string name="conversation_filter_all">すべて</string>
+    <string name="conversation_filter_groups">グループ</string>
+    <string name="conversation_filter_feeds">フィード</string>
+    <string name="new_feed">新しいフィード</string>
+    <string name="feed_creation_hint">お知らせや最新情報を伝えるための専用の場所です。</string>
+    <string name="feed_conversation_name">フィード: %1$s</string>
+    <string name="feed_created">フィードを作成しました</string>
+    <string name="feed_created_at">フィードを作成しました（%1$s）</string>
+    <string name="feed_name">フィード名</string>
+    <string name="create_feed">フィードを作成</string>
+    <string name="feed_details">フィードの詳細</string>
+    <string name="conversation_type_feed">フィード</string>
+    <string name="leave_feed">フィードを退出</string>
+    <string name="leave_feed_title">このフィードを退出しますか？</string>
+    <string name="leave_feed_message">このフィードは会話の一覧から削除されます。</string>
+    <string name="feed_edit_title">フィードのタイトルを編集</string>
+    <string name="feed_edit_description">フィードの説明を編集</string>
+    <string name="feed_not_admin">このフィードの情報を編集できるのは管理者だけです</string>
+    <string name="permission_dialog_camera_message">ビデオでの会話にはカメラの権限が必要ですが、現在は無効になっています。この機能を使うには、端末の設定で有効にしてください。</string>
+    <string name="camera_error">カメラの起動中にエラーが発生しました。</string>
+    <string name="ringtone_jami_tones">白い熊 GNU Jamiの着信音</string>
+    <string name="permission_dialog_read_contacts_message">白い熊 GNU Jamiには「連絡先の読み取り」の権限が必要です。この機能を使うには、端末の設定で有効にしてください。</string>
+    <string name="permission_dialog_write_call_log_message">白い熊 GNU Jamiには「通話履歴の書き込み」の権限が必要です。この機能を使うには、端末の設定で有効にしてください。</string>
+    <string name="permission_dialog_post_notifications_title">通知を許可</string>
+    <string name="permission_dialog_post_notifications_message">白い熊 GNU Jamiは、アプリがバックグラウンドにあるときでも着信やメッセージをお知らせするために、通知の権限を必要とします。許可しないと、着信に気づけないことがあります。</string>
+    <string name="permission_dialog_post_notifications_blocked_message">白い熊 GNU Jamiの通知が無効になっています。このままでは着信やメッセージに気づけません。端末の設定で白い熊 GNU Jamiの通知を有効にしてください。</string>
+    <string name="permission_dialog_local_network_title">ローカルネットワークへのアクセスを許可</string>
+    <string name="permission_dialog_local_network_message">白い熊 GNU Jamiは、同じネットワーク上の端末と通話を直接つなぐために、ローカルネットワークへのアクセスを必要とします。許可しないと、通話が中継を経由して品質が下がることがあります。</string>
+    <string name="permission_dialog_local_network_blocked_message">白い熊 GNU Jamiのローカルネットワークへのアクセスが無効になっています。同じネットワーク上の端末との通話が中継を経由して、品質が下がることがあります。端末の設定で白い熊 GNU Jamiのローカルネットワークへのアクセスを有効にしてください。</string>
+    <string name="error_scan_no_camera_permissions">QRコードの読み取りにはカメラの権限が必要ですが、現在は無効になっています。この機能を使うには、端末の設定で有効にしてください。</string>
+    <string name="conversation_action_delete_this_title">この会話を削除しますか？</string>
+    <string name="conversation_action_add_this_message">接続リクエストを送信します。</string>
+    <string name="conversation_action_remove_title">会話を削除しますか？</string>
+    <string name="conversation_action_remove_message">連絡先は残したまま、この会話だけを削除します。</string>
+    <string name="swarm_group_action_leave_title">このグループを退出しますか？</string>
+    <string name="swarm_group_action_leave_message">この会話は会話の一覧から削除されます</string>
+    <string name="conversation_action_copy_peer_number">連絡先の識別子をコピー</string>
+    <string name="copied_to_clipboard">%1$sをクリップボードにコピーしました。</string>
+    <string name="clip_message">メッセージの内容</string>
+    <string name="video_not_found">ビデオファイルが見つかりません</string>
+    <string name="audio_recorder_error">録音を開始できません。</string>
+    <string name="audio_recording_ready">タップで再生、波形をなぞって再生位置を移動</string>
+    <string name="audio_recording_playing">再生中…</string>
+    <string name="audio_recording_extend">録音を続ける</string>
+    <string name="audio_recording_restart">録音し直す</string>
+    <string name="audio_recording_delete">破棄</string>
+    <string name="audio_recording_discard_title">録音を破棄しますか？</string>
+    <string name="audio_recording_discard_message">録音した内容は失われます。</string>
+    <string name="audio_recording_discard_keep">編集を続ける</string>
+    <string name="audio_recording_discard_confirm">破棄</string>
+    <string name="audio_recording_limit_reached">録音時間の上限に達しました。送信するか、キャンセルしてください。</string>
+    <string name="audio_recording_gesture_hint">離すと送信 · ◀ へずらすとキャンセル · ▲ で確認</string>
+    <string name="audio_recording_release_cancel">離すとキャンセル</string>
+    <string name="audio_recording_release_review">離すと編集画面を開く</string>
+    <string name="audio_recording_slide_cancel">録音をキャンセル</string>
+    <string name="audio_recording_slide_review">編集画面を開く</string>
+    <string name="audio_recording_review_short">確認</string>
+    <string name="audio_recording_too_short">長押しで音声メッセージを録音</string>
+    <string name="video_recorder_error">利用できる録画機能がありません。</string>
+    <string name="taking_picture_error">写真の撮影中にエラーが発生しました。</string>
+    <string name="find_picture_error">写真の検索中にエラーが発生しました。</string>
+    <string name="open_camera_error">カメラを開く際にエラーが発生しました。</string>
+    <string name="starting_recorder_error">録音・録画の開始中にエラーが発生しました。</string>
+    <string name="starting_camera_error">カメラの起動中にエラーが発生しました。</string>
+    <string name="browser_error">この端末にはファイルを選ぶアプリがありません。</string>
+    <string name="import_archive_error">アーカイブのインポート中にエラーが発生しました。</string>
+    <string name="export_archive_error">アーカイブのエクスポート中にエラーが発生しました。</string>
+    <string name="load_ringtone_error">着信音の読み込み中にエラーが発生しました。</string>
+    <string name="sharing_log_error">記録の共有中にエラーが発生しました。</string>
+    <string name="no_native_crash">最近のネイティブクラッシュはありません</string>
+    <string name="pin_copied">認証コードをクリップボードにコピーしました。</string>
+    <string name="hist_contact_unblocked">連絡先のブロックを解除しました</string>
+    <string name="conversation_joined_date">参加</string>
+    <string name="contact_added_date">追加</string>
+    <string name="contact_removed_date">削除</string>
+    <string name="custom_profile_message_warning">カスタムプロフィールは、この端末上のこのアカウントにだけ表示されます</string>
+    <string name="remove_photo">写真を削除</string>
+    <string name="generic_error_migration_message">アカウントの移行中にエラーが発生しました。</string>
+    <string name="accept_invitation_body">%sから招待が届きました。</string>
+    <string name="new_invitation_request_title">新しい招待</string>
+    <string name="no_invitations">表示する招待はありません。</string>
+    <string name="invitation_received_message">%sから招待が届きました。\n承諾しますか、それとも辞退しますか？</string>
+    <string name="outgoing_contact_invitation_message">この連絡先はあなたの連絡先一覧にありません。</string>
+    <string name="generic_error">不明なエラーが発生しました。</string>
+    <string name="invalid_file">無効なファイルです。</string>
+    <string name="not_able_to_write_file">ファイルを書き込めません。</string>
+    <string name="file_transfer_status_created">準備中</string>
+    <string name="file_transfer_status_unsupported">未対応</string>
+    <string name="file_transfer_status_wait_peer_acceptance">相手の承諾を待っています…</string>
+    <string name="file_transfer_status_wait_host_acceptance">ホストの承諾を待っています…</string>
+    <string name="file_transfer_status_ongoing">転送中</string>
+    <string name="file_transfer_status_finished">完了</string>
+    <string name="file_transfer_status_closed_by_host">ホストが終了しました</string>
+    <string name="file_transfer_status_closed_by_peer">相手が終了しました</string>
+    <string name="file_transfer_status_error">ファイルの転送中にエラーが発生しました。</string>
+    <string name="file_transfer_status_timed_out">操作がタイムアウトしました。</string>
+    <string name="file_saved_in">ファイルを%sに保存しました。</string>
+    <string name="file_saved_successfully">ファイルを保存しました。</string>
+    <string name="media_suppressed_badge">非表示</string>
+    <string name="media_suppressed_flash">非表示にしました — スワイプ時には表示されません</string>
+    <string name="media_unsuppressed_flash">元に戻しました — スワイプ時にふたたび表示されます</string>
+    <string name="menu_location_sharing">現在地の共有状況</string>
+    <string name="location_status_title">現在地の共有</string>
+    <string name="location_status_checking">確認中…</string>
+    <string name="location_status_none">現在地を共有している会話はありません。\n\n実際に共有しているときは、必ず通知が常時表示されます。電池やサービスの監視ツールに位置情報サービスが「実行中」と出ていても、通知がなければ待機中の接続が残っているだけで害はありません。共有は行われておらず、電池も消費しません。</string>
+    <string name="location_status_active">次の相手に現在地をリアルタイムで共有しています:\n\n%1$s</string>
+    <string name="location_status_stop_all">すべての共有を停止</string>
+    <string name="media_view_suppressed">非表示のメディアを見る</string>
+    <string name="media_no_suppressed">非表示のメディアはありません</string>
+    <string name="media_viewing_suppressed">非表示のメディアを表示中</string>
+    <string name="media_viewing_all">すべてのメディアを表示中</string>
+    <string name="no_space_left_on_device">端末の空き容量がありません。</string>
+    <string name="menu_message_history">メッセージの履歴</string>
+    <string name="menu_message_cancel_reply">返信をキャンセル</string>
+    <string name="audio_permission_denied">マイクの権限が無効になっています。この機能を使うには、端末の設定で有効にしてください。</string>
+    <string name="camera_permission_denied">カメラの権限が無効になっています。この機能を使うには、端末の設定で有効にしてください。</string>
+    <string name="speech_recogniton_unavailable">音声認識は利用できません。</string>
+    <string name="audio_permission_rationale_title">マイクの権限が必要です</string>
+    <string name="camera_permission_rationale_title">カメラの権限が必要です</string>
+    <string name="audio_permission_rationale_message">白い熊 GNU Jamiで音声入力や録音を使うには、マイクの権限が必要です。次の画面で許可を求めます。</string>
+    <string name="camera_permission_rationale_message">白い熊 GNU Jamiで録画やビデオ通話を行うには、カメラの権限が必要です。次の画面で許可を求めます。</string>
+    <string name="unable_to_start_recorder">録音を開始できません。</string>
+    <string name="error_opening_file">ファイルを開く際にエラーが発生しました。</string>
+    <string name="chat_extensions">チャットの拡張機能</string>
+    <string name="audio_output_dialog_title">音声の出力先</string>
+    <string name="audio_output_content_description">音声の出力先: %1$s</string>
+    <string name="audio_output_speaker">スピーカー</string>
+    <string name="audio_output_earpiece">受話口</string>
+    <string name="audio_output_headset">ヘッドセット</string>
+    <string name="audio_output_bluetooth">Bluetooth</string>
+    <string name="camera_toggle_btn_description">カメラのオン・オフを切り替え</string>
+    <string name="open_account_extension_settings">アカウントの拡張機能設定を開く</string>
+    <string name="open_general_extension_settings">全般の拡張機能設定を開く</string>
+    <string name="rename_error">空にはできません。</string>
+    <string name="not_admin_toast">このグループの情報を編集できるのは管理者だけです</string>
+    <string name="dialog_title_contact">表示名を編集</string>
+    <string name="picker_close">連絡先の選択を閉じる</string>
+    <string name="picker_search_hint">連絡先を検索</string>
+    <string name="picker_create_group">グループを作成</string>
+    <string name="picker_add_members">メンバーを追加</string>
+    <string name="picker_no_matches">一致する連絡先はありません</string>
+    <string name="picker_remove_contact">%1$sを外す</string>
+    <plurals name="picker_selection_count">
+        <item quantity="other">%d 件を選択中</item>
+    </plurals>
+    <string name="no_contact_to_add">追加できる連絡先がありません</string>
+    <string name="error_open_no_app_found">このファイルを開けるアプリが見つかりません: %1$s</string>
+    <string name="swarm_detail_no_document">文書はまだありません。</string>
+    <string name="group_admin">管理者</string>
+    <string name="share_contact_intent_title">この連絡先を白い熊 GNU Jamiに追加しましょう！</string>
+    <string name="share_contact_intent_body">この連絡先「%1$s」は、分散型の通信基盤である白い熊 GNU Jamiで追加できます: %2$s</string>
+    <string name="jami_id_copy">JamiIdをコピー</string>
+    <string name="jami_id_share">JamiIdを共有</string>
+    <string name="jami_id_info">• 32文字まで\n• 使える記号: ハイフン (-)、アンダースコア (_)</string>
+    <string name="secure_p2p_connection">安全なピアツーピア接続</string>
+    <string name="swarm_id">スウォームID</string>
+    <string name="show_qr_code">QRコードを表示</string>
+    <string name="show_certificate">証明書を表示</string>
+    <string name="donation_setting_title">寄付のお願い</string>
+    <string name="donation_setting_description">寄付のお願いを表示する</string>
+    <string name="unable_to_load">%1$sを読み込めません</string>
+    <string name="load_success">%1$s: 有効</string>
+    <string name="unload_success">%1$s: 無効</string>
+    <string name="install_success">拡張機能「%1$s」をインストールしました。</string>
+    <string name="install_error">拡張機能のインポート中にエラーが発生しました。</string>
+    <string name="link_device_dialog_stop_title">端末のリンクを中止しますか？</string>
+    <string name="link_device_dialog_stop_export_body">中止すると、アカウントのエクスポート操作がキャンセルされます。</string>
+    <string name="export_side_step1_advice_qr">新しい端末で、アカウントの追加を始めてください。\n<b>「アカウント」&gt;「アカウントを追加」&gt;「他の端末から接続する」</b>を選びます。\n準備ができたら、QRコードをスキャンしてください</string>
+    <string name="export_side_step1_switch_to_code">または、ここをタップして認証コードを入力</string>
+    <string name="export_side_step1_switch_to_qr">または、ここをタップしてQRコードをスキャン</string>
+    <string name="export_side_step2_advice">新しい端末は次の場所にあります。ご自身の端末ですか？\nアカウントのエクスポートを続けるには、「確認」をタップしてください。</string>
+    <string name="export_side_step2_advice_ip_only">新しい端末が下記のアドレスから接続しました。ご自身の端末ですか？\nアカウントのエクスポートを続けるには、「確認」をタップしてください。</string>
+    <string name="export_side_step2_password">このアカウントはパスワードで保護されています。\n続けるには、新しい端末で認証を行ってください。</string>
+    <string name="export_side_step3_body_loading">新しい端末へアカウントをエクスポートしています。しばらくお待ちください…</string>
+    <string name="export_side_step3_exit">完了</string>
+    <string name="import_side_step1_advice_qr">元の端末でエクスポートを始めてください。\n<b>「アカウント」&gt;「アカウント設定」&gt;「新しい端末をリンク」を選びます</b>\n準備ができたら、下のQRコードをスキャンしてください。</string>
+    <string name="import_side_step1_advice_code">元の端末でエクスポートを始めてください。\n<b>「アカウント」&gt;「アカウント設定」&gt;「新しい端末をリンク」を選びます</b>\n準備ができたら、下のコードを入力してください。</string>
+    <string name="import_side_step1_switch_to_code">または、ここをタップして認証コードを表示</string>
+    <string name="import_side_step1_switch_to_qr">または、ここをタップしてQRコードを表示</string>
+    <string name="import_side_step1_connecting">元の端末に接続しています…</string>
+    <string name="import_side_step1_preparing_device">端末を準備しています…</string>
+    <string name="import_side_step2_password_prompt">このアカウントはパスワードで保護されています。\n続けるには、ロックを解除してください。</string>
+    <string name="import_side_step2_password_unlocking">アカウントのロックを解除しています…</string>
+    <string name="import_side_step3_body_loading">新しい端末にアカウントをインポートしています。しばらくお待ちください…</string>
+    <string name="import_side_step3_go_to_account">新しいアカウントへ移動</string>
+    <string name="import_side_step3_exit">完了</string>
+    <string name="link_device_share_title">認証コードを共有</string>
+    <string name="link_device_error_network">端末のリンク中にネットワークエラーが発生しました。接続を確認して、もう一度お試しください。</string>
+    <string name="link_device_error_timeout">操作がタイムアウトしました。</string>
+    <string name="link_device_error_unknown">エラーが発生しました。</string>
+    <string name="link_device_error_bad_password">認証情報を確認して、もう一度お試しください。</string>
+    <string name="test_push">プッシュをテスト</string>
+    <string name="step_title_create_username">ユーザー名を作成</string>
+    <string name="step_title_create_profile">プロフィールを作成</string>
+    <string name="step_format">手順 %1$d / %2$d: %3$s</string>
+    <string name="peer_services_link_copied">リンクをクリップボードにコピーしました</string>
+    <string name="notif_channel_peer_tunnel_descr">共有サービスのトンネルがバックグラウンドで動作している間、表示されます。</string>
+    <string name="notif_peer_tunnel_title">共有サービスが動作中</string>
+    <string name="notif_peer_tunnel_text">白い熊 GNU Jamiがバックグラウンドでサービスへの接続を維持しています</string>
+    <string name="notif_peer_tunnel_stop_all">すべて停止</string>
+    <string name="shared_services_settings_description">ローカルのサービスを白い熊 GNU Jamiの利用者に公開します</string>
+    <string name="shared_services_empty">サービスが設定されていません</string>
+    <string name="shared_services_add">サービスを追加</string>
+    <string name="shared_services_add_title">共有サービスを追加</string>
+    <string name="shared_services_edit_title">共有サービスを編集</string>
+    <string name="shared_services_name_hint">サービス名</string>
+    <string name="shared_services_name_required">サービス名を入力してください</string>
+    <string name="shared_services_port_required">ポート番号を入力してください</string>
+    <string name="shared_services_port_invalid">ポート番号は1から65535の範囲で指定してください</string>
+    <string name="shared_services_port">ポート: %d</string>
+    <string name="shared_services_empty_subtitle">ローカルのファイルやサービスを白い熊 GNU Jamiの利用者と共有します</string>
+    <string name="shared_services_open_in_browser">ブラウザーで開く</string>
+    <string name="shared_services_disconnect_all">すべて切断</string>
+    <string name="shared_services_disconnect_all_title">すべて切断しますか？</string>
+    <string name="shared_services_disconnect_all_message">次のものが切断されます:\n\n%1$s\n\n提供中のサービスは停止し、他の端末への接続は閉じられます。</string>
+    <string name="shared_services_nothing_active">動作中のものはありません</string>
+    <string name="shared_services_hosting_item">提供中: %1$s（%2$s）</string>
+    <string name="shared_services_tunnel_item">%1$s（提供元: %2$s）</string>
+    <string name="shared_services_type_website_label">Webサイト</string>
+    <string name="shared_services_local_port">ローカルポート %d</string>
+    <string name="shared_services_local_address">%1$s:%2$d</string>
+    <string name="shared_services_type_custom">カスタムサーバー</string>
+    <string name="shared_services_type_website">Webサイトを追加</string>
+    <string name="shared_services_add_custom_title">カスタムサーバーを追加</string>
+    <string name="shared_services_add_website_title">Webサイトを追加</string>
+    <string name="shared_services_scheme_hint">URIスキーム（例: http、ftp）</string>
+    <string name="shared_services_directory_hint">ローカルのディレクトリ</string>
+    <string name="shared_services_directory_required">ディレクトリを選択してください</string>
+    <string name="shared_services_choose">選択</string>
+    <string name="shared_services_policy_contacts">自分の連絡先</string>
+    <string name="shared_services_policy_specific">特定の連絡先</string>
+    <string name="shared_services_allowed_contacts_hint">許可する連絡先（コンマ区切り）</string>
+    <string name="collab_new_document">新しい文書</string>
+    <string name="collab_untitled">無題の文書</string>
+    <string name="collab_document_name_hint">文書名</string>
+    <string name="collab_rename">名前を変更</string>
+    <string name="collab_open_error">この文書を開けませんでした。</string>
+    <string name="collab_no_documents">この会話ではまだ文書が書かれていません。</string>
+    <string name="collab_created_by">作成者: %1$s</string>
+    <string name="collab_editing_alone">編集しているのはあなただけです</string>
+    <plurals name="collab_editing_others">
+        <item quantity="other">ほかに %1$d 人が編集中です</item>
+    </plurals>
+    <string name="collab_history">変更履歴</string>
+    <string name="collab_no_history">この文書には、保存された版がまだありません。</string>
+    <string name="collab_version_leave">現在の版に戻る</string>
+    <string name="collab_version_shown">%1$s の版</string>
+    <string name="collab_version_restore">復元</string>
+    <string name="collab_version_restored">文書をこの版に復元しました。</string>
+    <string name="collab_version_unchanged">この版は、現在の文書と同じです。</string>
+    <string name="collab_version_restore_error">この版を復元できませんでした。</string>
+    <string name="collab_version_by">%1$s — %2$s</string>
+    <string name="collab_version_deltas">%1$s — %2$s、変更 %3$d 件</string>
+    <string name="collab_format_normal_text">標準の文章</string>
+    <string name="collab_format_default_font">既定のフォント</string>
+    <string name="collab_format_unavailable_font">利用できないフォント</string>
+    <string name="collab_format_default_size">既定の大きさ</string>
+    <string name="collab_export">手元に写しを書き出す</string>
+    <string name="collab_export_pdf">PDFに書き出す</string>
+    <string name="collab_export_html">HTMLに書き出す</string>
+    <string name="collab_export_markdown">Markdownに書き出す</string>
+    <string name="collab_export_text">テキストに書き出す</string>
+    <plurals name="collab_export_missing_images">
+        <item quantity="other">この文書の画像のうち %1$d 枚がまだ届いていないため、書き出すファイルには含まれません。</item>
+    </plurals>
+    <string name="collab_export_anyway">このまま書き出す</string>
+    <string name="collab_export_error">この文書を書き出せませんでした。</string>
+    <string name="collab_image_error">この画像を追加できませんでした。</string>
+    <string name="collab_image_too_large">この画像は大きすぎて、文書に追加できません。</string>
+    <string name="collab_send_error">変更を送信できませんでした。</string>
+    <string name="collab_editable_document">編集できる文書</string>
+    <string name="collab_create_error">この文書を作成できませんでした。</string>
+    <string name="collab_remove_title">文書を削除</string>
+    <string name="collab_remove_message">\"%1$s\" は、この会話のすべてのメンバーから削除されます。この操作は元に戻せません。</string>
+    <string name="collab_remove_error">この文書を削除できませんでした。</string>
+    <string name="collab_remove_locally_title">この端末から削除</string>
+    <string name="collab_remove_locally_message">\"%1$s\" は、この端末からのみ削除されます。ほかのメンバーの手元には残り、もう一度開けばダウンロードし直されます。</string>
+    <string name="collab_remove_locally_error">この文書をこの端末から削除できませんでした。</string>
+    <string name="collab_not_on_this_device">この端末にはありません</string>
+    <string name="collab_document_removed">文書が削除されました</string>
+    <string name="collab_document_removed_message">\"%1$s\" は作成者によって削除されました。</string>
+    <string name="collab_document_removed_locally">文書をこの端末から削除しました</string>
+    <string name="collab_document_removed_locally_message">\"%1$s\" はこの端末にはもうありません。もう一度開けばダウンロードし直されます。</string>
+    <string name="conversation_threaded_view">スレッド表示</string>
+    <string name="conversation_threaded_view_summary">返信をスレッドにまとめて表示します。スレッドを開くと、読んだり返信したりできます</string>
+    <string name="conversation_thread_title">スレッド</string>
+    <string name="conversation_thread_reply_hint">スレッドに返信</string>
+    <string name="conversation_thread_missing">元のメッセージを表示できません。続けるには会話に戻ってください。</string>
+    <string name="conversation_thread_finding">会話の履歴からメッセージを探しています…</string>
+    <string name="conversation_thread_unavailable">このメッセージ、またはその元のメッセージを表示できません。</string>
+    <string name="conversation_thread_close">会話に戻る</string>
+    <plurals name="conversation_thread_replies">
+        <item quantity="other">%d 件のコメント</item>
+    </plurals>
+
+    <!-- ===== strings_account.xml ===== -->
+    <string name="dialog_warn_ip2ip_account_title">空のSIPアカウントを作成しますか？</string>
+    <string name="dialog_warn_ip2ip_account_message">有効なホスト名のないSIPアカウントを作成しようとしています。IPアドレスを直接指定した通話の発信と着信しかできません。アカウントは後から編集できます</string>
+    <string name="account_delete_dialog_title">アカウントを削除しますか？</string>
+    <string name="account_device_revocation_error_title">端末の取り消しエラー</string>
+    <string name="account_biometric_disable">生体認証を無効にする</string>
+    <string name="account_biometric_set">生体認証を有効にする</string>
+    <string name="account_biometric_summary">アカウントの生体認証を管理します。</string>
+    <string name="account_chat_settings_title">チャット設定</string>
+    <string name="account_stun_server_label">STUNサーバー</string>
+    <string name="account_connectivity_label">ピアツーピア接続</string>
+    <string name="account_proxy_list_enable_label">DHT代理リストを使う</string>
+    <string name="account_proxy_server_used">使用中: %1$s</string>
+    <string name="account_tls_port_label">TLSの待ち受けポート</string>
+    <string name="account_tls_certificate_list_label">認証局</string>
+    <string name="account_tls_certificate_file_label">証明書ファイル</string>
+    <string name="account_tls_private_key_file_label">秘密鍵ファイル</string>
+    <string name="account_tls_method_label">TLSの方式</string>
+    <string name="account_tls_ciphers_label">TLSの暗号方式</string>
+    <string name="account_tls_server_name_label">サーバー名</string>
+    <string name="account_tls_verify_server_label">サーバーを検証</string>
+    <string name="account_tls_verify_client_label">クライアントを検証</string>
+    <string name="account_require_client_certificate_label">TLSでクライアント証明書を必須にする</string>
+    <string name="account_tls_negotiation_timeout_sec">ネゴシエーションの制限時間（秒）</string>
+    <string name="account_rtp_port_range">音声RTPのポート範囲</string>
+    <string name="account_export_end_decryption_message">パスワードが正しくありません。正しいパスワードでもう一度お試しください。</string>
+    <string name="account_share_body">分散型の通信基盤である白い熊 GNU Jamiで、「%1$s」を使って私に連絡してください: %2$s</string>
+    <string name="account_share_body_with_username">分散型の通信基盤である白い熊 GNU Jamiで、「%1$s」または公開ユーザー名「%2$s」を使って私に連絡してください: %3$s</string>
+    <string name="account_migration_message_dialog">アカウントの更新が必要です。アカウント管理の画面に移動して更新しますか？</string>
+    <string name="jams_account_cannot_be_found_message">アカウントの接続中にエラーが発生しました。認証情報を確認して、もう一度お試しください。</string>
+    <string name="account_no_network_message">白い熊 GNU Jamiアカウントを分散ネットワークに追加する際に、接続エラーが発生しました。端末のネットワーク接続を確認してください。</string>
+    <string name="account_device_added_message">この端末で白い熊 GNU Jamiアカウントの設定が完了しました。</string>
+    <string name="account_device_updated_message">白い熊 GNU Jamiアカウントを更新しました。</string>
+    <string name="account_cannot_be_updated_message">アカウントの更新中にエラーが発生しました。アカウントのパスワードを確認してください。</string>
+    <string name="account_sip_success_title">SIPアカウントを登録しました</string>
+    <string name="account_sip_success_message">SIPアカウントの登録が完了しました。</string>
+    <string name="account_start_export_button">認証コードを生成</string>
+    <string name="account_enter_servername">サーバーを入力</string>
+    <string name="no_registered_name_for_account">ユーザー名が登録されていません</string>
+    <string name="account_sip_cannot_be_registered">SIPアカウントの登録中にエラーが発生しました。</string>
+    <string name="account_edit_profile">プロフィールを編集</string>
+    <string name="revoke_device_message">%1$sを取り消しますか？</string>
+    <string name="rename_device_message">白い熊 GNU Jamiアカウントの中でこの端末を見分けるための名前を入力してください</string>
+    <string name="account_device_name_empty">端末名は空にできません。</string>
+    <string name="account_device_last_sync">同期: %1$s</string>
+    <string name="account_device_never_synced">未同期</string>
+    <string name="account_link_info">新しい端末の白い熊 GNU Jamiアプリで、QRコードをスキャンするか、認証コードを手動で入力してください。</string>
+    <string name="account_link_password">このアカウントはパスワードで暗号化されています。認証コードを生成するには、パスワードを入力してください。</string>
+    <string name="account_link_generate_button">生成</string>
+    <string name="account_link_time_valid">認証コードの有効期限: %1$s。</string>
+    <string name="account_link_device_info">もう一方の白い熊 GNU Jamiアプリで「新しい端末をリンク」を選ぶと、QRコードまたは認証コードが表示されます。</string>
+    <string name="account_generate_export_device">もう一方の端末で</string>
+    <string name="content_description_qr_generated">アカウントのQRコード</string>
+    <string name="account_generate_export_invalid">認証コードの有効期限が切れました。\n新しい端末をリンクするには、パスワードを入力してもう一度生成してください。</string>
+    <string name="account_generate_export_invalid_two">認証コードの有効期限が切れました。\n新しい端末をリンクするには、もう一度生成してください。</string>
+    <string name="help_pin_info">アカウントがパスワードで暗号化されている場合に必要です。</string>
+    <string name="account_biometry_auth_title">白い熊 GNU Jamiアカウントのロックを解除</string>
+    <string name="account_biometry_auth_message">生体認証でアカウントのロックを解除します</string>
+    <string name="account_biometry_enroll_title">生体認証を使いますか？</string>
+    <string name="account_biometry_enroll_message">この端末は安全な生体認証に対応しています。生体認証または端末の認証を使うと、白い熊 GNU Jamiアカウントのロックをこの端末上で手軽に解除できます。パスワードも引き続き使えます。</string>
+    <string name="account_biometry_enroll_accept">生体認証を使う</string>
+    <string name="no_thanks">使わない</string>
+    <string name="account_biometry_enroll_auth_title">白い熊 GNU Jamiアカウントに認証方法を追加</string>
+    <string name="account_biometry_enroll_auth_message">パスワードの代わりに使える、安全な生体認証または端末の認証を追加します</string>
+    <string name="account_auth_error">認証エラー: %1$s</string>
+    <string name="account_auth_success">認証に成功しました</string>
+    <string name="account_auth_key_error">アカウントの鍵の復号中にエラーが発生しました。</string>
+    <string name="account_auth_password">アカウントのパスワードを使う</string>
+
+    <!-- ===== strings_call.xml ===== -->
+    <string name="call_error">通話の開始中にエラーが発生しました。</string>
+    <string name="screen_sharing_error">画面共有の開始中にエラーが発生しました。</string>
+
+    <!-- ===== strings_certificate.xml ===== -->
+    <string name="certificate">証明書</string>
+    <string name="cert_subject">主体者</string>
+    <string name="cert_issuer">発行者</string>
+    <string name="cert_uid">UID</string>
+    <string name="cert_common_name">一般名</string>
+    <string name="cert_name">名前</string>
+    <string name="cert_organization">組織</string>
+    <string name="cert_organizational_unit">組織単位</string>
+    <string name="cert_locality">市区町村</string>
+    <string name="cert_state">都道府県・州</string>
+    <string name="cert_country">国</string>
+    <string name="cert_public_key">公開鍵</string>
+    <string name="cert_public_key_id">公開鍵ID</string>
+    <string name="cert_key_algorithm">アルゴリズム</string>
+    <string name="cert_signature">署名</string>
+    <string name="cert_signature_algorithm">署名アルゴリズム</string>
+    <string name="cert_validity">有効期間</string>
+    <string name="cert_valid_from">開始日</string>
+    <string name="cert_valid_to">終了日</string>
+    <string name="cert_is_ca">認証局</string>
+    <string name="cert_is_self_signed">自己署名</string>
+
+    <!-- ===== strings_content_description.xml ===== -->
+    <string name="contact_quick_call_description">すぐに発信</string>
+    <string name="contact_picture_description">連絡先の写真</string>
+    <string name="video_extensions">ビデオの拡張機能</string>
+    <string name="add_conversation_member">会話にメンバーを追加</string>
+    <string name="qrcode_to_scan">スキャンするQRコード</string>
+    <string name="collab_format_underline">下線</string>
+    <string name="collab_format_h1">見出し 1</string>
+    <string name="collab_format_h2">見出し 2</string>
+    <string name="collab_format_h3">見出し 3</string>
+    <string name="collab_format_bullet_list">箇条書き</string>
+    <string name="collab_format_ordered_list">番号付きリスト</string>
+    <string name="collab_format_align_left">左揃え</string>
+    <string name="collab_format_align_center">中央揃え</string>
+    <string name="collab_format_align_right">右揃え</string>
+    <string name="collab_format_align_justify">両端揃え</string>
+    <string name="collab_format_link">リンクを挿入</string>
+    <string name="collab_format_image">画像を挿入</string>
+    <string name="collab_format_clear">書式を解除</string>
+    <string name="collab_format_paragraph_style">段落の種類</string>
+    <string name="collab_format_font">フォント</string>
+    <string name="collab_format_alignment">段落の揃え方</string>
+    <string name="collab_format_choice">%1$s: %2$s</string>
+
+    <!-- ===== strings_preferences.xml ===== -->
+    <string name="pref_huaweiPush_summary">Huaweiのサーバーを使って、バックグラウンドで通話やメッセージを受信できるようにします</string>
+    <string name="pref_clearHistory_summary">すべての会話の履歴を消去します。この操作は元に戻せません。</string>
+    <string name="pref_connectivity_title">接続方式</string>
+    <string name="pref_connectivity_summary">通話やメッセージを受信するために、白い熊 GNU Jamiを分散ネットワークへどのように接続するかを選択します。</string>
+    <string name="pref_delete_account_summary">この端末からアカウントを削除します</string>
+    <string name="pref_persistNotification_title">バックグラウンドで実行</string>
+    <string name="pref_persistNotification_summary">通話やメッセージを受信するために、バックグラウンドでの実行を許可します。</string>
+    <string name="pref_connection_monitor">接続モニタ</string>
+    <string name="pref_connection_monitor_summary">ピアツーピア接続を監視します</string>
+    <string name="pref_push_notifications_logs_title">プッシュ通知の記録</string>
+    <string name="pref_push_notifications_logs_summary">プッシュ通知から取得した記録を表示します。</string>
+    <string name="notification_public">公開\n（ロック画面に通知とその内容を表示する）\n</string>
+    <string name="notification_private">非公開\n（ロック画面に通知は表示するが、内容は隠す）\n</string>
+    <string name="notification_secret">秘密\n（ロック画面に通知を表示しない）</string>
+    <string name="connectivity_google_services_title">Googleのサービス</string>
+    <string name="connectivity_google_services_description">Google FirebaseとDHT代理を使ってプッシュ通知を受信します。</string>
+    <string name="connectivity_local_node_title">ローカルDHTノード</string>
+    <string name="connectivity_local_node_description">ローカルDHTノードを使って、ほかの白い熊 GNU Jamiの端末や連絡先と接続します。</string>
+    <string name="connectivity_unified_push_description">任意のUnifiedPushサーバーを使ってプッシュ通知を受信します。</string>
+    <string name="connectivity_huawei_push_description">Huawei Push KitとDHT代理を使ってプッシュ通知を受信します。</string>
+    <string name="connectivity_custom_description">現在、用意されている設定の組み合わせはどれも使われていません。</string>
+    <string name="pref_enable_extensions_title">拡張機能を有効化</string>
+    <string name="pref_enable_extensions_summary">拡張機能を有効にして、その設定を行います</string>
+    <string name="pref_available_extensions_title">利用できる拡張機能</string>
+    <string name="pref_available_extensions_summary">インストール済みの拡張機能の確認と、新しい拡張機能の追加</string>
+    <string name="fab_extensions_add">新しい拡張機能を追加</string>
+    <string name="extension_uninstall_title">拡張機能を削除しますか？</string>
+    <string name="extension_reset_preferences">拡張機能の設定をリセット</string>
+    <string name="extension_reset_preferences_summary">拡張機能を既定の設定に戻しました</string>
+    <string name="extension_reset_preferences_ask">拡張機能の全般設定をリセットしますか？</string>
+    <string name="extension_reset_account_preferences_ask">拡張機能のアカウント設定をリセットしますか？</string>
+    <string name="account_advanced_reset">詳細設定をリセット</string>
+    <string name="account_advanced_reset_summary">詳細設定を既定に戻します</string>
+    <string name="account_advanced_reset_confirm">すべての詳細設定を既定に戻しますか？</string>
+    <string name="extension_successfully_installed">拡張機能 <b>%1$s</b> をインストールしました。</string>
+    <string name="extension_install_failure">次の拡張機能のインストール中にエラーが発生しました: <b>%1$s</b></string>
+    <string name="extension_recent_version_exception">より新しいバージョンの <b>%1$s</b> がインストールされています。</string>
+    <string name="extension_same_version_exception">同じバージョンの <b>%1$s</b> がインストールされています。</string>
+    <string name="extension_invalid_signature"><b>%1$s</b> の署名が無効です</string>
+    <string name="extension_invalid_authority">次の拡張機能の認証局の検証中にエラーが発生しました: <b>%1$s</b></string>
+    <string name="extension_invalid_format">拡張機能の形式が無効です: <b>%1$s</b></string>
+    <string name="extension_force_install">強制\nインストール</string>
+    <string name="extension_path_image_add">新しい画像を追加</string>
+
+    <!-- ===== arrays.xml ===== -->
+    <!-- Copy of the default array; only the last item is prose. Keep order and count
+         identical to res/values/arrays.xml (indexed by ActionHelper.ACTION_*). -->
+    <string-array name="swarm_one_to_one_actions">
+        <item>@string/contact_details</item>
+        <item>@string/conversation_action_copy_peer_number</item>
+        <item>@string/remove_conversation</item>
+        <item>@string/delete_contact</item>
+        <item>@string/conversation_action_block_this</item>
+        <item>@string/conversation_action_lookup_name</item>
+        <item>連絡先の接続モニタ</item>
+    </string-array>
+    <!-- Display labels (android:entries) paired with the machine values in
+         @array/video_bitrates; only the first item is prose. -->
+    <string-array name="video_bitrateStrings">
+        <item>自動</item>
+        <item>64 kB/s</item>
+        <item>128 kB/s</item>
+        <item>256 kB/s</item>
+        <item>512 kB/s</item>
+        <item>1 MB/s</item>
+    </string-array>
+
+</resources>

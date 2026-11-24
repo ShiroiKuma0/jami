@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork: řetězce, které bývaly literály v Kotlinu a layoutech forku, čeština.
+  Výchozí je angličtina ve values/sk_strings_misc.xml; sady klíčů musí zůstat shodné.
+
+  sk_role_section_<SkSection> a sk_role_label_<SkRole> se hledají PODLE NÁZVU
+  (SkSection.displayTitle / SkRole.displayLabel v cx/ring/sk/SkRoles.kt).
+-->
+<resources>
+    <!-- colour roles: sections -->
+    <string name="sk_role_section_foundation">Základ</string>
+    <string name="sk_role_section_text">Text</string>
+    <string name="sk_role_section_buttons">Tlačítka</string>
+    <string name="sk_role_section_dialogs">Dialogy</string>
+    <string name="sk_role_section_switches">Přepínače</string>
+    <string name="sk_role_section_marks">Zaškrtávací políčka a přepínací tlačítka</string>
+    <string name="sk_role_section_menus">Nabídky</string>
+    <string name="sk_role_section_lists">Seznamy</string>
+    <string name="sk_role_section_fields">Textová pole</string>
+    <string name="sk_role_section_bars">Horní lišty</string>
+    <string name="sk_role_section_calls">Ovládání hovoru</string>
+    <string name="sk_role_section_pages">Stránky nastavení</string>
+
+    <!-- colour roles: labels -->
+    <string name="sk_role_label_background">Pozadí</string>
+    <string name="sk_role_label_surface">Vyvýšené plochy (karty, listy, lišty)</string>
+    <string name="sk_role_label_accent">Zvýraznění</string>
+    <string name="sk_role_label_on_accent">Obsah na zvýrazněném podkladu</string>
+    <string name="sk_role_label_icon">Ikony</string>
+    <string name="sk_role_label_icon_active">Aktivní ovládací prvky (posuvníky, kurzory)</string>
+    <string name="sk_role_label_outline">Obrysy a rámečky</string>
+    <string name="sk_role_label_divider">Oddělovače</string>
+    <string name="sk_role_label_pressed">Zvýraznění při stisku</string>
+    <string name="sk_role_label_danger">Mazání a varování</string>
+    <string name="sk_role_label_progress">Ukazatel průběhu (probíhá)</string>
+    <string name="sk_role_label_progress_track">Dráha ukazatele průběhu</string>
+    <string name="sk_role_label_text">Text</string>
+    <string name="sk_role_label_text_secondary">Vedlejší text</string>
+    <string name="sk_role_label_text_disabled">Text neaktivních prvků</string>
+    <string name="sk_role_label_text_hint">Nápovědy</string>
+    <string name="sk_role_label_text_selection">Výběr textu</string>
+    <string name="sk_role_label_link">Odkazy</string>
+    <string name="sk_role_label_pill_text">Popisek tlačítka</string>
+    <string name="sk_role_label_pill_frame">Rámeček tlačítka</string>
+    <string name="sk_role_label_pill_ground">Podklad tlačítka</string>
+    <string name="sk_role_label_fab_ring">Prstenec plovoucího tlačítka</string>
+    <string name="sk_role_label_fab_glyph">Symbol plovoucího tlačítka</string>
+    <string name="sk_role_label_fab_ground">Podklad plovoucího tlačítka</string>
+    <string name="sk_role_label_dialog_ground">Podklad dialogu</string>
+    <string name="sk_role_label_dialog_frame">Rámeček dialogu</string>
+    <string name="sk_role_label_dialog_title">Nadpis dialogu</string>
+    <string name="sk_role_label_dialog_text">Text dialogu</string>
+    <string name="sk_role_label_switch_on">Přepínač, zapnuto</string>
+    <string name="sk_role_label_switch_off">Přepínač, vypnuto</string>
+    <string name="sk_role_label_mark_on">Značka výběru, zvoleno</string>
+    <string name="sk_role_label_mark_off">Značka výběru, nezvoleno</string>
+    <string name="sk_role_label_menu_ground">Podklad nabídky</string>
+    <string name="sk_role_label_menu_frame">Rámeček nabídky</string>
+    <string name="sk_role_label_menu_label">Popisek v nabídce</string>
+    <string name="sk_role_label_menu_row_frame">Rámeček řádku nabídky</string>
+    <string name="sk_role_label_menu_divider">Oddělovač skupin v nabídce</string>
+    <string name="sk_role_label_menu_icon_call">Ikona: volat, připojit</string>
+    <string name="sk_role_label_menu_icon_message">Ikona: zpráva, psát</string>
+    <string name="sk_role_label_menu_icon_contact">Ikona: kontakt, osoba</string>
+    <string name="sk_role_label_menu_icon_share">Ikona: kopírovat, sdílet, exportovat</string>
+    <string name="sk_role_label_menu_icon_view">Ikona: zobrazit, otevřít, nastavení</string>
+    <string name="sk_role_label_menu_icon_block">Ikona: blokovat, ztlumit, opustit</string>
+    <string name="sk_role_label_menu_icon_delete">Ikona: smazat, odebrat</string>
+    <string name="sk_role_label_list_divider">Oddělovač v seznamu</string>
+    <string name="sk_role_label_list_selected">Podklad vybraného řádku</string>
+    <string name="sk_role_label_list_selected_text">Text vybraného řádku</string>
+    <string name="sk_role_label_field_text">Psaný text</string>
+    <string name="sk_role_label_field_ground">Podklad pole</string>
+    <string name="sk_role_label_field_frame">Rámeček a podtržení pole</string>
+    <string name="sk_role_label_bar_ground">Podklad horní lišty</string>
+    <string name="sk_role_label_call_ctrl">Prstenec a symbol ovládacího prvku</string>
+    <string name="sk_role_label_call_ctrl_ground">Podklad ovládacího prvku</string>
+    <string name="sk_role_label_call_ctrl_active">Zapnutý ovládací prvek (ztlumeno, kamera vypnutá)</string>
+    <string name="sk_role_label_call_accept">Přijmout</string>
+    <string name="sk_role_label_call_decline">Odmítnout a zavěsit</string>
+    <string name="sk_role_label_call_accept_glyph">Sluchátko na tlačítku pro přijetí</string>
+    <string name="sk_role_label_call_decline_glyph">Sluchátko na tlačítkách pro odmítnutí a zavěšení</string>
+    <string name="sk_role_label_call_missed">Zmeškaný hovor</string>
+    <string name="sk_role_label_page_heading">Nadpisy oddílů</string>
+    <string name="sk_role_label_page_chip">Štítky rejstříku</string>
+    <string name="sk_role_label_page_note">Vysvětlivky a levá linka</string>
+    <string name="sk_role_label_section_words">Ikona oddílu: slova, psaná a čtená</string>
+
+    <!-- fonts (FontUtil) -->
+    <string name="sk_misc_font_default_family">Výchozí rodina písma</string>
+    <string name="sk_misc_font_weight_thin">Tenké (100)</string>
+    <string name="sk_misc_font_weight_light">Světlé (300)</string>
+    <string name="sk_misc_font_weight_normal">Normální (400)</string>
+    <string name="sk_misc_font_weight_medium">Střední (500)</string>
+    <string name="sk_misc_font_weight_bold">Tučné (700)</string>
+    <string name="sk_misc_font_weight_black">Černé (900)</string>
+
+    <!-- Settings page: the fork's rows, and the top-bar icons of the conversation list -->
+    <string name="sk_misc_ui_page_title">Rozhraní 白い熊 GNU Jami</string>
+    <string name="sk_misc_ui_page_summary">Písma, barvy a jazyk aplikace pro každý prvek rozhraní</string>
+    <string name="sk_misc_status_icon_title">Výška ikony stavu zprávy</string>
+    <string name="sk_misc_status_icon_summary">Velikost značky odesláno / přečteno, v řádcích textu</string>
+    <string name="sk_misc_status_icon_lines">%1$.2f řádku</string>
+    <string name="sk_misc_split_view">Rozdělené zobrazení</string>
+    <string name="sk_misc_split_view_summary">Na širokých obrazovkách zobrazit konverzaci vedle seznamu</string>
+    <string name="sk_misc_menu_account_status">Účet online/offline</string>
+    <string name="sk_misc_menu_dht_mode">Režim DHT</string>
+    <string name="sk_misc_menu_lightning">DHT proxy / obnova</string>
+    <string name="sk_misc_reconnect">Znovu připojit</string>
+
+    <!-- Automation page -->
+    <string name="sk_misc_automation_title">Automatizace</string>
+    <string name="sk_misc_automation_intro">Umožněte, aby tuto aplikaci ovládala vnější automatizace — Tasker, OpenTasker, shellový příkaz `am` nebo sesterská aplikace. Automatizace je ve výchozím stavu otevřená, aby šel vymazaný telefon obnovit dřív, než je cokoli nastaveno. Tato otevřenost se netýká jen záloh: je-li přepínač tokenu vypnutý, může kterákoli aplikace v tomto zařízení také vaším jménem poslat zprávu nebo zahájit hovor. Výjimkou jsou dvířka pro zálohování a obnovu — ta v obou případech kontrolují název balíčku, uid a podpisový certifikát volající aplikace, protože vidí, kdo volá. Zapněte token, má-li být vyžadován všude, nebo vypněte první přepínač a automatizaci zablokujte úplně.</string>
+    <string name="sk_misc_automation_enable">Povolit automatizaci</string>
+    <string name="sk_misc_automation_use_token">Používat autorizační token?</string>
+    <string name="sk_misc_automation_secret_token">Tajný token</string>
+    <string name="sk_misc_automation_regenerate">Vygenerovat nový</string>
+    <string name="sk_misc_automation_token_copied">Token zkopírován</string>
+    <string name="sk_misc_automation_token_regenerated">Vygenerován nový token — upravte své skripty</string>
+    <string name="sk_misc_automation_clip_label">Automatizační token 白い熊 GNU Jami</string>
+    <string name="sk_misc_automation_accounts">Vaše účty (jako &lt;account&gt; použijte id, nebo \"default\")</string>
+    <string name="sk_misc_automation_no_accounts">Žádné účty nenalezeny — otevřete jednou seznam účtů v aplikaci a vraťte se sem.</string>
+    <string name="sk_misc_automation_unnamed_account">(účet 白い熊 GNU Jami)</string>
+    <string name="sk_misc_automation_howto">Jak ji volat</string>
+    <string name="sk_misc_automation_help_deeplink">Přímý odkaz (cokoli, co otevírá URL / am):</string>
+    <string name="sk_misc_automation_help_intent">Explicitní intent (Tasker / OpenTasker, extras):</string>
+    <string name="sk_misc_automation_help_note">&lt;account&gt; může být \"default\" pro aktuální účet. &lt;peer&gt; je URI swarm:&lt;id&gt;, jami:&lt;40-hex&gt; nebo sip:. V přímém odkazu zakódujte &lt;peer&gt; a text zprávy pro URL.</string>
+
+    <!-- Diagnostics: stored files (DiagFiles) -->
+    <string name="sk_misc_diag_kind_recovery">Záznam obnovy</string>
+    <string name="sk_misc_diag_kind_incidents">Incidenty hlídače</string>
+    <string name="sk_misc_diag_kind_data">Spotřeba dat</string>
+    <string name="sk_misc_diag_kind_presence">Mapa přítomnosti</string>
+    <string name="sk_misc_diag_kind_push">Záznam push</string>
+    <string name="sk_misc_diag_kind_memory">Paměť</string>
+    <string name="sk_misc_diag_kind_other">Ostatní</string>
+    <plurals name="sk_misc_diag_files">
+        <item quantity="one">%1$d soubor, %2$.1f MB</item>
+        <item quantity="few">%1$d soubory, %2$.1f MB</item>
+        <item quantity="many">%1$d souboru, %2$.1f MB</item>
+        <item quantity="other">%1$d souborů, %2$.1f MB</item>
+    </plurals>
+    <string name="sk_misc_diag_export_not_writable">do zvoleného adresáře nelze zapisovat</string>
+    <string name="sk_misc_diag_export_create_failed">nepodařilo se vytvořit %1$s</string>
+
+    <!-- Export / import: status line and report notes -->
+    <string name="sk_misc_export_none_in">V adresáři %1$s zatím není žádná záloha</string>
+    <string name="sk_misc_export_latest_in">"Poslední záloha: %1$s  (%2$s, %3$s)\n%4$s"</string>
+    <string name="sk_misc_export_dir_unset">Adresář pro zálohy není nastaven</string>
+    <string name="sk_misc_export_none">Zatím žádná záloha</string>
+    <string name="sk_misc_export_latest">"Poslední záloha: %1$s  (%2$s)"</string>
+    <string name="sk_misc_export_acc_password">%1$s: archiv je chráněn heslem — nebyl zahrnut.</string>
+    <string name="sk_misc_export_acc_failed">%1$s: uložení selhalo — %2$s</string>
+    <string name="sk_misc_export_cannot_read">vybraný soubor nelze přečíst</string>
+    <string name="sk_misc_restore_file_failed">nepodařilo se obnovit %1$s: %2$s</string>
+</resources>

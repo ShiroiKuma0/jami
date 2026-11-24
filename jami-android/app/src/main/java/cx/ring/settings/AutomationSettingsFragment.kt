@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import cx.ring.R
 import cx.ring.utils.Flash
 import androidx.fragment.app.Fragment
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -50,16 +51,8 @@ class AutomationSettingsFragment : Fragment() {
         }
         scroll.addView(root)
 
-        root.addView(header("Automation"))
-        root.addView(body(
-            "Let external automation — Tasker, OpenTasker, the `am` shell, or a sister app — drive " +
-            "this app. Automation is open by default so a wiped phone can be restored before " +
-            "anything has been configured. That openness is not limited to backups: with the token " +
-            "switch off, any app on this device can also send a message or place a call as you. " +
-            "The backup/restore door is the exception — it checks the calling app's package name, " +
-            "uid and signing certificate either way, because it can see who is calling. Turn the " +
-            "token on to require it across the whole surface, or the first switch off to block " +
-            "automation entirely."))
+        root.addView(header(getString(R.string.sk_misc_automation_title)))
+        root.addView(body(getString(R.string.sk_misc_automation_intro)))
 
         // Enable switch
         val switchRow = LinearLayout(ctx).apply {
@@ -68,7 +61,7 @@ class AutomationSettingsFragment : Fragment() {
             setPadding(0, dp(20f), 0, dp(8f))
         }
         switchRow.addView(TextView(ctx).apply {
-            text = "Enable automation"
+            text = getString(R.string.sk_misc_automation_enable)
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -86,7 +79,7 @@ class AutomationSettingsFragment : Fragment() {
             setPadding(0, dp(4f), 0, dp(8f))
         }
         requireRow.addView(TextView(ctx).apply {
-            text = "Use authorization token?"
+            text = getString(R.string.sk_misc_automation_use_token)
             setTextColor(yellow)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -108,7 +101,7 @@ class AutomationSettingsFragment : Fragment() {
         root.addView(tokenBox)
 
         // Token
-        tokenBox.addView(miniLabel("Secret token"))
+        tokenBox.addView(miniLabel(getString(R.string.sk_misc_automation_secret_token)))
         tokenView = TextView(ctx).apply {
             text = AutomationPrefs.getToken(ctx)
             setTextColor(yellow)
@@ -121,24 +114,24 @@ class AutomationSettingsFragment : Fragment() {
 
         val buttons = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(ctx).apply {
-            text = "Copy"
+            text = getString(R.string.menu_message_copy)
             setOnClickListener {
                 val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("白い熊 GNU Jami automation token", AutomationPrefs.getToken(ctx)))
-                Flash.show(ctx, "Token copied", Toast.LENGTH_SHORT)
+                cm.setPrimaryClip(ClipData.newPlainText(getString(R.string.sk_misc_automation_clip_label), AutomationPrefs.getToken(ctx)))
+                Flash.show(ctx, getString(R.string.sk_misc_automation_token_copied), Toast.LENGTH_SHORT)
             }
         })
         buttons.addView(Button(ctx).apply {
-            text = "Regenerate"
+            text = getString(R.string.sk_misc_automation_regenerate)
             setOnClickListener {
                 tokenView?.text = AutomationPrefs.regenerateToken(ctx)
-                Flash.show(ctx, "Token regenerated — update your scripts", Toast.LENGTH_LONG)
+                Flash.show(ctx, getString(R.string.sk_misc_automation_token_regenerated), Toast.LENGTH_LONG)
             }
         })
         tokenBox.addView(buttons)
 
         // Accounts — the otherwise-hidden <account> id; or pass "default" for the current one.
-        root.addView(miniLabel("Your accounts (use the id as <account>, or \"default\")"))
+        root.addView(miniLabel(getString(R.string.sk_misc_automation_accounts)))
         val accounts: List<Account> = try {
             accountService.observableAccountList
                 .timeout(500, TimeUnit.MILLISECONDS)
@@ -147,29 +140,29 @@ class AutomationSettingsFragment : Fragment() {
             listOfNotNull(accountService.currentAccount)
         }
         if (accounts.isEmpty()) {
-            root.addView(body("No accounts found — open the app's account list once, then return here."))
+            root.addView(body(getString(R.string.sk_misc_automation_no_accounts)))
         } else {
             for (a in accounts) root.addView(accountRow(a))
         }
 
         // Usage help
-        root.addView(miniLabel("How to call it"))
+        root.addView(miniLabel(getString(R.string.sk_misc_automation_howto)))
+        // The command lines are machine syntax and stay as they are; only the prose is translated.
         root.addView(mono(
-            "Deep link (any URL opener / am):\n" +
+            getString(R.string.sk_misc_automation_help_deeplink) + "\n" +
             "  am start -a android.intent.action.VIEW \\\n" +
             "    -d 'jami-cmd://send/<account>/<peer>?text=hi&token=<token>'\n" +
             "  jami-cmd://call/<account>/<peer>?video=0&token=<token>\n" +
             "  jami-cmd://open/<account>/<peer>?token=<token>\n" +
             "\n" +
-            "Explicit intent (Tasker / OpenTasker, extras):\n" +
+            getString(R.string.sk_misc_automation_help_intent) + "\n" +
             "  package    shiroikuma.jami\n" +
             "  class      cx.ring.automation.AutomationActivity\n" +
             "  action     shiroikuma.jami.action.SEND_MESSAGE\n" +
             "             …PLACE_CALL / …PLACE_VIDEO_CALL / …OPEN_CONVERSATION\n" +
             "  extras     account, peer, text, video (bool), token\n" +
             "\n" +
-            "<account> may be \"default\" for the current account. <peer> is a swarm:<id>, " +
-            "jami:<40-hex>, or sip: URI. URL-encode <peer> and the message text in the deep link."))
+            getString(R.string.sk_misc_automation_help_note)))
 
         return scroll
     }
@@ -179,7 +172,7 @@ class AutomationSettingsFragment : Fragment() {
         val name = a.displayUsername?.takeIf { it.isNotEmpty() }
             ?: a.registeredName.takeIf { it.isNotEmpty() }
             ?: a.alias?.takeIf { it.isNotEmpty() }
-            ?: "(白い熊 GNU Jami account)"
+            ?: getString(R.string.sk_misc_automation_unnamed_account)
         return LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(6f), 0, dp(6f))

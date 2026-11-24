@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- shiroikuma fork: decline an incoming call with a predefined message. -->
 <resources>
-    <string name="sk_decline_msg">Message</string>
+    <string name="sk_decline_msg">Quick reply</string>
     <string name="sk_decline_msg_desc">Silence the call, then decline it with a message</string>
     <string name="sk_decline_title">Decline with a message</string>
     <string name="sk_decline_for_contact">For %1$s</string>

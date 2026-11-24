@@ -21,7 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <item
         android:id="@+id/menu_clear"
         android:icon="@drawable/baseline_delete_24"
-        android:title="ClearAll"
+        android:title="@string/sk_left_menu_clear_all"
         app:iconTint="@color/icon_color"
         app:showAsAction="always" />
 

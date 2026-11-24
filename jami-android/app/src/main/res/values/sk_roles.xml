@@ -16,6 +16,8 @@
     <color name="sk_role_divider">#FFB2B200</color>
     <color name="sk_role_pressed">#4DFFFF00</color>
     <color name="sk_role_danger">#FFFF0000</color>
+    <color name="sk_role_progress">#FF4D94FF</color>
+    <color name="sk_role_progress_track">#4D4D94FF</color>
     <color name="sk_role_text">#FFFFFF00</color>
     <color name="sk_role_text_secondary">#FFC8C800</color>
     <color name="sk_role_text_disabled">#61FFFF00</color>
@@ -58,10 +60,13 @@
     <color name="sk_role_call_ctrl">#FFFFFF00</color>
     <color name="sk_role_call_ctrl_ground">#FF000000</color>
     <color name="sk_role_call_ctrl_active">#FFFF5252</color>
-    <color name="sk_role_call_accept">#FF00E676</color>
-    <color name="sk_role_call_decline">#FFFF5252</color>
+    <color name="sk_role_call_accept">#FFFFFF00</color>
+    <color name="sk_role_call_accept_glyph">#FF000000</color>
+    <color name="sk_role_call_decline">#FFB00000</color>
+    <color name="sk_role_call_decline_glyph">#FFFFFFFF</color>
     <color name="sk_role_call_missed">#FFFA2E30</color>
     <color name="sk_role_page_heading">#FFFFFF00</color>
     <color name="sk_role_page_chip">#FFFFFF00</color>
     <color name="sk_role_page_note">#FFC8C800</color>
+    <color name="sk_role_section_words">#FF00B0FF</color>
 </resources>

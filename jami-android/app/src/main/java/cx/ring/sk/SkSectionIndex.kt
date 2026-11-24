@@ -29,7 +29,8 @@ import android.widget.TextView
 import kotlin.math.hypot
 
 object SkSectionIndex {
-    class Item(val key: String, val label: String)
+    /** [glyph] in [glyphColor]: the section's own icon, the same one its heading shows. */
+    class Item(val key: String, val label: String, val glyph: SkGlyph? = null, val glyphColor: Int = 0)
 
     private const val GAP_DP = 6f
     private const val LIFTED_ALPHA = 0.3f
@@ -47,6 +48,14 @@ object SkSectionIndex {
         flow.setPadding(0, (2 * density).toInt(), 0, (6 * density).toInt())
         for (item in items) {
             val chip = chip(context, item.label, frame, text, density)
+            if (item.glyph != null) {
+                // Sized by the chip's label, like every label icon.
+                val size = Math.round(chip.textSize * 1.25f)
+                val icon = SkGlyphDrawable(item.glyph, item.glyphColor, size)
+                icon.setBounds(0, 0, size, size)
+                chip.setCompoundDrawablesRelative(icon, null, null, null)
+                chip.compoundDrawablePadding = size / 2
+            }
             chip.tag = item.key
             chip.setOnClickListener { onJump(it.tag as String) }
             chip.setOnLongClickListener {

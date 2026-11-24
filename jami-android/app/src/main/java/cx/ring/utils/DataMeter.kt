@@ -41,6 +41,16 @@ object DataMeter {
         }
     }
 
+    /** [netLabel] as shown on screen. [netLabel] itself is written to the measurement files, so it
+     *  stays as it is; an unknown value is shown unchanged. */
+    fun netDisplayLabel(c: Context, label: String = netLabel(c)): String = when (label) {
+        "WiFi" -> "Wi-Fi"
+        "mobile" -> c.getString(cx.ring.R.string.sk_conn_net_cellular)
+        "other" -> c.getString(cx.ring.R.string.sk_conn_net_other)
+        "none" -> c.getString(cx.ring.R.string.sk_left_net_none)
+        else -> label
+    }
+
     fun start(c: Context) {
         p(c).edit()
             .putBoolean("active", true)

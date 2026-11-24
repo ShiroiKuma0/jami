@@ -198,6 +198,6 @@ object DataMeterUi {
     fun liveLine(ctx: Context): String? {
         if (!DataMeter.isActive(ctx)) return null
         val (el, rx, tx) = DataMeter.snapshot(ctx)
-        return "${DataMeter.elapsedLabel(el)} · ↓${DataMeter.bytesLabel(rx)} ↑${DataMeter.bytesLabel(tx)} · ${DataMeter.netLabel(ctx)}"
+        return "${DataMeter.elapsedLabel(el)} · ↓${DataMeter.bytesLabel(rx)} ↑${DataMeter.bytesLabel(tx)} · ${DataMeter.netDisplayLabel(ctx)}"
     }
 }

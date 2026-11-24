@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork: strings that used to be literals in the fork's Kotlin and layouts (2026-11-23).
+  Japanese: values-ja/sk_strings_misc.xml. The key sets of the two files must stay identical.
+
+  sk_role_section_<SkSection name, lower case> and sk_role_label_<SkRole name, lower case> are found
+  BY NAME (SkSection.displayTitle / SkRole.displayLabel in cx/ring/sk/SkRoles.kt): a new role or
+  section needs a line here and in the Japanese file. They are STRING resources; the colour
+  resources sk_role_<name> live in sk_roles.xml.
+-->
+<resources>
+    <!-- colour roles: sections -->
+    <string name="sk_role_section_foundation">Foundation</string>
+    <string name="sk_role_section_text">Text</string>
+    <string name="sk_role_section_buttons">Buttons</string>
+    <string name="sk_role_section_dialogs">Dialogs</string>
+    <string name="sk_role_section_switches">Switches</string>
+    <string name="sk_role_section_marks">Check boxes and radio buttons</string>
+    <string name="sk_role_section_menus">Menus</string>
+    <string name="sk_role_section_lists">Lists</string>
+    <string name="sk_role_section_fields">Text fields</string>
+    <string name="sk_role_section_bars">Top bars</string>
+    <string name="sk_role_section_calls">Call controls</string>
+    <string name="sk_role_section_pages">Settings pages</string>
+
+    <!-- colour roles: labels -->
+    <string name="sk_role_label_background">Background</string>
+    <string name="sk_role_label_surface">Raised surfaces (cards, sheets, bars)</string>
+    <string name="sk_role_label_accent">Accent</string>
+    <string name="sk_role_label_on_accent">Content on an accent ground</string>
+    <string name="sk_role_label_icon">Icons</string>
+    <string name="sk_role_label_icon_active">Active controls (sliders, cursors)</string>
+    <string name="sk_role_label_outline">Outlines and frames</string>
+    <string name="sk_role_label_divider">Dividers</string>
+    <string name="sk_role_label_pressed">Pressed highlight</string>
+    <string name="sk_role_label_danger">Delete and warnings</string>
+    <string name="sk_role_label_progress">Progress bar (in progress)</string>
+    <string name="sk_role_label_progress_track">Progress bar track</string>
+    <string name="sk_role_label_text">Text</string>
+    <string name="sk_role_label_text_secondary">Secondary text</string>
+    <string name="sk_role_label_text_disabled">Disabled text</string>
+    <string name="sk_role_label_text_hint">Hints</string>
+    <string name="sk_role_label_text_selection">Text selection</string>
+    <string name="sk_role_label_link">Links</string>
+    <string name="sk_role_label_pill_text">Button label</string>
+    <string name="sk_role_label_pill_frame">Button frame</string>
+    <string name="sk_role_label_pill_ground">Button ground</string>
+    <string name="sk_role_label_fab_ring">Floating button ring</string>
+    <string name="sk_role_label_fab_glyph">Floating button glyph</string>
+    <string name="sk_role_label_fab_ground">Floating button ground</string>
+    <string name="sk_role_label_dialog_ground">Dialog ground</string>
+    <string name="sk_role_label_dialog_frame">Dialog frame</string>
+    <string name="sk_role_label_dialog_title">Dialog title</string>
+    <string name="sk_role_label_dialog_text">Dialog text</string>
+    <string name="sk_role_label_switch_on">Switch, on</string>
+    <string name="sk_role_label_switch_off">Switch, off</string>
+    <string name="sk_role_label_mark_on">Mark, chosen</string>
+    <string name="sk_role_label_mark_off">Mark, not chosen</string>
+    <string name="sk_role_label_menu_ground">Menu ground</string>
+    <string name="sk_role_label_menu_frame">Menu frame</string>
+    <string name="sk_role_label_menu_label">Menu label</string>
+    <string name="sk_role_label_menu_row_frame">Menu row frame</string>
+    <string name="sk_role_label_menu_divider">Menu group divider</string>
+    <string name="sk_role_label_menu_icon_call">Icon: call, connect</string>
+    <string name="sk_role_label_menu_icon_message">Icon: message, write</string>
+    <string name="sk_role_label_menu_icon_contact">Icon: contact, person</string>
+    <string name="sk_role_label_menu_icon_share">Icon: copy, share, export</string>
+    <string name="sk_role_label_menu_icon_view">Icon: view, open, settings</string>
+    <string name="sk_role_label_menu_icon_block">Icon: block, mute, leave</string>
+    <string name="sk_role_label_menu_icon_delete">Icon: delete, remove</string>
+    <string name="sk_role_label_list_divider">List divider</string>
+    <string name="sk_role_label_list_selected">Selected row ground</string>
+    <string name="sk_role_label_list_selected_text">Selected row text</string>
+    <string name="sk_role_label_field_text">Typed text</string>
+    <string name="sk_role_label_field_ground">Field ground</string>
+    <string name="sk_role_label_field_frame">Field frame and underline</string>
+    <string name="sk_role_label_bar_ground">Top bar ground</string>
+    <string name="sk_role_label_call_ctrl">Control ring and glyph</string>
+    <string name="sk_role_label_call_ctrl_ground">Control ground</string>
+    <string name="sk_role_label_call_ctrl_active">Control switched on (muted, camera off)</string>
+    <string name="sk_role_label_call_accept">Answer</string>
+    <string name="sk_role_label_call_decline">Decline and hang up</string>
+    <string name="sk_role_label_call_accept_glyph">Phone on the answer button</string>
+    <string name="sk_role_label_call_decline_glyph">Phone on the decline and hang-up buttons</string>
+    <string name="sk_role_label_call_missed">Missed call</string>
+    <string name="sk_role_label_page_heading">Section headings</string>
+    <string name="sk_role_label_page_chip">Index chips</string>
+    <string name="sk_role_label_page_note">Explanations and the left rule</string>
+    <string name="sk_role_label_section_words">Section icon: words, written and read</string>
+
+    <!-- fonts (FontUtil) -->
+    <string name="sk_misc_font_default_family">Default family</string>
+    <string name="sk_misc_font_weight_thin">Thin (100)</string>
+    <string name="sk_misc_font_weight_light">Light (300)</string>
+    <string name="sk_misc_font_weight_normal">Normal (400)</string>
+    <string name="sk_misc_font_weight_medium">Medium (500)</string>
+    <string name="sk_misc_font_weight_bold">Bold (700)</string>
+    <string name="sk_misc_font_weight_black">Black (900)</string>
+
+    <!-- Settings page: the fork's rows, and the top-bar icons of the conversation list -->
+    <string name="sk_misc_ui_page_title">白い熊 GNU Jami UI</string>
+    <string name="sk_misc_ui_page_summary">Fonts, colours and app language for each UI element</string>
+    <string name="sk_misc_status_icon_title">Message status icon height</string>
+    <string name="sk_misc_status_icon_summary">Sent / read indicator size, in text lines</string>
+    <string name="sk_misc_status_icon_lines">%1$.2f lines</string>
+    <string name="sk_misc_split_view">Split view</string>
+    <string name="sk_misc_split_view_summary">Show the conversation beside the list on wide screens</string>
+    <string name="sk_misc_menu_account_status">Account online/offline</string>
+    <string name="sk_misc_menu_dht_mode">DHT mode</string>
+    <string name="sk_misc_menu_lightning">DHT proxy / recover</string>
+    <string name="sk_misc_reconnect">Reconnect</string>
+
+    <!-- Automation page -->
+    <string name="sk_misc_automation_title">Automation</string>
+    <string name="sk_misc_automation_intro">Let external automation — Tasker, OpenTasker, the `am` shell, or a sister app — drive this app. Automation is open by default so a wiped phone can be restored before anything has been configured. That openness is not limited to backups: with the token switch off, any app on this device can also send a message or place a call as you. The backup/restore door is the exception — it checks the calling app\'s package name, uid and signing certificate either way, because it can see who is calling. Turn the token on to require it across the whole surface, or the first switch off to block automation entirely.</string>
+    <string name="sk_misc_automation_enable">Enable automation</string>
+    <string name="sk_misc_automation_use_token">Use authorization token?</string>
+    <string name="sk_misc_automation_secret_token">Secret token</string>
+    <string name="sk_misc_automation_regenerate">Regenerate</string>
+    <string name="sk_misc_automation_token_copied">Token copied</string>
+    <string name="sk_misc_automation_token_regenerated">Token regenerated — update your scripts</string>
+    <string name="sk_misc_automation_clip_label">白い熊 GNU Jami automation token</string>
+    <string name="sk_misc_automation_accounts">Your accounts (use the id as &lt;account&gt;, or \"default\")</string>
+    <string name="sk_misc_automation_no_accounts">No accounts found — open the app\'s account list once, then return here.</string>
+    <string name="sk_misc_automation_unnamed_account">(白い熊 GNU Jami account)</string>
+    <string name="sk_misc_automation_howto">How to call it</string>
+    <string name="sk_misc_automation_help_deeplink">Deep link (any URL opener / am):</string>
+    <string name="sk_misc_automation_help_intent">Explicit intent (Tasker / OpenTasker, extras):</string>
+    <string name="sk_misc_automation_help_note">&lt;account&gt; may be \"default\" for the current account. &lt;peer&gt; is a swarm:&lt;id&gt;, jami:&lt;40-hex&gt;, or sip: URI. URL-encode &lt;peer&gt; and the message text in the deep link.</string>
+
+    <!-- Diagnostics: stored files (DiagFiles) -->
+    <string name="sk_misc_diag_kind_recovery">Recovery log</string>
+    <string name="sk_misc_diag_kind_incidents">Watchdog incidents</string>
+    <string name="sk_misc_diag_kind_data">Data usage</string>
+    <string name="sk_misc_diag_kind_presence">Presence map</string>
+    <string name="sk_misc_diag_kind_push">Push log</string>
+    <string name="sk_misc_diag_kind_memory">Memory</string>
+    <string name="sk_misc_diag_kind_other">Other</string>
+    <plurals name="sk_misc_diag_files">
+        <item quantity="one">%1$d file, %2$.1f MB</item>
+        <item quantity="other">%1$d files, %2$.1f MB</item>
+    </plurals>
+    <string name="sk_misc_diag_export_not_writable">the chosen directory is not writable</string>
+    <string name="sk_misc_diag_export_create_failed">could not create %1$s</string>
+
+    <!-- Export / import: status line and report notes -->
+    <string name="sk_misc_export_none_in">No exports yet in %1$s</string>
+    <string name="sk_misc_export_latest_in">"Latest export: %1$s  (%2$s, %3$s)\n%4$s"</string>
+    <string name="sk_misc_export_dir_unset">Export directory not set</string>
+    <string name="sk_misc_export_none">No exports yet</string>
+    <string name="sk_misc_export_latest">"Latest export: %1$s  (%2$s)"</string>
+    <string name="sk_misc_export_acc_password">%1$s: archive has a password — not included.</string>
+    <string name="sk_misc_export_acc_failed">%1$s: export failed — %2$s</string>
+    <string name="sk_misc_export_cannot_read">cannot read the selected file</string>
+    <string name="sk_misc_restore_file_failed">could not restore %1$s: %2$s</string>
+</resources>

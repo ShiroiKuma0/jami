@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  shiroikuma fork: upstream strings that upstream has no Czech for (část 3 — strings_account.xml,
+  strings_preferences.xml, strings_call.xml, strings_certificate.xml,
+  strings_content_description.xml, arrays.xml).
+
+  If upstream ever ships values-cs with one of these keys, the build reports a duplicate
+  resource and the entry is deleted HERE.
+
+  The two string-arrays at the end are copies of the default arrays with their prose
+  items translated. Item order and count must stay identical to res/values/arrays.xml
+  (swarm_one_to_one_actions is indexed by ActionHelper.ACTION_*): when the default
+  array changes, change the copy here too.
+-->
+<resources>
+
+    <!-- ===== strings_account.xml ===== -->
+    <string name="ic_delete_menu">Smazat</string>
+    <string name="ic_advanced_menu">Pokročilá nastavení</string>
+    <string name="ic_blacklist_menu">Zablokované kontakty</string>
+
+    <string name="account_selection">Vybrat účet</string>
+    <string name="add_ring_account_title">Přidat účet</string>
+    <string name="add_sip_account_title">Přidat účet SIP</string>
+    <string name="ring_account_default_name">Účet 白い熊 GNU Jami %1$s</string>
+    <string name="account_creation_error">Při vytváření účtu došlo k chybě.</string>
+
+    <string name="prompt_alias">Alias</string>
+    <string name="prompt_hostname">Název hostitele</string>
+    <string name="prompt_username">Uživatelské jméno</string>
+    <string name="prompt_password">Heslo</string>
+    <string name="action_create">Vytvořit účet</string>
+    <string name="action_create_short">Vytvořit</string>
+    <string name="action_register">Registrovat</string>
+    <string name="action_settings">Nastavení</string>
+
+    <string name="error_field_required">Toto pole je povinné</string>
+    <string name="dialog_wait_create">Přidávání účtu</string>
+    <string name="dialog_wait_create_details">Počkejte prosím, nový účet se přidává…</string>
+    <string name="dialog_wait_update">Aktualizace účtu</string>
+    <string name="dialog_wait_update_details">Počkejte prosím, nový účet se aktualizuje…</string>
+
+    <string name="dialog_warn_ip2ip_account_title">Vytvořit prázdný účet SIP?</string>
+    <string name="dialog_warn_ip2ip_account_message">Chystáte se vytvořit účet SIP bez platného názvu hostitele. Budete moci volat a přijímat pouze přímé hovory přes IP. Účet můžete upravit později.</string>
+
+    <string name="account_type_ip2ip">Účet IP</string>
+    <string name="help_ring">S účtem 白い熊 GNU Jami se s lidmi spojíte bezpečně a napřímo (peer-to-peer) přes plně distribuovanou síť.</string>
+
+    <string name="help_sip_title">Přidat účet SIP</string>
+    <string name="help_sip">Nastavit existující účet SIP</string>
+    <string name="create_sip_account">Nastavit účet SIP</string>
+
+    <string name="account_delete_dialog_title">Smazat účet?</string>
+    <string name="account_delete_dialog_message">Tuto akci nelze vrátit zpět.</string>
+
+    <string name="empty_account_list">Není zaregistrován žádný účet</string>
+    <string name="normal_accounts_titles">Účty</string>
+    <string name="normal_devices_titles">Propojená zařízení</string>
+    <string name="account_device_revoke">Odvolat zařízení</string>
+    <string name="account_device_revocation_success_title">Hotovo</string>
+    <string name="account_device_revocation_success">Zařízení bylo odvoláno!</string>
+    <string name="account_device_revocation_error_title">Chyba při odvolání zařízení</string>
+    <string name="account_device_revocation_wrong_password">Nesprávné heslo.</string>
+    <string name="account_device_revocation_unknown_device">Neznámé zařízení.</string>
+    <string name="account_device_revocation_error_unknown">Neznámá chyba.</string>
+    <string name="account_password_change">Změnit heslo</string>
+    <string name="account_password_set">Nastavit heslo</string>
+    <string name="account_password_summary">Spravujte heslo svého účtu.</string>
+    <string name="account_password_change_wait_message">Mění se heslo účtu</string>
+    <string name="account_biometric_disable">Vypnout ověřování biometrií</string>
+    <string name="account_biometric_set">Zapnout ověřování biometrií</string>
+    <string name="account_biometric_summary">Spravujte ověřování biometrií pro svůj účet.</string>
+
+    <string name="account_preferences_basic_tab">Obecné</string>
+    <string name="account_basic_category">Základní nastavení</string>
+    <string name="account_alias_label">Zobrazované jméno</string>
+    <string name="account_hostname_label">Název hostitele</string>
+    <string name="account_bootstrap_label">Bootstrap</string>
+    <string name="account_name_server_label">Jmenný server</string>
+    <string name="account_username_label">Uživatelské jméno</string>
+    <string name="account_password_label">Heslo</string>
+    <string name="account_optionnal_category">Volitelná nastavení</string>
+    <string name="account_useragent_label">User agent</string>
+    <string name="account_autoanswer_label">Automaticky přijímat hovory</string>
+    <string name="account_rendezvous_label">Režim Rendezvous</string>
+    <string name="account_rendezvous_summary">V režimu Rendezvous se příchozí hovory přidávají do konferenční místnosti.</string>
+    <string name="account_upnp_label">Zapnout UPnP</string>
+    <string name="account_proxy_field">Proxy</string>
+
+    <string name="account_preferences_extension_tab">Rozšíření</string>
+
+    <string name="account_audio_label">Zvuk</string>
+    <string name="account_preferences_media_tab">Média</string>
+    <string name="account_ringtone_label">Vyzvánění</string>
+    <string name="account_ringtone_enabled_label">Zapnout vyzvánění</string>
+    <string name="account_ringtone_path_label">Cesta k vyzvánění</string>
+    <string name="account_ringtone_custom_label">Použít vlastní vyzvánění</string>
+    <string name="account_ringtone_title">Zvolte vyzvánění</string>
+    <string name="account_ringtone_summary">Vyberte vyzvánění, nebo zvolte vlastní</string>
+
+    <string name="account_video_label">Video</string>
+    <string name="account_video_enable">Zapnout video</string>
+
+    <string name="account_preferences_advanced_tab">Pokročilé</string>
+    <string name="account_chat_settings_title">Nastavení chatu</string>
+    <string name="account_read_receipts_label">Potvrzení o přečtení</string>
+    <string name="account_read_receipts_summary">Odesílat a vyžadovat potvrzení o doručení a přečtení zpráv.</string>
+    <string name="account_call_settings_title">Nastavení hovorů</string>
+    <string name="account_dht_public_in_calls_label">Povolit příchozí hovory od neznámých kontaktů</string>
+    <string name="account_registration_exp_label">Platnost registrace</string>
+    <string name="account_local_interface_label">Místní rozhraní</string>
+    <string name="account_local_port_label">Místní port</string>
+    <string name="account_stun_enable_label">Používat STUN</string>
+    <string name="account_stun_server_label">Server STUN</string>
+    <string name="account_accept_files">Automaticky přijímat příchozí soubory</string>
+    <string name="account_conversation_settings_title">Nastavení konverzací</string>
+    <string name="account_accept_files_max_size">Největší soubor, který se přijme automaticky</string>
+    <string name="account_accept_files_never">Nikdy nepřijímat automaticky</string>
+    <string name="account_accept_files_always">Vždy přijímat automaticky</string>
+    <string name="size_mb">%1$d MB</string>
+
+    <string name="account_turn_enable_label">Používat TURN</string>
+    <string name="account_turn_server_label">Server TURN</string>
+    <string name="account_turn_username_label">Uživatelské jméno pro TURN</string>
+    <string name="account_turn_password_label">Heslo pro TURN</string>
+
+    <string name="account_published_same_as_local_label">Zveřejňovat stejné údaje jako místní</string>
+    <string name="account_published_port_label">Zveřejněný port</string>
+    <string name="account_published_address_label">Zveřejněná adresa</string>
+    <string name="account_connectivity_label">Připojení peer-to-peer</string>
+
+    <string name="disabled">Vypnuto</string>
+    <string name="enabled">Zapnuto</string>
+    <string name="default_value">Výchozí</string>
+    <string name="account_proxy_label">DHT proxy</string>
+    <string name="account_proxy_enable_label">Používat DHT proxy</string>
+    <string name="account_proxy_list_enable_label">Používat seznam DHT proxy</string>
+    <string name="account_proxy_server_label">Adresa DHT proxy</string>
+    <string name="account_proxy_server_list_label">URL seznamu DHT proxy</string>
+    <string name="account_proxy_server_used">Používá se: %1$s</string>
+
+    <string name="account_sip_proxy_label">Proxy</string>
+
+    <string name="account_peer_discovery_label">Vyhledávání uzlů v místní síti</string>
+    <string name="account_peer_discovery_enable_label">Zapnout vyhledávání uzlů v místní síti</string>
+    <string name="account_peer_discovery_enable_summary">Připojovat se k dalším uzlům DHT, které se ohlašují v naší místní síti</string>
+
+    <string name="account_credentials_label">Přihlašovací údaje</string>
+    <string name="account_credentials_edit">Upravit přihlašovací údaje</string>
+    <string name="account_credentials_add">Přidat přihlašovací údaje</string>
+
+    <string name="account_preferences_security_tab">Zabezpečení</string>
+    <string name="account_srtp_switch_label">Šifrovat mediální proudy (SRTP)</string>
+
+    <string name="account_tls_transport_switch_label">Používat přenos TLS</string>
+    <string name="account_tls_port_label">Naslouchající port TLS</string>
+    <string name="account_tls_certificate_list_label">Certifikační autority</string>
+    <string name="account_tls_certificate_file_label">Soubor s certifikátem</string>
+    <string name="account_tls_private_key_file_label">Soubor se soukromým klíčem</string>
+    <string name="account_tls_password_label">Heslo k soukromému klíči</string>
+    <string name="account_tls_method_label">Metoda TLS</string>
+    <string name="account_tls_ciphers_label">Šifry TLS</string>
+    <string name="account_tls_server_name_label">Název serveru</string>
+    <string name="account_tls_verify_server_label">Ověřovat server</string>
+    <string name="account_tls_verify_client_label">Ověřovat klienta</string>
+    <string name="account_require_client_certificate_label">TLS vyžaduje certifikát klienta</string>
+    <string name="account_tls_negotiation_timeout_sec">Časový limit vyjednávání (s)</string>
+    <string name="account_rtp_max_port">Nejvyšší</string>
+    <string name="account_rtp_min_port">Nejnižší</string>
+    <string name="account_rtp_port_range">Rozsah portů RTP pro zvuk</string>
+
+    <string name="account_new_device_password">Účet odemknete zadáním hlavního hesla</string>
+    <string name="error_password_char_count">Nejméně 6 znaků</string>
+    <string name="error_passwords_not_equals">Hesla se neshodují.</string>
+    <string name="export_account_wait_title">Počkejte prosím…</string>
+    <string name="export_account_wait_message">Exportují se údaje účtu</string>
+    <string name="account_export_file">Zálohovat účet</string>
+    <string name="account_export_file_summary">Uložte si zálohu účtu do zařízení, abyste jej mohli později obnovit.</string>
+    <string name="account_export_end_decryption_message">Nesprávné heslo. Zkuste to prosím znovu se správným heslem.</string>
+    <string name="account_enter_password">Zadejte heslo</string>
+    <string name="account_share_body">Ozvěte se mi na „%1$s“ na distribuované komunikační platformě 白い熊 GNU Jami: %2$s</string>
+    <string name="account_share_body_with_username">Ozvěte se mi na „%1$s“ nebo na mé veřejné uživatelské jméno „%2$s“ na distribuované komunikační platformě 白い熊 GNU Jami: %3$s</string>
+    <string name="account_contact_me">Ozvěte se mi na 白い熊 GNU Jami!</string>
+    <string name="update_account">Aktualizovat účet</string>
+    <string name="account_migration">Váš účet 白い熊 GNU Jami lze aktualizovat.\nZadejte prosím heslo.</string>
+    <string name="ring_account">Účet 白い熊 GNU Jami</string>
+    <string name="sip_account">Účet SIP</string>
+    <string name="ring_account_identity">Identita</string>
+    <string name="account_migration_title_dialog">Migrace účtu</string>
+    <string name="account_migration_message_dialog">Vaše účty je potřeba aktualizovat. Chcete přejít na obrazovku správy účtů a provést to?</string>
+    <string name="account_update_needed">Je potřeba aktualizace</string>
+    <string name="account_cannot_be_found_title">Chyba účtu</string>
+    <string name="account_cannot_be_found_message">Účet se v síti 白い熊 GNU Jami nepodařilo najít. Ujistěte se, že byl exportován z 白い熊 GNU Jami na stávajícím zařízení a že jsou zadané přihlašovací údaje správné.</string>
+    <string name="jams_account_cannot_be_found_message">Při připojování účtu došlo k chybě. Zkontrolujte přihlašovací údaje a zkuste to znovu.</string>
+    <string name="account_sip_cannot_be_registered_message">Můžete pokračovat ve vytváření účtu, nebo zde upravit své údaje. Upravit je lze i později v nastavení účtu.</string>
+    <string name="account_no_network_title">Chyba sítě</string>
+    <string name="account_no_network_message">Při přidávání účtu 白い熊 GNU Jami do distribuované sítě došlo k chybě připojení. Zkontrolujte připojení svého zařízení.</string>
+    <string name="account_device_added_title">Zařízení bylo přidáno k účtu</string>
+    <string name="account_device_added_message">Účet 白い熊 GNU Jami byl na tomto zařízení úspěšně nastaven.</string>
+    <string name="account_device_updated_title">Zařízení účtu bylo aktualizováno</string>
+    <string name="account_device_updated_message">Účet 白い熊 GNU Jami byl úspěšně aktualizován.</string>
+    <string name="account_cannot_be_updated_message">Při aktualizaci účtu došlo k chybě. Zkontrolujte heslo účtu.</string>
+    <string name="account_sip_success_title">Účet SIP zaregistrován</string>
+    <string name="account_sip_success_message">Účet SIP byl úspěšně zaregistrován.</string>
+    <string name="account_sip_register_anyway">Přesto registrovat</string>
+
+    <string name="account_tv_settings_header">Nastavení účtu</string>
+    <string name="account_tv_advance_settings_header">Pokročilá nastavení</string>
+    <string name="account_tv_add_contact">Přidat kontakt</string>
+    <string name="account_tv_advanced_settings">Změnit obecná nastavení</string>
+    <string name="account_tv_about">O aplikaci 白い熊 GNU Jami</string>
+    <string name="tv_about_version">Verze</string>
+    <string name="tv_about_license">Licence</string>
+    <string name="tv_about_author">Autorská práva</string>
+    <string name="tv_about_credits">Poděkování</string>
+
+    <string name="account_link_device">Připojit z jiného zařízení</string>
+    <string name="account_link_button">Připojit ze sítě</string>
+    <string name="account_link_archive_button">Připojit ze zálohy</string>
+    <string name="account_new_button">Vytvořit účet 白い熊 GNU Jami</string>
+    <string name="account_link_export_button">Propojit nové zařízení</string>
+    <string name="account_link_show_button">Zobrazit další propojená zařízení (%d)</string>
+    <string name="account_link_hide_button">Skrýt propojená zařízení</string>
+    <string name="account_start_export_button">Vygenerovat ověřovací kód</string>
+    <string name="account_end_export_button">zavřít</string>
+    <string name="account_export_title">Propojit účet s dalšími zařízeními</string>
+    <string name="account_connect_server_button">Připojit k serveru pro správu</string>
+    <string name="account_connect_button">Připojit</string>
+    <string name="prompt_server">URL serveru pro správu</string>
+    <string name="help_credentials_enter">Zadejte přihlašovací údaje své organizace</string>
+    <string name="help_connect_password_enter">Zadejte heslo své organizace</string>
+    <string name="account_connect_prompt_username">Uživatelské jméno</string>
+    <string name="account_connect_server">Připojit k serveru pro správu</string>
+    <string name="account_enter_username">Zadejte uživatelské jméno</string>
+    <string name="account_enter_servername">Zadejte server</string>
+
+    <string name="error_username_empty">Zadejte uživatelské jméno</string>
+    <string name="no_registered_name_for_account">Žádné registrované uživatelské jméno</string>
+    <string name="username_available">Uživatelské jméno je volné.</string>
+    <string name="register_name">Registrovat jméno</string>
+    <string name="trying_to_register_name">Uživatelské jméno se registruje. Počkejte prosím…</string>
+    <string name="registered_username">Registrované uživatelské jméno</string>
+    <string name="register_username">Registrovat veřejné uživatelské jméno</string>
+    <string name="register_recommended">Doporučeno</string>
+    <string name="username_already_taken">Uživatelské jméno je už obsazené</string>
+    <string name="invalid_username">Neplatné uživatelské jméno</string>
+    <string name="unknown_error">Neznámá chyba. Zkontrolujte připojení k síti!</string>
+    <string name="looking_for_username_availability">Ověřuje se, zda je uživatelské jméno volné…</string>
+    <string name="account_status_connecting">Připojování</string>
+    <string name="account_status_connection_error">Chyba připojení</string>
+    <string name="account_status_online">Online</string>
+    <string name="account_status_unknown">Neznámý</string>
+    <string name="account_status_offline">Offline</string>
+    <string name="account_status_error">Chyba</string>
+
+    <string name="account_creation_home">Vítejte v 白い熊 GNU Jami</string>
+    <string name="account_creation_profile">Vytvořte si profil</string>
+    <string name="account_creation_ring">Vytvořte si účet 白い熊 GNU Jami</string>
+    <string name="account_sip_cannot_be_registered">Při registraci účtu SIP došlo k chybě.</string>
+
+    <string name="account_edit_profile">Upravit profil</string>
+
+    <string name="account_revoke_device_hint">Potvrďte zadáním hesla</string>
+    <string name="enter_password">Zadejte heslo</string>
+    <string name="revoke_device_title">Odvolat zařízení</string>
+    <string name="revoke_device_message">Chcete odvolat zařízení %1$s?</string>
+    <string name="revoke_device_wait_title">Počkejte prosím…</string>
+    <string name="revoke_device_wait_message">Zařízení se odvolává</string>
+    <string name="rename_device_title">Přejmenovat toto zařízení</string>
+    <string name="rename_device_message">Zadejte název, podle kterého toto zařízení poznáte ve svém účtu 白い熊 GNU Jami</string>
+    <string name="rename_device_button">Přejmenovat zařízení</string>
+    <string name="account_rename_device_hint">Zvolte nový název zařízení</string>
+    <string name="account_device_name_empty">Název zařízení nesmí být prázdný.</string>
+    <string name="account_device_this_indicator">Toto zařízení</string>
+    <string name="account_device_last_sync">Synchronizováno: %1$s</string>
+    <string name="account_device_never_synced">Nikdy</string>
+    <string name="account_disabled_indicator">Vypnuto</string>
+    <string name="account_device_id">ID zařízení</string>
+
+    <string name="error_format_not_supported">Tento formát není podporován.</string>
+    <string name="account_link_info">V aplikaci 白い熊 GNU Jami na novém zařízení naskenujte QR kód, nebo zadejte ověřovací kód ručně.</string>
+    <string name="account_link_device_title">Propojit nové zařízení</string>
+    <string name="account_link_password">Tento účet je zašifrován heslem. Zadejte heslo, aby bylo možné vygenerovat ověřovací kód.</string>
+    <string name="account_link_generate_button">Vygenerovat</string>
+    <string name="account_link_time_valid">Platnost ověřovacího kódu vyprší: %1$s.</string>
+    <string name="account_link_device_info">V druhé aplikaci 白い熊 GNU Jami zvolte „Propojit nové zařízení“ — zobrazí se QR kód nebo ověřovací kód.</string>
+    <string name="account_generate_export_device">Na druhém zařízení</string>
+    <string name="account_generate_export_info">Nainstalujte a spusťte 白い熊 GNU Jami. Zvolte „Importovat z jiného zařízení“ a naskenujte QR kód. Případně zadejte kód PIN ručně.</string>
+    <string name="content_description_qr_generated">QR kód účtu</string>
+    <string name="account_generate_export_invalid">Ověřovací kód už není platný.\nZadejte heslo a vygenerujte nový, abyste mohli nové zařízení propojit.</string>
+    <string name="account_generate_export_invalid_two">Ověřovací kód už není platný.\nVygenerujte nový, abyste mohli nové zařízení propojit.</string>
+    <string name="help_pin_info">Vyžaduje se, pokud je účet zašifrován heslem.</string>
+    <string name="account_link_device_button">Připojit</string>
+
+    <string name="account_biometry_auth_title">Odemknout účet 白い熊 GNU Jami</string>
+    <string name="account_biometry_auth_message">Odemkněte svůj účet biometrií</string>
+    <string name="account_biometry_enroll_title">Používat ověřování biometrií?</string>
+    <string name="account_biometry_enroll_message">Vaše zařízení podporuje bezpečné ověřování biometrií. Ověření biometrií nebo zámkem zařízení je pohodlný způsob, jak si přístup k účtu 白い熊 GNU Jami odemknout přímo v zařízení. Heslo budete moci používat i nadále.</string>
+    <string name="account_biometry_enroll_accept">Používat biometrii</string>
+    <string name="no_thanks">Ne, děkuji</string>
+
+    <string name="account_biometry_enroll_auth_title">Přidejte ověřování ke svému účtu 白い熊 GNU Jami</string>
+    <string name="account_biometry_enroll_auth_message">Přidejte si bezpečné ověření biometrií nebo zámkem zařízení jako alternativu k heslu</string>
+    <string name="account_auth_error">Chyba ověření: %1$s</string>
+    <string name="account_auth_success">Ověření proběhlo úspěšně</string>
+    <string name="account_auth_key_error">Při dešifrování klíče účtu došlo k chybě.</string>
+    <string name="account_auth_password">Použít heslo účtu</string>
+
+    <!-- ===== strings_preferences.xml ===== -->
+    <string name="pref_category_network">Síť</string>
+    <string name="pref_category_contacts">Kontakty</string>
+    <string name="pref_category_video">Video</string>
+    <string name="pref_category_system">Systém</string>
+    <string name="pref_category_privacy">Soukromí</string>
+    <string name="pref_category_diagnostic">Diagnostika</string>
+    <string name="pref_category_appearance">Vzhled</string>
+    <string name="pref_category_connectivity">Připojení</string>
+    <string name="pref_category_extensions">Rozšíření</string>
+    <string name="pref_category_video_settings">Pokročilá nastavení videa</string>
+
+    <string name="pref_mobileData_title">Mobilní data</string>
+    <string name="pref_mobileData_summary">Povolit 白い熊 GNU Jami kromě Wi-Fi také sítě 3G/LTE</string>
+
+    <string name="pref_pushNotifications_title">Push oznámení</string>
+    <string name="pref_pushNotifications_summary">Používat servery Google, aby bylo možné přijímat hovory a zprávy na pozadí</string>
+    <string name="pref_unifiedPush_summary">Používat službu UnifiedPush, aby bylo možné přijímat hovory a zprávy na pozadí</string>
+    <string name="pref_huaweiPush_summary">Používat servery Huawei, aby bylo možné přijímat hovory a zprávy na pozadí</string>
+
+    <string name="pref_video_advanced_title">Pokročilá nastavení videa</string>
+    <string name="pref_video_advanced_summary">Změna datového toku a rozlišení videa a přístup k experimentálním funkcím</string>
+
+    <string name="pref_hd_summary">Povolit odesílání videa v HD</string>
+
+    <string name="pref_hwEncode_title">Zapnout akcelerované kódování</string>
+    <string name="pref_hwEncode_summary">Experimentální funkce</string>
+    <string name="pref_videoBitrate_title">Datový tok videa</string>
+    <string name="pref_videoBitrate_summary">Zvolte výchozí datový tok odchozího videa (kB/s)</string>
+    <string name="pref_videoResolution_title">Rozlišení videa</string>
+    <string name="pref_videoResolution_summary">Zvolte výchozí rozlišení odchozího videa</string>
+
+    <string name="pref_systemContacts_title">Používat systémové kontakty</string>
+    <string name="pref_systemContacts_summary">Zobrazovat údaje o volajícím podle systémových kontaktů.</string>
+
+    <string name="pref_systemDialer_title">Volat systémové hovory přes 白い熊 GNU Jami</string>
+    <string name="pref_systemDialer_summary">Kdykoli je to možné, uskutečňovat systémové hovory přes 白い熊 GNU Jami.</string>
+
+    <string name="pref_startOnBoot_title">Spouštět 白い熊 GNU Jami při startu systému</string>
+    <string name="pref_startOnBoot_summary">Po spuštění systému nechat 白い熊 GNU Jami běžet na pozadí.</string>
+
+    <string name="pref_clearHistory_title">Vymazat historii</string>
+    <string name="pref_clearHistory_summary">Vymaže historii všech konverzací. Tuto akci nelze vrátit zpět.</string>
+
+    <string name="pref_notification_title">Viditelnost oznámení</string>
+    <string name="pref_notification_summary">Nastavte, jak se oznámení aplikace zobrazují na zamykací obrazovce.</string>
+
+    <string name="pref_connectivity_title">Režim připojení</string>
+    <string name="pref_connectivity_summary">Zvolte, jak se má 白い熊 GNU Jami připojovat k distribuovanému systému, aby přijímal hovory a zprávy.</string>
+
+    <string name="pref_blackList_title">Seznam zablokovaných</string>
+    <string name="pref_blackList_summary">Zobrazit seznam zablokovaných.</string>
+
+    <string name="pref_delete_account_title">Smazat účet</string>
+    <string name="pref_delete_account_summary">Smazat účet z tohoto zařízení</string>
+
+    <string name="pref_persistNotification_title">Běh na pozadí</string>
+    <string name="pref_persistNotification_summary">Povolit běh na pozadí, aby bylo možné přijímat hovory a zprávy.</string>
+
+    <string name="pref_newGroup_title">Povolit skupinový chat</string>
+    <string name="pref_newGroup_summary">Povolit vytváření skupin v 白い熊 GNU Jami.</string>
+
+    <string name="pref_logs_title">Diagnostické záznamy</string>
+    <string name="pref_logs_summary">Otevřít nastavení diagnostických záznamů</string>
+    <string name="pref_logs_start">Spustit záznam</string>
+    <string name="pref_logs_stop">Zastavit záznam</string>
+
+    <string name="pref_connection_monitor">Monitor připojení</string>
+    <string name="pref_connection_monitor_summary">Sledovat spojení peer-to-peer</string>
+    <string name="connection_monitor_channels">Kanály spojení</string>
+
+    <string name="pref_push_notifications_logs_title">Záznamy push oznámení</string>
+    <string name="pref_push_notifications_logs_summary">Zobrazit záznamy zachycené z push oznámení.</string>
+
+    <string name="pref_typing_title">Indikátor psaní</string>
+    <string name="pref_typing_summary">Ukazovat, že se právě píše zpráva.</string>
+
+    <string name="pref_block_record_title">Zakázat snímky a nahrávání obrazovky</string>
+    <string name="pref_block_record_summary">Zakáže pořizování snímků obrazovky a nahrávání videa.</string>
+
+    <string name="pref_link_preview_title">Náhledy webových odkazů</string>
+    <string name="pref_link_preview_summary">Náhled vyžaduje stažení obsahu ze serverů třetích stran.</string>
+
+    <string name="notification_public">Veřejné\n(na zamykací obrazovce zobrazovat oznámení i jejich obsah)\n</string>
+    <string name="notification_private">Soukromé\n(na zamykací obrazovce zobrazovat oznámení, ale skrýt jejich obsah)\n</string>
+    <string name="notification_secret">Tajné\n(na zamykací obrazovce oznámení nezobrazovat)</string>
+
+    <string name="connectivity_google_services_title">Služby Google</string>
+    <string name="connectivity_google_services_description">Přijímat push oznámení přes Google Firebase a DHT proxy.</string>
+    <string name="connectivity_local_node_title">Místní uzel DHT</string>
+    <string name="connectivity_local_node_description">Připojovat se k ostatním zařízením a kontaktům 白い熊 GNU Jami přes místní uzel DHT.</string>
+    <string name="connectivity_unified_push_description">Přijímat push oznámení přes vlastní server UnifiedPush.</string>
+    <string name="connectivity_huawei_push_description">Přijímat push oznámení přes Huawei Push Kit a DHT proxy.</string>
+    <string name="connectivity_custom_title">Vlastní</string>
+    <string name="connectivity_custom_description">Momentálně se nepoužívá žádná z dostupných předvoleb.</string>
+
+    <string name="pref_enable_extensions_title">Povolit rozšíření</string>
+    <string name="pref_enable_extensions_summary">Povolit rozšíření a nastavit jejich parametry</string>
+    <string name="pref_available_extensions_title">Dostupná rozšíření</string>
+    <string name="pref_available_extensions_summary">Nainstalovaná rozšíření a přidání nových</string>
+    <string name="fab_extensions_add">Přidat nové rozšíření</string>
+    <string name="extension_uninstall_title">Odinstalovat rozšíření?</string>
+    <string name="extension_reset_preferences">Obnovit výchozí nastavení rozšíření</string>
+    <string name="extension_reset_preferences_summary">Rozšíření bylo vráceno do výchozího nastavení</string>
+    <string name="extension_reset_preferences_ask">Chcete obnovit výchozí obecné nastavení rozšíření?</string>
+    <string name="extension_reset_account_preferences_ask">Chcete obnovit výchozí nastavení rozšíření pro tento účet?</string>
+    <string name="account_advanced_reset">Obnovit výchozí pokročilá nastavení</string>
+    <string name="account_advanced_reset_summary">Vrátit pokročilá nastavení na výchozí hodnoty</string>
+    <string name="account_advanced_reset_confirm">Vrátit všechna pokročilá nastavení na výchozí hodnoty?</string>
+    <string name="extension_successfully_installed">Rozšíření <b>%1$s</b> bylo úspěšně nainstalováno.</string>
+    <string name="extension_install_failure">Při instalaci tohoto rozšíření došlo k chybě: <b>%1$s</b></string>
+    <string name="extension_recent_version_exception">Je již nainstalována novější verze <b>%1$s</b>.</string>
+    <string name="extension_same_version_exception">Stejná verze <b>%1$s</b> je již nainstalována.</string>
+    <string name="extension_invalid_signature"><b>%1$s</b> má neplatný podpis</string>
+    <string name="extension_invalid_authority">Při ověřování autority tohoto rozšíření došlo k chybě: <b>%1$s</b></string>
+    <string name="extension_invalid_format">Neplatný formát rozšíření: <b>%1$s</b></string>
+    <string name="extension_force_install">vynutit\ninstalaci</string>
+    <string name="extension_path_image_add">Přidat nový obrázek</string>
+
+    <!-- ===== strings_call.xml ===== -->
+    <string name="call_error">Při zahajování hovoru došlo k chybě.</string>
+    <string name="call_error_no_microphone">Hovor zrušen. Nebyl nalezen žádný mikrofon.</string>
+    <string name="call_error_no_camera_no_microphone">Hovor zrušen. Nebyla nalezena kamera ani mikrofon.</string>
+    <string name="screen_sharing_error">Při zahajování sdílení obrazovky došlo k chybě.</string>
+
+    <string name="call_human_state_searching">Hledání</string>
+    <string name="call_human_state_incoming">Příchozí</string>
+    <string name="call_human_state_connecting">Připojování</string>
+    <string name="call_human_state_ringing">Vyzvání</string>
+    <string name="call_human_state_current">Probíhá hovor</string>
+    <string name="call_human_state_hungup">Ukončeno</string>
+    <string name="call_human_state_busy">Obsazeno</string>
+    <string name="call_human_state_failure">Selhalo</string>
+    <string name="call_human_state_hold">Přidrženo</string>
+    <string name="call_human_state_over">Ukončeno</string>
+    <string name="call_moderator">Moderátor</string>
+    <string name="call_muted">Ztlumeno</string>
+    <string name="call_handRaised">Zvednutá ruka</string>
+
+    <!-- ===== strings_certificate.xml ===== -->
+    <string name="certificate">Certifikát</string>
+
+    <string name="cert_subject">Subjekt</string>
+    <string name="cert_issuer">Vydavatel</string>
+    <string name="cert_uid">UID</string>
+    <string name="cert_common_name">Běžný název</string>
+    <string name="cert_name">Název</string>
+    <string name="cert_organization">Organizace</string>
+    <string name="cert_organizational_unit">Organizační jednotka</string>
+    <string name="cert_locality">Lokalita</string>
+    <string name="cert_state">Kraj nebo stát</string>
+    <string name="cert_country">Země</string>
+
+    <string name="cert_public_key">Veřejný klíč</string>
+    <string name="cert_public_key_id">ID veřejného klíče</string>
+    <string name="cert_key_algorithm">Algoritmus</string>
+
+    <string name="cert_signature">Podpis</string>
+    <string name="cert_signature_algorithm">Algoritmus podpisu</string>
+
+    <string name="cert_validity">Platnost</string>
+    <string name="cert_valid_from">Platí od</string>
+    <string name="cert_valid_to">Platí do</string>
+
+    <string name="cert_is_ca">Certifikační autorita</string>
+    <string name="cert_is_self_signed">Podepsaný sám sebou</string>
+
+    <!-- ===== strings_content_description.xml ===== -->
+    <string name="contact_quick_call_description">Rychlý hovor</string>
+    <string name="contact_picture_description">Obrázek kontaktu</string>
+    <string name="dial_numeric_pad">Číselník</string>
+    <string name="contact_unblock">Odblokovat</string>
+    <string name="video_extensions">Rozšíření pro video</string>
+    <string name="file_download_button">Stáhnout</string>
+    <string name="control_play">Přehrát</string>
+    <string name="control_replay">Přehrát znovu</string>
+    <string name="control_pause">Pozastavit</string>
+    <string name="searchbar_navigation_account">Vybrat účet</string>
+    <string name="add_conversation_member">Přidat člena konverzace</string>
+    <string name="qrcode_to_scan">QR kód k naskenování</string>
+    <string name="collab_format_bold">Tučné</string>
+    <string name="collab_format_italic">Kurzíva</string>
+    <string name="collab_format_underline">Podtržené</string>
+    <string name="collab_format_strike">Přeškrtnuté</string>
+    <string name="collab_format_h1">Nadpis 1</string>
+    <string name="collab_format_h2">Nadpis 2</string>
+    <string name="collab_format_h3">Nadpis 3</string>
+    <string name="collab_format_bullet_list">Seznam s odrážkami</string>
+    <string name="collab_format_ordered_list">Číslovaný seznam</string>
+    <string name="collab_format_align_left">Zarovnat vlevo</string>
+    <string name="collab_format_align_center">Zarovnat na střed</string>
+    <string name="collab_format_align_right">Zarovnat vpravo</string>
+    <string name="collab_format_align_justify">Zarovnat do bloku</string>
+    <string name="collab_format_link">Vložit odkaz</string>
+    <string name="collab_format_image">Vložit obrázek</string>
+    <string name="collab_format_clear">Vymazat formátování</string>
+    <string name="collab_format_paragraph_style">Styl odstavce</string>
+    <string name="collab_format_font">Písmo</string>
+    <string name="collab_format_size">Velikost písma</string>
+    <string name="collab_format_alignment">Zarovnání odstavce</string>
+    <string name="collab_format_choice">%1$s: %2$s</string>
+    <string name="collab_undo">Zpět</string>
+    <string name="collab_redo">Znovu</string>
+
+    <!-- ===== arrays.xml ===== -->
+    <!-- Copy of the default array; only the last item is prose. Keep order and count
+         identical to res/values/arrays.xml (indexed by ActionHelper.ACTION_*). -->
+    <string-array name="swarm_one_to_one_actions">
+        <item>@string/contact_details</item>
+        <item>@string/conversation_action_copy_peer_number</item>
+        <item>@string/remove_conversation</item>
+        <item>@string/delete_contact</item>
+        <item>@string/conversation_action_block_this</item>
+        <item>@string/conversation_action_lookup_name</item>
+        <item>Živý monitor kontaktu</item>
+    </string-array>
+    <!-- Display labels (android:entries) paired with the machine values in
+         @array/video_bitrates; only the first item is prose. -->
+    <string-array name="video_bitrateStrings">
+        <item>Automaticky</item>
+        <item>64 kB/s</item>
+        <item>128 kB/s</item>
+        <item>256 kB/s</item>
+        <item>512 kB/s</item>
+        <item>1 MB/s</item>
+    </string-array>
+
+</resources>

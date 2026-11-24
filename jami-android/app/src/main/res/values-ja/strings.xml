@@ -90,8 +90,8 @@
   <string name="action_call_mute">消音</string>
   <string name="action_call_unmute">消音を解除</string>
   <string name="ongoing_call">通話中</string>
-  <string name="hist_in_call">%1$s の着信</string>
-  <string name="hist_out_call">%1$s の発信</string>
+  <string name="hist_in_call">着信（%1$s）</string>
+  <string name="hist_out_call">発信（%1$s）</string>
   <string name="call_duration">通話時間 %s</string>
   <string name="action_call_accept">着信を受ける</string>
   <string name="action_call_accept_audio">音声で承諾</string>
@@ -238,10 +238,10 @@
   <string name="identity">ID</string>
   <string name="identifier">識別子</string>
   <string name="account">アカウント</string>
-  <string name="link_new_device">新しいデバイスをリンク</string>
-  <string name="devices_header">デバイス</string>
-  <string name="devices">リンクされたデバイス</string>
-  <string name="total_devices">合計デバイス数：</string>
+  <string name="link_new_device">新しい端末をリンク</string>
+  <string name="devices_header">端末</string>
+  <string name="devices">リンクされた端末</string>
+  <string name="total_devices">合計端末数：</string>
   <!--Share fragment-->
   <string name="share_message">このコードを白い熊 GNU Jamiでスキャンしてください</string>
   <string name="share_message_no_account">共有するアカウントを選択してください。</string>
@@ -267,7 +267,7 @@
   <string name="search_results">検索結果</string>
   <string name="tv_contact_row_header">連絡先</string>
   <string name="gallery_error_title">ギャラリーアプリがありません</string>
-  <string name="gallery_error_message">デバイス上にギャラリーを開くアプリがありません</string>
+  <string name="gallery_error_message">端末上にギャラリーを開くアプリがありません</string>
   <!--File Transfer-->
   <string name="file_transfer_status_invalid_file">無効なファイル</string>
   <string name="file_transfer_status_unjoinable_peer">到達できないピア</string>
@@ -381,17 +381,17 @@
   <string name="export_side_main_title">アカウントをエクスポート</string>
   <string name="import_side_main_title">アカウントをインポート</string>
   <string name="link_device_dialog_stop_import_body">停止すると、アカウントのインポート操作がキャンセルされます。</string>
-  <string name="export_side_step1_error_malformed">認識できない新しいデバイス識別子です。上記の手順に従ってください。</string>
+  <string name="export_side_step1_error_malformed">認識できない新しい端末識別子です。上記の手順に従ってください。</string>
   <string name="export_side_step1_code_connect">接続</string>
-  <string name="export_side_step2_ip_only">新しいデバイスのIPアドレス: %1$s</string>
+  <string name="export_side_step2_ip_only">新しい端末のIPアドレス: %1$s</string>
   <string name="export_side_step2_cancel">キャンセル</string>
   <string name="export_side_step2_confirm">確認</string>
-  <string name="export_side_step3_body_done">新しいデバイスでアカウントが正常にインポートされました。</string>
+  <string name="export_side_step3_body_done">新しい端末でアカウントが正常にインポートされました。</string>
   <string name="import_side_step1_share">共有</string>
   <string name="import_side_step2_password_import">輸入</string>
-  <string name="import_side_step2_action_required">操作が必要です。ソースデバイスでアカウントを確認してください。</string>
+  <string name="import_side_step2_action_required">操作が必要です。元の端末でアカウントを確認してください。</string>
   <string name="import_side_step3_body_done">アカウントが正常にインポートされました。</string>
-  <string name="link_device_error_authentication">デバイスのリンク中に認証エラーが発生しました。認証情報を確認して、もう一度お試しください。</string>
+  <string name="link_device_error_authentication">端末のリンク中に認証エラーが発生しました。認証情報を確認して、もう一度お試しください。</string>
   <string name="link_device_error_canceled">操作がユーザーによってキャンセルされました。</string>
   <!--Accessibility-->
   <string name="step_title_set_password">パスワードを設定</string>
