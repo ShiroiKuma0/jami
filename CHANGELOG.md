@@ -7,6 +7,39 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+020` — 2026-11-24
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+019`.
+
+### 🎨 UI page
+
+- **Section icons in seven colours, by meaning.** Every section heading and its chip in the index
+  is coloured by what kind of thing the section is: yellow for the base and its settings, green
+  for controls, light blue for words, heavy blue for the frame and its boxes, orange where the app
+  reaches out, red for warnings, rose for a brief flash. All seven are settable under Settings
+  pages.
+- **Every section has its own icon** — most shared one letter or one drop before.
+- **A new default order** in which no two neighbouring sections share a colour. An order you have
+  dragged is kept; “Reset section order” shows the new one.
+
+### 🧭 Menu icons
+
+- **Four defaults moved to colours that are easier to tell apart**: call and connect are heavy
+  green `#00A550`, message heavy blue `#0066FF`, contact light blue `#00B0FF`, block and mute rose
+  `#FF3D7F`. A colour you have set yourself is kept.
+
+### 📡 Connection reliability
+
+- **The quiet-node safety net no longer switches itself off.** On full DHT, three hours of
+  unbroken silence earn one precautionary recover. It was filed as a wedge incident and counted as
+  a strike, so after two quiet stretches the watchdog stood down until something arrived. It is
+  now a plain recover: no incident, no strike, no notification.
+
+### 📦 Download
+
+- `shiroikuma-jami_20261106-01+2026-11-18.16-14.g0fc04d09+020_arm64-v8a.apk` — Android, arm64,
+  signed. Installs side-by-side with official Jami.
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+019` — 2026-11-24
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+003`. Sixteen builds of work:
