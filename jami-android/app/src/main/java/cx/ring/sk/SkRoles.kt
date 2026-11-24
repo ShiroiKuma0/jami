@@ -100,12 +100,12 @@ enum class SkRole(val key: String, val section: SkSection, val label: String, va
     MENU_LABEL(ColorPrefs.MENU_TEXT, SkSection.MENUS, "Menu label", SkDefault.Same { TEXT }),
     MENU_ROW_FRAME("sk_menu_row_frame", SkSection.MENUS, "Menu row frame", SkDefault.Same { ACCENT }),
     MENU_DIVIDER("sk_menu_divider", SkSection.MENUS, "Menu group divider", SkDefault.Same { DIVIDER }),
-    MENU_ICON_CALL("sk_menu_icon_call", SkSection.MENUS, "Icon: call, connect", SkDefault.Const(0xFF00FF00.toInt())),
-    MENU_ICON_MESSAGE("sk_menu_icon_message", SkSection.MENUS, "Icon: message, write", SkDefault.Const(0xFF4D94FF.toInt())),
-    MENU_ICON_CONTACT("sk_menu_icon_contact", SkSection.MENUS, "Icon: contact, person", SkDefault.Const(0xFF00FFFF.toInt())),
+    MENU_ICON_CALL("sk_menu_icon_call", SkSection.MENUS, "Icon: call, connect", SkDefault.Const(0xFF00A550.toInt())),
+    MENU_ICON_MESSAGE("sk_menu_icon_message", SkSection.MENUS, "Icon: message, write", SkDefault.Const(0xFF0066FF.toInt())),
+    MENU_ICON_CONTACT("sk_menu_icon_contact", SkSection.MENUS, "Icon: contact, person", SkDefault.Const(0xFF00B0FF.toInt())),
     MENU_ICON_SHARE("sk_menu_icon_share", SkSection.MENUS, "Icon: copy, share, export", SkDefault.Const(0xFFFF8000.toInt())),
     MENU_ICON_VIEW("sk_menu_icon_view", SkSection.MENUS, "Icon: view, open, settings", SkDefault.Same { ACCENT }),
-    MENU_ICON_BLOCK("sk_menu_icon_block", SkSection.MENUS, "Icon: block, mute, leave", SkDefault.Const(0xFFFF00FF.toInt())),
+    MENU_ICON_BLOCK("sk_menu_icon_block", SkSection.MENUS, "Icon: block, mute, leave", SkDefault.Const(0xFFFF3D7F.toInt())),
     MENU_ICON_DELETE("sk_menu_icon_delete", SkSection.MENUS, "Icon: delete, remove", SkDefault.Same { DANGER }),
 
     // --- Lists
@@ -135,8 +135,15 @@ enum class SkRole(val key: String, val section: SkSection, val label: String, va
     PAGE_HEADING("sk_page_heading", SkSection.PAGES, "Section headings", SkDefault.Same { ACCENT }),
     PAGE_CHIP("sk_page_chip", SkSection.PAGES, "Index chips", SkDefault.Same { ACCENT }),
     PAGE_NOTE(ColorPrefs.SETTINGS_NOTE, SkSection.PAGES, "Explanations and the left rule", SkDefault.Const(0xFFC8C800.toInt())),
-    /** One of the seven section-icon colours: words, written and read (App language). */
+    // The seven section-icon colours of the UI page: the colour says what kind of thing a section
+    // is. Not the menu icon roles — those mean other things, even where a default is the same.
+    SECTION_BASE("sk_section_base", SkSection.PAGES, "Section icon: the base and its settings", SkDefault.Same { ACCENT }),
+    SECTION_CONTROLS("sk_section_controls", SkSection.PAGES, "Section icon: controls", SkDefault.Const(0xFF00A550.toInt())),
     SECTION_WORDS("sk_section_words", SkSection.PAGES, "Section icon: words, written and read", SkDefault.Const(0xFF00B0FF.toInt())),
+    SECTION_FRAME("sk_section_frame", SkSection.PAGES, "Section icon: the frame and its boxes", SkDefault.Const(0xFF0066FF.toInt())),
+    SECTION_REACH("sk_section_reach", SkSection.PAGES, "Section icon: the app reaches out", SkDefault.Const(0xFFFF8000.toInt())),
+    SECTION_WARNING("sk_section_warning", SkSection.PAGES, "Section icon: warning", SkDefault.Const(0xFFFF0000.toInt())),
+    SECTION_FLASH("sk_section_flash", SkSection.PAGES, "Section icon: a brief flash", SkDefault.Const(0xFFFF3D7F.toInt())),
     ;
 
     companion object {

@@ -78,7 +78,13 @@
     <string name="sk_role_label_page_heading">各節の見出し</string>
     <string name="sk_role_label_page_chip">目次のチップ</string>
     <string name="sk_role_label_page_note">説明文と左の縦線</string>
+    <string name="sk_role_label_section_base">見出しのアイコン: 基本と設定</string>
+    <string name="sk_role_label_section_controls">見出しのアイコン: 操作するもの</string>
     <string name="sk_role_label_section_words">見出しのアイコン: 言葉（読み書き）</string>
+    <string name="sk_role_label_section_frame">見出しのアイコン: 枠と箱</string>
+    <string name="sk_role_label_section_reach">見出しのアイコン: 外とのやり取り</string>
+    <string name="sk_role_label_section_warning">見出しのアイコン: 警告</string>
+    <string name="sk_role_label_section_flash">見出しのアイコン: 一瞬の表示</string>
 
     <!-- フォント (FontUtil) -->
     <string name="sk_misc_font_default_family">既定のフォント</string>

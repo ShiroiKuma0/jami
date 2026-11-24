@@ -332,10 +332,11 @@ class FontsSettingsFragment : Fragment() {
 
     // ---------------------------------------------------------------- the page: index + folding sections
 
-    private class UiSection(val key: String, val title: String, val glyph: SkGlyph, val role: SkIconRole,
-                            val ownHeader: Boolean, val tone: SkRole? = null, val build: (LinearLayout) -> Unit) {
+    /** [tone]: one of the seven section-icon colours, by what kind of thing the section is. */
+    private class UiSection(val key: String, val title: String, val glyph: SkGlyph, val tone: SkRole,
+                            val ownHeader: Boolean, val build: (LinearLayout) -> Unit) {
         /** The colour of the section's icon, on its heading and on its chip alike. */
-        fun iconColor(): Int = if (tone != null) skColor(tone) else skColor(role)
+        fun iconColor(): Int = skColor(tone)
     }
 
     /** Set while a section that adds its own group header builds: that header is the folding one now. */
@@ -355,25 +356,30 @@ class FontsSettingsFragment : Fragment() {
 
     private fun uiSections(): List<UiSection> {
         val list = ArrayList<UiSection>()
-        // “App language” is the first section of every 白い熊 app's UI page, and so the first chip.
-        list += UiSection("language", getString(R.string.sk_set_sec_language), SkGlyph.GLOBE, SkIconRole.VIEW, false,
-            tone = SkRole.SECTION_WORDS) { addLanguageSection(it) }
-        list += UiSection("exim", getString(R.string.sk_set_sec_exim), SkGlyph.EXPORT, SkIconRole.SHARE, true) { addExportImportSection(it) }
-        list += UiSection("recovery", getString(R.string.sk_set_sec_recovery), SkGlyph.PULSE, SkIconRole.CALL, true) { addOnlineRecoverySection(it) }
-        list += UiSection("decline", getString(R.string.sk_set_sec_decline), SkGlyph.MESSAGE, SkIconRole.MESSAGE, true) { addDeclineMessagesSection(it) }
-        list += UiSection("diag", getString(R.string.sk_set_sec_diag), SkGlyph.BARS, SkIconRole.VIEW, true) { addDiagnosticsSection(it) }
-        for (g in groups)
-            list += UiSection("g:" + g.key, g.title, SkGlyph.TEXT, SkIconRole.VIEW, false) { c ->
+        list += UiSection("language", getString(R.string.sk_set_sec_language), SkGlyph.GLOBE, SkRole.SECTION_WORDS, false) { addLanguageSection(it) }
+        list += UiSection("exim", getString(R.string.sk_set_sec_exim), SkGlyph.EXPORT, SkRole.SECTION_REACH, true) { addExportImportSection(it) }
+        list += UiSection("recovery", getString(R.string.sk_set_sec_recovery), SkGlyph.PULSE, SkRole.SECTION_CONTROLS, true) { addOnlineRecoverySection(it) }
+        list += UiSection("decline", getString(R.string.sk_set_sec_decline), SkGlyph.MESSAGE, SkRole.SECTION_WORDS, true) { addDeclineMessagesSection(it) }
+        list += UiSection("diag", getString(R.string.sk_set_sec_diag), SkGlyph.BARS, SkRole.SECTION_WARNING, true) { addDiagnosticsSection(it) }
+        for (g in groups) {
+            val look = GROUP_LOOK[g.key] ?: (SkGlyph.TEXT to SkRole.SECTION_BASE)
+            list += UiSection("g:" + g.key, g.title, look.first, look.second, false) { c ->
                 for (e in g.elements) c.addView(elementView(e))
             }
-        for (sec in SkSection.entries)
-            list += UiSection("r:" + sec.name, sec.displayTitle(requireContext()), SkGlyph.DROP, SkIconRole.VIEW, false) { c -> addRoleRows(c, sec) }
-        list += UiSection("maintenance", getString(R.string.sk_set_sec_maintenance), SkGlyph.RESET, SkIconRole.BLOCK, false) { addMaintenanceSection(it) }
+        }
+        for (sec in SkSection.entries) {
+            val look = ROLE_LOOK[sec] ?: (SkGlyph.DROP to SkRole.SECTION_BASE)
+            list += UiSection("r:" + sec.name, sec.displayTitle(requireContext()), look.first, look.second, false) { c -> addRoleRows(c, sec) }
+        }
+        list += UiSection("maintenance", getString(R.string.sk_set_sec_maintenance), SkGlyph.RESET, SkRole.SECTION_WARNING, false) { addMaintenanceSection(it) }
+        val known = list.associateBy { it.key }
+        // The built-in order: “App language” first, and no two neighbours of one colour. A section
+        // the table does not name yet comes after it.
+        val builtIn = DEFAULT_ORDER.mapNotNull { known[it] } + list.filter { it.key !in DEFAULT_ORDER }
         // The stored order first; a section it does not know yet keeps its built-in place after them.
         languageFirstOnce()
         val order = storedOrder()
-        val known = list.associateBy { it.key }
-        return order.mapNotNull { known[it] } + list.filter { it.key !in order }
+        return order.mapNotNull { known[it] } + builtIn.filter { it.key !in order }
     }
 
     /** Once: the default order used to have “App language” fifth, right after Diagnostics. A stored
@@ -1792,6 +1798,54 @@ class FontsSettingsFragment : Fragment() {
         const val KEY_ORDER = "sk_ui_section_order"
         const val KEY_OPEN = "sk_ui_sections_open"
         const val KEY_LANG_FIRST = "sk_ui_language_first_v1"
+
+        /** Icon and section colour of the older per-surface groups, by the group's stable key. */
+        val GROUP_LOOK: Map<String, Pair<SkGlyph, SkRole>> = mapOf(
+            "Default" to (SkGlyph.TEXT to SkRole.SECTION_BASE),
+            "Chat list" to (SkGlyph.LIST to SkRole.SECTION_FRAME),
+            "Conversation" to (SkGlyph.MESSAGE to SkRole.SECTION_BASE),
+            "Message menu" to (SkGlyph.LIST to SkRole.SECTION_REACH),
+            "Call events" to (SkGlyph.CLOCK to SkRole.SECTION_BASE),
+            "Invitations" to (SkGlyph.IMPORT to SkRole.SECTION_REACH),
+            "Top bar" to (SkGlyph.SPLIT to SkRole.SECTION_FRAME),
+            "Settings" to (SkGlyph.GEAR to SkRole.SECTION_BASE),
+            "Account list" to (SkGlyph.PERSON to SkRole.SECTION_FRAME),
+            "Presence dots (chat list)" to (SkGlyph.EYE to SkRole.SECTION_BASE),
+            "Flashes (toasts)" to (SkGlyph.BELL to SkRole.SECTION_FLASH),
+            "Status & indicators" to (SkGlyph.BOLT to SkRole.SECTION_BASE),
+            "Connectivity help page" to (SkGlyph.INFO to SkRole.SECTION_WORDS),
+            "Connection monitor" to (SkGlyph.NETWORK to SkRole.SECTION_BASE),
+            "Launcher shortcuts" to (SkGlyph.HOME to SkRole.SECTION_REACH),
+        )
+
+        /** The same for the colour-role sections. */
+        val ROLE_LOOK: Map<SkSection, Pair<SkGlyph, SkRole>> = mapOf(
+            SkSection.FOUNDATION to (SkGlyph.DROP to SkRole.SECTION_BASE),
+            SkSection.TEXT to (SkGlyph.TEXT to SkRole.SECTION_WORDS),
+            SkSection.BUTTONS to (SkGlyph.DOT to SkRole.SECTION_CONTROLS),
+            SkSection.DIALOGS to (SkGlyph.OPEN to SkRole.SECTION_REACH),
+            SkSection.SWITCHES to (SkGlyph.TOGGLE to SkRole.SECTION_CONTROLS),
+            SkSection.MENUS to (SkGlyph.LIST to SkRole.SECTION_REACH),
+            SkSection.MARKS to (SkGlyph.CHECK to SkRole.SECTION_CONTROLS),
+            SkSection.LISTS to (SkGlyph.LIST to SkRole.SECTION_FRAME),
+            SkSection.FIELDS to (SkGlyph.EDIT to SkRole.SECTION_WORDS),
+            SkSection.BARS to (SkGlyph.SPLIT to SkRole.SECTION_FRAME),
+            SkSection.CALLS to (SkGlyph.PHONE to SkRole.SECTION_CONTROLS),
+            SkSection.PAGES to (SkGlyph.GEAR to SkRole.SECTION_BASE),
+        )
+
+        /** The default order of the page. Arranged so that no two neighbours share a section
+         *  colour; keep that when a section is added. */
+        val DEFAULT_ORDER = listOf(
+            "language", "exim", "recovery", "decline", "diag",
+            "g:Default", "g:Chat list", "g:Conversation", "g:Message menu", "g:Call events",
+            "g:Invitations", "g:Top bar", "g:Settings", "g:Account list", "g:Presence dots (chat list)",
+            "g:Flashes (toasts)", "g:Status & indicators", "g:Connectivity help page",
+            "g:Connection monitor", "g:Launcher shortcuts",
+            "r:FOUNDATION", "r:TEXT", "r:BUTTONS", "r:DIALOGS", "r:SWITCHES", "r:MENUS", "r:MARKS",
+            "r:LISTS", "r:FIELDS", "r:BARS", "r:CALLS", "r:PAGES",
+            "maintenance",
+        )
         const val TAG_SWITCH = "sk_switch_row"
         const val TAG_NOTE = "sk_note"
     }

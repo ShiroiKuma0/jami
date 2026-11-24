@@ -43,12 +43,12 @@
     <color name="sk_role_menu_label">#FFFFFF00</color>
     <color name="sk_role_menu_row_frame">#FFFFFF00</color>
     <color name="sk_role_menu_divider">#FFB2B200</color>
-    <color name="sk_role_menu_icon_call">#FF00FF00</color>
-    <color name="sk_role_menu_icon_message">#FF4D94FF</color>
-    <color name="sk_role_menu_icon_contact">#FF00FFFF</color>
+    <color name="sk_role_menu_icon_call">#FF00A550</color>
+    <color name="sk_role_menu_icon_message">#FF0066FF</color>
+    <color name="sk_role_menu_icon_contact">#FF00B0FF</color>
     <color name="sk_role_menu_icon_share">#FFFF8000</color>
     <color name="sk_role_menu_icon_view">#FFFFFF00</color>
-    <color name="sk_role_menu_icon_block">#FFFF00FF</color>
+    <color name="sk_role_menu_icon_block">#FFFF3D7F</color>
     <color name="sk_role_menu_icon_delete">#FFFF0000</color>
     <color name="sk_role_list_divider">#FFB2B200</color>
     <color name="sk_role_list_selected">#FF333300</color>
@@ -68,5 +68,11 @@
     <color name="sk_role_page_heading">#FFFFFF00</color>
     <color name="sk_role_page_chip">#FFFFFF00</color>
     <color name="sk_role_page_note">#FFC8C800</color>
+    <color name="sk_role_section_base">#FFFFFF00</color>
+    <color name="sk_role_section_controls">#FF00A550</color>
     <color name="sk_role_section_words">#FF00B0FF</color>
+    <color name="sk_role_section_frame">#FF0066FF</color>
+    <color name="sk_role_section_reach">#FFFF8000</color>
+    <color name="sk_role_section_warning">#FFFF0000</color>
+    <color name="sk_role_section_flash">#FFFF3D7F</color>
 </resources>

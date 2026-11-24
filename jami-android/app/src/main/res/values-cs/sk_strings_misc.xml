@@ -84,7 +84,13 @@
     <string name="sk_role_label_page_heading">Nadpisy oddílů</string>
     <string name="sk_role_label_page_chip">Štítky rejstříku</string>
     <string name="sk_role_label_page_note">Vysvětlivky a levá linka</string>
+    <string name="sk_role_label_section_base">Ikona oddílu: základ a jeho nastavení</string>
+    <string name="sk_role_label_section_controls">Ikona oddílu: ovládací prvky</string>
     <string name="sk_role_label_section_words">Ikona oddílu: slova, psaná a čtená</string>
+    <string name="sk_role_label_section_frame">Ikona oddílu: rám a jeho pole</string>
+    <string name="sk_role_label_section_reach">Ikona oddílu: aplikace se obrací ven</string>
+    <string name="sk_role_label_section_warning">Ikona oddílu: varování</string>
+    <string name="sk_role_label_section_flash">Ikona oddílu: krátké upozornění</string>
 
     <!-- fonts (FontUtil) -->
     <string name="sk_misc_font_default_family">Výchozí rodina písma</string>

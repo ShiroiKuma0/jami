@@ -86,7 +86,13 @@
     <string name="sk_role_label_page_heading">Section headings</string>
     <string name="sk_role_label_page_chip">Index chips</string>
     <string name="sk_role_label_page_note">Explanations and the left rule</string>
+    <string name="sk_role_label_section_base">Section icon: the base and its settings</string>
+    <string name="sk_role_label_section_controls">Section icon: controls</string>
     <string name="sk_role_label_section_words">Section icon: words, written and read</string>
+    <string name="sk_role_label_section_frame">Section icon: the frame and its boxes</string>
+    <string name="sk_role_label_section_reach">Section icon: the app reaches out</string>
+    <string name="sk_role_label_section_warning">Section icon: warning</string>
+    <string name="sk_role_label_section_flash">Section icon: a brief flash</string>
 
     <!-- fonts (FontUtil) -->
     <string name="sk_misc_font_default_family">Default family</string>

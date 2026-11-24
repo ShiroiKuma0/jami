@@ -1941,16 +1941,12 @@ object ConnectionWatchdog {
                 // unbroken silence. No strike — there is no suspicion to count.
                 log(c, "probe: ${silent.size}/${regd.size} silent on full DHT, nothing stuck — quiet, not wedged; no recover")
             } else {
+                // The safety net itself. Not an incident, no strike and no notification: nothing
+                // is suspected. Counted as a strike (until 2026-11-24) it filed a "uniform-wedge"
+                // incident every three quiet hours, and after two of them the stand-down above
+                // switched the safety net off for the rest of a quiet night.
                 lastFullDhtQuietRecoverMs = t
-                uniformProbeFails++
-                uniformWedgeSeq++
-                val who = silent.joinToString { it.accountId.take(8) }
-                writeIncident(c, "uniform-wedge", "${silent.size}/${regd.size} account(s) silent through a ${UNIFORM_PROBE_VERDICT_MS / 1000}s probe on a live network — receive path wedged ($who) (recover $uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)", LogStormMonitor.recentLines())
-                val n = c.getString(cx.ring.R.string.notif_uniform_wedge, stamp())
-                notifyUser(c, if (uniformWedgeSeq > 1) "×$uniformWedgeSeq · $n" else n, NOTIF_ID_BASE - 1)
-                log(c, "probe UNANSWERED by ${silent.size}/${regd.size} ($answered answered) — wedge → strong recover ($uniformProbeFails/$UNIFORM_PROBE_FAIL_CAP)")
-                maybeEnterAdaptiveOnStarvation(c, accounts, "uniform wedge")
-                maybeProbePush(c, accounts, "uniform wedge")
+                log(c, "probe: ${silent.size}/${regd.size} silent ${FULL_DHT_QUIET_RECOVER_MS / 3_600_000} h on full DHT, nothing stuck — safety-net recover (no incident, no strike)")
                 fullRecover(c, accounts)
             }
         }, UNIFORM_PROBE_VERDICT_MS)
