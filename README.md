@@ -19,12 +19,12 @@ setting, every account, and the **entire chat history with its attachments** to 
 **chat-files panel** that shows what those chats are actually storing, down to the individual
 picture, with a **soft delete** that frees your space without touching anybody else's chat, and a
 worked-over **calling** experience: a **full-screen incoming-call screen** with a **Silence**
-button that stops the ringing without refusing the call and a **Message** button that declines it
+button that stops the ringing without refusing the call and a **Quick reply** button that declines it
 with a **predefined reply** — general or per contact — **call recording** that lands in the chat
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20261106-01+2026-11-18.16-14.g0fc04d09+003`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20261106-01+2026-11-18.16-14.g0fc04d09+019`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -60,6 +60,15 @@ Japanese `ジャミ`, Hebrew `ג'אמי`, Tamil `ஜாமி` — and Bulgarian
 Left deliberately untouched: the credits and sponsor lines that name upstream and its team, the
 `JamiId` identifier, and every `jami.net` link. Crediting Savoir-faire Linux with this fork would
 be a lie, and the branding stops where the truth does.
+
+
+## 🌐 Fully Japanese, fully Czech
+
+Upstream's Japanese translation covers about two thirds of the app, and upstream has no Czech at
+all. The fork carries **both in full** — upstream's strings and every one of its own, down to the
+diagnostics pages and the connection monitor — so no screen shows English between translated
+lines. **App language** is the first section of the UI page: one pill opens a list of every
+language the app ships, each in its own name, and the choice applies at once, for this app only.
 
 ## 🎨 Yellow-on-black theme
 

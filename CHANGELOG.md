@@ -7,6 +7,82 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+019` — 2026-11-24
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+003`. Sixteen builds of work:
+the whole app in Japanese and Czech, a far steadier relay node, live progress on sent files, and a
+reworked call screen.
+
+### 🌐 Languages
+
+- **Full Japanese translation.** Every string of the app is Japanese now — the fork's own and the
+  third of upstream's that upstream's Japanese translation lacks (479 strings). No screen shows
+  English between Japanese lines.
+- **Full Czech translation.** Upstream has no Czech at all; the fork carries one for the whole app
+  (about 1,130 upstream strings plus all of its own).
+- **The fork's texts moved into resources.** Settings pages, the connection monitor, the contact
+  live monitor, data-usage screens, export / import and the diagnostics pages built their texts in
+  code and stayed English in every language; they are translated like everything else now.
+- **Three Japanese terms unified across the app**, upstream's screens included: proxy is 「代理」,
+  device is 「端末」, appearance is 「外観」.
+- **Call history entries fixed in Japanese**: upstream's wording treated the call's duration as a
+  name. They read 「着信（…）」 and 「発信（…）」 now.
+- **“App language” is the first section of the UI page** and the first chip of its index, with a
+  globe in light blue. Its row is a pill that opens the language list.
+- **A new language list.** Plain rows with the language in its own language, the country beneath
+  it and the tag in a column at the right; only the current language sits in a pill. The list
+  opens scrolled to the current choice, and right-to-left languages keep the same layout.
+- **“Directory”, never “folder”**, in all three languages.
+
+### 📡 Connection reliability
+
+- **No re-registration six seconds into every start.** The first network report of a process was
+  counted as a change of network, so every full-DHT account was unregistered and registered again
+  while the daemon was still building its first connections. It is no longer a change.
+- **A quiet relay is not a wedged one.** On full DHT, silence alone made the watchdog recover every
+  few minutes — 45 times a day on a phone that only waits for messages, each time dropping every
+  peer connection. Silence now earns one recover per three hours; a stuck message, a failed network
+  check and a lost registration keep their own, immediate paths.
+- **Automation sends wait for registration**, up to 15 seconds, instead of dialling on connections
+  that are being torn down right after a start or during a recovery.
+- **A failed fetch is retried once** (daemon patch `SK-FETCHRETRY`). A message announced by a peer
+  whose process had just been restarted could sit until the next unrelated notification, because
+  the fetch ran into a dead git channel and nothing tried again.
+
+### 📤 Sent files
+
+- **A progress bar on the sent-file bubble**, with the live byte count, in its own colour roles.
+
+### 📞 Call screen
+
+- **Decline, hang up and “End call” are dark red with white inside**; answer is yellow with a
+  black phone. Each colour is a settable role under Calls.
+- **The “End call” button of an outgoing, still ringing call is visible again** — it was drawn
+  underneath the control sheet — and it goes away when the call connects.
+- **“Message” on the incoming-call screen is “Quick reply”**, also in the call notification.
+
+### 🔬 Diagnostics
+
+- **“Connection trace” switch**: keeps the daemon's connection lines in a file of the diagnostics
+  directory (`connection-trace.txt`, two files of 8 MiB at most). Logcat is not a record — on some
+  phones it rolls over within minutes. Off by default.
+- **Channel diagnostics** (daemon patch `SK-CHANDIAG`): every incoming channel request with its
+  verdict, and the swarm channel's results, under the Connections switch.
+
+### 🤖 Automation bridge
+
+- **`bridge_mark_read`** clears a conversation's unread state (bridge version 5).
+
+### 🎨 UI page
+
+- **Every chip of the section index carries its section's icon.**
+- A new colour role, “Section icon: words, written and read”.
+
+### 📦 Download
+
+- `shiroikuma-jami_20261106-01+2026-11-18.16-14.g0fc04d09+019_arm64-v8a.apk` — Android, arm64,
+  signed. Installs side-by-side with official Jami.
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+003` — 2026-11-22
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+002`. This release puts back four
