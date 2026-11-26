@@ -7,6 +7,38 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+021` — 2026-11-26
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+020`.
+
+### 📨 A message to a sleeping phone no longer waits for the next trigger
+
+- **A late answer now makes the sender dial again at once.** A phone in deep sleep sees a
+  connection request only when it next wakes, and answers after the 30 seconds the sender waits.
+  That answer used to be dropped, and nothing dialled again until something unrelated did — a new
+  message, a call. Measured on 2026-11-26: a message to a phone that had slept for five hours sat
+  for six minutes behind an answer that had come 53 seconds after the request, and went through
+  the moment a call made a second attempt.
+- A late answer is proof that the other phone is awake right now. The sender now asks for the
+  message connection again immediately; once it is up, everything waiting for that phone is
+  delivered and the conversations are synchronised. At most one such redial per device every 20
+  seconds.
+- It acts on the sending side, so it helps against any peer that answers late, whatever mode that
+  peer runs in. It does not shorten the time a sleeping phone needs before it notices a request.
+- With **Settings → Diagnostics → Connections** on, the connection trace shows
+  `late-answer redial` each time it fires.
+
+### 🧩 Patches
+
+- `patches/dhtnet-late-answer-redial.patch` adds `ConnectionManager::onLateAnswer` to dhtnet;
+  `patches/jami-late-answer-redial.patch` uses it in the daemon. Guard `SK-LATEANSWER` in both.
+
+### 📦 Packaging
+
+- `withUnifiedPush` flavour, signed release, `arm64-v8a`. Installs over `+020` in place.
+
+---
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+020` — 2026-11-24
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+019`.
