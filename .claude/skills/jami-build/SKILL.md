@@ -699,6 +699,10 @@ r bash -c 'grep -q SK-LATEANSWER daemon/src/jamidht/jamiaccount.cpp || (cd daemo
 # which also edits jamiaccount.cpp. A read receipt was sent only over a channel open at that instant and dropped
 # otherwise; it now goes through the message engine and is sent once the peer is reachable.
 r bash -c 'grep -q SK-READRETRY daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-read-receipt-retry.patch'
+# alive ping (SK-ALIVE, 2026-11-26; idempotent; daemon's OWN source). AFTER jami-read-receipt-retry, whose
+# isSilent() in im/message_engine.cpp it extends. Keeps only the newest undelivered "application/x-sk-alive"
+# account message per peer (the bridge's bridge_ping) and raises no message status for it.
+r bash -c 'grep -q SK-ALIVE daemon/src/im/message_engine.cpp || (cd daemon && patch -flp1) < patches/jami-alive-ping.patch'
 
 # CONTRIB SANITY GATE (2026-08-08) — MUST sit between the patch steps and the build.
 #

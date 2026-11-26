@@ -26,6 +26,9 @@ interface BridgeTap {
 
     /** A per-recipient delivery state of a swarm message; [status] is the daemon's raw MessageStates value. */
     fun onStatus(accountId: String, conversationId: String, messageId: String, contactId: String, status: Int) {}
+
+    /** An account message (not a swarm message) from [from], with its MIME-typed parts. */
+    fun onAccountMessage(accountId: String, from: String, messages: Map<String, String>) {}
 }
 
 object BridgeTaps {

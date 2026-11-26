@@ -58,6 +58,13 @@ object Bridge : BridgeTap {
     const val TYPE_REACTION_REMOVED = "reaction_removed"
     const val TYPE_FILE_STATE = "file_state"
     const val TYPE_STATUS = "status"
+    const val TYPE_ALIVE = "alive"
+
+    /** The MIME type of an "alive" ping (bridge_ping). The daemon patch SK-ALIVE knows it too. */
+    const val MIME_ALIVE = "application/x-sk-alive"
+    const val ALIVE_TEXT_MAX = 2000
+    private const val ALIVE_MAX = 400
+    private const val ALIVE_KEEP = 300
 
     private lateinit var app: Context
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "sk-bridge").apply { isDaemon = true } }
@@ -305,6 +312,60 @@ object Bridge : BridgeTap {
             ev["file_size"] = body["totalSize"].orEmpty()
         }
         emit(accountId, conversationId, ev)
+    }
+
+    // ------------------------------------------------------------------ alive pings
+
+    /**
+     * An "alive" ping from another account (bridge_ping on its side). It is an account message,
+     * never a conversation message: nothing is committed, shown, counted as unread or notified.
+     * It goes to a small journal of its own per account and out as a BRIDGE_EVENT of type "alive"
+     * with an empty conversation. Only a peer this account shares a conversation with is heard.
+     */
+    override fun onAccountMessage(accountId: String, from: String, messages: Map<String, String>) {
+        val text = messages[MIME_ALIVE] ?: return
+        worker.execute {
+            safe {
+                val peer = bareId(from)
+                if (peer.isEmpty() || !BridgeMethods.sharesConversation(accountId, peer)) {
+                    Log.w(TAG, "alive ping from a stranger dropped")
+                    return@safe
+                }
+                val ev: Map<String, String>
+                synchronized(lock) {
+                    val seq = prefs().getLong(KEY_SEQ, 0L) + 1
+                    prefs().edit().putLong(KEY_SEQ, seq).commit()
+                    val now = System.currentTimeMillis().toString()
+                    ev = mapOf("seq" to seq.toString(), "type" to TYPE_ALIVE, "account" to accountId,
+                        "conversation" to "", "from" to peer, "text" to text.take(ALIVE_TEXT_MAX),
+                        "ts" to now, "received_ms" to now)
+                    val f = aliveJournal(accountId)
+                    f.appendText(JSONObject(ev as Map<*, *>).toString() + "\n")
+                    val lines = f.readLines()
+                    if (lines.size > ALIVE_MAX)
+                        f.writeText(lines.takeLast(ALIVE_KEEP).joinToString("\n", postfix = "\n"))
+                }
+                broadcast(ev)
+            }
+        }
+    }
+
+    /** `jami:<id>`, `<id>@ring.dht` or `<id>` → the bare account id. */
+    fun bareId(uri: String): String =
+        uri.trim().substringAfter(':').substringBefore('@').trim('<', '>').lowercase()
+
+    private fun aliveJournal(accountId: String): File =
+        File(File(app.filesDir, "bridge").apply { mkdirs() }, "alive_$accountId.jsonl")
+
+    fun readAlive(accountId: String): List<Map<String, String>> = synchronized(lock) {
+        val f = aliveJournal(accountId)
+        if (!f.exists()) return emptyList()
+        f.readLines().mapNotNull { line ->
+            runCatching {
+                val o = JSONObject(line)
+                o.keys().asSequence().associateWith { o.optString(it) }
+            }.getOrNull()
+        }
     }
 
     // ------------------------------------------------------------------ journal + broadcast

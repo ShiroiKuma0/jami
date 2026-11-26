@@ -1,0 +1,36 @@
+diff -ruN a/src/im/message_engine.cpp b/src/im/message_engine.cpp
+--- a/src/im/message_engine.cpp	2026-11-26 20:16:28.638549360 +0100
++++ b/src/im/message_engine.cpp	2026-11-26 20:16:28.662944208 +0100
+@@ -36,11 +36,17 @@
+ 
+ // SK-READRETRY: messages the client never showed as a message of its own (conversation
+ // announcements, read receipts) change no message status on the client side.
++// SK-ALIVE: an "alive" ping between two accounts (the Android bridge's bridge_ping). It is an
++// account message of a MIME type of our own: it dials the peer like any message, and is never
++// committed to a conversation.
++static constexpr const char SK_ALIVE_MIME[] {"application/x-sk-alive"};
++
+ static bool
+ isSilent(const std::map<std::string, std::string>& payloads)
+ {
+     return payloads.find("application/im-gitmessage-id") != payloads.end()
+-           || payloads.find("message/imdn+xml") != payloads.end();
++           || payloads.find("message/imdn+xml") != payloads.end()
++           || payloads.find(SK_ALIVE_MIME) != payloads.end();
+ }
+ 
+ MessageEngine::MessageEngine(SIPAccountBase& acc, const std::filesystem::path& path)
+@@ -76,6 +82,13 @@
+                 }
+             }
+         }
++        if (token == 0 && payloads.find(SK_ALIVE_MIME) != payloads.end()) {
++            // SK-ALIVE: only the newest ping matters. Drop the ones still waiting for this peer,
++            // so that a peer unreachable for a day does not leave a queue of them behind.
++            peerMessages.remove_if([](const Message& m) {
++                return m.status != MessageStatus::SENDING && m.payloads.find(SK_ALIVE_MIME) != m.payloads.end();
++            });
++        }
+         if (token == 0) {
+             token = std::uniform_int_distribution<MessageToken> {1, JAMI_ID_MAX_VAL}(account_.rand);
+             auto& m = peerMessages.emplace_back(Message {token});

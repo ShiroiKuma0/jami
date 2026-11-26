@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
  * automation switch before anything here runs.
  */
 object BridgeMethods {
-    const val VERSION = "5"
+    const val VERSION = "6"
 
     private val METHODS = listOf(
         Triple("bridge_describe", "", "version, items[method,args,returns]"),
@@ -52,6 +52,9 @@ object BridgeMethods {
         Triple("bridge_delete", "account,conversation,message_id", "message_id"),
         Triple("bridge_message_status", "account,conversation,message_id", "delivered, read, items[peer,status]"),
         Triple("bridge_mark_read", "account,conversation", "message_id (\"\" = nothing to mark), notifications_cancelled"),
+        Triple("bridge_ping", "account,peer,text",
+            "token (an unstored \"alive\" account message; a newer one replaces one still undelivered to that peer)"),
+        Triple("bridge_alive_since", "account,after_seq?,limit?", "items[seq,type=alive,account,from,text,ts], last_seq, count"),
         Triple("bridge_wake", "minutes? (default 2, max 30)", "asleep_before"),
         Triple("bridge_keep_awake", "on? (\"1\"|\"0\"; omit to read)", "keep_awake"),
     )
@@ -63,7 +66,7 @@ object BridgeMethods {
     }
 
     private val SENDING = setOf("bridge_send_text", "bridge_send_file", "bridge_react", "bridge_unreact",
-        "bridge_edit", "bridge_delete", "bridge_accept_file")
+        "bridge_edit", "bridge_delete", "bridge_accept_file", "bridge_ping")
 
     private fun dispatch(ctx: Context, method: String, x: Bundle): Bundle {
         // SK-BRIDGEWAKE: anything that must reach a peer wakes the accounts first and holds them
@@ -104,6 +107,8 @@ object BridgeMethods {
             "bridge_delete" -> editTo(x, "message_id", "")
             "bridge_message_status" -> messageStatus(x)
             "bridge_mark_read" -> markRead(x)
+            "bridge_ping" -> ping(x)
+            "bridge_alive_since" -> aliveSince(x)
             "bridge_wake" -> {
                 val app = JamiApplication.instance ?: return err("app not initialized")
                 val min = x.getString("minutes")?.toLongOrNull()?.coerceIn(1, 30) ?: 2
@@ -204,6 +209,46 @@ object BridgeMethods {
             }
             else -> all
         }.take(limit)
+        return ok().apply {
+            putString("count", tail.size.toString())
+            putString("last_seq", (tail.lastOrNull() ?: all.lastOrNull())?.get("seq") ?: "0")
+            putParcelableArray("items", tail.map(Bridge::toBundle).toTypedArray())
+        }
+    }
+
+    /** Does [acc] share a conversation with the account [peer] (a bare id)? */
+    internal fun sharesConversation(acc: String, peer: String): Boolean = Bridge.daemon {
+        JamiService.getConversations(acc).toList().any { id ->
+            JamiService.getConversationMembers(acc, id).toNative().any { Bridge.bareId(it["uri"].orEmpty()) == peer }
+        }
+    }
+
+    /**
+     * An unstored "alive" ping: an account message of our own MIME type to [peer]. It dials the
+     * peer like any message and is committed to no conversation. The daemon (patch SK-ALIVE)
+     * keeps only the newest undelivered one per peer.
+     */
+    private fun ping(x: Bundle): Bundle {
+        val acc = account(x) ?: return err("no such account")
+        val peer = Bridge.bareId(x.getString("peer").orEmpty())
+        if (!Regex("[0-9a-f]{40}").matches(peer)) return err("peer must be an account id (40 hex digits)")
+        val text = x.getString("text").orEmpty()
+        if (text.length > Bridge.ALIVE_TEXT_MAX) return err("text longer than ${Bridge.ALIVE_TEXT_MAX} characters")
+        if (!sharesConversation(acc, peer)) return err("no conversation shared with that peer")
+        val token = Bridge.daemon {
+            JamiService.sendAccountTextMessage(acc, peer,
+                net.jami.daemon.StringMap().apply { put(Bridge.MIME_ALIVE, text) }, 0)
+        }
+        if (token == 0L) return err("the daemon did not take the message")
+        return ok().apply { putString("token", java.lang.Long.toUnsignedString(token)) }
+    }
+
+    private fun aliveSince(x: Bundle): Bundle {
+        val acc = account(x) ?: return err("no such account")
+        val all = Bridge.readAlive(acc)
+        val afterSeq = x.getString("after_seq")?.toLongOrNull() ?: 0L
+        val limit = x.getString("limit")?.toIntOrNull()?.coerceIn(1, 400) ?: 200
+        val tail = all.filter { (it["seq"]?.toLongOrNull() ?: 0) > afterSeq }.take(limit)
         return ok().apply {
             putString("count", tail.size.toString())
             putString("last_seq", (tail.lastOrNull() ?: all.lastOrNull())?.get("seq") ?: "0")

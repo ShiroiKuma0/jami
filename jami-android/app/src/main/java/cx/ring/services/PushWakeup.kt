@@ -59,6 +59,10 @@ object PushWakeupClassifier {
                     || type == "application/invite"
                     || type.startsWith("application/invite+")
                     || type == "sync"
+                    // The bridge's "alive" ping (bridge_ping): an account message that must be
+                    // received like one. Left out at first (+029), every ping after the first was
+                    // dropped as noise while the accounts slept, 2026-11-26.
+                    || type == ALIVE_TYPE
             if (!isCall && !isMessage) return@forEachIndexed
             val id = ids.getOrNull(i)?.trim()
             val isNew = if (id.isNullOrEmpty()) {
@@ -100,9 +104,12 @@ object PushWakeupClassifier {
                 type == "application/im-gitmessage-id" ||
                 type.startsWith("application/im-gitmessage-id/") ||
                 type == "application/invite" || type.startsWith("application/invite+") ||
-                type == "sync"
+                type == "sync" || type == ALIVE_TYPE
         }
     }
+
+    /** The push type of the bridge's "alive" ping; the same string as Bridge.MIME_ALIVE. */
+    private const val ALIVE_TYPE = "application/x-sk-alive"
 
     // Value ids already handled by this process, to drop proxy catch-up re-deliveries.
     // Two bounded LRU caches so frequent message ids cannot evict call dedupe state.

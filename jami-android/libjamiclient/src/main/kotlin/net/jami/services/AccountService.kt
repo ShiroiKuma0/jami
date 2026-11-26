@@ -812,6 +812,7 @@ class AccountService(
                         // call so a throw leaves no stale restore intent.
                         JamiService.setAccountActive(a.accountId, false, true)
                         backgroundDeactivatedAccounts.add(a.accountId)
+                        backgroundSleepAt[a.accountId] = System.currentTimeMillis()
                     }
                 }
             } finally {
@@ -851,6 +852,19 @@ class AccountService(
         accountId in backgroundDeactivatedAccounts &&
             mAccountList.firstOrNull { it.accountId == accountId }?.isActive == false
 
+    // When the background optimization last put each account to sleep, and last woke it.
+    private val backgroundSleepAt = ConcurrentHashMap<String, Long>()
+    private val backgroundWakeAt = ConcurrentHashMap<String, Long>()
+
+    /** When the background optimization last put this account to sleep; 0 if it never did. */
+    fun lastBackgroundSleepMs(accountId: String): Long = backgroundSleepAt[accountId] ?: 0L
+
+    /** When this account was last woken from that sleep; 0 if it never slept. */
+    fun lastBackgroundWakeMs(accountId: String): Long = backgroundWakeAt[accountId] ?: 0L
+
+    /** The most recent wake of any account from that sleep; 0 if none ever slept. */
+    fun lastAnyBackgroundWakeMs(): Long = backgroundWakeAt.values.maxOrNull() ?: 0L
+
     /** Snapshot of the accounts the background optimization currently has asleep. */
     fun backgroundDeactivatedIds(): Set<String> =
         backgroundDeactivatedAccounts.filterTo(HashSet()) { isBackgroundDeactivated(it) }
@@ -882,6 +896,7 @@ class AccountService(
                 account.isEnabled && account.isDhtProxyEnabled -> {
                     JamiService.setAccountActive(id, true)
                     backgroundDeactivatedAccounts.remove(id)
+                    backgroundWakeAt[id] = System.currentTimeMillis()
                 }
                 // Disabled or proxy off: a terminal user config change, drop the id.
                 else -> backgroundDeactivatedAccounts.remove(id)
@@ -1825,6 +1840,7 @@ class AccountService(
 
     fun incomingAccountMessage(accountId: String, messageId: String?, callId: String?, from: String, messages: Map<String, String>) {
         Log.d(TAG, "incomingAccountMessage ---> accountId: $accountId , messageId: $messageId, from: $from, messages.size: ${messages.size} messages: $messages")
+        if (callId == null) BridgeTaps.fire { it.onAccountMessage(accountId, from, messages) }
         incomingMessageSubject.onNext(Message(accountId, messageId, callId, from, messages))
     }
 
