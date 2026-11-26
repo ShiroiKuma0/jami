@@ -24,7 +24,7 @@ with a **predefined reply** — general or per contact — **call recording** th
 as a playable message, a visible **call timer**, a speaker choice that survives pick-up, and a fix for a device class whose
 microphone hands the app nothing but digital silence.
 
-**📥 Latest release: [`20261106-01+2026-11-18.16-14.g0fc04d09+021`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
+**📥 Latest release: [`20261106-01+2026-11-18.16-14.g0fc04d09+026`](https://github.com/ShiroiKuma0/jami/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/jami/releases)
 
 </div>
 
@@ -463,6 +463,10 @@ lets you resolve a registered name on demand instead of waiting on a silent fail
 On foldables and tablets, Jami shows the conversation list and the open chat side by side. A toggle
 (in **Settings → Appearance** and the chat-list overflow menu) forces **single-pane** when you'd
 rather focus on one screen at a time.
+
+With both panes showing, the split itself can be moved: **long-press the line between them and
+drag**, or pull the handle in its middle. Dragged to the far left, the list is hidden and the chat
+takes the whole screen; the handle stays at the left edge to bring the list back.
 
 ## 🎙 One-way audio — when the phone runs a microphone that isn't there
 

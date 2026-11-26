@@ -7,6 +7,66 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+026` — 2026-11-26
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+021`. Builds `+022` to `+025`
+were steps towards this one and are not released separately.
+
+### ↔️ The split between the list and the chat can be dragged
+
+- **Long-press the split and drag** to make the conversation list narrower or wider; both panes
+  resize as you move. The list keeps at least 160 dp and the chat at least 300 dp.
+- **A thin accent line now marks the split**, with a **handle** in its middle. A sideways move on
+  the handle drags at once, without the hold; a plain tap there still reaches what is underneath.
+- **Drag or flick the split to the far left and the list is hidden**: the chat fills the screen,
+  and the handle waits at the left edge to bring the list back. That strip is kept free of the
+  system's back swipe.
+- The position, and whether the list is hidden, are remembered across restarts. The single-pane
+  layout (folded screen, or split view switched off) is unchanged.
+
+### 📋 Conversation list
+
+- **Thin lines between the rows**, in the existing “List divider” colour role. They start at the
+  text rather than under the avatar, and are left out above and below the selected row.
+- **A long contact name is cut at the end**, with no “…”. It used to be shortened in the middle
+  (“Jan…oda”), which hid the part that tells two names apart. The name in the chat's top bar is
+  treated the same way.
+
+### 📎 Sent files
+
+- **A sent file that nobody has downloaded yet says so** after its size: “not downloaded yet”
+  (「未転送」, „zatím nestaženo“). In a swarm a file is never pushed — the receiver pulls it, and
+  above the receiver's automatic-download size they have to tap it first. Until now such a file
+  looked exactly like a delivered one. The note gives way to the progress bar when a pull starts
+  and to “handed over” when it finishes. It appears only on files sent since this install began
+  recording hand-overs.
+- **The status icon no longer covers the time** on a sent file's card: the card moves clear of
+  the icon when one is shown.
+
+### ✅ Read receipts are queued instead of dropped
+
+- A read receipt used to be sent only over a message connection that happened to be open at the
+  instant the message was displayed. With none open it was dropped — not queued, not retried — so
+  the sender kept seeing “delivered” for a message that had been read.
+- The receipt now goes through the daemon's message queue like a normal message: a connection to
+  the contact is requested and the receipt is sent once they are reachable. A newer receipt
+  replaces one still waiting for the same contact and conversation.
+- This fixes the receipts **this phone sends**. A receipt you are waiting for is sent by the other
+  side, so it improves when that side runs this build too, or when upstream takes the change — it
+  has been prepared for GNU Jami's Gerrit.
+
+### 🧩 Patches
+
+- `patches/jami-read-receipt-retry.patch`, guard `SK-READRETRY` in
+  `daemon/src/jamidht/jamiaccount.cpp` (also `jamiaccount.h` and `im/message_engine.cpp`); applied
+  after `jami-late-answer-redial.patch`.
+
+### 📦 Packaging
+
+- `withUnifiedPush` flavour, signed release, `arm64-v8a`. Installs over `+021` in place.
+
+---
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+021` — 2026-11-26
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+020`.
