@@ -7,6 +7,62 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+030` — 2026-11-26
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+026`. Builds `+027` to `+029`
+were steps towards this one and are not released separately.
+
+### 🩺 The watchdog no longer judges an account for what happened while it slept
+
+- **A probe that overlaps a sleep is void.** With push enabled, accounts in the background are
+  switched off and woken by a push for about 30 seconds. The watchdog's probe needs 60 seconds for
+  its verdict and was started the moment the accounts woke — so it could never finish before they
+  slept again, and an account that cannot answer was marked “unanswered”. On 2026-11-26 every one
+  of the day's unanswered probes followed a deactivation by 4–75 seconds, and they added up to 12
+  “verified wedge” recoveries. Each of those re-registers the account and drops its peer
+  connections. Such a probe now gives no strike and no verdict; the log says `probe void`.
+- **Silence is counted only while an account can hear.** After a sleep the clock starts at the
+  wake-up. An account that slept 96 minutes no longer wakes as “deaf 96 m”. The health list in the
+  connection dashboard uses the same clock.
+- **Just-woken accounts are no longer re-registered on the spot.** The “startup stall” and “all
+  accounts unregistered” checks counted the sleep as a stall (“none registered 6362 s”) and
+  re-registered all accounts the instant they woke. Both clocks now start at the wake-up.
+- **A noise push that wakes the accounts gives them the normal 30-second window.** They used to be
+  switched off again 5–7 seconds later, a restore in which nothing could be fetched and no peer's
+  request — a file pull, a sync — could be answered. At most one such wake per 10 minutes, as before.
+- A consequence: an account that is only ever awake for half a minute at a time is not probed for
+  a wedge during those wake-ups. The push-leg check still runs while it sleeps.
+
+### 🫀 Bridge: an “alive” ping that is not a chat message (bridge version 6)
+
+- **`bridge_ping`** (`account`, `peer`, `text`) sends an account message of our own type,
+  `application/x-sk-alive`, to another account. It dials the peer like a normal send and is
+  committed to no conversation — a regular health signal no longer adds a permanent commit to a
+  chat every time it fires. Returns `token`.
+- **Only the newest undelivered ping per peer is kept**, so a peer that is unreachable for a day
+  does not leave a queue behind.
+- **On the receiving phone** a ping goes to a small journal per account (the last 300, kept across
+  restarts), is announced by the existing `BRIDGE_EVENT` broadcast with `type` = `alive` and an
+  empty `conversation`, and is read with **`bridge_alive_since`** (`account`, `after_seq`,
+  `limit`). Fields: `seq`, `type`, `account`, `from`, `text`, `ts`.
+- A ping is accepted only from an account that shares a conversation with the receiving one. It
+  raises no notification, no sound and no unread count.
+- A ping wakes sleeping accounts as a message does. (In `+029` it did not: the push classifier did
+  not know the type and dropped every ping after the first as noise.)
+- `bridge_describe` reports version `6` and lists both methods.
+
+### 🧩 Patches
+
+- `patches/jami-alive-ping.patch`, guard `SK-ALIVE` in `daemon/src/im/message_engine.cpp`; applied
+  after `jami-read-receipt-retry.patch`, whose `isSilent()` it extends.
+- The read-receipt change of `+026` is filed upstream as Gerrit change 37384.
+
+### 📦 Packaging
+
+- `withUnifiedPush` flavour, signed release, `arm64-v8a`. Installs over `+026` in place.
+
+---
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+026` — 2026-11-26
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+021`. Builds `+022` to `+025`
