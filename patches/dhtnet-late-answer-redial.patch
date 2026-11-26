@@ -1,0 +1,87 @@
+--- a/include/connectionmanager.h
++++ b/include/connectionmanager.h
+@@ -50,6 +50,10 @@
+  */
+ using onICERequestCallback = std::function<bool(const DeviceId&)>;
+ /**
++ * SK-LATEANSWER: called when a peer answers a connection request that already timed out
++ */
++using onLateAnswerCallback = std::function<void(const DeviceId&)>;
++/**
+  * Used to accept or decline an incoming channel request
+  */
+ using ChannelRequestCallback
+@@ -181,6 +185,14 @@
+     void onICERequest(onICERequestCallback&& cb);
+ 
+     /**
++     * SK-LATEANSWER: add a callback for an answer that arrives after its request timed out.
++     * The answer itself is useless (our side of the negotiation is gone), but it proves
++     * that the peer is awake at this moment, so the client may dial again at once.
++     * @param cb    Callback to trigger
++     */
++    void onLateAnswer(onLateAnswerCallback&& cb);
++
++    /**
+      * Trigger cb on incoming peer channel
+      * @param cb    Callback to trigger
+      * @note        The callback is used to validate
+--- a/src/connectionmanager.cpp
++++ b/src/connectionmanager.cpp
+@@ -48,6 +48,7 @@
+ 
+ namespace dhtnet {
+ static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
++static constexpr std::chrono::seconds SK_LATE_ANSWER_MIN_INTERVAL {20}; // SK-LATEANSWER
+ static constexpr dht::Value::Id ID_MAX_VAL = 9007199254740992;
+ 
+ using ValueIdDist = std::uniform_int_distribution<dht::Value::Id>;
+@@ -764,6 +765,13 @@
+     ConnectionReadyCallback connReadyCb_ {};
+     NewDeviceConnectionCallback newDeviceConnCb_ {};
+     onICERequestCallback iceReqCb_ {};
++    // SK-LATEANSWER: a peer that sleeps (a phone in doze) sees our request only when it next
++    // wakes, and answers after DHT_MSG_TIMEOUT has passed. The answer is then dropped below
++    // as "response-no-request" and nothing dials again until an unrelated trigger. Tell the
++    // client instead, at most once per SK_LATE_ANSWER_MIN_INTERVAL and device.
++    onLateAnswerCallback lateAnswerCb_ {};
++    std::mutex skLateAnswerMtx_ {};
++    std::map<DeviceId, std::chrono::steady_clock::time_point> skLateAnswerAt_ {};
+     std::atomic_bool isDestroying_ {false};
+ };
+ 
+@@ -1371,6 +1379,21 @@
+             });
+     } else {
+         SK_CM("fail response-no-request device=%s", std::string(device.to_view()).c_str()); // SK-RDVDIAG
++        // SK-LATEANSWER
++        bool skRedial = false;
++        if (lateAnswerCb_ && !isDestroying_) {
++            auto now = std::chrono::steady_clock::now();
++            std::lock_guard lkLate {skLateAnswerMtx_};
++            auto it = skLateAnswerAt_.find(device);
++            if (it == skLateAnswerAt_.end() || now - it->second >= SK_LATE_ANSWER_MIN_INTERVAL) {
++                skLateAnswerAt_[device] = now;
++                skRedial = true;
++            }
++        }
++        if (skRedial) {
++            SK_CM("late-answer redial device=%s", std::string(device.to_view()).c_str());
++            lateAnswerCb_(device);
++        }
+         if (config_->logger)
+             config_->logger->warn("[device {}] Response received, but unable to find request", device);
+     }
+@@ -2357,6 +2380,12 @@
+ }
+ 
+ void
++ConnectionManager::onLateAnswer(onLateAnswerCallback&& cb) // SK-LATEANSWER
++{
++    pimpl_->lateAnswerCb_ = std::move(cb);
++}
++
++void
+ ConnectionManager::onChannelRequest(ChannelRequestCallback&& cb)
+ {
+     pimpl_->channelReqCb_ = std::move(cb);

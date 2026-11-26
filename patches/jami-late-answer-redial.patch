@@ -1,0 +1,43 @@
+--- a/src/jamidht/jamiaccount.cpp
++++ b/src/jamidht/jamiaccount.cpp
+@@ -2064,6 +2064,40 @@
+         initConnectionManager();
+         connectionManager_->dhtStarted();
+         connectionManager_->onICERequest([this](const DeviceId& deviceId) { return onICERequest(deviceId); });
++        // SK-LATEANSWER: a peer that sleeps (a phone in doze) answers a connection request only when
++        // it next wakes, often after dhtnet's 30 s wait is over. dhtnet drops that answer, and nothing
++        // dialled again until an unrelated trigger: measured 2026-11-26, a message sat for six minutes
++        // behind an answer that came 53 s after the request. The late answer proves the peer is awake
++        // NOW, so ask for the message connection again at once; onMessageChannelReady() then delivers
++        // what is pending and syncs the conversations. dhtnet rate-limits this per device.
++        connectionManager_->onLateAnswer([w = weak()](const DeviceId& deviceId) {
++            dht::ThreadPool::io().run([w, deviceId] {
++                auto shared = w.lock();
++                if (!shared)
++                    return;
++                auto am = shared->accountManager();
++                if (!am)
++                    return;
++                am->findCertificate(deviceId, [w, deviceId](const std::shared_ptr<dht::crypto::Certificate>& cert) {
++                    if (!cert || !cert->issuer)
++                        return;
++                    dht::ThreadPool::io().run([w, deviceId, peerId = cert->issuer->getId().toString()] {
++                        auto shared = w.lock();
++                        if (!shared)
++                            return;
++                        auto am = shared->accountManager();
++                        if (!am
++                            || am->getCertificateStatus(peerId)
++                                   == dhtnet::tls::TrustStore::PermissionStatus::BANNED)
++                            return;
++                        JAMI_WARNING("[Account {}] [device {}] Late answer to a timed-out request: redialling",
++                                     shared->getAccountID(),
++                                     deviceId);
++                        shared->requestMessageConnection(peerId, deviceId, "");
++                    });
++                });
++            });
++        });
+         connectionManager_->onChannelRequest([this](const std::shared_ptr<dht::crypto::Certificate>& cert,
+                                                     const std::string& name) { return onChannelRequest(cert, name); });
+         connectionManager_->onNewDeviceConnection(

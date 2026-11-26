@@ -560,7 +560,7 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # clean tree silently dropped all five (rules.mak carried 4 $(APPLY) lines for 9 patches). Chain
 # them after the throttle patch, in order; each one's diff context includes the previous.
 r bash -c 'prev=dhtnet-throttle-failed-ice-transports; m=daemon/contrib/src/dhtnet/rules.mak;
-for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous dhtnet-local-rendezvous-diag dhtnet-diag-gate; do
+for p in dhtnet-ice-churn-diag dhtnet-ice-reason-diag dhtnet-shutdown-reason-diag dhtnet-peer-account-diag dhtnet-local-sibling-rendezvous dhtnet-local-rendezvous-diag dhtnet-late-answer-redial dhtnet-diag-gate; do
   cp "patches/$p.patch" daemon/contrib/src/dhtnet/
   grep -q "$p.patch" "$m" || sed -i "s|^\t\$(APPLY) \$(SRC)/dhtnet/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/dhtnet/$p.patch|" "$m"
   prev=$p
@@ -576,6 +576,10 @@ r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] &
 # whose code it instruments. dhtnet's logger is null in release, so every ICE/TLS/trust failure on the
 # connect path was silent; this mirrors each one to logcat (tag SK-ICEDIAG, "fail …" / "localrdv …").
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q "SK-RDVDIAG" "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-local-rendezvous-diag.patch; fi'
+# late-answer redial hook (SK-LATEANSWER, 2026-11-26) — BEFORE the diag gate, which stays last. A peer in doze
+# answers a connection request after the 30 s wait; dhtnet dropped that answer and nothing dialled again.
+# The hook reports it; jami-late-answer-redial.patch (daemon's own source) then redials at once.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK-LATEANSWER "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-late-answer-redial.patch; fi'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/dhtnet" ] && ! grep -q SK-DIAGGATE "$d/dhtnet/src/connectionmanager.cpp"; then (cd "$d/dhtnet" && patch -flp1) < patches/dhtnet-diag-gate.patch; fi'   # SK-DIAGGATE, last
 
 # Rebuild dhtnet if ANY of its sources is newer than the stamp. The old form named ice_transport.cpp
@@ -687,6 +691,10 @@ r bash -c 'grep -q SK-FETCHRETRY daemon/src/jamidht/conversation_module.cpp || (
 # which also edits jamiaccount.cpp. Logs each incoming channel request with its verdict, and the swarm
 # channel's results, at ERROR level under the Connections switch.
 r bash -c 'grep -q SK-CHANDIAG daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-channel-diag.patch'
+# late-answer redial (SK-LATEANSWER, 2026-11-26; idempotent; daemon's OWN source). AFTER jami-channel-diag, which
+# also edits jamiaccount.cpp. Needs dhtnet-late-answer-redial.patch (ConnectionManager::onLateAnswer) — without
+# the dhtnet half this does not compile.
+r bash -c 'grep -q SK-LATEANSWER daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-late-answer-redial.patch'
 
 # CONTRIB SANITY GATE (2026-08-08) — MUST sit between the patch steps and the build.
 #
