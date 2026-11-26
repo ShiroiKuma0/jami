@@ -267,11 +267,27 @@ object ConnectionWatchdog {
      *  a "light" recover (re-register, proxy stays on) safe — any partial failure means the proxy is
      *  suspect for someone, so the account(s) at fault need the full treatment. (The old "≥1 connected"
      *  rule bet all four accounts on a proxy half of them couldn't register through — 2026-07-20.) */
+    /**
+     * How long an account has been silent WHILE IT COULD HEAR (2026-11-26). An account the
+     * background optimization put to sleep receives nothing by design, so its silence then is not
+     * evidence: the clock restarts when it wakes. Without this an account that slept 96 minutes
+     * woke as "deaf 96m" and was probed at once, seconds before it went back to sleep.
+     */
+    private fun quietAwakeMs(accounts: AccountService, id: String): Long {
+        val quiet = InboundEvidence.quietMs(id)
+        val woke = accounts.lastBackgroundWakeMs(id)
+        return if (woke > 0L) minOf(quiet, (now() - woke).coerceAtLeast(0L)) else quiet
+    }
+
+    /** True when [id] is asleep now, or was put to sleep at any moment since [sinceMs]. */
+    private fun sleptSince(accounts: AccountService, id: String, sinceMs: Long): Boolean =
+        accounts.isBackgroundDeactivated(id) || accounts.lastBackgroundSleepMs(id) >= sinceMs
+
     private fun allHealthy(accounts: AccountService): Boolean {
         val regd = accounts.getAccounts().filter { it.isJami && it.isRegistered }
         if (regd.isEmpty()) return false
         return regd.all { accounts.accountConnectionSnapshot(it.accountId).first &&
-            InboundEvidence.quietMs(it.accountId) < DEAF_LIMIT_MS }
+            quietAwakeMs(accounts, it.accountId) < DEAF_LIMIT_MS }
     }
 
     /** One watchdog tick — periodic driver (DRingService bg, HomeFragment fg). The caller skips this
@@ -553,7 +569,11 @@ object ConnectionWatchdog {
                 st.strikes = 0; st.verifiedDeaf = false; st.verdictMs = 0L
                 st.nextCheckMs = t + IDLE_REARM_MS   // no wake-up probe for an account just shown to receive
             }
-            if (InboundEvidence.quietMs(acc.accountId) < limit) {
+            if (InboundEvidence.quietMs(acc.accountId) >= limit && quietAwakeMs(accounts, acc.accountId) < limit) {
+                // Silent only because it has just woken: not yet judged either way. It counts as
+                // healthy for the sibling contrast, and a standing verdict is left as it is.
+                healthy++
+            } else if (quietAwakeMs(accounts, acc.accountId) < limit) {
                 healthy++
                 if (st.strikes > 0) {
                     log(c, "acct ${acc.accountId.take(6)}: inbound back (${InboundEvidence.lastKind(acc.accountId)}) — deaf cleared")
@@ -571,7 +591,7 @@ object ConnectionWatchdog {
             for (acc in regd) {
                 val id = acc.accountId
                 val st = acctStates[id] ?: continue
-                val quiet = InboundEvidence.quietMs(id)
+                val quiet = quietAwakeMs(accounts, id)
                 if (quiet < limit || t2 < st.nextCheckMs) continue
                 if (!netAlive) {
                     accountDeafConfirmed(c, accounts, id, st, networkDown = true)
@@ -611,8 +631,19 @@ object ConnectionWatchdog {
                     st.probeStartQuiet = t2 - InboundEvidence.quietMs(id)   // lastMs snapshot
                     log(c, "acct ${id.take(6)}: deaf ${quiet / 60_000}m but $healthy/${regd.size} healthy — probe (presence re-arm), verdict in ${PROBE_VERDICT_MS / 1000}s")
                     accounts.resubscribeAccountPresence(id)
+                    val probeStartMs = now()
                     handler.postDelayed({
                         st.probeInFlight = false
+                        // A probe is only a test while the account can answer. If the background
+                        // optimization put it to sleep inside the window, an empty window proves
+                        // nothing: on 2026-11-26 every one of the day's "probe unanswered" verdicts
+                        // followed a deactivation by 4–75 s, and they added up to 12 wedge
+                        // recoveries, each dropping every peer socket. No strike; ask again later.
+                        if (sleptSince(accounts, id, probeStartMs)) {
+                            log(c, "acct ${id.take(6)}: probe void — the account went to sleep inside the window; no verdict")
+                            st.nextCheckMs = now() + WEDGE_RECOVER_BACKOFF_MS
+                            return@postDelayed
+                        }
                         val lastNow = now() - InboundEvidence.quietMs(id)
                         if (lastNow > st.probeStartQuiet) {
                             log(c, "acct ${id.take(6)}: probe answered (${InboundEvidence.lastKind(id)}) — quiet but receiving, no recovery")
@@ -621,7 +652,7 @@ object ConnectionWatchdog {
                             st.nextCheckMs = now() + IDLE_REARM_MS
                         } else {
                             val t3 = now()
-                            val quiet3 = InboundEvidence.quietMs(id)
+                            val quiet3 = quietAwakeMs(accounts, id)
                             st.strikes++
                             st.verdictMs = t3
                             st.nextCheckMs = t3 + WEDGE_RECOVER_BACKOFF_MS
@@ -732,7 +763,7 @@ object ConnectionWatchdog {
      *  tell the user; on a live network we re-register + re-arm presence. Doubling backoff. */
     private fun accountDeafConfirmed(c: Context, accounts: AccountService, id: String, st: AcctState, networkDown: Boolean) {
         val t = now()
-        val quiet = InboundEvidence.quietMs(id)
+        val quiet = quietAwakeMs(accounts, id)
         st.strikes++
         st.verifiedDeaf = true
         st.verdictMs = t
@@ -1488,7 +1519,7 @@ object ConnectionWatchdog {
         accounts.getAccounts().filter { it.isJami }.map { a ->
             val reg = a.isRegistered
             val conn = reg && accounts.accountConnectionSnapshot(a.accountId).first
-            val quiet = InboundEvidence.quietMs(a.accountId)
+            val quiet = quietAwakeMs(accounts, a.accountId)
             val name = a.alias?.takeIf { it.isNotBlank() }
                 ?: a.registeredName.takeIf { it.isNotBlank() }
                 ?: a.displayname.takeIf { it.isNotBlank() }
@@ -1706,7 +1737,7 @@ object ConnectionWatchdog {
             reg++
             val (connected, _) = accounts.accountConnectionSnapshot(acc.accountId)
             if (connected) conn++
-            val quiet = InboundEvidence.quietMs(acc.accountId)
+            val quiet = quietAwakeMs(accounts, acc.accountId)
             val deaf = quiet >= DEAF_LIMIT_MS
             if (!deaf) healthy++
             tokens.append(acc.accountId.take(6))
@@ -1726,7 +1757,14 @@ object ConnectionWatchdog {
             val sinceStart = t - processStartMs
             val cm = c.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             val netUp = cm?.activeNetwork != null
+            // Accounts the background optimization has just woken are unregistered for a moment
+            // by design. Both clocks start at the wake-up, not before it: on 2026-11-26 this check
+            // fired the instant the accounts woke ("none registered 6362s") and re-registered all
+            // four, dropping every peer socket, for a state that was seconds old.
+            val lastWake = accounts.lastAnyBackgroundWakeMs()
+            val sinceWake = if (lastWake > 0L) t - lastWake else Long.MAX_VALUE
             if (zeroRegSinceMs == 0L) zeroRegSinceMs = t
+            if (zeroRegSinceMs < lastWake) zeroRegSinceMs = lastWake
             val zeroFor = t - zeroRegSinceMs
             // EVERY account unregistered is the worst state the app can be in — it is deaf AND mute,
             // and it is what the user sees as "all my accounts switched themselves offline". Gating
@@ -1743,7 +1781,8 @@ object ConnectionWatchdog {
             // never hot-loop.
             val rescue = enabled > 0 && netUp && zeroFor >= ZERO_REG_LIMIT_MS &&
                 t - lastZeroRegRecoverMs >= ZERO_REG_RETRY_MS
-            if (enabled > 0 && netUp && sinceStart > STARTUP_STALL_GRACE_MS && !recentWedge(t)) {
+            if (enabled > 0 && netUp && sinceStart > STARTUP_STALL_GRACE_MS &&
+                sinceWake > STARTUP_STALL_GRACE_MS && !recentWedge(t)) {
                 log(c, "startup stall — $enabled account(s) enabled, none registered ${sinceStart / 1000}s → full-DHT re-register")
                 lastZeroRegRecoverMs = t
                 fullRecover(c, accounts)
@@ -1858,9 +1897,15 @@ object ConnectionWatchdog {
         val snap = regd.associate { it.accountId to (now() - InboundEvidence.quietMs(it.accountId)) }
         log(c, "0/$reg healthy, network not down — probe: presence re-arm, per-account verdict in ${UNIFORM_PROBE_VERDICT_MS / 1000}s [$summary]")
         resubscribeAllPresence(accounts)
+        val probeStartMs = now()
         handler.postDelayed({
             uniformProbePending = false
             val t = now()
+            // Same rule as the per-account probe: accounts asleep inside the window cannot answer.
+            if (regd.any { sleptSince(accounts, it.accountId, probeStartMs) }) {
+                log(c, "probe void — accounts went to sleep inside the window; no verdict")
+                return@postDelayed
+            }
             if (networkDown()) {
                 log(c, "probe: network egress DOWN — genuine outage, not recovering")
                 return@postDelayed

@@ -447,7 +447,16 @@ abstract class JamiApplication : Application() {
         // per 3 min asleep, i.e. 77% awake, at which point the optimization is break-even. The
         // restore cost is fixed per cycle while the awake cost is proportional to awake time, so
         // the objective is FEW, LONG sleeps — the opposite of what this produced.
-        if (isCallPush || isMessagePush || expiryWake) lastPushTime.set(now)
+        //
+        // One exception (2026-11-26): the noise push that actually WAKES sleeping accounts — it
+        // is past the cooldown, so at most one per NONCALL_RESTORE_COOLDOWN_MS — gets the ordinary
+        // grace once. Without it the accounts were restored and deactivated again 5–7 s later
+        // (six times on 2026-11-26): a full restore in which nothing could be fetched, and no
+        // peer's request — a file pull, a sync — could be answered. Noise arriving while the
+        // accounts are already awake still does not extend the window, so the trap above stays shut.
+        val noiseWake = !isCallPush && !isMessagePush && !expiryWake && asleepCount() > 0
+        if (noiseWake) wakeLog("  → noise past the cooldown wakes the accounts: one grace window")
+        if (isCallPush || isMessagePush || expiryWake || noiseWake) lastPushTime.set(now)
         if (isCallPush) lastCallPushTime.set(now)
         // An expiry wake gets the ordinary message grace window: the fetch it exists to allow took
         // 3-54 s across the six trials, so a bare 5 s deactivation delay would re-sleep mid-fetch.
