@@ -48,7 +48,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:ellipsize="middle"
+            android:ellipsize="none"
             android:fontFamily="@font/ubuntu_regular"
             android:gravity="start"
             android:paddingBottom="3dp"

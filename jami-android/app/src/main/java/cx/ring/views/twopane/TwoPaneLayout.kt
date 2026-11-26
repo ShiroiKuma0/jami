@@ -18,7 +18,18 @@ package cx.ring.views.twopane
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.RectF
+import android.os.Build
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.ViewConfiguration
+import cx.ring.sk.SkRole
+import cx.ring.sk.skColor
+import cx.ring.utils.UiPrefs
 import android.os.Parcel
 import android.os.Parcelable
 import android.os.Parcelable.ClassLoaderCreator
@@ -30,6 +41,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.animation.PathInterpolatorCompat
 import androidx.core.view.doOnNextLayout
@@ -395,6 +407,20 @@ class TwoPaneLayout @JvmOverloads constructor(
                 }
             }
         }
+        // shiroikuma: the divider the user dragged overrides the weight and the fold split.
+        splitActive = !canSlide && childCount == 2 && !getChildAt(0).isGone && !getChildAt(1).isGone
+        if (splitActive && (dragging || splitCollapsed || splitListDp >= 0)) {
+            val listWidth = currentListWidth(widthAvailable)
+            for (i in 0 until 2) {
+                val child = getChildAt(i)
+                val lp = child.layoutParams as LayoutParams
+                val w = max((if (i == 0) listWidth else widthAvailable - listWidth) - lp.leftMargin - lp.rightMargin, 0)
+                child.measure(
+                    MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(child.measuredHeight, MeasureSpec.EXACTLY)
+                )
+            }
+        }
         val measuredHeight = layoutHeight + paddingTop + paddingBottom
         setMeasuredDimension(widthSize, measuredHeight)
         if (mFirstLayout || canSlide != isSlideable) {
@@ -454,6 +480,7 @@ class TwoPaneLayout @JvmOverloads constructor(
             }
             nextXStart += child.width + abs(nextXOffset)
         }
+        updateGestureExclusion()
         if (childCount == 2) {
             val startPane = getChildAt(0)
             val endPane = getChildAt(1)
@@ -467,6 +494,193 @@ class TwoPaneLayout @JvmOverloads constructor(
             }
         }
         mFirstLayout = false
+    }
+
+    // ---- shiroikuma: long-press the divider and drag to resize the two panes (2026-11-26) ----
+    // Dragging to the far left hides the list pane; a handle at the left edge brings it back.
+
+    private val density = resources.displayMetrics.density
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val grabHalfWidth = (20 * density).toInt()
+    private val minListWidth = (160 * density).toInt()
+    private val minDetailWidth = (300 * density).toInt()
+    private val collapseBelow = (96 * density).toInt()
+    private val flingVelocity = 1200 * density
+    private val handleWidth = 6 * density
+    private val handleHeight = 72 * density
+
+    /** Both panes are side by side, so the divider exists. Set by onMeasure. */
+    private var splitActive = false
+    private var splitListDp = UiPrefs.getSplitListDp(context)
+    private var splitCollapsed = UiPrefs.isSplitCollapsed(context)
+    private var dragging = false
+    private var dragX = 0
+    private var pendingGrab = false
+    private var pendingHandle = false
+    private val dividerWidth = 1.25f * density
+    private var downX = 0f
+    private var downY = 0f
+    private var velocityTracker: VelocityTracker? = null
+    private val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val handleRect = RectF()
+    private val exclusionRect = Rect()
+
+    private fun maxListWidth(widthAvailable: Int) = max(widthAvailable - minDetailWidth, minListWidth)
+
+    private fun currentListWidth(widthAvailable: Int): Int = when {
+        dragging -> dragX.coerceIn(0, maxListWidth(widthAvailable))
+        splitCollapsed -> 0
+        else -> (splitListDp * density).toInt().coerceIn(minListWidth, maxListWidth(widthAvailable))
+    }
+
+    /** X of the divider inside this view (left-to-right layouts only). */
+    private fun dividerX(): Int = paddingLeft + (getChildAt(0)?.width ?: 0)
+
+    private val isCollapsedNow: Boolean
+        get() = splitActive && !dragging && splitCollapsed
+
+    private fun inGrabZone(x: Float, y: Float): Boolean {
+        if (!splitActive || isLayoutRtlSupport) return false
+        return if (splitCollapsed) {
+            inHandleZone(x, y)
+        } else abs(x - dividerX()) <= grabHalfWidth
+    }
+
+    /** The grab handle: on the divider, or at the left edge while the list pane is hidden. */
+    private fun inHandleZone(x: Float, y: Float): Boolean {
+        if (!splitActive || isLayoutRtlSupport) return false
+        val cx = if (splitCollapsed) paddingLeft.toFloat() else dividerX().toFloat()
+        return abs(x - cx) <= grabHalfWidth * (if (splitCollapsed) 2 else 1) &&
+                abs(y - handleCenterY()) <= handleHeight / 2 + grabHalfWidth
+    }
+
+    private fun handleCenterY(): Float = (dividerTop() + height) / 2f
+
+    /** The divider starts below the status bar. */
+    private fun dividerTop(): Int =
+        ViewCompat.getRootWindowInsets(this)?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+
+    private val grabRunnable = Runnable { startDrag() }
+
+    private fun startDrag() {
+        if (!pendingGrab) return
+        removeCallbacks(grabRunnable)
+        pendingGrab = false
+        dragging = true
+        dragX = if (splitCollapsed) 0 else dividerX() - paddingLeft
+        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        parent?.requestDisallowInterceptTouchEvent(true)
+        // Take the gesture away from the pane under the finger, its own long-press included.
+        val now = android.os.SystemClock.uptimeMillis()
+        val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, downX, downY, 0)
+        super.dispatchTouchEvent(cancel)
+        cancel.recycle()
+        invalidate()
+    }
+
+    private fun endDrag(commit: Boolean) {
+        val vx = velocityTracker?.let { it.computeCurrentVelocity(1000); it.xVelocity } ?: 0f
+        velocityTracker?.recycle()
+        velocityTracker = null
+        dragging = false
+        if (commit) {
+            val widthAvailable = max(width - paddingLeft - paddingRight, 0)
+            if (dragX < collapseBelow || (vx < -flingVelocity && dragX < widthAvailable / 2)) {
+                splitCollapsed = true
+            } else {
+                splitCollapsed = false
+                splitListDp = (dragX.coerceIn(minListWidth, maxListWidth(widthAvailable)) / density).toInt()
+            }
+            UiPrefs.setSplit(context, splitListDp, splitCollapsed)
+        }
+        requestLayout()
+        invalidate()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                removeCallbacks(grabRunnable)
+                if (dragging) endDrag(false)
+                pendingGrab = inGrabZone(ev.x, ev.y)
+                pendingHandle = inHandleZone(ev.x, ev.y)
+                if (pendingGrab) {
+                    downX = ev.x
+                    downY = ev.y
+                    velocityTracker = VelocityTracker.obtain().also { it.addMovement(ev) }
+                    // Posted before the panes see the event, so it runs before their own long-press.
+                    postDelayed(grabRunnable, ViewConfiguration.getLongPressTimeout().toLong())
+                    super.dispatchTouchEvent(ev)
+                    return true
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (dragging) {
+                    velocityTracker?.addMovement(ev)
+                    val x = (ev.x - paddingLeft).toInt()
+                    if (x != dragX) {
+                        dragX = x
+                        requestLayout()
+                        invalidate()
+                    }
+                    return true
+                }
+                // On the handle a sideways move starts the drag at once; a tap still goes through.
+                if (pendingGrab && pendingHandle && abs(ev.x - downX) > touchSlop
+                    && abs(ev.x - downX) > abs(ev.y - downY)) {
+                    startDrag()
+                    dragX = (ev.x - paddingLeft).toInt()
+                    requestLayout()
+                    return true
+                }
+                if (pendingGrab && (abs(ev.x - downX) > touchSlop || abs(ev.y - downY) > touchSlop)) {
+                    pendingGrab = false
+                    removeCallbacks(grabRunnable)
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                pendingGrab = false
+                removeCallbacks(grabRunnable)
+                if (dragging) {
+                    velocityTracker?.addMovement(ev)
+                    endDrag(ev.actionMasked == MotionEvent.ACTION_UP)
+                    return true
+                }
+                velocityTracker?.recycle()
+                velocityTracker = null
+            }
+            else -> if (dragging) return true
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        if (!splitActive || isLayoutRtlSupport) return
+        handlePaint.color = skColor(SkRole.ACCENT)
+        val collapsed = splitCollapsed && !dragging
+        val x = dividerX().toFloat()
+        if (!collapsed) {
+            canvas.drawRect(x - dividerWidth / 2, dividerTop().toFloat(), x + dividerWidth / 2, height.toFloat(), handlePaint)
+        }
+        // The handle rides the divider; while the list pane is hidden it waits at the left edge.
+        val cx = if (collapsed) paddingLeft + handleWidth else x
+        val left = max(cx - handleWidth / 2, paddingLeft + handleWidth / 2)
+        val cy = handleCenterY()
+        handleRect.set(left, cy - handleHeight / 2, left + handleWidth, cy + handleHeight / 2)
+        canvas.drawRoundRect(handleRect, handleWidth / 2, handleWidth / 2, handlePaint)
+    }
+
+    /** Keeps the system's back swipe off the handle while the list pane is hidden. */
+    private fun updateGestureExclusion() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        if (isCollapsedNow) {
+            val cy = handleCenterY().toInt()
+            exclusionRect.set(0, cy - handleHeight.toInt(), paddingLeft + grabHalfWidth * 2, cy + handleHeight.toInt())
+            systemGestureExclusionRects = listOf(exclusionRect)
+        } else if (systemGestureExclusionRects.isNotEmpty()) {
+            systemGestureExclusionRects = emptyList()
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {

@@ -1545,7 +1545,30 @@ class ConversationAdapter(
                     Formatter.formatFileSize(context, pull.first), Formatter.formatFileSize(context, pull.second))
                 file.isOutgoing && cx.ring.utils.FileHandover.has(file.messageId) ->
                     sizeLine + " · " + context.getString(R.string.sk_file_handed_over)
+                // Sent, but no peer has asked for the bytes yet: the receiver has to download it.
+                file.isOutgoing && !file.transferStatus.isError
+                        && cx.ring.utils.FileHandover.waiting(file.messageId, file.timestamp) ->
+                    sizeLine + " · " + context.getString(R.string.sk_file_not_pulled)
                 else -> sizeLine
+            }
+        }
+        // The status icon sits at the row's end, level with the card's bottom, and at one text line
+        // tall it is wider than the card's fixed end margin: keep the card clear of it.
+        if (file.isOutgoing) {
+            val card = viewHolder.mFileInfoLayout
+            val icon = viewHolder.mStatusIcon
+            if (card != null && icon != null && icon.getTag(R.id.status_icon) == null) {
+                icon.setTag(R.id.status_icon, true)
+                val base = (card.layoutParams as? MarginLayoutParams)?.marginEnd ?: 0
+                val gap = (10 * context.resources.displayMetrics.density).toInt()
+                icon.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                    val want = if (v.isVisible && v.width > 0) maxOf(base, v.width + gap) else base
+                    val lp = card.layoutParams as? MarginLayoutParams
+                    if (lp != null && lp.marginEnd != want) card.post {
+                        lp.marginEnd = want
+                        card.layoutParams = lp
+                    }
+                }
             }
         }
         styleTransferProgress(viewHolder.progress)

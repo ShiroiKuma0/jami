@@ -157,7 +157,11 @@ class SmartListViewHolder : RecyclerView.ViewHolder {
 
             compositeDisposable.add(conversation.getVisible()
                 .observeOn(DeviceUtils.uiScheduler)
-                .subscribe { activated -> binding.root.isActivated = activated })
+                .subscribe { activated ->
+                    binding.root.isActivated = activated
+                    // The row lines are left out next to the selected row: redraw them.
+                    (binding.root.parent as? android.view.View)?.invalidate()
+                })
         }
     }
 

@@ -147,4 +147,5 @@
     <string name="conn_dash_acct_off">オフにしました</string>
     <!-- Outgoing file bubble: a peer has pulled the whole file (SK-HANDOVER) -->
     <string name="sk_file_handed_over">転送済</string>
+    <string name="sk_file_not_pulled">未転送</string>
 </resources>

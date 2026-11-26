@@ -16,6 +16,15 @@ object UiPrefs {
         p(c).edit().putBoolean("split_view", on).apply()
     }
 
+    // ---- Split view: the divider the user dragged (2026-11-26) ------------------------------
+    /** Width of the list pane in dp as dragged by the user; -1 = the layout's own split. */
+    fun getSplitListDp(c: Context): Int = p(c).getInt("split_list_dp", -1)
+    /** True when the list pane was flicked away and the conversation fills the screen. */
+    fun isSplitCollapsed(c: Context): Boolean = p(c).getBoolean("split_collapsed", false)
+    fun setSplit(c: Context, listDp: Int, collapsed: Boolean) {
+        p(c).edit().putInt("split_list_dp", listDp).putBoolean("split_collapsed", collapsed).apply()
+    }
+
     // ---- Media viewer: suppressed (hidden-from-swipe) pictures & videos ---------------------
     // A picture/video the user swiped down on is suppressed: never shown again while swiping
     // through the media viewer. Keyed by the transfer's swarm messageId (or fileId). Persists.

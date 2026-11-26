@@ -190,6 +190,8 @@ class SmartListFragment : BaseSupportFragment<SmartListPresenter, SmartListView>
                 ).apply { mSmartListAdapter = this }
 
                 confsList.setHasFixedSize(true)
+                if (confsList.itemDecorationCount == 0)
+                    confsList.addItemDecoration(cx.ring.sk.SkRowDivider(R.id.conv_info))
             } else {
                 mSmartListAdapter?.update(conversations)
             }

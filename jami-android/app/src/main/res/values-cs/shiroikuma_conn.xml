@@ -147,4 +147,5 @@
     <string name="conn_dash_acct_off">vypnuto</string>
     <!-- Outgoing file bubble: a peer has pulled the whole file (SK-HANDOVER) -->
     <string name="sk_file_handed_over">předáno</string>
+    <string name="sk_file_not_pulled">zatím nestaženo</string>
 </resources>

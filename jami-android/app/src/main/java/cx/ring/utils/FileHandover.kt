@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit
 object FileHandover {
     private const val PREFS = "sk_file_handover"
     private const val MAX = 2000
+    private const val SINCE_KEY = "__since"
     private const val ONGOING = 5    // libjami::DataTransferEventCode::ongoing
     private const val FINISHED = 6   // libjami::DataTransferEventCode::finished
 
@@ -95,8 +96,31 @@ object FileHandover {
         val e = p.edit().putLong(messageId, System.currentTimeMillis())
         val all = p.all
         if (all.size >= MAX)
-            all.entries.sortedBy { (it.value as? Long) ?: 0L }.take(all.size - MAX + 200).forEach { e.remove(it.key) }
+            all.entries.filter { it.key != SINCE_KEY }.sortedBy { (it.value as? Long) ?: 0L }.take(all.size - MAX + 200).forEach { e.remove(it.key) }
         e.apply()
+    }
+
+    /**
+     * True for a sent file nobody has pulled yet. Only files sent since hand-overs are recorded
+     * on this install can be judged: an older one has no record either way, and says nothing.
+     */
+    fun waiting(messageId: String?, sentAt: Long): Boolean =
+        !messageId.isNullOrEmpty() && sentAt >= since() && !has(messageId) && !pulls.containsKey(messageId)
+
+    @Volatile private var sinceCache = 0L
+
+    /** When this install began recording hand-overs: its oldest record, or the first call. */
+    private fun since(): Long {
+        if (sinceCache != 0L) return sinceCache
+        val p = prefs() ?: return Long.MAX_VALUE
+        var t = p.getLong(SINCE_KEY, 0L)
+        if (t == 0L) {
+            t = p.all.filterKeys { it != SINCE_KEY }.values.mapNotNull { it as? Long }.minOrNull()
+                ?: System.currentTimeMillis()
+            p.edit().putLong(SINCE_KEY, t).apply()
+        }
+        sinceCache = t
+        return t
     }
 
     fun has(messageId: String?): Boolean =

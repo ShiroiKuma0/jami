@@ -151,4 +151,5 @@
     <string name="conn_dash_acct_off">switched OFF</string>
     <!-- Outgoing file bubble: a peer has pulled the whole file (SK-HANDOVER) -->
     <string name="sk_file_handed_over">handed over</string>
+    <string name="sk_file_not_pulled">not downloaded yet</string>
 </resources>

@@ -80,7 +80,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     android:id="@+id/contact_title"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:ellipsize="middle"
+                    android:ellipsize="none"
                     android:singleLine="true"
                     android:textColor="@color/colorOnSurface"
                     android:textSize="16sp"
