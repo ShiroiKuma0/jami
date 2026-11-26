@@ -695,6 +695,10 @@ r bash -c 'grep -q SK-CHANDIAG daemon/src/jamidht/jamiaccount.cpp || (cd daemon 
 # also edits jamiaccount.cpp. Needs dhtnet-late-answer-redial.patch (ConnectionManager::onLateAnswer) — without
 # the dhtnet half this does not compile.
 r bash -c 'grep -q SK-LATEANSWER daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-late-answer-redial.patch'
+# queued read receipts (SK-READRETRY, 2026-11-26; idempotent; daemon's OWN source). AFTER jami-late-answer-redial,
+# which also edits jamiaccount.cpp. A read receipt was sent only over a channel open at that instant and dropped
+# otherwise; it now goes through the message engine and is sent once the peer is reachable.
+r bash -c 'grep -q SK-READRETRY daemon/src/jamidht/jamiaccount.cpp || (cd daemon && patch -flp1) < patches/jami-read-receipt-retry.patch'
 
 # CONTRIB SANITY GATE (2026-08-08) — MUST sit between the patch steps and the build.
 #

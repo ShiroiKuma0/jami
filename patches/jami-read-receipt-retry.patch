@@ -1,0 +1,87 @@
+diff -ruN a/src/im/message_engine.cpp b/src/im/message_engine.cpp
+--- a/src/im/message_engine.cpp	2026-11-26 13:40:07.465946741 +0100
++++ b/src/im/message_engine.cpp	2026-11-26 13:40:07.516761756 +0100
+@@ -34,6 +34,15 @@
+ namespace jami {
+ namespace im {
+ 
++// SK-READRETRY: messages the client never showed as a message of its own (conversation
++// announcements, read receipts) change no message status on the client side.
++static bool
++isSilent(const std::map<std::string, std::string>& payloads)
++{
++    return payloads.find("application/im-gitmessage-id") != payloads.end()
++           || payloads.find("message/imdn+xml") != payloads.end();
++}
++
+ MessageEngine::MessageEngine(SIPAccountBase& acc, const std::filesystem::path& path)
+     : account_(acc)
+     , savePath_(path)
+@@ -149,7 +158,7 @@
+     // avoid locking while calling callback
+     for (const auto& p : pending) {
+         JAMI_DEBUG("[Account {:s}] [message {:d}] Reattempt sending", account_.getAccountID(), p.token);
+-        if (p.payloads.find("application/im-gitmessage-id") == p.payloads.end())
++        if (!isSilent(p.payloads))
+             emitSignal<libjami::ConfigurationSignal::AccountMessageStatusChanged>(
+                 account_.getAccountID(),
+                 "",
+@@ -194,7 +203,7 @@
+ 
+     auto f = std::find_if(p->second.begin(), p->second.end(), [&](const Message& m) { return m.token == token; });
+     if (f != p->second.end()) {
+-        auto emit = f->payloads.find("application/im-gitmessage-id") == f->payloads.end();
++        auto emit = !isSilent(f->payloads);
+         if (f->status == MessageStatus::SENDING) {
+             if (ok) {
+                 f->status = MessageStatus::SENT;
+diff -ruN a/src/jamidht/jamiaccount.cpp b/src/jamidht/jamiaccount.cpp
+--- a/src/jamidht/jamiaccount.cpp	2026-11-26 13:40:07.464233531 +0100
++++ b/src/jamidht/jamiaccount.cpp	2026-11-26 13:40:07.515163288 +0100
+@@ -3477,8 +3477,30 @@
+     auto sendMessage = status == (int) libjami::Account::MessageStates::DISPLAYED && isReadReceiptEnabled();
+     if (!conversationId.empty())
+         sendMessage &= convModule()->onMessageDisplayed(getUsername(), conversationId, messageId);
+-    if (sendMessage)
+-        sendInstantMessage(uri.authority(), {{MIME_TYPE_IMDN, getDisplayed(conversationId, messageId)}});
++    if (sendMessage) {
++        std::map<std::string, std::string> payload {{MIME_TYPE_IMDN, getDisplayed(conversationId, messageId)}};
++        if (conversationId.empty()) {
++            sendInstantMessage(uri.authority(), payload);
++            return true;
++        }
++        // SK-READRETRY: a read receipt used to be sent only over a channel that happened to be open
++        // at this instant, and was dropped otherwise, so the sender kept seeing "delivered" for a
++        // message that had been read. Queue it like any other message instead, so that it is sent
++        // once the peer is reachable. One queued receipt per member and conversation: a newer one
++        // replaces the one still waiting.
++        for (const auto& m : convModule()->getConversationMembers(conversationId)) {
++            const auto& member = m.at("uri");
++            if (member == getUsername()) {
++                // Our other devices learn it from the conversation sync; only tell the connected ones.
++                auto token = std::uniform_int_distribution<uint64_t> {1, JAMI_ID_MAX_VAL}(rand);
++                this->sendMessage(member, "", payload, token, false, true);
++                continue;
++            }
++            std::lock_guard lk(displayedTokensMtx_);
++            auto& token = displayedTokens_[conversationId + '/' + member];
++            token = messageEngine_.sendMessage(member, "", payload, token);
++        }
++    }
+     return true;
+ }
+ 
+diff -ruN a/src/jamidht/jamiaccount.h b/src/jamidht/jamiaccount.h
+--- a/src/jamidht/jamiaccount.h	2026-11-26 13:40:07.464442277 +0100
++++ b/src/jamidht/jamiaccount.h	2026-11-26 13:40:07.515275208 +0100
+@@ -934,6 +934,10 @@
+ 
+     std::set<std::shared_ptr<dht::http::Request>> requests_;
+ 
++    // SK-READRETRY: the queued read receipt of each member of each conversation ("conv/member").
++    std::mutex displayedTokensMtx_ {};
++    std::map<std::string, uint64_t> displayedTokens_ {};
++
+     mutable std::mutex sipConnsMtx_ {};
+     struct SipConnection
+     {
