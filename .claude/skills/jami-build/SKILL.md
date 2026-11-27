@@ -791,9 +791,11 @@ if [[ "$ans" =~ ^[Yy]$ ]]; then
     echo "$base_vn $N" > "$counter"   # consume the build number only on success
     # Persist the bump number in git so it can never be lost (a lost counter = downgrade APK).
     # Narrow stage: ONLY the counter file. Then commit + push to origin custom.
+    # The commit names the path too: a bare commit takes whatever else is staged (2026-11-27,
+    # a staged file removal went out inside a counter bump).
     ( cd ~/git/shiroikuma-jami \
         && git add jami-android/shiroikuma-build.txt \
-        && git commit -m "build: bump version tail to ${base_vn}+${N}" \
+        && git commit -m "build: bump version tail to ${base_vn}+${N}" -- jami-android/shiroikuma-build.txt \
         && git push origin custom ) \
       && echo -e "\033[1;36m>>> counter ${base_vn}+${N} committed + pushed\033[0m" \
       || echo -e "\033[1;31m>>> counter commit/push failed — push jami-android/shiroikuma-build.txt manually\033[0m"
