@@ -688,8 +688,8 @@ object ConnectionWatchdog {
                             // clear it. Quiet and wedged were indistinguishable — which is precisely the
                             // distinction this detector claims to draw.
                             //
-                            // ProxySubs answers it properly, per account, because each account rides its
-                            // own proxy. Null = no information (diag patch absent, or a fresh process):
+                            // The daemon answers it properly, per account ([AccountService.proxyRxStats]),
+                            // because each account has its own proxy client. Null = no information (a fresh process):
                             // fall through to the old behaviour rather than veto on ignorance.
                             // (Also checked BEFORE the probe now — see accountProxyRxAgeMs at the
                             // call site above. This second look still earns its place: a tick can
@@ -747,15 +747,16 @@ object ConnectionWatchdog {
     }
 
     /** How long ago THIS account's own proxy connection last delivered anything, or null when we
-     *  cannot say (full-DHT mode, the opendht subscription-diag patch absent, or no tick seen yet
-     *  for its endpoint). Each account rides its own proxy, so this is the one per-account liveness
-     *  question the presence re-arm probe cannot answer. Null means "don't know", never "dead". */
+     *  cannot say (full-DHT mode, no proxy client, or nothing received yet). Each account has its
+     *  own proxy client, so this is the one per-account liveness question the presence re-arm probe
+     *  cannot answer. Null means "don't know", never "dead".
+     *
+     *  Asked of the daemon directly since 2026-11-27. It used to be parsed out of the SK-PROXYDIAG
+     *  tick in logcat; when the diagnostics switches arrived (2026-11-01, all off by default) the
+     *  tick stopped being printed, this returned null for good, and every quiet account walked to
+     *  "verified WEDGE" and a red dot. A diagnostics switch must never decide a verdict. */
     private fun accountProxyRxAgeMs(c: Context, accounts: AccountService, id: String): Long? =
-        if (UiPrefs.isFullDhtMode(c)) null else runCatching {
-            accounts.getAccount(id)?.let { acct ->
-                ProxySubs.rxAgeMs(acct.dhtProxyUsed.ifBlank { acct.dhtProxy })
-            }
-        }.getOrNull()
+        if (UiPrefs.isFullDhtMode(c)) null else accounts.proxyRxStats(id)?.lastRxAgeMs
 
     /** A quiet account with a verified-DOWN network (real outage) — or, when networkDown is false, a
      *  soft per-account wedge. Recovery cannot conjure a dead network, so on a down network we just
@@ -1928,7 +1929,7 @@ object ConnectionWatchdog {
                 uniformProbeFails = 0
                 log(c, "probe: ${silent.size}/${regd.size} silent, but a real push landed ${(t - PushEvidence.lastRealPushMs) / 1000}s ago — receive path alive, no recover")
             } else if (silent.size == regd.size && !UiPrefs.isFullDhtMode(c) &&
-                (freshestProxyRxAgeMs(c, silent) ?: Long.MAX_VALUE) < PROXY_RX_ALIVE_MS) {
+                (freshestProxyRxAgeMs(c, accounts, silent) ?: Long.MAX_VALUE) < PROXY_RX_ALIVE_MS) {
                 // Same acquittal as the push branch above, on the evidence that still EXISTS when
                 // there is no push leg to vouch for anything (2026-09-11). The charge this path
                 // lays is "every subscription is dead"; a proxy that delivered to one of these very
@@ -1943,7 +1944,7 @@ object ConnectionWatchdog {
                 // dead subscription reads very differently and is NOT vetoed here — dhtproxy3:90
                 // sat at lastRx=4138s with ended=12 on the same phone that same morning.
                 uniformProbeFails = 0
-                val age = freshestProxyRxAgeMs(c, silent) ?: 0L
+                val age = freshestProxyRxAgeMs(c, accounts, silent) ?: 0L
                 log(c, "probe: ${silent.size}/${regd.size} silent, but a proxy delivered ${age / 1000}s ago — receive path alive, no recover")
             } else if (recentWedge(t)) {
                 log(c, "probe: ${silent.size}/${regd.size} still silent (${silent.joinToString { it.accountId.take(6) }}) but inside the wedge linger — standing by")
@@ -2016,7 +2017,8 @@ object ConnectionWatchdog {
 
     /**
      * The freshest "my proxy delivered something" age across the given accounts, or null when no
-     * proxy has anything to say (diag patch absent, fresh process, full-DHT mode).
+     * proxy has anything to say (fresh process, full-DHT mode). Asked of the daemon, per account
+     * ([AccountService.proxyRxStats]) — never read out of a diagnostic log line.
      *
      * This is the same evidence the PER-ACCOUNT detector has trusted since 2026-07-30 — see the long
      * note at [askProxyBeforeRecovering]'s caller — read here for the uniform case, which never had
@@ -2025,11 +2027,9 @@ object ConnectionWatchdog {
      * value is 0 for the life of the process, so the acquittal was structurally unreachable and a
      * quiet night convicted every time.
      */
-    private fun freshestProxyRxAgeMs(c: Context, accounts: List<Account>): Long? {
+    private fun freshestProxyRxAgeMs(c: Context, service: AccountService, accounts: List<Account>): Long? {
         if (UiPrefs.isFullDhtMode(c)) return null
-        return accounts.mapNotNull { a ->
-            runCatching { ProxySubs.rxAgeMs(a.dhtProxyUsed.ifBlank { a.dhtProxy }) }.getOrNull()
-        }.minOrNull()
+        return accounts.mapNotNull { a -> service.proxyRxStats(a.accountId)?.lastRxAgeMs }.minOrNull()
     }
 
     /**

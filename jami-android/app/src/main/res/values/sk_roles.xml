@@ -65,6 +65,9 @@
     <color name="sk_role_call_decline">#FFB00000</color>
     <color name="sk_role_call_decline_glyph">#FFFFFFFF</color>
     <color name="sk_role_call_missed">#FFFA2E30</color>
+    <color name="sk_role_data_box_frame">#FFB3B300</color>
+    <color name="sk_role_data_rx">#FF00B0FF</color>
+    <color name="sk_role_data_tx">#FFFF8000</color>
     <color name="sk_role_page_heading">#FFFFFF00</color>
     <color name="sk_role_page_chip">#FFFFFF00</color>
     <color name="sk_role_page_note">#FFC8C800</color>

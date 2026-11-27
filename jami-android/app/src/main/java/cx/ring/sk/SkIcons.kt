@@ -18,7 +18,7 @@ import android.graphics.drawable.Drawable
 enum class SkGlyph {
     CHEVRON, EXPAND, DROP, TEXT, SLIDER, TOGGLE, OPEN, EXPORT, IMPORT, TRASH, GEAR, RESET, GLOBE,
     CLOCK, LIST, INFO, SPLIT, HOME, MESSAGE, PERSON, DIRECTORY, NETWORK, BOLT, PULSE, BARS, EYE,
-    PHONE, EDIT, LOCATION, CHECK, BELL, DOT
+    PHONE, EDIT, LOCATION, CHECK, BELL, DOT, PLAY, STOP, DOWN, UP
 }
 
 class SkGlyphDrawable(private val glyph: SkGlyph, private var color: Int, private val sizePx: Int) : Drawable() {
@@ -144,6 +144,10 @@ class SkGlyphDrawable(private val glyph: SkGlyph, private var color: Int, privat
                 path.lineTo(17.5f, 15f); path.lineTo(19f, 17f); path.close(); line(10.5f, 20.5f, 13.5f, 20.5f)
             }
             SkGlyph.DOT -> dot(12f, 12f, 4f)
+            SkGlyph.PLAY -> { path.moveTo(7f, 4.5f); path.lineTo(19f, 12f); path.lineTo(7f, 19.5f); path.close() }
+            SkGlyph.STOP -> rect(6f, 6f, 18f, 18f, 2f)
+            SkGlyph.DOWN -> { line(12f, 4f, 12f, 20f); path.moveTo(6f, 14f); path.lineTo(12f, 20f); path.lineTo(18f, 14f) }
+            SkGlyph.UP -> { line(12f, 20f, 12f, 4f); path.moveTo(6f, 10f); path.lineTo(12f, 4f); path.lineTo(18f, 10f) }
         }
         canvas.drawPath(path, stroke)
         canvas.restore()

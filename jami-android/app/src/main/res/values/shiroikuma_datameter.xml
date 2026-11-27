@@ -6,9 +6,9 @@
     <string name="data_meter_title">Data</string>
     <string name="data_meter_measuring">Measuring: %1$s</string>
     <string name="data_meter_idle">No measurement running.</string>
-    <string name="data_meter_start">▶  Start measuring</string>
-    <string name="data_meter_stop">■  Stop and save</string>
-    <string name="data_meter_sessions">Saved measurements…</string>
+    <string name="data_meter_start">Start measuring</string>
+    <string name="data_meter_stop">Stop and save</string>
+    <string name="data_meter_sessions">Saved measurements</string>
     <string name="data_meter_sessions_title">Data measurements</string>
     <string name="data_meter_recording">Recording automatically · window %1$s</string>
     <string name="data_meter_not_recording">NOT recording automatically</string>
@@ -16,10 +16,16 @@
     <string name="data_meter_close">Close</string>
     <string name="data_meter_clear">Clear</string>
     <string name="data_meter_tip">Live data measurement and the usage logs</string>
-    <string name="data_meter_subs_waiting">Proxy subscriptions: waiting for the daemon’s first tick (~3 min)</string>
-    <string name="data_meter_subs_head">Proxy subscriptions: %1$d across %2$d proxies · %3$d s ago</string>
-    <string name="data_meter_subs_row">  %1$s — %2$d listeners, %3$d pushes, last rx %4$s</string>
-    <string name="data_meter_subs_settling">Proxy subscriptions: none established yet (%1$d proxies · %2$d s ago)</string>
+    <string name="data_meter_subs_waiting">No account has a proxy connection.</string>
+    <string name="data_meter_subs_head">%1$d subscriptions on %2$d accounts</string>
+    <string name="data_meter_subs_settling">None established yet (%1$d accounts).</string>
     <string name="data_meter_subs_never">never</string>
     <string name="data_meter_subs_secs">%1$d s</string>
+    <string name="data_meter_sec_measure">Measurement</string>
+    <string name="data_meter_sec_subs">Proxy subscriptions</string>
+    <string name="data_meter_sec_log">Automatic log</string>
+    <string name="data_meter_subs_count">%1$d subscriptions</string>
+    <string name="data_meter_subs_detail">%1$s · %2$d pushes · last received %3$s</string>
+    <string name="data_meter_live_since">running for %1$s · %2$s</string>
+    <string name="data_meter_uncounted">not counted</string>
 </resources>

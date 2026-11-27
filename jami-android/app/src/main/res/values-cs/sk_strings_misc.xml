@@ -82,6 +82,9 @@
     <string name="sk_role_label_call_decline_glyph">Sluchátko na tlačítkách pro odmítnutí a zavěšení</string>
     <string name="sk_role_label_call_missed">Zmeškaný hovor</string>
     <string name="sk_role_label_page_heading">Nadpisy oddílů</string>
+    <string name="sk_role_label_data_box_frame">Panel Data: rámeček</string>
+    <string name="sk_role_label_data_rx">Panel Data: přijato</string>
+    <string name="sk_role_label_data_tx">Panel Data: odesláno</string>
     <string name="sk_role_label_page_chip">Štítky rejstříku</string>
     <string name="sk_role_label_page_note">Vysvětlivky a levá linka</string>
     <string name="sk_role_label_section_base">Ikona oddílu: základ a jeho nastavení</string>

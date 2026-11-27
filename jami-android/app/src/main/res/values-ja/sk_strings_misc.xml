@@ -76,6 +76,9 @@
     <string name="sk_role_label_call_decline_glyph">拒否・通話終了ボタンの受話器</string>
     <string name="sk_role_label_call_missed">不在着信</string>
     <string name="sk_role_label_page_heading">各節の見出し</string>
+    <string name="sk_role_label_data_box_frame">データ画面: 枠</string>
+    <string name="sk_role_label_data_rx">データ画面: 受信</string>
+    <string name="sk_role_label_data_tx">データ画面: 送信</string>
     <string name="sk_role_label_page_chip">目次のチップ</string>
     <string name="sk_role_label_page_note">説明文と左の縦線</string>
     <string name="sk_role_label_section_base">見出しのアイコン: 基本と設定</string>

@@ -1,0 +1,55 @@
+--- a/bin/jni/configurationmanager.i
++++ b/bin/jni/configurationmanager.i
+@@ -89,6 +89,7 @@
+ void monitor(bool continuous);
+ std::vector<std::map<std::string, std::string>> getConnectionList(const std::string& accountId, const std::string& conversationId);
+ std::vector<std::map<std::string, std::string>> getChannelList(const std::string& accountId, const std::string& connectionId);
++std::map<std::string, std::string> getProxyRxStats(const std::string& accountId);
+ std::string addAccount(const std::map<std::string, std::string>& details, const std::string& accountId = "");
+ void removeAccount(const std::string& accountId);
+ void updateProfile(const std::string& accountId, const std::string& displayName, const std::string& avatar, const std::string& fileType, const std::string& botOwner, int32_t flag);
+--- a/src/client/configurationmanager.cpp
++++ b/src/client/configurationmanager.cpp
+@@ -39,6 +39,7 @@
+ #include <dhtnet/ip_utils.h>
+ #include <dhtnet/upnp/upnp_context.h>
+ #include <dhtnet/certstore.h>
++#include <opendht/dht_proxy_client.h> // SK-PROXYRX
+ 
+ #ifdef __APPLE__
+ #include <TargetConditionals.h>
+@@ -716,6 +717,22 @@
+     return jami::Manager::instance().getChannelList(accountId, connectionId);
+ }
+ 
++// SK-PROXYRX: what this account's DHT proxy client has received. The application's connection
++// watchdog decides on it, so it is a plain call and depends on no diagnostics switch. Empty when
++// the account has no proxy client (full DHT, or not started).
++std::map<std::string, std::string>
++getProxyRxStats(const std::string& accountId)
++{
++    auto s = dht::skProxyRxStats(accountId);
++    if (not s.found)
++        return {};
++    return {{"proxy", s.proxy},
++            {"lastRxAgeMs", std::to_string(s.lastRxAgeMs)},
++            {"listeners", std::to_string(s.listeners)},
++            {"pushRx", std::to_string(s.pushRx)},
++            {"rxLines", std::to_string(s.rxLines)}};
++}
++
+ void
+ removeAccount(const std::string& accountId)
+ {
+--- a/src/jami/configurationmanager_interface.h
++++ b/src/jami/configurationmanager_interface.h
+@@ -60,6 +60,9 @@
+ LIBJAMI_PUBLIC std::vector<std::map<std::string, std::string>> getChannelList(const std::string& accountId,
+                                                                               const std::string& connectionId);
+ 
++// SK-PROXYRX
++LIBJAMI_PUBLIC std::map<std::string, std::string> getProxyRxStats(const std::string& accountId);
++
+ LIBJAMI_PUBLIC bool provideAccountAuthentication(const std::string& accountId,
+                                                  const std::string& credentialsFromUser,
+                                                  const std::string& scheme);

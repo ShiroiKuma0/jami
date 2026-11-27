@@ -131,6 +131,11 @@ enum class SkRole(val key: String, val section: SkSection, val label: String, va
     CALL_DECLINE_GLYPH("sk_call_decline_glyph", SkSection.CALLS, "Phone on the decline and hang-up buttons", SkDefault.Const(0xFFFFFFFF.toInt())),
     CALL_MISSED("sk_call_missed", SkSection.CALLS, "Missed call", SkDefault.Const(0xFFFA2E30.toInt())),
 
+    // --- The Data panel (DataMeterUi)
+    DATA_BOX_FRAME("sk_data_box_frame", SkSection.DIALOGS, "Data panel: frame of a box", SkDefault.Same { DIVIDER }),
+    DATA_RX("sk_data_rx", SkSection.DIALOGS, "Data panel: received", SkDefault.Const(0xFF00B0FF.toInt())),
+    DATA_TX("sk_data_tx", SkSection.DIALOGS, "Data panel: sent", SkDefault.Const(0xFFFF8000.toInt())),
+
     // --- Settings pages
     PAGE_HEADING("sk_page_heading", SkSection.PAGES, "Section headings", SkDefault.Same { ACCENT }),
     PAGE_CHIP("sk_page_chip", SkSection.PAGES, "Index chips", SkDefault.Same { ACCENT }),

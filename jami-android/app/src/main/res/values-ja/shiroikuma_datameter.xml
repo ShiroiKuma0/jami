@@ -3,9 +3,9 @@
     <string name="data_meter_title">データ</string>
     <string name="data_meter_measuring">計測中：%1$s</string>
     <string name="data_meter_idle">計測していません。</string>
-    <string name="data_meter_start">▶  計測を開始</string>
-    <string name="data_meter_stop">■  停止して保存</string>
-    <string name="data_meter_sessions">保存した計測…</string>
+    <string name="data_meter_start">計測を開始</string>
+    <string name="data_meter_stop">停止して保存</string>
+    <string name="data_meter_sessions">保存した計測</string>
     <string name="data_meter_sessions_title">データ計測</string>
     <string name="data_meter_recording">自動記録中・窓 %1$s</string>
     <string name="data_meter_not_recording">自動記録していません</string>
@@ -13,10 +13,16 @@
     <string name="data_meter_close">閉じる</string>
     <string name="data_meter_clear">消去</string>
     <string name="data_meter_tip">データ使用量の計測と記録</string>
-    <string name="data_meter_subs_waiting">代理購読: デーモンの最初のティック待ち（約3分）</string>
-    <string name="data_meter_subs_head">代理購読: %2$d 台の代理に %1$d 件・%3$d 秒前</string>
-    <string name="data_meter_subs_row">  %1$s — 購読 %2$d 件、プッシュ %3$d 回、最終受信 %4$s</string>
-    <string name="data_meter_subs_settling">代理購読: まだ確立していません（代理 %1$d 台・%2$d 秒前）</string>
+    <string name="data_meter_subs_waiting">代理に接続しているアカウントはありません。</string>
+    <string name="data_meter_subs_head">%2$d 個のアカウントに購読 %1$d 件</string>
+    <string name="data_meter_subs_settling">まだ確立していません（アカウント %1$d 個）。</string>
     <string name="data_meter_subs_never">未受信</string>
     <string name="data_meter_subs_secs">%1$d 秒</string>
+    <string name="data_meter_sec_measure">計測</string>
+    <string name="data_meter_sec_subs">代理購読</string>
+    <string name="data_meter_sec_log">自動記録</string>
+    <string name="data_meter_subs_count">購読 %1$d 件</string>
+    <string name="data_meter_subs_detail">%1$s・プッシュ %2$d 回・最終受信 %3$s</string>
+    <string name="data_meter_live_since">計測中 %1$s・%2$s</string>
+    <string name="data_meter_uncounted">集計なし</string>
 </resources>

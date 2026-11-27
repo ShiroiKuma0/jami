@@ -84,6 +84,9 @@
     <string name="sk_role_label_call_decline_glyph">Phone on the decline and hang-up buttons</string>
     <string name="sk_role_label_call_missed">Missed call</string>
     <string name="sk_role_label_page_heading">Section headings</string>
+    <string name="sk_role_label_data_box_frame">Data panel: frame of a box</string>
+    <string name="sk_role_label_data_rx">Data panel: received</string>
+    <string name="sk_role_label_data_tx">Data panel: sent</string>
     <string name="sk_role_label_page_chip">Index chips</string>
     <string name="sk_role_label_page_note">Explanations and the left rule</string>
     <string name="sk_role_label_section_base">Section icon: the base and its settings</string>

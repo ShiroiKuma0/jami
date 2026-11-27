@@ -519,7 +519,7 @@ r bash -c 'om=daemon/contrib/src/opendht/rules.mak
 cp patches/opendht-proxy-connect-resilience.patch daemon/contrib/src/opendht/
 grep -q opendht-proxy-connect-resilience.patch "$om" || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/opendht/opendht-proxy-connect-resilience.patch\n\t\$(MOVE)|" "$om"
 prev=opendht-proxy-connect-resilience
-for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag opendht-diag-gate; do
+for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag opendht-proxy-rx-stats opendht-diag-gate; do
   cp "patches/$p.patch" daemon/contrib/src/opendht/
   grep -q "$p.patch" "$om" || sed -i "s|^\t\$(APPLY) \$(SRC)/opendht/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/opendht/$p.patch|" "$om"
   prev=$p
@@ -611,6 +611,11 @@ r bash -c 'grep -q SK-DIAGGATE daemon/src/manager.cpp || (cd daemon && patch -fl
 # node count, one line per confirmNodes tick. FULL-DHT mode only (proxy mode constructs no Dht).
 r bash -c 'cp patches/opendht-dht-message-stats-diag.patch daemon/contrib/src/opendht/'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q "SK-DHTSTATS" "$d/opendht/src/dht.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-dht-message-stats-diag.patch && rm -f "$d/.opendht"; fi'
+# proxy receive figures for the watchdog (SK-PROXYRX, 2026-11-27) — BEFORE the diag gate, which stays last.
+# NOT a diagnostic: dht::skProxyRxStats(accountId) is what the watchdog's "did this account's proxy
+# deliver?" acquittal reads, through jami-proxy-rx-stats.patch. Until then it parsed the SK-PROXYDIAG tick
+# out of logcat, so switching that diagnostic off (the default) silently disabled the acquittal.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q SK-PROXYRX "$d/opendht/src/dht_proxy_client.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-proxy-rx-stats.patch && rm -f "$d/.opendht"; fi'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q SK-DIAGGATE "$d/opendht/src/dht.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-diag-gate.patch; fi'   # SK-DIAGGATE, last
 
 # swarm redial backoff (SK-SWARMBACKOFF; idempotent; daemon's OWN source — no rules.mak, no contrib
@@ -684,6 +689,10 @@ r bash -c 'find jami-android/app/build/intermediates/cxx -name libjami-core-jni.
 
 # SWIG import APIs (idempotent; daemon's OWN .i files — MUST precede make-swig.sh, it feeds it)
 r bash -c 'grep -q "const std::string& accountId" <(grep "^std::string addAccount" daemon/bin/jni/configurationmanager.i) || (cd daemon && patch -flp1) < patches/jami-swig-import-apis.patch'
+# proxy receive figures (SK-PROXYRX, 2026-11-27; idempotent; daemon's OWN source + configurationmanager.i, so it
+# MUST precede make-swig.sh and follow jami-swig-import-apis, which edits the same .i file). Adds
+# libjami::getProxyRxStats(accountId); needs opendht-proxy-rx-stats.patch — without it this does not compile.
+r bash -c 'grep -q SK-PROXYRX daemon/src/client/configurationmanager.cpp || (cd daemon && patch -flp1) < patches/jami-proxy-rx-stats.patch'
 # fetch retry (SK-FETCHRETRY, 2026-11-23; idempotent; daemon's OWN source). A fetch that failed on a dead git
 # channel (peer process killed, nothing closed the channel) is retried once, 2 s later, on a fresh channel.
 r bash -c 'grep -q SK-FETCHRETRY daemon/src/jamidht/conversation_module.cpp || (cd daemon && patch -flp1) < patches/jami-fetch-retry.patch'

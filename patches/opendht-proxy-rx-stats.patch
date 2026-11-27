@@ -1,0 +1,123 @@
+--- a/include/opendht/dht_proxy_client.h
++++ b/include/opendht/dht_proxy_client.h
+@@ -29,6 +29,22 @@
+ 
+ namespace dht {
+ 
++// SK-PROXYRX: what a proxy client has received, for the application's connection watchdog. This
++// is NOT a diagnostic and is not behind any diagnostics switch: the watchdog decides on it.
++struct OPENDHT_PUBLIC SkProxyRxStats
++{
++    bool found {false};        // a proxy client with that push client id exists
++    int64_t lastRxAgeMs {-1};  // ms since the last inbound (listen body or push); -1 = none yet
++    uint64_t listeners {0};    // active listeners
++    uint64_t pushRx {0};       // push notifications received
++    uint64_t rxLines {0};      // values received on listen response bodies
++    std::string proxy;         // the proxy this client talks to
++};
++
++// SK-PROXYRX: the figures of the live proxy client created with this push client id (the daemon
++// passes its account id). Thread-safe; found=false when there is none.
++OPENDHT_PUBLIC SkProxyRxStats skProxyRxStats(const std::string& pushClientId);
++
+ class OPENDHT_PUBLIC DhtProxyClient final : public DhtInterface
+ {
+ public:
+@@ -299,6 +315,9 @@
+     }
+ 
+     void listenKeepIdle(uint32_t seconds) { listenKeepIdle_ = seconds; }
++
++    // SK-PROXYRX: see skProxyRxStats().
++    SkProxyRxStats skRxStats();
+     inline uint32_t listenKeepIdle() { return listenKeepIdle_; }
+ 
+ private:
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -21,6 +21,32 @@
+ 
+ namespace dht {
+ 
++// SK-PROXYRX: live proxy clients by push client id, so that the application can ask what one of
++// them has received without reaching through DhtRunner (which swaps its dht on its own thread).
++static std::mutex&
++skRxRegistryLock()
++{
++    static std::mutex m;
++    return m;
++}
++static std::map<std::string, DhtProxyClient*>&
++skRxRegistry()
++{
++    static std::map<std::string, DhtProxyClient*> r;
++    return r;
++}
++
++SkProxyRxStats
++skProxyRxStats(const std::string& pushClientId)
++{
++    std::lock_guard l(skRxRegistryLock());
++    auto& r = skRxRegistry();
++    auto it = r.find(pushClientId);
++    if (it == r.end())
++        return {};
++    return it->second->skRxStats();
++}
++
+ struct DhtProxyClient::InfoState
+ {
+     std::atomic_uint ipv4 {0}, ipv6 {0};
+@@ -149,6 +175,11 @@
+             logger_->debug("[proxy:client] using client certificate for ssl:\n{}",
+                            clientIdentity_.second->toString(false /*chain*/));
+     }
++    // SK-PROXYRX: the newest client of an id wins; the destructor removes only its own entry.
++    if (not pushClientId_.empty()) {
++        std::lock_guard l(skRxRegistryLock());
++        skRxRegistry()[pushClientId_] = this;
++    }
+     // run http client
+     httpClientThread_ = std::thread([this]() {
+         if (logger_)
+@@ -266,9 +297,40 @@
+ 
+ DhtProxyClient::~DhtProxyClient()
+ {
++    // SK-PROXYRX: leave the registry before anything is torn down.
++    {
++        std::lock_guard l(skRxRegistryLock());
++        auto& r = skRxRegistry();
++        auto it = r.find(pushClientId_);
++        if (it != r.end() and it->second == this)
++            r.erase(it);
++    }
+     stop();
+ }
+ 
++SkProxyRxStats
++DhtProxyClient::skRxStats()
++{
++    SkProxyRxStats s;
++    s.found = true;
++    s.proxy = proxyUrl_;
++    {
++        std::lock_guard lock(searchLock_);
++        for (auto& search : searches_)
++            s.listeners += search.second.listeners.size();
++    }
++    s.pushRx = diagPushRx_.load();
++    s.rxLines = diagRxLines_.load();
++    auto last = diagLastRxMs_.load();
++    if (last) {
++        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
++                         std::chrono::steady_clock::now().time_since_epoch())
++                         .count();
++        s.lastRxAgeMs = nowMs > last ? nowMs - last : 0;
++    }
++    return s;
++}
++
+ void
+ DhtProxyClient::stop()
+ {

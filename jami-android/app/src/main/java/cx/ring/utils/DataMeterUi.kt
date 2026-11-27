@@ -10,113 +10,281 @@
 package cx.ring.utils
 
 import android.content.Context
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.text.TextUtils
 import android.util.TypedValue
+import android.view.Gravity
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import cx.ring.sk.SkGlyph
+import cx.ring.sk.SkGlyphDrawable
+import cx.ring.sk.SkIconRole
+import cx.ring.sk.SkRole
+import cx.ring.sk.applySkPill
+import cx.ring.sk.skColor
+import cx.ring.sk.skPanel
 import net.jami.services.AccountService
 import java.io.File
 
 object DataMeterUi {
-    private val YELLOW: Int get() = cx.ring.sk.skColor(cx.ring.sk.SkRole.ACCENT)
+    private val YELLOW: Int get() = skColor(SkRole.ACCENT)
+
+    /** One window of the unattended log, as its line says it. */
+    private class LogRow(val time: String, val span: String, val rx: String?, val tx: String?,
+                         val rxBytes: Long, val mode: String, val net: String, val raw: String)
+
+    private val LOG_LINE = Regex(
+        """^(\d{4}-\d\d-\d\d \d\d:\d\d(?::\d\d)?)\s+(\S+)\s+rx=(\S+) tx=(\S+)\s+mode=(\S+)\s+net=(\S+)""")
+    private val LOG_OTHER = Regex("""^(\d{4}-\d\d-\d\d \d\d:\d\d(?::\d\d)?)\s+(.*)$""")
+
+    /** "19.5MiB" back to bytes — only to size the bars against each other. */
+    private fun bytesOf(label: String): Long {
+        val m = Regex("""^([\d.,]+)(B|KiB|MiB|GiB)$""").find(label) ?: return 0L
+        val v = m.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return 0L
+        return (v * when (m.groupValues[2]) { "KiB" -> 1024.0; "MiB" -> 1048576.0; "GiB" -> 1073741824.0; else -> 1.0 }).toLong()
+    }
+
+    private fun parseLog(text: String): List<LogRow> = text.lines().filter { it.isNotBlank() }.map { line ->
+        LOG_LINE.find(line)?.destructured?.let { (t, span, rx, tx, mode, net) ->
+            LogRow(t, span, rx, tx, bytesOf(rx), mode, net, line)
+        } ?: LOG_OTHER.find(line)?.destructured?.let { (t, rest) ->
+            LogRow(t, "", null, null, 0L, rest.trim(' ', '—'), "", line)
+        } ?: LogRow("", "", null, null, 0L, line.trim(), "", line)
+    }.reversed()
 
     /**
-     * The "Data" dialog: the LIVE measurement session (start/stop + a ticking counter), the saved
-     * sessions, and the unattended hourly log — in one place.
+     * The "Data" dialog: the LIVE measurement session (start/stop + a ticking counter), the proxy
+     * subscriptions, and the unattended log — each in a framed box of its own (白い熊, 2026-11-27:
+     * the page was a column of plain yellow lines, with "Start measuring" looking like text).
+     * Everything is drawn in code from colour roles.
      */
     fun showDataDialog(ctx: Context, accounts: AccountService?) {
         val d = ctx.resources.displayMetrics.density
-        fun dp(v: Float) = (v * d).toInt()
-        val f = DataMeter.hourlyFile(ctx)
+        fun dp(v: Float) = Math.round(v * d)
+        val ink = skColor(SkRole.DIALOG_TEXT)
+        val note = skColor(SkRole.PAGE_NOTE)
+        val rxInk = skColor(SkRole.DATA_RX)
+        val txInk = skColor(SkRole.DATA_TX)
+        val hair = skColor(SkRole.LIST_DIVIDER)
+
+        fun label(sp: Float, color: Int = ink, bold: Boolean = false, mono: Boolean = false) = TextView(ctx).apply {
+            setTextColor(color); setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+            typeface = Typeface.create(if (mono) Typeface.MONOSPACE else Typeface.DEFAULT,
+                if (bold) Typeface.BOLD else Typeface.NORMAL)
+        }
+        fun glyph(g: SkGlyph, color: Int, sizeDp: Float) = SkGlyphDrawable(g, color, dp(sizeDp)).apply {
+            setBounds(0, 0, dp(sizeDp), dp(sizeDp))
+        }
+        fun TextView.startIcon(g: SkGlyph, color: Int) {
+            val size = maxOf(18f, textSize * 1.25f / d)
+            setCompoundDrawablesRelative(glyph(g, color, size), null, compoundDrawablesRelative[2], null)
+            compoundDrawablePadding = dp(size / 2f)
+        }
+        fun hairline() = View(ctx).apply {
+            setBackgroundColor(hair)
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, maxOf(1, dp(0.5f)))
+                .apply { topMargin = dp(4f); bottomMargin = dp(4f) }
+        }
+        /** A framed box with an icon heading; returns the column to fill. */
+        fun box(into: LinearLayout, g: SkGlyph, role: SkIconRole, title: String): LinearLayout {
+            val col = LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                background = skPanel(d, skColor(SkRole.DIALOG_GROUND), skColor(SkRole.DATA_BOX_FRAME), 14f)
+                setPadding(dp(12f), dp(10f), dp(12f), dp(10f))
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(10f) }
+            }
+            col.addView(label(16f, skColor(SkRole.PAGE_HEADING), bold = true).apply {
+                text = title; startIcon(g, skColor(role)); setPadding(0, 0, 0, dp(6f))
+            })
+            into.addView(col)
+            return col
+        }
+        fun pill(title: String, g: SkGlyph, role: SkIconRole, main: Boolean, opens: Boolean) = label(15f).apply {
+            text = title
+            applySkPill(main = main)
+            if (opens) setCompoundDrawablesRelative(null, null, glyph(SkGlyph.CHEVRON, skColor(SkRole.PILL_TEXT), 16f), null)
+            startIcon(g, skColor(role))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4f); marginEnd = dp(8f); bottomMargin = dp(2f) }
+        }
 
         val root = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16f), dp(12f), dp(16f), dp(4f))
+            setPadding(dp(14f), dp(10f), dp(14f), dp(2f))
         }
-        val live = TextView(ctx).apply {
-            setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setPadding(0, 0, 0, dp(6f))
+
+        // ---- 1. Measurement -------------------------------------------------------------------
+        val measure = box(root, SkGlyph.PULSE, SkIconRole.VIEW, ctx.getString(cx.ring.R.string.data_meter_sec_measure))
+        val idle = label(14f, note).apply { text = ctx.getString(cx.ring.R.string.data_meter_idle) }
+        val figures = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val rxLive = label(22f, rxInk, bold = true, mono = true).apply { startIcon(SkGlyph.DOWN, rxInk) }
+        val txLive = label(22f, txInk, bold = true, mono = true).apply {
+            startIcon(SkGlyph.UP, txInk); setPadding(dp(18f), 0, 0, 0)
         }
-        val toggle = TextView(ctx).apply {
-            setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(0, dp(8f), 0, dp(10f))
-        }
-        // Proxy subscriptions — the driver of every number below it, so it belongs on this page
-        // rather than in the connection legend (白い熊, 2026-07-29). Each listener is a permanent
+        figures.addView(rxLive); figures.addView(txLive)
+        val since = label(13f, note).apply { setPadding(0, dp(2f), 0, 0) }
+        measure.addView(idle); measure.addView(figures); measure.addView(since)
+        val buttons = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(6f), 0, 0) }
+        val toggle = pill("", SkGlyph.PLAY, SkIconRole.CALL, main = true, opens = false)
+        val sessions = pill(ctx.getString(cx.ring.R.string.data_meter_sessions), SkGlyph.LIST, SkIconRole.VIEW,
+            main = false, opens = true)
+        buttons.addView(toggle); buttons.addView(sessions)
+        // On the folded screen the two pills scroll sideways rather than squeezing their labels.
+        measure.addView(HorizontalScrollView(ctx).apply { isHorizontalScrollBarEnabled = false; addView(buttons) })
+
+        // ---- 2. Proxy subscriptions ------------------------------------------------------------
+        // The driver of every number below it (白い熊, 2026-07-29): each listener is a permanent
         // proxy subscription re-subscribed every ~3 min, so the idle data rate scales with it.
-        // Declared up here so renderLive() can refresh it: the first version set the text once at
-        // dialog-build time, which froze both the counts and the "· N s ago" for as long as the
-        // dialog stayed open.
-        val subs = TextView(ctx).apply {
-            setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(2f), 0, dp(8f))
-            setTextIsSelectable(true)
+        val subsBox = box(root, SkGlyph.NETWORK, SkIconRole.CALL, ctx.getString(cx.ring.R.string.data_meter_sec_subs))
+        val subsHead = label(14f, note)
+        val subsRows = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+        subsBox.addView(subsHead); subsBox.addView(subsRows)
+
+        fun renderSubs() {
+            val list = runCatching { accounts?.getAccounts().orEmpty().filter { it.isJami } }.getOrDefault(emptyList())
+            val entries = list.mapNotNull { a -> accounts?.proxyRxStats(a.accountId)?.let { a to it } }
+            val total = entries.sumOf { it.second.listeners }
+            subsHead.text = when {
+                entries.isEmpty() -> ctx.getString(cx.ring.R.string.data_meter_subs_waiting)
+                total == 0 -> ctx.getString(cx.ring.R.string.data_meter_subs_settling, entries.size)
+                else -> ctx.getString(cx.ring.R.string.data_meter_subs_head, total, entries.size)
+            }
+            // Rebuilt only when the set of accounts changes; otherwise the texts are updated in
+            // place, so a selection or a scroll position survives the one-second tick.
+            if (subsRows.childCount != entries.size * 2) {
+                subsRows.removeAllViews()
+                entries.forEach { _ ->
+                    subsRows.addView(hairline())
+                    subsRows.addView(LinearLayout(ctx).apply {
+                        orientation = LinearLayout.VERTICAL
+                        val top = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+                        top.addView(label(15f, bold = true).apply {
+                            maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+                            startIcon(SkGlyph.PERSON, skColor(SkIconRole.CONTACT))
+                            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        })
+                        top.addView(label(14f, mono = true).apply { setPadding(dp(8f), 0, 0, 0) })
+                        addView(top)
+                        addView(label(12f, note).apply { setTextIsSelectable(true) })
+                    })
+                }
+            }
+            entries.forEachIndexed { n, (a, e) ->
+                val row = subsRows.getChildAt(n * 2 + 1) as LinearLayout
+                val top = row.getChildAt(0) as LinearLayout
+                (top.getChildAt(0) as TextView).text =
+                    runCatching { a.displayname }.getOrNull()?.takeIf { it.isNotBlank() } ?: e.accountId.take(8)
+                (top.getChildAt(1) as TextView).text = ctx.getString(cx.ring.R.string.data_meter_subs_count, e.listeners)
+                val last = e.lastRxAgeMs?.let { ctx.getString(cx.ring.R.string.data_meter_subs_secs, it / 1000) }
+                    ?: ctx.getString(cx.ring.R.string.data_meter_subs_never)
+                (row.getChildAt(1) as TextView).text =
+                    ctx.getString(cx.ring.R.string.data_meter_subs_detail, e.proxy, e.pushRx, last)
+            }
         }
+
         fun renderLive() {
-            val l = liveLine(ctx)
-            live.text = l?.let { ctx.getString(cx.ring.R.string.data_meter_measuring, it) }
-                ?: ctx.getString(cx.ring.R.string.data_meter_idle)
+            val active = DataMeter.isActive(ctx)
+            idle.visibility = if (active) View.GONE else View.VISIBLE
+            figures.visibility = if (active) View.VISIBLE else View.GONE
+            since.visibility = figures.visibility
+            if (active) {
+                val (el, rx, tx) = DataMeter.snapshot(ctx)
+                rxLive.text = DataMeter.bytesLabel(rx); txLive.text = DataMeter.bytesLabel(tx)
+                since.text = ctx.getString(cx.ring.R.string.data_meter_live_since,
+                    DataMeter.elapsedLabel(el), DataMeter.netDisplayLabel(ctx))
+            }
             toggle.text = ctx.getString(
-                if (l == null) cx.ring.R.string.data_meter_start else cx.ring.R.string.data_meter_stop)
-            subs.text = proxySubsText(ctx)
+                if (active) cx.ring.R.string.data_meter_stop else cx.ring.R.string.data_meter_start)
+            toggle.startIcon(if (active) SkGlyph.STOP else SkGlyph.PLAY,
+                skColor(if (active) SkIconRole.BLOCK else SkIconRole.CALL))
+            renderSubs()
         }
         renderLive()
         val ticker = object : Runnable {
             override fun run() {
-                if (!live.isAttachedToWindow) return
+                if (!root.isAttachedToWindow) return
                 renderLive()
-                live.postDelayed(this, 1000L)
+                root.postDelayed(this, 1000L)
             }
         }
         toggle.setOnClickListener {
-            if (DataMeter.isActive(ctx)) {
-                Flash.show(ctx, DataMeter.stop(ctx, modeInfo(ctx, accounts)))
-            } else {
-                DataMeter.start(ctx)
-                live.removeCallbacks(ticker)
-                live.post(ticker)
-            }
+            if (DataMeter.isActive(ctx)) Flash.show(ctx, DataMeter.stop(ctx, modeInfo(ctx, accounts)))
+            else DataMeter.start(ctx)
             renderLive()
         }
-        val sessions = TextView(ctx).apply {
-            text = ctx.getString(cx.ring.R.string.data_meter_sessions)
-            setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(0, dp(2f), 0, dp(10f))
-            setOnClickListener {
-                showHistory(ctx, DataMeter.historyFile(ctx),
-                    ctx.getString(cx.ring.R.string.data_meter_sessions_title))
+        sessions.setOnClickListener {
+            showHistory(ctx, DataMeter.historyFile(ctx), ctx.getString(cx.ring.R.string.data_meter_sessions_title))
+        }
+
+        // ---- 3. The unattended log -------------------------------------------------------------
+        val logBox = box(root, SkGlyph.CLOCK, SkIconRole.VIEW, ctx.getString(cx.ring.R.string.data_meter_sec_log))
+        val on = DataMeter.isSamplingOn(ctx)
+        logBox.addView(label(14f, if (on) note else skColor(SkRole.DANGER)).apply {
+            text = if (on) ctx.getString(cx.ring.R.string.data_meter_recording,
+                DataMeter.windowLabel(DataMeter.getWindowMinutes(ctx)))
+            else ctx.getString(cx.ring.R.string.data_meter_not_recording)
+            startIcon(SkGlyph.DOT, if (on) skColor(SkRole.ACCENT) else skColor(SkRole.DANGER))
+        })
+        val rows = parseLog(runCatching { DataMeter.hourlyFile(ctx).readText() }.getOrDefault("")).take(LOG_ROWS_SHOWN)
+        if (rows.isEmpty())
+            logBox.addView(label(13f, note).apply { text = ctx.getString(cx.ring.R.string.data_meter_empty) })
+        val peak = rows.maxOfOrNull { it.rxBytes }?.coerceAtLeast(1L) ?: 1L
+        rows.forEach { r ->
+            logBox.addView(hairline())
+            val line = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            line.addView(label(13f, mono = true).apply {
+                text = r.time.drop(5).take(11)            // MM-dd HH:mm
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            if (r.rx != null && r.tx != null) {
+                line.addView(label(13f, rxInk, bold = true, mono = true).apply { text = "↓${r.rx}" })
+                line.addView(label(13f, txInk, mono = true).apply { text = "↑${r.tx}"; setPadding(dp(10f), 0, 0, 0) })
+            } else {
+                line.addView(label(13f, note).apply { text = r.mode.ifEmpty { r.raw } })
+            }
+            logBox.addView(line)
+            if (r.rx != null) {
+                // The window's received volume against the largest one shown: a quiet night and a
+                // burst are told apart before a single number is read.
+                logBox.addView(FrameLayout(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(4f))
+                        .apply { topMargin = dp(2f); bottomMargin = dp(2f) }
+                    val share = (Math.sqrt(r.rxBytes.toDouble() / peak)).toFloat().coerceIn(0.01f, 1f)
+                    addView(View(ctx).apply {
+                        background = GradientDrawable().apply { cornerRadius = dp(2f).toFloat(); setColor(rxInk) }
+                        pivotX = 0f; scaleX = share
+                    }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+                })
+                logBox.addView(label(11f, note).apply { text = "${r.span} · ${r.mode} · ${r.net}" })
             }
         }
-        val on = DataMeter.isSamplingOn(ctx)
-        val win = DataMeter.windowLabel(DataMeter.getWindowMinutes(ctx))
-        val body = runCatching { f.readText().trim() }.getOrDefault("")
-            .ifEmpty { ctx.getString(cx.ring.R.string.data_meter_empty) }
-            .lines().reversed().joinToString("\n")
-        val head = if (on) ctx.getString(cx.ring.R.string.data_meter_recording, win)
-        else ctx.getString(cx.ring.R.string.data_meter_not_recording)
-        val log = TextView(ctx).apply {
-            text = "$head\n\n$body"
-            setTextColor(YELLOW); setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(8f), 0, dp(8f))
-            setTextIsSelectable(true)
-        }
-        root.addView(live); root.addView(toggle); root.addView(sessions); root.addView(subs); root.addView(log)
-        // Always tick, not only during a measurement session: the subscription block ages in real
-        // time and its whole point is to be trustworthy about how stale it is. The runnable stops
-        // itself when the view detaches.
-        live.post(ticker)
+        // Always tick, not only during a measurement session: the subscription block is live.
+        // The runnable stops itself when the view detaches.
+        root.post(ticker)
 
         // No "Clear" here (白い熊, 2026-07-29). It deleted data-hourly-log.txt — the unattended
         // record every data measurement is read from, and the only history of what the app did
         // while nobody was watching — with no confirmation and no undo, from a dialog negative
         // button that sits under the thumb. The log is append-only and self-limiting; there is no
         // reason to offer destroying it next to the numbers it produces.
+        //
+        // Close is the NEGATIVE button, so that it is a regular pill: the main pill of this panel
+        // is Start measuring, and a panel has one.
         DialogTheme.builder(ctx)
             .setTitle(ctx.getString(cx.ring.R.string.data_meter_title))
             .setView(ScrollView(ctx).apply { addView(root) })
-            .setPositiveButton(ctx.getString(cx.ring.R.string.data_meter_close), null)
+            .setNegativeButton(ctx.getString(cx.ring.R.string.data_meter_close), null)
             .show().let { DialogTheme.theme(it, ctx) }
     }
+
+    /** Windows of the unattended log drawn in the panel; the whole file stays on disk. */
+    private const val LOG_ROWS_SHOWN = 72
 
     /**
      * Newest-first log dialog — the manual session history and the unattended hourly log both
@@ -150,37 +318,6 @@ object DataMeterUi {
                 runCatching { f.delete() }
             }
         b.show().let { DialogTheme.theme(it, ctx) }
-    }
-
-    /**
-     * The proxy-subscription block for the Data dialog.
-     *
-     * Deliberately reports its own staleness instead of implying the numbers are live: the daemon
-     * emits one tick per proxy every ~3 minutes, so a freshly started process legitimately has
-     * nothing to show for a few minutes, and "0 listeners" and "not measured yet" must never look
-     * the same.
-     */
-    private fun proxySubsText(ctx: Context): String {
-        val entries = ProxySubs.snapshot()
-        // THREE states, not two (2026-07-29). The first version tested only "no tick parsed yet",
-        // but the daemon emits a tick the moment the proxy client exists — before a single
-        // subscription is established — carrying listeners=0, pushRx=0, lastRx=-1. So a freshly
-        // started app showed four proxies all reading zero, indistinguishable from a real
-        // measurement of nothing. That is the exact confusion this block was supposed to prevent.
-        if (entries.isEmpty())
-            return ctx.getString(cx.ring.R.string.data_meter_subs_waiting)
-        val ageSec = (System.currentTimeMillis() - ProxySubs.lastTickMs()) / 1000
-        val total = ProxySubs.totalListeners()
-        if (total == 0)
-            return ctx.getString(cx.ring.R.string.data_meter_subs_settling, entries.size, ageSec)
-        val head = ctx.getString(cx.ring.R.string.data_meter_subs_head, total, entries.size, ageSec)
-        val rows = entries.joinToString("\n") { e ->
-            // -1 is the daemon's "nothing ever received" sentinel, not an age.
-            val last = if (e.lastRxSec < 0) ctx.getString(cx.ring.R.string.data_meter_subs_never)
-                else ctx.getString(cx.ring.R.string.data_meter_subs_secs, e.lastRxSec)
-            ctx.getString(cx.ring.R.string.data_meter_subs_row, e.proxy, e.listeners, e.pushRx, last)
-        }
-        return "$head\n$rows"
     }
 
     /** `proxy(actual:fullDHT,adaptive)` — the mode label stamped into a saved measurement, so a

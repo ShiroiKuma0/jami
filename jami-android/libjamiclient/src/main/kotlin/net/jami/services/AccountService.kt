@@ -1008,6 +1008,38 @@ class AccountService(
         }
     }
 
+    /** What an account's DHT proxy client has received, straight from the daemon (SK-PROXYRX). */
+    data class ProxyRxStats(
+        val accountId: String,
+        val proxy: String,
+        /** ms since the last inbound on the proxy connection (listen body or push); null = none yet. */
+        val lastRxAgeMs: Long?,
+        val listeners: Int,
+        val pushRx: Long,
+    )
+
+    /**
+     * The proxy figures of one account, or null when the daemon has no proxy client for it (full
+     * DHT, account not started, daemon not loaded). Null is "don't know", never "dead".
+     *
+     * A plain daemon call on purpose (2026-11-27). The watchdog used to lift these figures out of a
+     * diagnostic log line, so with that diagnostic switched off — the default — it could no longer
+     * acquit a quiet account and painted it deaf. A diagnostics switch must never decide a verdict.
+     */
+    fun proxyRxStats(accountId: String): ProxyRxStats? = try {
+        val m = JamiService.getProxyRxStats(accountId)
+        if (m == null || m.isEmpty()) null
+        else ProxyRxStats(
+            accountId = accountId,
+            proxy = m["proxy"] ?: "",
+            lastRxAgeMs = m["lastRxAgeMs"]?.toLongOrNull()?.takeIf { it >= 0 },
+            listeners = m["listeners"]?.toIntOrNull() ?: 0,
+            pushRx = m["pushRx"]?.toLongOrNull() ?: 0L,
+        )
+    } catch (e: Throwable) {
+        null
+    }
+
     /** Synchronous snapshot for the watchdog heuristic: (any peer Connected, any connection attempt). */
     fun accountConnectionSnapshot(accountId: String): Pair<Boolean, Boolean> {
         val conns = JamiService.getConnectionList(accountId, "")

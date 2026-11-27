@@ -3,9 +3,9 @@
     <string name="data_meter_title">Data</string>
     <string name="data_meter_measuring">Měřím: %1$s</string>
     <string name="data_meter_idle">Žádné měření neběží.</string>
-    <string name="data_meter_start">▶  Spustit měření</string>
-    <string name="data_meter_stop">■  Zastavit a uložit</string>
-    <string name="data_meter_sessions">Uložená měření…</string>
+    <string name="data_meter_start">Spustit měření</string>
+    <string name="data_meter_stop">Zastavit a uložit</string>
+    <string name="data_meter_sessions">Uložená měření</string>
     <string name="data_meter_sessions_title">Měření dat</string>
     <string name="data_meter_recording">Automatický záznam · okno %1$s</string>
     <string name="data_meter_not_recording">Automatický záznam VYPNUT</string>
@@ -13,10 +13,16 @@
     <string name="data_meter_close">Zavřít</string>
     <string name="data_meter_clear">Vymazat</string>
     <string name="data_meter_tip">Živé měření dat a záznamy spotřeby</string>
-    <string name="data_meter_subs_waiting">Odběry proxy: čeká se na první tik démona (~3 min)</string>
-    <string name="data_meter_subs_head">Odběry proxy: %1$d na %2$d proxy · před %3$d s</string>
-    <string name="data_meter_subs_row">  %1$s — %2$d odběrů, %3$d pushů, poslední rx %4$s</string>
-    <string name="data_meter_subs_settling">Odběry proxy: zatím žádné navázané (%1$d proxy · před %2$d s)</string>
+    <string name="data_meter_subs_waiting">Žádný účet není připojen k proxy.</string>
+    <string name="data_meter_subs_head">%1$d odběrů na %2$d účtech</string>
+    <string name="data_meter_subs_settling">Zatím žádné navázané (účtů: %1$d).</string>
     <string name="data_meter_subs_never">nikdy</string>
     <string name="data_meter_subs_secs">%1$d s</string>
+    <string name="data_meter_sec_measure">Měření</string>
+    <string name="data_meter_sec_subs">Odběry proxy</string>
+    <string name="data_meter_sec_log">Automatický záznam</string>
+    <string name="data_meter_subs_count">odběrů: %1$d</string>
+    <string name="data_meter_subs_detail">%1$s · pushů: %2$d · naposledy přijato %3$s</string>
+    <string name="data_meter_live_since">běží %1$s · %2$s</string>
+    <string name="data_meter_uncounted">nezapočítáno</string>
 </resources>
