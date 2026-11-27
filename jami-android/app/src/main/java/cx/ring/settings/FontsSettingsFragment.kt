@@ -869,6 +869,8 @@ class FontsSettingsFragment : Fragment() {
                 "SK-ICEDIAG (logcat): " + getString(R.string.sk_set_diag_connections_desc))
             sw(s, getString(R.string.sk_diag_conn_trace), DG.CONN_TRACE,
                 "SK-CONNTRACE (connection-trace.txt): " + getString(R.string.sk_diag_conn_trace_desc))
+            sw(s, getString(R.string.sk_diag_presence), DG.PRESENCE,
+                "SK-PRESENCE (presence-changes.txt): " + getString(R.string.sk_diag_presence_desc))
             sw(s, getString(R.string.sk_set_diag_dht_proxy), DG.DHT_PROXY,
                 "SK-PROXYDIAG (logcat): " + getString(R.string.sk_set_diag_dht_proxy_desc))
             sw(s, getString(R.string.sk_set_diag_dht_stats), DG.DHT_STATS,

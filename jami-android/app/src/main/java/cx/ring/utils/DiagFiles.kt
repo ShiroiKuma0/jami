@@ -46,6 +46,8 @@ object DiagFiles {
     const val MEMORY_LOG = "memory-log.txt"
     const val CONN_TRACE = "connection-trace.txt"
     const val CONN_TRACE_OLD = "connection-trace.1.txt"
+    const val PRESENCE_LOG = "presence-changes.txt"
+    const val PRESENCE_LOG_OLD = "presence-changes.1.txt"
 
     /** Files that used to sit in the external files root. */
     private val EXTERNAL_ROOT_NAMES = listOf(RECOVERY_LOG, INCIDENTS, OLD_INCIDENTS, DATA_HOURLY, DATA_MEASURE, PRESENCE_MAP)
@@ -123,6 +125,7 @@ object DiagFiles {
         PUSH_LOG -> "Push log"
         MEMORY_LOG -> "Memory"
         CONN_TRACE, CONN_TRACE_OLD -> "Connection trace"
+        PRESENCE_LOG, PRESENCE_LOG_OLD -> "Presence changes"
         else -> "Other"
     }
 
@@ -136,6 +139,7 @@ object DiagFiles {
         "Push log" -> c.getString(R.string.sk_misc_diag_kind_push)
         "Memory" -> c.getString(R.string.sk_misc_diag_kind_memory)
         "Connection trace" -> c.getString(R.string.sk_diag_conn_trace)
+        "Presence changes" -> c.getString(R.string.sk_diag_presence)
         "Other" -> c.getString(R.string.sk_misc_diag_kind_other)
         else -> kind
     }

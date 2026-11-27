@@ -186,4 +186,6 @@
     <!-- Settings → Diagnostics → the connection trace switch (ConnTrace) -->
     <string name="sk_diag_conn_trace">接続記録</string>
     <string name="sk_diag_conn_trace_desc">デーモンの接続・メッセージ・同期の行を、ここでオンにした診断の行とともにファイルに保存します。logcatでは数分で消えてしまいます。最大16 MB。</string>
+    <string name="sk_diag_presence">在席状態の変化</string>
+    <string name="sk_diag_presence_desc">デーモンが連絡先ごとに知らせる在席状態の変化(オフライン・告知あり・接続中)と、そのとき点に与えた状態、アカウントの休止と再開を記録します。最大4 MB。</string>
 </resources>

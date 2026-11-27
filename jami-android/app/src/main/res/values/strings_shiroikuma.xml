@@ -212,4 +212,6 @@
     <!-- Settings → Diagnostics → the connection trace switch (ConnTrace) -->
     <string name="sk_diag_conn_trace">Connection trace</string>
     <string name="sk_diag_conn_trace_desc">Keeps the daemon\'s connection, message and sync lines in a file, together with every diagnostic line switched on here. Logcat loses them within minutes. Up to 16 MB.</string>
+    <string name="sk_diag_presence">Presence changes</string>
+    <string name="sk_diag_presence_desc">Each presence change the daemon reports for a contact — offline, announced or connected — with what the dot was given, and when an account sleeps or wakes. Up to 4 MB.</string>
 </resources>

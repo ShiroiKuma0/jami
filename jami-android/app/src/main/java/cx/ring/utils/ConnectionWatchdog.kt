@@ -480,13 +480,13 @@ object ConnectionWatchdog {
             val (newly, restore) = PeerReachability.sync(acc.accountId, stuck)
             newly.forEach { uri ->
                 val wasAvailable = acc.getContactFromCache(uri).lastPresence == Contact.PresenceStatus.AVAILABLE
-                acc.presenceUpdate(uri, 0)   // gate holds it OFFLINE against stale re-announces
+                acc.presenceUpdate(uri, 0, "watchdog")   // gate holds it OFFLINE against stale re-announces
                 // Note AFTER the synthetic OFFLINE above (the gate wipes hadAvailable on raw 0).
                 if (wasAvailable) PeerReachability.noteHadAvailable(acc.accountId, uri)
                 log(c, "acct ${acc.accountId.take(6)}: peer ${uri.take(8)}… unreachable (msg stuck, no live channel) — dot red")
             }
             restore.forEach { uri ->
-                acc.presenceUpdate(uri, 1)   // evidence gone + peer was announced → back to blue
+                acc.presenceUpdate(uri, 1, "watchdog")   // evidence gone + peer was announced → back to blue
                 log(c, "acct ${acc.accountId.take(6)}: peer ${uri.take(8)}… delivering again — dot restored")
             }
         }.onFailure { e ->

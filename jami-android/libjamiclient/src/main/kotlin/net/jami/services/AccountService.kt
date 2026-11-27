@@ -813,6 +813,7 @@ class AccountService(
                         JamiService.setAccountActive(a.accountId, false, true)
                         backgroundDeactivatedAccounts.add(a.accountId)
                         backgroundSleepAt[a.accountId] = System.currentTimeMillis()
+                        net.jami.utils.PresenceTrace.note("acct ${a.accountId.take(6)}  put to sleep (background) — its connections and presence listeners close")
                     }
                 }
             } finally {
@@ -896,6 +897,7 @@ class AccountService(
                 account.isEnabled && account.isDhtProxyEnabled -> {
                     JamiService.setAccountActive(id, true)
                     backgroundDeactivatedAccounts.remove(id)
+                    net.jami.utils.PresenceTrace.note("acct ${id.take(6)}  woken (push or foreground)")
                     backgroundWakeAt[id] = System.currentTimeMillis()
                 }
                 // Disabled or proxy off: a terminal user config change, drop the id.

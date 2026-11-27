@@ -201,4 +201,6 @@
     <!-- Settings → Diagnostics → the connection trace switch (ConnTrace) -->
     <string name="sk_diag_conn_trace">Záznam spojení</string>
     <string name="sk_diag_conn_trace_desc">Ukládá do souboru řádky démona o spojeních, zprávách a synchronizaci spolu se všemi diagnostickými řádky, které jsou zde zapnuté. Logcat je během několika minut ztratí. Nejvýše 16 MB.</string>
+    <string name="sk_diag_presence">Změny přítomnosti</string>
+    <string name="sk_diag_presence_desc">Každá změna přítomnosti kontaktu, kterou démon ohlásí — nepřipojen, ohlášen nebo spojen — spolu se stavem předaným tečce a s uspáním a probuzením účtu. Nejvýše 4 MB.</string>
 </resources>
