@@ -231,5 +231,10 @@ Every user-visible string exists in English, Japanese and Czech (白い熊: “w
   must keep the item count and order of the default.
 - **Not translated, on purpose:** lines written to diagnostic files or logcat, tag and file names, and the
   bridge / automation replies (`ERROR:…`, method help) — other programs read those.
+- **`res/xml/locales_config.xml` is cut to the short list on purpose** (白い熊, 2026-11-27): 11 tags — `ja-JP`,
+  `en-US` and the languages translated to four fifths of upstream's strings, one row per language (two only where
+  the script differs: `zh-CN`, `zh-TW`). It is upstream's file, so a sync that touches it conflicts: keep ours. The
+  language dialog (`showLanguageDialog` in `FontsSettingsFragment.kt`) reads it; a tag added there needs a flag PNG
+  in `res/drawable-nodpi/sk_flag_<cc>.png` (Noto Color Emoji) and a line in `flagOf()`.
 - **Check before a build is called done:** every translatable key in `res/values/*.xml` exists in `values-ja`
   and `values-cs` (arrays of references or machine values excepted).

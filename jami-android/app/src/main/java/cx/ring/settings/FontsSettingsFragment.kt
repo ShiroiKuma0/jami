@@ -603,22 +603,41 @@ class FontsSettingsFragment : Fragment() {
         return tags
     }
 
-    /** The language list (black-yellow-theme, settled 2026-11-24): plain rows — the mark, the
-     *  language in its own language with its country beneath in dim gold, the tag in a column at
-     *  the right — a hairline between rows, and ONLY the current language inside a thick pill. */
+    /** The language dialog (black-yellow-theme, settled 2026-11-27): 日本語 and English as two
+     *  full-width pills on top, outside the scrolling part; below them one framed box that scrolls
+     *  by itself — “System default” first, then every other language by its own name. Each line:
+     *  the mark, the flag, the language in its own language with its country beneath in dim gold,
+     *  the tag in a column at the right. Inside the box only the current language is a pill. */
     private fun showLanguageDialog() {
         val ctx = context ?: return
-        class Lang(val tag: String, val name: String, val country: String)
+        class Lang(val tag: String, val name: String, val country: String, val flag: Int)
+        fun flagOf(region: String): Int = when (region) {
+            "JP" -> R.drawable.sk_flag_jp; "US" -> R.drawable.sk_flag_us; "CZ" -> R.drawable.sk_flag_cz
+            "DE" -> R.drawable.sk_flag_de; "EE" -> R.drawable.sk_flag_ee; "ES" -> R.drawable.sk_flag_es
+            "FI" -> R.drawable.sk_flag_fi; "FR" -> R.drawable.sk_flag_fr; "RO" -> R.drawable.sk_flag_ro
+            "CN" -> R.drawable.sk_flag_cn; "TW" -> R.drawable.sk_flag_tw
+            else -> R.drawable.sk_flag_globe
+        }
         val langs = ArrayList<Lang>()
         readSupportedLocaleTags().forEach { tag ->
             val loc = java.util.Locale.forLanguageTag(tag)
             val name = loc.getDisplayLanguage(loc).replaceFirstChar { it.uppercase() }.ifEmpty { tag }
-            langs.add(Lang(tag, name, loc.getDisplayCountry(loc)))
+            langs.add(Lang(tag, name, loc.getDisplayCountry(loc), flagOf(loc.country)))
         }
-        val ordered = listOf(Lang("", getString(R.string.sk_set_lang_system), "")) +
-            langs.sortedWith(compareBy({ it.name }, { it.tag }))
         val currentTag = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
-        val checked = ordered.indexOfFirst { it.tag == currentTag }.let { if (it < 0) 0 else it }
+        // A language chosen earlier that is no longer listed stays in force until another is
+        // picked (JamiApplication re-asserts the stored tag whatever it is), so it is shown, as
+        // the current row, and not passed off as “System default”.
+        if (currentTag.isNotEmpty() && langs.none { it.tag == currentTag }) {
+            val loc = java.util.Locale.forLanguageTag(currentTag)
+            langs.add(Lang(currentTag,
+                loc.getDisplayLanguage(loc).replaceFirstChar { it.uppercase() }.ifEmpty { currentTag },
+                loc.getDisplayCountry(loc), flagOf(loc.country)))
+        }
+        val pinned = listOf("ja-JP", "en-US").mapNotNull { t -> langs.firstOrNull { it.tag == t } }
+        val boxed = listOf(Lang("", getString(R.string.sk_set_lang_system), "", R.drawable.sk_flag_globe)) +
+            langs.filter { it !in pinned }.sortedWith(compareBy({ it.name }, { it.tag }))
+        val current = (pinned + boxed).firstOrNull { it.tag == currentTag } ?: boxed.first()
 
         val density = resources.displayMetrics.density
         val ink = skColor(SkRole.DIALOG_TEXT)
@@ -634,28 +653,21 @@ class FontsSettingsFragment : Fragment() {
                 setLayerInset(1, dp(6f), dp(6f), dp(6f), dp(6f))
             }
         }
-        val list = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(10f), dp(6f), dp(10f), dp(6f))
-        }
         var dialog: androidx.appcompat.app.AlertDialog? = null
-        var currentRow: View? = null
-        ordered.forEachIndexed { index, lang ->
-            val on = index == checked
-            // No hairline right above or below the pill of the current row.
-            if (index > 0 && !on && index - 1 != checked) list.addView(View(ctx).apply {
-                setBackgroundColor(skColor(SkRole.LIST_DIVIDER))
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
-                marginStart = dp(52f); marginEnd = dp(14f)
-            })
-            val row = LinearLayout(ctx).apply {
+        /** One line; [pill] = one of the pinned pair, which is a pill whether chosen or not. */
+        fun line(lang: Lang, pill: Boolean): View {
+            val on = lang === current
+            return LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 // The tag column stays at the right for right-to-left languages too.
                 layoutDirection = View.LAYOUT_DIRECTION_LTR
                 setPadding(dp(14f), dp(7f), dp(16f), dp(7f))
-                background = if (on) skPillBackground(density, skColor(SkRole.PILL_FRAME), Color.TRANSPARENT, true)
-                             else skPillBackground(density, Color.TRANSPARENT)
+                background = when {
+                    on -> skPillBackground(density, skColor(SkRole.PILL_FRAME), Color.TRANSPARENT, true)
+                    pill -> skPillBackground(density, skColor(SkRole.PILL_FRAME), Color.TRANSPARENT, false)
+                    else -> skPillBackground(density, Color.TRANSPARENT)
+                }
                 isClickable = true
                 setOnClickListener {
                     cx.ring.utils.UiPrefs.setAppLanguage(ctx, lang.tag)   // survives updates; re-asserted on start
@@ -665,7 +677,11 @@ class FontsSettingsFragment : Fragment() {
                     dialog?.dismiss()
                 }
                 addView(View(ctx).apply { background = mark(on) },
-                    LinearLayout.LayoutParams(dp(22f), dp(22f)).apply { marginEnd = dp(16f) })
+                    LinearLayout.LayoutParams(dp(22f), dp(22f)).apply { marginEnd = dp(12f) })
+                addView(android.widget.ImageView(ctx).apply {
+                    setImageResource(lang.flag)
+                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                }, LinearLayout.LayoutParams(dp(28f), dp(26f)).apply { marginEnd = dp(12f) })
                 addView(LinearLayout(ctx).apply {
                     orientation = LinearLayout.VERTICAL
                     addView(TextView(ctx).apply {
@@ -684,20 +700,51 @@ class FontsSettingsFragment : Fragment() {
                     setPadding(dp(10f), 0, 0, 0)
                 })
             }
+        }
+
+        val content = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = FontUtil.SKIP_SETTINGS_FONT_TAG
+            setPadding(dp(14f), dp(8f), dp(14f), dp(4f))
+        }
+        // The pinned pair: always visible, never scrolled away.
+        pinned.forEach { lang ->
+            content.addView(line(lang, true), matchWrap().apply { bottomMargin = dp(6f) })
+        }
+        // The box with everything else.
+        val list = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+        var currentRow: View? = null
+        boxed.forEachIndexed { index, lang ->
+            val on = lang === current
+            // A hairline between rows, but none right above or below the pill of the current row.
+            if (index > 0 && !on && boxed[index - 1] !== current) list.addView(View(ctx).apply {
+                setBackgroundColor(skColor(SkRole.LIST_DIVIDER))
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
+                marginStart = dp(14f); marginEnd = dp(14f)
+            })
+            val row = line(lang, false)
             if (on) currentRow = row
             list.addView(row, matchWrap())
         }
         val scroller = android.widget.ScrollView(ctx).apply {
-            tag = FontUtil.SKIP_SETTINGS_FONT_TAG
+            isVerticalScrollBarEnabled = true
+            isScrollbarFadingEnabled = false
             addView(list)
         }
+        content.addView(android.widget.FrameLayout(ctx).apply {
+            background = cx.ring.sk.skPanel(density)
+            setPadding(dp(5f), dp(5f), dp(5f), dp(5f))
+            addView(scroller)
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            topMargin = dp(4f)
+        })
         dialog = cx.ring.utils.DialogTheme.builder(ctx)
             .setTitle(ctx.getString(R.string.sk_set_sec_language))
-            .setView(scroller)
+            .setView(content)
             .setNegativeButton(android.R.string.cancel, null)
             .show().also { cx.ring.utils.DialogTheme.theme(it, ctx) }
         // Open with the current language in view.
-        currentRow?.let { r -> scroller.post { scroller.scrollTo(0, (r.top - dp(120f)).coerceAtLeast(0)) } }
+        currentRow?.let { r -> scroller.post { scroller.scrollTo(0, (r.top - dp(60f)).coerceAtLeast(0)) } }
     }
 
     // ---- Call decline messages ---------------------------------------------------------------
