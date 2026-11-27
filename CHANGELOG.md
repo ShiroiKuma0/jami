@@ -7,6 +7,57 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+038` — 2026-11-27
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+030`. Builds `+031` to `+037`
+were steps towards this one and are not released separately.
+
+### 🔕 An incoming call stays quiet while a call in another app is up
+
+- **No ring into the ear.** With the audio in communication mode a ringtone comes out of the
+  earpiece. While a call of another app is up — WhatsApp, the phone's own, any other — an incoming
+  Jami call does not ring, does not raise the full-screen call screen, and takes neither the audio
+  focus nor the audio route of the other call.
+- **One vibration**, two short pulses; none when the phone is on silent.
+- **A card at the top of the display**: who is calling, and the pills Hide, Decline and Answer. A
+  touch on the card opens the full call screen. On the lock screen the card cannot show; there the
+  vibration and the entry in the notification shade remain.
+- **Messages, invitations, file transfers and missed calls are posted silently** while any call is
+  up, a Jami call included.
+- The ringtone is muted the moment a call goes up anywhere, so that it cannot sound before the
+  app has seen the incoming call. A new notification channel, “Incoming calls during another call”.
+
+### 🩺 The watchdog asks the daemon about the proxy, not the log
+
+- **No verdict depends on a diagnostics switch any more.** The watchdog acquitted a quiet account
+  by reading a diagnostic line of the proxy client from the log. Since all diagnostics are off by
+  default, it was blind and painted every quiet account “cannot receive”. It now asks the daemon
+  directly (`getProxyRxStats`, patches `opendht-proxy-rx-stats` and `jami-proxy-rx-stats`).
+- **A file of presence changes, per contact** (Settings → Diagnostics, off by default,
+  `presence-changes.txt`): what the daemon reported for a contact, what the dot showed, and why a
+  reported presence was held back; also when the accounts were put to sleep and woken.
+
+### 🌐 App language: a new dialog and a short list
+
+- **日本語 and English are pinned on top** as two pills, outside the scrolling part. Below them one
+  framed box scrolls by itself: “System default” first, then every other language by its own name.
+- **Every line carries its flag**, bundled as an image.
+- **The list is cut to eleven languages** — Japanese, English, and those translated to four fifths
+  or more of upstream's strings: Czech, German, Estonian, Spanish, Finnish, French, Romanian,
+  Chinese simplified and traditional. One row per language. A language chosen earlier that is no
+  longer listed stays in force and is shown as the current row.
+
+### 📊 The “Data” panel redrawn
+
+- The data panel of the connection monitor is laid out anew in the black-yellow look, with boxes
+  for received and sent traffic in colours of their own, both settable in the UI settings.
+
+### 📦 Packaging
+
+- `arm64-v8a`, flavour `withUnifiedPush`, signed. Installs side-by-side with official Jami.
+
+---
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+030` — 2026-11-26
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+026`. Builds `+027` to `+029`
