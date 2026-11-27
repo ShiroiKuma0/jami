@@ -203,6 +203,10 @@
     <string name="sk_call_silence">Silence</string>
     <string name="sk_call_silenced">Silenced</string>
     <string name="sk_call_silence_desc">Stop the ringtone without declining the call</string>
+    <!-- an incoming call while another app's call is up: no ring, a card at the top (QuietCall) -->
+    <string name="sk_quiet_call_hide">Hide</string>
+    <string name="sk_quiet_call_answer">Answer</string>
+    <string name="sk_quiet_call_channel">Incoming calls during another call</string>
     <string name="sk_overlay_title">Full-screen incoming calls</string>
     <string name="sk_overlay_msg">To show the incoming-call screen instead of only a notification, 白い熊 GNU Jami needs “Display over other apps”. Android lets an app raise a call screen over whatever you are doing only when this is allowed.</string>
     <string name="sk_overlay_open">Open settings</string>

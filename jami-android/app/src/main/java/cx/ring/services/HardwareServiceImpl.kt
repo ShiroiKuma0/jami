@@ -315,6 +315,8 @@ class HardwareServiceImpl(
     }
 
     val disposables = CompositeDisposable()
+    /** shiroikuma: a call of ours has set the audio mode, route or focus since the last reset. */
+    @Volatile private var mAudioTouched = false
 
     @SuppressLint("NewApi")
     @Synchronized
@@ -322,6 +324,19 @@ class HardwareServiceImpl(
         Log.d(TAG, "updateAudioState $conf: Call state updated to ${call.callStatus} Call is incoming: $incomingCall Call is video: $isOngoingVideo")
         if (call.callStatus.isOver || !mIsOutputMuted) {
             setOutputMuted(false)
+        }
+        // shiroikuma: an incoming call while another app's call is up stays quiet (QuietCall) —
+        // it takes neither the audio focus, nor the ringtone mode, nor the speaker route, all of
+        // which would be heard or felt in the other call.
+        call.id?.let { cid ->
+            if (call.callStatus.isOver) cx.ring.utils.QuietCall.ended(cid)
+            else if (incomingCall && cx.ring.utils.QuietCall.decide(context, cid)) {
+                Log.w(TAG, "updateAudioState: quiet incoming call, leaving the audio alone")
+                return
+            } else {
+                cx.ring.utils.QuietCall.own(cid)
+                mAudioTouched = true
+            }
         }
         disposables.add(call.systemConnection.map {
                 (it as CallServiceImpl.AndroidCall).connection!!
@@ -389,6 +404,10 @@ class HardwareServiceImpl(
             AudioManagerCompat.abandonAudioFocusRequest(mAudioManager, currentFocus!!)
             currentFocus = null
         }
+        // shiroikuma: a quiet call that was declined or given up never touched the audio; the
+        // mode and the speaker belong to the other app's call, so they are left as they are.
+        if (!mAudioTouched && cx.ring.utils.QuietCall.callUp(context)) return
+        mAudioTouched = false
         if (mAudioManager.isSpeakerphoneOn) {
             mAudioManager.isSpeakerphoneOn = false
         }

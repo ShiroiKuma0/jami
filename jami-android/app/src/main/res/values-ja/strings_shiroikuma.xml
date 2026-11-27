@@ -177,6 +177,9 @@
     <string name="sk_call_silence">消音</string>
     <string name="sk_call_silenced">消音中</string>
     <string name="sk_call_silence_desc">通話を拒否せずに着信音を止めます</string>
+    <string name="sk_quiet_call_hide">隠す</string>
+    <string name="sk_quiet_call_answer">応答</string>
+    <string name="sk_quiet_call_channel">他の通話中の着信</string>
     <string name="sk_overlay_title">全画面の着信画面</string>
     <string name="sk_overlay_msg">通知だけでなく着信画面を表示するには、白い熊 GNU Jami に「他のアプリの上に重ねて表示」の許可が必要です。Android では、この許可があるときだけ、操作中の画面の上に着信画面を出せます。</string>
     <string name="sk_overlay_open">設定を開く</string>

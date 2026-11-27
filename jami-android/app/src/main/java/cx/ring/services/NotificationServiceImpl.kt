@@ -59,6 +59,8 @@ import cx.ring.settings.SettingsFragment
 import cx.ring.tv.call.TVCallActivity
 import cx.ring.utils.ContentUri
 import cx.ring.utils.ProtectedContactsPrefs
+import cx.ring.utils.QuietCall
+import cx.ring.utils.QuietCallCard
 import cx.ring.utils.ConversationPath
 import cx.ring.utils.DeviceUtils
 import cx.ring.views.AvatarDrawable
@@ -104,6 +106,8 @@ class NotificationServiceImpl(
     private val silencedCalls: MutableSet<String> = ConcurrentHashMap.newKeySet()
     /** shiroikuma: conference ids whose full-screen incoming-call screen we already raised. */
     private val raisedCallScreens: MutableSet<String> = ConcurrentHashMap.newKeySet()
+    /** shiroikuma: conference ids whose quiet-call card was shown (once per call; Hide stays hidden). */
+    private val quietCards: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private val dataTransferNotifications = ConcurrentHashMap<Int, Notification>()
     private val fileTransferNotificationWorker = Schedulers.io().createWorker()
     private var pendingNotificationActions = ArrayList<() -> Unit>()
@@ -113,6 +117,25 @@ class NotificationServiceImpl(
     init {
         Schedulers.io().createWorker().schedule {
             registerNotificationChannels(mContext, notificationManager)
+        }
+        // shiroikuma: the daemon starts its ringtone before any of our code sees the call. So the
+        // ringtone is muted as soon as a call goes up anywhere, and released when it is over;
+        // while a call of ours is around, buildCallNotification decides as before.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) try {
+            (mContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager)
+                .addOnModeChangedListener(mContext.mainExecutor) { mode ->
+                    try {
+                        if (QuietCall.isCallMode(mode)) mCallService.muteRingTone(true)
+                        else if (mode == AudioManager.MODE_NORMAL && synchronized(currentCalls) { currentCalls.isEmpty() }) {
+                            val am = mContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                            mCallService.muteRingTone(am.ringerMode != AudioManager.RINGER_MODE_NORMAL)
+                        }
+                    } catch (e: Throwable) {
+                        Log.w(TAG, "Can't set the ringtone for audio mode $mode", e)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "Can't watch the audio mode", e)
         }
     }
 
@@ -170,6 +193,44 @@ class NotificationServiceImpl(
             }, { e -> Log.w(TAG, "Can't build the silenced call notification", e) })
     }
 
+    private fun quietKey(conference: Conference): String = conference.firstCall?.id ?: conference.id
+
+    /** shiroikuma: the card of a quiet incoming call (QuietCall), in place of the call screen. */
+    private fun showQuietCallCard(conference: Conference) {
+        val call = conference.firstCall ?: return
+        val callId = call.id ?: return
+        val peer = call.contact ?: return
+        val accountId = call.account
+        val hasVideo = conference.hasVideo()
+        val id = conference.id
+        getProfileSingle(accountId, peer).subscribe({ contact ->
+            // The lookup takes a moment: the call may be answered or over by now.
+            if (!conference.isRinging || synchronized(currentCalls) { !currentCalls.containsKey(id) }) return@subscribe
+            QuietCallCard.show(mContext, id, contact.displayName,
+                onOpen = {
+                    mContext.startActivity(Intent(Intent.ACTION_VIEW)
+                        .putExtra(NotificationService.KEY_CALL_ID, callId)
+                        .setClass(mContext.applicationContext, CallActivity::class.java)
+                        .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK))
+                },
+                onDecline = {
+                    mContext.startService(Intent(DRingService.ACTION_CALL_REFUSE)
+                        .setClass(mContext, DRingService::class.java)
+                        .putExtra(ConversationPath.KEY_ACCOUNT_ID, accountId)
+                        .putExtra(NotificationService.KEY_CALL_ID, callId))
+                },
+                onAnswer = {
+                    mContext.startActivity(Intent(DRingService.ACTION_CALL_ACCEPT)
+                        .setClass(mContext, CallActivity::class.java)
+                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        .putExtra(ConversationPath.KEY_ACCOUNT_ID, accountId)
+                        .putExtra(NotificationService.KEY_CALL_ID, callId)
+                        .putExtra(CallPresenter.KEY_ACCEPT_OPTION, CallPresenter.ACCEPT_HOLD)
+                        .putExtra(CallFragment.KEY_HAS_VIDEO, hasVideo))
+                })
+        }, { e -> Log.w(TAG, "Can't load the caller for the quiet call card", e) })
+    }
+
     private fun buildCallNotification(conference: Conference): Maybe<Notification> {
         val call = conference.firstCall ?: return Maybe.empty()
         val accountId = call.account
@@ -191,6 +252,8 @@ class NotificationServiceImpl(
 
                 val hasVideo = conference.hasVideo()
                 val silenced = conference.id in silencedCalls
+                // shiroikuma: another app's call is up — no ring, no buzzing, no call screen.
+                val quiet = QuietCall.isQuiet(quietKey(conference))
 
                 val messageNotificationBuilder: NotificationCompat.Builder
                 if (conference.isOnGoing) {
@@ -221,7 +284,12 @@ class NotificationServiceImpl(
                 } else if (conference.isRinging) {
                     if (conference.isIncoming) {
                         messageNotificationBuilder = NotificationCompat.Builder(mContext,
-                            if (silenced) NOTIF_CHANNEL_INCOMING_CALL_SILENT else NOTIF_CHANNEL_INCOMING_CALL)
+                            // A quiet call sits in the shade on a low channel, so that it neither
+                            // heads up over its card nor launches the full-screen intent. Without
+                            // the right to draw the card, the heads-up is the card.
+                            if (quiet && QuietCallCard.canShow(mContext)) NOTIF_CHANNEL_INCOMING_CALL_QUIET
+                            else if (silenced || quiet) NOTIF_CHANNEL_INCOMING_CALL_SILENT
+                            else NOTIF_CHANNEL_INCOMING_CALL)
                         messageNotificationBuilder.setContentTitle(mContext.getString(R.string.notif_incoming_call_title, contact.displayName))
                             .setPriority(NotificationCompat.PRIORITY_MAX)
                             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -230,7 +298,7 @@ class NotificationServiceImpl(
                             .setSound(null)
                             .setVibrate(null)
                             // shiroikuma: a silenced re-post must not re-alert on the way in.
-                            .setOnlyAlertOnce(silenced)
+                            .setOnlyAlertOnce(silenced || quiet)
                             .setFullScreenIntent(viewIntent, true)
                             .setStyle(
                                 NotificationCompat.CallStyle.forIncomingCall(caller,
@@ -266,7 +334,7 @@ class NotificationServiceImpl(
                             val shouldMute = (ringerMode == AudioManager.RINGER_MODE_VIBRATE
                                     || ringerMode == AudioManager.RINGER_MODE_SILENT)
 
-                            mCallService.muteRingTone(shouldMute || silenced)
+                            mCallService.muteRingTone(shouldMute || silenced || quiet)
                         } catch (e: Exception) {
                             Log.w(TAG, "Error muting ringtone", e)
                         }
@@ -301,7 +369,8 @@ class NotificationServiceImpl(
                     // shiroikuma: FLAG_INSISTENT repeats the channel's vibration until the
                     // notification is cancelled, so Silence has to drop it too — muting the
                     // daemon's ringtone alone would leave the phone buzzing.
-                    if (conference.isRinging && conference.id !in silencedCalls)
+                    if (conference.isRinging && conference.id !in silencedCalls
+                        && !QuietCall.isQuiet(quietKey(conference)))
                         flags = flags or NotificationCompat.FLAG_INSISTENT
                 })
         }
@@ -322,6 +391,7 @@ class NotificationServiceImpl(
             .putExtra(ConversationFragment.EXTRA_SHOW_MAP, true)
         val messageNotificationBuilder = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_MESSAGE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -420,8 +490,20 @@ class NotificationServiceImpl(
         if (remove) {
             silencedCalls.remove(id)
             raisedCallScreens.remove(id)
-        } else if (conference.isRinging && conference.isIncoming && raisedCallScreens.add(id)) {
-            startIncomingCallScreen(id)
+            QuietCall.forget(quietKey(conference))
+            QuietCallCard.hide(mContext, id)
+        } else if (conference.isRinging && conference.isIncoming) {
+            // shiroikuma: while another app's call is up the call stays quiet — one vibration and
+            // a card at the top of the display instead of the ring and the call screen.
+            val quiet = QuietCall.decide(mContext, quietKey(conference))
+            if (raisedCallScreens.add(id)) {
+                if (quiet) {
+                    mCallService.muteRingTone(true)
+                    QuietCall.vibrateOnce(mContext)
+                } else startIncomingCallScreen(id)
+            }
+        } else {
+            QuietCallCard.hide(mContext, id)
         }
         // remove+put is how the entry is moved to the end of the LinkedHashMap iteration order.
         // It must be atomic: the intermediate state is empty, and a concurrent chain reading
@@ -430,6 +512,9 @@ class NotificationServiceImpl(
             currentCalls.remove(id)
             if (!remove) currentCalls[id] = conference
         }
+        if (!remove && conference.isRinging && conference.isIncoming && QuietCall.isQuiet(quietKey(conference))
+            && quietCards.add(id)) showQuietCallCard(conference)
+        if (remove) quietCards.remove(id)
 
         val notificationMaybe = if (!remove) {
             buildCallNotification(conference)
@@ -744,6 +829,7 @@ class NotificationServiceImpl(
         val text = mContext.getString(R.string.notif_inprogress_group_call)
         val messageNotificationBuilder = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_MESSAGE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
             .setPriority(Notification.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(notificationVisibility)
@@ -820,6 +906,7 @@ class NotificationServiceImpl(
 
         val messageNotificationBuilder = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_MESSAGE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
             .setPriority(Notification.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(notificationVisibility)
@@ -924,6 +1011,7 @@ class NotificationServiceImpl(
             .setAutoCancel(true)
             .setSmallIcon(R.drawable.ic_ring_logo_white)
             .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+            .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
             .setContentTitle(mContext.getString(R.string.new_invitation_request_title))
             .setColor(ResourcesCompat.getColor(mContext.resources, R.color.color_primary_dark, null))
     }
@@ -1063,6 +1151,7 @@ class NotificationServiceImpl(
 
         if(event.isOver){
             val notif = NotificationCompat.Builder(mContext, NOTIF_CHANNEL_FILE_TRANSFER)
+                .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
                 .setSmallIcon(R.drawable.ic_ring_logo_white)
                 .addExtras(Bundle().apply { putString(EXTRA_CONVERSATION_PATH, path.toString()) })
                 .setContentIntent(PendingIntent.getActivity(mContext, random.nextInt(), intentViewConversation, ContentUri.immutable()))
@@ -1102,6 +1191,7 @@ class NotificationServiceImpl(
             .setOngoing(ongoing)
             .setSmallIcon(R.drawable.ic_ring_logo_white)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
             .setOnlyAlertOnce(true)
             .setContentText(
                 if (event == TransferStatus.TRANSFER_ONGOING)
@@ -1206,6 +1296,7 @@ class NotificationServiceImpl(
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSmallIcon(R.drawable.baseline_call_missed_24)
             .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setSilent(QuietCall.callUp(mContext)) // shiroikuma: nothing audible into a call
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setContentText(contactViewModel.displayName)
@@ -1277,6 +1368,8 @@ class NotificationServiceImpl(
             callNotifications.clear()
             silencedCalls.clear()
             raisedCallScreens.clear()
+            quietCards.clear()
+            QuietCallCard.hideAll(mContext)
             true
         }
     }
@@ -1383,6 +1476,8 @@ class NotificationServiceImpl(
         // shiroikuma: twin of the above with vibration off. A channel's vibration cannot be
         // changed once created, so silencing a ringing call means re-posting on this one.
         private const val NOTIF_CHANNEL_INCOMING_CALL_SILENT = "incoming_call2_silent"
+        /** shiroikuma: an incoming call while another app's call is up — in the shade only. */
+        private const val NOTIF_CHANNEL_INCOMING_CALL_QUIET = "incoming_call2_quiet"
         private const val NOTIF_CHANNEL_MESSAGE = "messages"
         private const val NOTIF_CHANNEL_PROTECTED = "protected"
         private const val NOTIF_CHANNEL_REQUEST = "requests"
@@ -1435,6 +1530,19 @@ class NotificationServiceImpl(
                 NOTIF_CHANNEL_INCOMING_CALL_SILENT,
                 context.getString(R.string.notif_channel_incoming_calls),
                 NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                group = NOTIF_CALL_GROUP
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setSound(null, null)
+                enableVibration(false)
+            })
+
+            // shiroikuma: quiet incoming call channel — low, so the notification stays in the
+            // shade under the card QuietCallCard shows, and its full-screen intent never fires.
+            notificationManager.createNotificationChannel(NotificationChannel(
+                NOTIF_CHANNEL_INCOMING_CALL_QUIET,
+                context.getString(R.string.sk_quiet_call_channel),
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
                 group = NOTIF_CALL_GROUP
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
