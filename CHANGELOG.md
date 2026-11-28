@@ -7,6 +7,62 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+042` — 2026-11-28
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+038`. Builds `+039` to `+041`
+were steps towards this one and are not released separately.
+
+### 📡 A phone on the full DHT stays present while the system lets it sleep
+
+A phone on the full DHT has no push leg: everything it owes the network is a timer of its own. A
+phone on a charger was missing from its own presence key while its account said “registered”, and
+its contacts saw it offline.
+
+- **The DHT's clock keeps running through CPU suspend.** OpenDHT's timers ran on a clock that
+  stands still while the CPU sleeps, and the presence announcement is refreshed only ten seconds
+  before the storing nodes drop it. The clock is now the boot-time clock, and the DHT looks at its
+  schedule at least once a minute.
+- **Plugged in: the CPU stays awake.** A partial wake lock is held for as long as a full-DHT
+  account exists and the phone is plugged in — plugged in, not “charging”: a phone held at its
+  battery protection limit is plugged in, not charging, and that is exactly when it suspends. A
+  plug or unplug event is believed over the system's lagging battery state for ten seconds.
+- **On battery: a wake-up every eight minutes** renews the presence announcement, inside every
+  ten-minute expiry window. The phone sleeps in between.
+- **The daemon can renew its announcement on request** (`reannouncePresence`): cancel the
+  permanent put, put again — a plain second put does nothing while OpenDHT believes the value is
+  announced.
+- **A contact that left is shown as gone.** A buddy nobody listens for any more, or whose DHT was
+  restarted, is reported offline instead of staying “online” in the presence cache for good.
+- All of it is off when every account is on a DHT proxy.
+
+### 📨 A full-DHT phone reaches a peer that sleeps behind push
+
+The push type of a connection request is lost on the public DHT: the same request was served with
+and without its type, and the proxy pushed the copy without it. The sleeping peer then took the
+push for noise and dropped it — one phone's life sign failed 23 times out of 23 in a night.
+
+- **The sender asks again.** While a message waits undelivered, an account on the full DHT asks
+  its peer's devices for a channel again every three minutes, instead of once. An account on a
+  proxy does not. Asking again does not use up the message's retries.
+- **The receiver owes one wake.** The first untyped push dropped inside the ten-minute cooldown
+  buys one wake at the cooldown's end — still at most one wake per cooldown.
+
+### 🔗 Bridge
+
+- **`bridge_ping` takes `kind`**: `alive` (the default) or `note`. A note travels under a type of
+  its own (`application/x-sk-note`), so it no longer replaces a life sign still waiting for the
+  same peer, and is not replaced by one. The reply names the kind.
+- **`bridge_alive_since`** returns notes and life signs from the same journal, each item marked
+  `kind` = `alive` or `note`.
+- A push of the note type wakes sleeping accounts like a message.
+
+### 📦 Packaging
+
+- Four new daemon and contrib patches: `opendht-suspend-aware-clock`, `jami-reannounce-presence`,
+  `jami-presence-reset`, `jami-redial-undelivered`.
+
+---
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+038` — 2026-11-27
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+030`. Builds `+031` to `+037`
