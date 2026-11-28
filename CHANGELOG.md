@@ -7,6 +7,21 @@ listed is built on top of stock.
 
 ---
 
+## `20261106-01+2026-11-18.16-14.g0fc04d09+043` — 2026-11-28
+
+Built on upstream 20261106-01 at `0fc04d099`, the same base as `+042`.
+
+### 📨 The wake owed to an untyped push is armed only while the accounts sleep
+
+- `+042` remembered every untyped push dropped inside the cooldown and woke the accounts once at
+  the cooldown's end. That included pushes arriving while the accounts were awake — whose request
+  was being answered at that very moment. Each wake drew such a push two seconds later, so nearly
+  every cooldown ended in a restore that served nothing.
+- Now the wake is armed only by an untyped push that finds the accounts asleep. No message is
+  affected; the change saves wakes.
+
+---
+
 ## `20261106-01+2026-11-18.16-14.g0fc04d09+042` — 2026-11-28
 
 Built on upstream 20261106-01 at `0fc04d099`, the same base as `+038`. Builds `+039` to `+041`
