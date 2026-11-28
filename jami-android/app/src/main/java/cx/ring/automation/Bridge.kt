@@ -62,6 +62,11 @@ object Bridge : BridgeTap {
 
     /** The MIME type of an "alive" ping (bridge_ping). The daemon patch SK-ALIVE knows it too. */
     const val MIME_ALIVE = "application/x-sk-alive"
+
+    /** The MIME type of a note (bridge_ping with kind=note). A type of its own, so that the daemon
+     *  does not count it among the pings of which only the newest undelivered one is kept: a
+     *  "tunnel off" note replaced a waiting life sign, 2026-11-28. The daemon patch SK-NOTE knows it. */
+    const val MIME_NOTE = "application/x-sk-note"
     const val ALIVE_TEXT_MAX = 2000
     private const val ALIVE_MAX = 400
     private const val ALIVE_KEEP = 300
@@ -323,7 +328,9 @@ object Bridge : BridgeTap {
      * with an empty conversation. Only a peer this account shares a conversation with is heard.
      */
     override fun onAccountMessage(accountId: String, from: String, messages: Map<String, String>) {
-        val text = messages[MIME_ALIVE] ?: return
+        val note = messages[MIME_NOTE]
+        val text = note ?: messages[MIME_ALIVE] ?: return
+        val kind = if (note != null) "note" else "alive"
         worker.execute {
             safe {
                 val peer = bareId(from)
@@ -337,7 +344,7 @@ object Bridge : BridgeTap {
                     prefs().edit().putLong(KEY_SEQ, seq).commit()
                     val now = System.currentTimeMillis().toString()
                     ev = mapOf("seq" to seq.toString(), "type" to TYPE_ALIVE, "account" to accountId,
-                        "conversation" to "", "from" to peer, "text" to text.take(ALIVE_TEXT_MAX),
+                        "conversation" to "", "from" to peer, "kind" to kind, "text" to text.take(ALIVE_TEXT_MAX),
                         "ts" to now, "received_ms" to now)
                     val f = aliveJournal(accountId)
                     f.appendText(JSONObject(ev as Map<*, *>).toString() + "\n")

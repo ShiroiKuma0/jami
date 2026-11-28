@@ -36,6 +36,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- shiroikuma: the keep-alive timer of a full-DHT phone on battery (FullDhtKeepAlive) has to
+         fire inside the ten minutes after which the DHT drops a presence announcement. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"
+        tools:ignore="ExactAlarm" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"
         tools:ignore="FullScreenIntentPolicy" />
@@ -277,6 +282,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".service.FullDhtKeepAliveReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".service.DeferredWakeReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".service.BootReceiver"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED"

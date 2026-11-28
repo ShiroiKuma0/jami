@@ -1,0 +1,185 @@
+--- a/src/im/message_engine.h
++++ b/src/im/message_engine.h
+@@ -82,7 +82,11 @@
+     static const constexpr unsigned MAX_RETRIES = 20;
+     using clock = std::chrono::system_clock;
+ 
+-    void retrySend(const std::string& peer, const std::string& deviceId, bool retryOnTimeout);
++    void retrySend(const std::string& peer, const std::string& deviceId, bool retryOnTimeout, bool redial = false);
++
++    // SK-REDIAL: see message_engine.cpp.
++    void scheduleRedial();
++    void redialWaiting();
+ 
+     void save_() const;
+     void scheduleSave();
+@@ -104,6 +108,8 @@
+     const std::filesystem::path savePath_;
+     std::shared_ptr<asio::io_context> ioContext_;
+     asio::steady_timer saveTimer_;
++    asio::steady_timer redialTimer_;
++    bool redialArmed_ {false}; // guarded by messagesMutex_
+ 
+     std::map<std::string, std::list<Message>> messages_;
+     std::map<std::string, std::list<Message>> messagesDevices_;
+--- a/src/im/message_engine.cpp
++++ b/src/im/message_engine.cpp
+@@ -40,13 +40,18 @@
+ // account message of a MIME type of our own: it dials the peer like any message, and is never
+ // committed to a conversation.
+ static constexpr const char SK_ALIVE_MIME[] {"application/x-sk-alive"};
++// SK-NOTE: a note between two accounts (bridge_ping with kind=note). Like the ping it is unstored
++// and raises no message status, but it has a type of its own so that it is NOT one of the pings of
++// which only the newest is kept: a note used to replace a ping still waiting for the same peer.
++static constexpr const char SK_NOTE_MIME[] {"application/x-sk-note"};
+ 
+ static bool
+ isSilent(const std::map<std::string, std::string>& payloads)
+ {
+     return payloads.find("application/im-gitmessage-id") != payloads.end()
+            || payloads.find("message/imdn+xml") != payloads.end()
+-           || payloads.find(SK_ALIVE_MIME) != payloads.end();
++           || payloads.find(SK_ALIVE_MIME) != payloads.end()
++           || payloads.find(SK_NOTE_MIME) != payloads.end();
+ }
+ 
+ MessageEngine::MessageEngine(SIPAccountBase& acc, const std::filesystem::path& path)
+@@ -54,6 +59,7 @@
+     , savePath_(path)
+     , ioContext_(Manager::instance().ioContext())
+     , saveTimer_(*ioContext_)
++    , redialTimer_(*ioContext_)
+ {
+     dhtnet::fileutils::check_dir(savePath_.parent_path());
+     load();
+@@ -96,6 +102,7 @@
+             m.payloads = payloads;
+         }
+         scheduleSave();
++        scheduleRedial();
+     }
+     asio::post(*ioContext_, [this, w = account_.weak_from_this(), to, deviceId]() {
+         if (w.lock())
+@@ -104,6 +111,70 @@
+     return token;
+ }
+ 
++// SK-REDIAL: a message that found no channel asks the peer's devices for one — once. If that
++// request goes unanswered (a phone in doze whose wake-up push was not taken for a message), the
++// message used to wait for an unrelated trigger: measured 2026-11-28, one phone's alive ping
++// failed 23 times out of 23 overnight and arrived four times by chance. So, while anything
++// waits, the engine asks again every SK_REDIAL_PERIOD. A redial does not count against
++// MAX_RETRIES: it is the same attempt, repeated, and must not use the message up.
++static constexpr auto SK_REDIAL_PERIOD = std::chrono::minutes(3);
++static constexpr auto SK_REDIAL_MIN_AGE = std::chrono::seconds(60);
++
++void
++MessageEngine::scheduleRedial()
++{
++    // messagesMutex_ is held by the caller.
++    if (redialArmed_ || !account_.redialsUndelivered())
++        return;
++    redialArmed_ = true;
++    redialTimer_.expires_after(SK_REDIAL_PERIOD);
++    redialTimer_.async_wait([this, w = account_.weak_from_this()](const std::error_code& ec) {
++        if (ec)
++            return;
++        if (auto acc = w.lock())
++            redialWaiting();
++    });
++}
++
++void
++MessageEngine::redialWaiting()
++{
++    std::vector<std::string> peers;
++    std::vector<std::string> devices;
++    bool waiting = false;
++    {
++        std::lock_guard lock(messagesMutex_);
++        redialArmed_ = false;
++        const auto now = clock::now();
++        auto collect = [&](const std::map<std::string, std::list<Message>>& map, std::vector<std::string>& out) {
++            for (const auto& [key, list] : map) {
++                bool due = false;
++                for (const auto& m : list) {
++                    if (m.status == MessageStatus::IDLE || m.status == MessageStatus::SENDING)
++                        waiting = true;
++                    if (m.status == MessageStatus::IDLE && now - m.last_op >= SK_REDIAL_MIN_AGE)
++                        due = true;
++                }
++                if (due)
++                    out.emplace_back(key);
++            }
++        };
++        collect(messages_, peers);
++        collect(messagesDevices_, devices);
++        if (waiting)
++            scheduleRedial();
++    }
++    if (!peers.empty() || !devices.empty())
++        JAMI_WARNING("[Account {:s}] SK-REDIAL undelivered messages: asking again for a channel ({:d} peers, {:d} devices)",
++                     account_.getAccountID(),
++                     peers.size(),
++                     devices.size());
++    for (const auto& peer : peers)
++        retrySend(peer, {}, true, true);
++    for (const auto& device : devices)
++        retrySend({}, device, true, true);
++}
++
+ void
+ MessageEngine::onPeerOnline(const std::string& peer, const std::string& deviceId, bool retryOnTimeout)
+ {
+@@ -123,6 +194,8 @@
+         devices.reserve(messagesDevices_.size());
+         for (const auto& [device, _] : messagesDevices_)
+             devices.emplace_back(device);
++        if (!peers.empty() || !devices.empty())
++            scheduleRedial(); // SK-REDIAL: messages kept from an earlier run wait as well
+     }
+ 
+     auto w = account_.weak_from_this();
+@@ -141,7 +214,7 @@
+ }
+ 
+ void
+-MessageEngine::retrySend(const std::string& peer, const std::string& deviceId, bool retryOnTimeout)
++MessageEngine::retrySend(const std::string& peer, const std::string& deviceId, bool retryOnTimeout, bool redial)
+ {
+     struct PendingMsg
+     {
+@@ -162,7 +235,8 @@
+         for (auto& m : messages) {
+             if (m.status == MessageStatus::IDLE) {
+                 m.status = MessageStatus::SENDING;
+-                m.retried++;
++                if (!redial) // SK-REDIAL
++                    m.retried++;
+                 m.last_op = now;
+                 pending.emplace_back(PendingMsg {m.token, m.to, m.payloads});
+             }
+--- a/src/sip/sipaccountbase.h
++++ b/src/sip/sipaccountbase.h
+@@ -176,6 +176,9 @@
+                              bool onlyConnected = false)
+         = 0;
+ 
++    /// SK-REDIAL: whether the message engine asks again for a channel while a message waits.
++    virtual bool redialsUndelivered() const { return false; }
++
+     virtual uint64_t sendTextMessage(const std::string& to,
+                                      const std::string& deviceId,
+                                      const std::map<std::string, std::string>& payloads,
+--- a/src/jamidht/jamiaccount.h
++++ b/src/jamidht/jamiaccount.h
+@@ -299,6 +299,9 @@
+     std::optional<Contact> getContactInfo(const std::string& uri) const;
+ 
+     void sendTrustRequest(const std::string& to, const std::vector<uint8_t>& payload);
++    /// SK-REDIAL: an account on the full DHT has no proxy that keeps its connection request alive
++    /// and nothing that tells it the peer woke up, so it asks again. An account on a proxy does not.
++    bool redialsUndelivered() const override { return !config().proxyEnabled; }
+     void sendMessage(const std::string& to,
+                      const std::string& deviceId,
+                      const std::map<std::string, std::string>& payloads,

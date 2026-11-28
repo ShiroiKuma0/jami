@@ -1,0 +1,115 @@
+--- a/bin/jni/configurationmanager.i
++++ b/bin/jni/configurationmanager.i
+@@ -90,6 +90,7 @@
+ std::vector<std::map<std::string, std::string>> getConnectionList(const std::string& accountId, const std::string& conversationId);
+ std::vector<std::map<std::string, std::string>> getChannelList(const std::string& accountId, const std::string& connectionId);
+ std::map<std::string, std::string> getProxyRxStats(const std::string& accountId);
++void reannouncePresence(const std::string& accountId);
+ std::string addAccount(const std::map<std::string, std::string>& details, const std::string& accountId = "");
+ void removeAccount(const std::string& accountId);
+ void updateProfile(const std::string& accountId, const std::string& displayName, const std::string& avatar, const std::string& fileType, const std::string& botOwner, int32_t flag);
+--- a/src/client/configurationmanager.cpp
++++ b/src/client/configurationmanager.cpp
+@@ -733,6 +733,15 @@
+             {"rxLines", std::to_string(s.rxLines)}};
+ }
+ 
++// SK-REANNOUNCE: renew the presence announcement of this account now. For the application's
++// keep-alive timer on a phone that runs the full DHT and is allowed to sleep.
++void
++reannouncePresence(const std::string& accountId)
++{
++    if (const auto acc = jami::Manager::instance().getAccount<jami::JamiAccount>(accountId))
++        acc->reannouncePresence();
++}
++
+ void
+ removeAccount(const std::string& accountId)
+ {
+--- a/src/jami/configurationmanager_interface.h
++++ b/src/jami/configurationmanager_interface.h
+@@ -63,6 +63,9 @@
+ // SK-PROXYRX
+ LIBJAMI_PUBLIC std::map<std::string, std::string> getProxyRxStats(const std::string& accountId);
+ 
++// SK-REANNOUNCE
++LIBJAMI_PUBLIC void reannouncePresence(const std::string& accountId);
++
+ LIBJAMI_PUBLIC bool provideAccountAuthentication(const std::string& accountId,
+                                                  const std::string& credentialsFromUser,
+                                                  const std::string& scheme);
+--- a/src/jamidht/account_manager.cpp
++++ b/src/jamidht/account_manager.cpp
+@@ -376,6 +376,31 @@
+     dht_->put(h, crlVal, dht::DoneCallback {}, {}, true);
+ }
+ 
++/* SK-REANNOUNCE: send the device announcement to the network again, now.
++ *
++ * startSync() puts the announcement once, as a permanent put, and leaves the refreshing to opendht,
++ * which re-sends it ten seconds before the ten minutes after which the storing nodes drop it. A
++ * phone that sleeps misses that moment, and nothing else ever puts the announcement again: the
++ * account stays "registered" while its presence key is empty and every peer shows it offline
++ * (measured 2026-11-27 on a full-DHT phone). The application calls this from a timer that wakes the
++ * phone, so that the announcement is renewed inside every expiry window.
++ *
++ * A second put() of the same value does nothing while opendht believes it is still announced, so
++ * the put is cancelled first; the new one then starts from every node afresh. Both run in order on
++ * the DHT's own thread. */
++void
++AccountManager::reannouncePresence()
++{
++    if (!info_ || !info_->announce || !dht_ || !dht_->isRunning())
++        return;
++    // The id is set by startSync(); without it nothing was ever announced.
++    if (info_->announce->id == dht::Value::INVALID_ID)
++        return;
++    auto h = dht::InfoHash(info_->accountId);
++    dht_->cancelPut(h, info_->announce->id);
++    dht_->put(h, info_->announce, dht::DoneCallback {}, {}, true);
++}
++
+ void
+ AccountManager::startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dcb, bool publishPresence)
+ {
+--- a/src/jamidht/account_manager.h
++++ b/src/jamidht/account_manager.h
+@@ -182,6 +182,9 @@
+ 
+     virtual void startSync(const OnNewDeviceCb& cb, const OnDeviceAnnouncedCb& dcb, bool publishPresence = true);
+ 
++    /* SK-REANNOUNCE: send the device announcement to the network again, now. See the definition. */
++    void reannouncePresence();
++
+     const AccountInfo* getInfo() const { return info_.get(); }
+ 
+     void reloadContacts();
+--- a/src/jamidht/jamiaccount.cpp
++++ b/src/jamidht/jamiaccount.cpp
+@@ -1866,6 +1866,14 @@
+     return presenceManager_->getTrackedBuddyPresence();
+ }
+ 
++// SK-REANNOUNCE
++void
++JamiAccount::reannouncePresence()
++{
++    if (publishPresence_ && accountManager_)
++        accountManager_->reannouncePresence();
++}
++
+ void
+ JamiAccount::onTrackedBuddyOnline(const std::string& contactId)
+ {
+--- a/src/jamidht/jamiaccount.h
++++ b/src/jamidht/jamiaccount.h
+@@ -159,6 +159,9 @@
+      */
+     std::map<std::string, bool> getTrackedBuddyPresence() const;
+ 
++    /* SK-REANNOUNCE: renew this device's presence announcement now (AccountManager). */
++    void reannouncePresence();
++
+     void setActiveCodecs(const std::vector<unsigned>& list) override;
+ 
+     /**

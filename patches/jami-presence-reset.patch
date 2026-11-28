@@ -1,0 +1,70 @@
+diff --git a/src/jamidht/presence_manager.cpp b/src/jamidht/presence_manager.cpp
+index 8ee61abea..58ccc30ab 100644
+--- a/src/jamidht/presence_manager.cpp
++++ b/src/jamidht/presence_manager.cpp
+@@ -61,17 +61,26 @@ PresenceManager::untrackBuddy(const std::string& uri)
+     if (!h)
+         return;
+ 
+-    std::lock_guard lock(mutex_);
+-    auto it = trackedBuddies_.find(h);
+-    if (it != trackedBuddies_.end()) {
+-        it->second.refCount--;
+-        if (it->second.refCount <= 0) {
+-            if (dht_ && dht_->isRunning()) {
+-                dht_->cancelListen(h, std::move(it->second.listenToken));
++    // SK-PRESRESET: a buddy nobody listens for any more is not known to be online. Its last state
++    // used to stay in the account's presence cache for good, and the next subscription was answered
++    // from that cache, so a peer that had left hours ago was reported as present.
++    bool wasOnline = false;
++    {
++        std::lock_guard lock(mutex_);
++        auto it = trackedBuddies_.find(h);
++        if (it != trackedBuddies_.end()) {
++            it->second.refCount--;
++            if (it->second.refCount <= 0) {
++                wasOnline = !it->second.deviceValues.empty();
++                if (dht_ && dht_->isRunning()) {
++                    dht_->cancelListen(h, std::move(it->second.listenToken));
++                }
++                trackedBuddies_.erase(it);
+             }
+-            trackedBuddies_.erase(it);
+         }
+     }
++    if (wasOnline)
++        notifyListeners(h.toString(), false);
+ }
+ 
+ bool
+@@ -148,11 +157,27 @@ PresenceManager::removeDeviceListener(uint64_t token)
+ void
+ PresenceManager::refresh()
+ {
++    // SK-PRESRESET: the DHT was restarted, so nothing that was heard on the previous one still
++    // holds. Say so before listening again: the devices used to be dropped silently here, which
++    // left every buddy that had been online in the account's presence cache as online, whether the
++    // new listen ever finds it again or not.
++    std::vector<dht::InfoHash> wereOnline;
++    {
++        std::lock_guard lock(mutex_);
++        for (auto& [h, buddy] : trackedBuddies_) {
++            if (!buddy.deviceValues.empty())
++                wereOnline.emplace_back(h);
++            buddy.listenToken = {};
++            buddy.deviceValues.clear();
++        }
++    }
++    for (const auto& h : wereOnline)
++        notifyListeners(h.toString(), false);
++
+     std::lock_guard lock(mutex_);
+     for (auto& [h, buddy] : trackedBuddies_) {
+-        buddy.listenToken = {};
+-        buddy.deviceValues.clear();
+-        trackPresence(h, buddy);
++        if (!buddy.listenToken.valid())
++            trackPresence(h, buddy);
+     }
+ }
+ 

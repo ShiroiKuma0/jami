@@ -1042,6 +1042,28 @@ class AccountService(
         null
     }
 
+    /**
+     * Renew this account's presence announcement on the DHT now (daemon patch SK-REANNOUNCE).
+     *
+     * The daemon announces a device once and leaves the refreshing to the DHT's own timer, which
+     * re-sends it ten seconds before the storing nodes drop it. A phone on the full DHT that sleeps
+     * misses that moment, and its contacts then see it offline although it is registered. The
+     * keep-alive timer of a full-DHT phone on battery calls this (cx.ring.utils.FullDhtKeepAlive).
+     */
+    fun reannouncePresence(accountId: String) {
+        mExecutor.execute {
+            try {
+                JamiService.reannouncePresence(accountId)
+            } catch (e: Throwable) {
+                Log.w(TAG, "reannouncePresence failed", e)
+            }
+        }
+    }
+
+    /** The enabled Jami accounts that run the full DHT (no proxy) — a snapshot, for the keep-alive. */
+    fun fullDhtAccountIds(): List<String> =
+        mAccountList.filter { it.isJami && it.isEnabled && !it.isDhtProxyEnabled }.map { it.accountId }
+
     /** Synchronous snapshot for the watchdog heuristic: (any peer Connected, any connection attempt). */
     fun accountConnectionSnapshot(accountId: String): Pair<Boolean, Boolean> {
         val conns = JamiService.getConnectionList(accountId, "")

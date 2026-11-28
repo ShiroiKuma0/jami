@@ -52,9 +52,9 @@ object BridgeMethods {
         Triple("bridge_delete", "account,conversation,message_id", "message_id"),
         Triple("bridge_message_status", "account,conversation,message_id", "delivered, read, items[peer,status]"),
         Triple("bridge_mark_read", "account,conversation", "message_id (\"\" = nothing to mark), notifications_cancelled"),
-        Triple("bridge_ping", "account,peer,text",
-            "token (an unstored \"alive\" account message; a newer one replaces one still undelivered to that peer)"),
-        Triple("bridge_alive_since", "account,after_seq?,limit?", "items[seq,type=alive,account,from,text,ts], last_seq, count"),
+        Triple("bridge_ping", "account,peer,text,kind? (\"alive\"|\"note\"; default alive)",
+            "token, kind (an unstored account message; a newer \"alive\" replaces an \"alive\" still undelivered to that peer, a \"note\" replaces nothing and is replaced by nothing)"),
+        Triple("bridge_alive_since", "account,after_seq?,limit?", "items[seq,type=alive,kind=alive|note,account,from,text,ts], last_seq, count"),
         Triple("bridge_wake", "minutes? (default 2, max 30)", "asleep_before"),
         Triple("bridge_keep_awake", "on? (\"1\"|\"0\"; omit to read)", "keep_awake"),
     )
@@ -235,12 +235,21 @@ object BridgeMethods {
         val text = x.getString("text").orEmpty()
         if (text.length > Bridge.ALIVE_TEXT_MAX) return err("text longer than ${Bridge.ALIVE_TEXT_MAX} characters")
         if (!sharesConversation(acc, peer)) return err("no conversation shared with that peer")
+        val kind = x.getString("kind").orEmpty().ifEmpty { "alive" }
+        val mime = when (kind) {
+            "alive" -> Bridge.MIME_ALIVE
+            "note" -> Bridge.MIME_NOTE
+            else -> return err("kind must be alive or note")
+        }
         val token = Bridge.daemon {
             JamiService.sendAccountTextMessage(acc, peer,
-                net.jami.daemon.StringMap().apply { put(Bridge.MIME_ALIVE, text) }, 0)
+                net.jami.daemon.StringMap().apply { put(mime, text) }, 0)
         }
         if (token == 0L) return err("the daemon did not take the message")
-        return ok().apply { putString("token", java.lang.Long.toUnsignedString(token)) }
+        return ok().apply {
+            putString("token", java.lang.Long.toUnsignedString(token))
+            putString("kind", kind)
+        }
     }
 
     private fun aliveSince(x: Bundle): Bundle {

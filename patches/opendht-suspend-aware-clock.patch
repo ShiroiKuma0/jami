@@ -1,0 +1,115 @@
+diff -ruN a/include/opendht/dht_proxy_server.h b/include/opendht/dht_proxy_server.h
+--- a/include/opendht/dht_proxy_server.h
++++ b/include/opendht/dht_proxy_server.h
+@@ -78,7 +78,7 @@
+ 
+     // Monotonic clock for elapsed-time statistics (request rate, uptime).
+     // Must stay on steady_clock so NTP/wall-clock corrections don't skew durations.
+-    using clock = std::chrono::steady_clock;
++    using clock = dht::clock; // SK-BOOTCLOCK: one monotonic clock for the whole library
+     using time_point = clock::time_point;
+     // Wall clock for persisted subscribe/permanent-put lease expirations,
+     // so they map directly to epoch time and survive restarts.
+diff -ruN a/include/opendht/utils.h b/include/opendht/utils.h
+--- a/include/opendht/utils.h
++++ b/include/opendht/utils.h
+@@ -9,6 +9,7 @@
+ #include <fmt/format.h>
+ 
+ #include <chrono>
++#include <time.h> // SK-BOOTCLOCK
+ #include <random>
+ #include <functional>
+ #include <map>
+@@ -80,7 +81,38 @@
+ 
+ // Time related definitions and utility functions
+ 
++// SK-BOOTCLOCK: the DHT's clock counts the time the machine spent suspended.
++//
++// std::chrono::steady_clock is CLOCK_MONOTONIC on Linux and Android, which stands still while the
++// CPU is suspended. Everything the DHT schedules against the rest of the network is a deadline on
++// OTHER machines' clocks: a value put on a node expires there ten minutes later, a listen thirty
++// seconds later, a token after its rotation. A phone that sleeps for half an hour therefore wakes
++// up believing that ten seconds have passed: the refresh of a permanent put is still "nine minutes
++// away" while the value has long expired on every node that held it, and its nodes still read as
++// freshly heard from. Measured 2026-11-27: a full-DHT phone that was awake 67 % of the time was
++// missing from its own presence key although its DHT reported "connected".
++//
++// CLOCK_BOOTTIME is the same monotonic clock plus the time spent suspended. With it every overdue
++// job runs on the first pass of the scheduler after a resume.
++#if defined(__linux__)
++struct clock
++{
++    using duration = std::chrono::nanoseconds;
++    using rep = duration::rep;
++    using period = duration::period;
++    using time_point = std::chrono::time_point<clock, duration>;
++    static constexpr bool is_steady = true;
++    static time_point now() noexcept
++    {
++        struct timespec ts;
++        if (::clock_gettime(CLOCK_BOOTTIME, &ts) != 0)
++            ::clock_gettime(CLOCK_MONOTONIC, &ts);
++        return time_point(std::chrono::seconds(ts.tv_sec) + std::chrono::nanoseconds(ts.tv_nsec));
++    }
++};
++#else
+ using clock = std::chrono::steady_clock;
++#endif
+ using system_clock = std::chrono::system_clock;
+ using time_point = clock::time_point;
+ using duration = clock::duration;
+diff -ruN a/src/dht_proxy_client.cpp b/src/dht_proxy_client.cpp
+--- a/src/dht_proxy_client.cpp
++++ b/src/dht_proxy_client.cpp
+@@ -96,7 +96,7 @@
+ struct DhtProxyClient::ProxySearch
+ {
+     SearchCache ops {false};
+-    std::unique_ptr<asio::steady_timer> opExpirationTimer;
++    std::unique_ptr<asio::basic_waitable_timer<clock>> opExpirationTimer; // SK-BOOTCLOCK: the cache's clock
+     std::map<size_t, Listener> listeners {};
+     std::map<Value::Id, PermanentPut> puts {};
+     std::set<Sp<Value>> pendingPuts {};
+@@ -1107,11 +1107,11 @@
+     if (it == searches_.end())
+         return false;
+     auto& ops = it->second.ops;
+-    bool canceled = ops.cancelListen(gtoken, std::chrono::steady_clock::now());
++    bool canceled = ops.cancelListen(gtoken, clock::now());
+ 
+     // define real cancel listen only once
+     if (not it->second.opExpirationTimer)
+-        it->second.opExpirationTimer = std::make_unique<asio::steady_timer>(httpContext_, ops.getExpiration());
++        it->second.opExpirationTimer = std::make_unique<asio::basic_waitable_timer<clock>>(httpContext_, ops.getExpiration());
+     else
+         it->second.opExpirationTimer->expires_at(ops.getExpiration());
+     it->second.opExpirationTimer->async_wait(
+@@ -1138,7 +1138,7 @@
+         return;
+ 
+     // everytime a new expiry is set, a previous gets aborted
+-    time_point next = search->second.ops.expire(std::chrono::steady_clock::now(), [&](size_t ltoken) {
++    time_point next = search->second.ops.expire(clock::now(), [&](size_t ltoken) {
+         auto it = search->second.listeners.find(ltoken);
+         if (it == search->second.listeners.end())
+             return;
+diff -ruN a/src/dhtrunner.cpp b/src/dhtrunner.cpp
+--- a/src/dhtrunner.cpp
++++ b/src/dhtrunner.cpp
+@@ -238,8 +238,12 @@
+             };
+             if (wakeup == time_point::max())
+                 cv.wait(lk, hasJobToDo);
+-            else
+-                cv.wait_until(lk, wakeup, hasJobToDo);
++            else {
++                // SK-BOOTCLOCK: the wait itself runs on the monotonic clock, so a deadline that
++                // passed while the machine was suspended is noticed only when something else wakes
++                // this thread. Look at the scheduler at least once a minute.
++                cv.wait_until(lk, std::min(wakeup, clock::now() + std::chrono::minutes(1)), hasJobToDo);
++            }
+         }
+     });
+ 

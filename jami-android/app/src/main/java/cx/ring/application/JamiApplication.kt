@@ -96,6 +96,10 @@ abstract class JamiApplication : Application() {
         // asleep. Long enough for the account executor to have run it, short enough to sit inside
         // the grace window.
         private const val RESTORE_OBSERVE_MS = 4_000L
+        // SK-DEFERWAKE: how far past the cooldown's end the deferred wake fires, and how long it
+        // keeps the CPU awake for the restore and the answer.
+        private const val DEFERRED_WAKE_MARGIN_MS = 2_000L
+        private const val DEFERRED_WAKE_AWAKE_MS = 40_000L
         // Floor between two expiry-triggered wakes. Matched to NONCALL_RESTORE_COOLDOWN_MS so the
         // new path can never cost more restores than the noise path it sits beside: trial 6's 62
         // expirations in ten minutes buy exactly one.
@@ -304,6 +308,9 @@ abstract class JamiApplication : Application() {
     // elapsedRealtime of the last expiry-triggered wake (0 if none). Rate-limits the EXPIRY WAKE
     // path in onBackgroundPushReceived.
     private val lastExpiryWake = AtomicLong(0L)
+    // SK-DEFERWAKE: when the first noise push was dropped inside the current cooldown (elapsed
+    // realtime; 0 = none waits). See armDeferredWake.
+    private val deferredNoiseAt = AtomicLong(0L)
 
     private val deactivateRunnable = Runnable {
         // Belt to scheduleBackgroundDeactivation's braces: guard the act itself, not only the
@@ -432,10 +439,14 @@ abstract class JamiApplication : Application() {
             if (lastDeactivation != 0L
                 && SystemClock.elapsedRealtime() - lastDeactivation < NONCALL_RESTORE_COOLDOWN_MS
             ) {
-                wakeLog("  → DROPPED: noise inside cooldown (${(NONCALL_RESTORE_COOLDOWN_MS - (SystemClock.elapsedRealtime() - lastDeactivation)) / 1000}s left, no restore)")
+                val left = NONCALL_RESTORE_COOLDOWN_MS - (SystemClock.elapsedRealtime() - lastDeactivation)
+                val armed = armDeferredWake(left)
+                wakeLog("  → DROPPED: noise inside cooldown (${left / 1000}s left, no restore${if (armed) "; one wake armed for the cooldown's end" else ""})")
                 return
             }
         }
+        // Whatever wakes the accounts now also serves a noise push that waited for the cooldown.
+        deferredNoiseAt.set(0L)
         // Publish the grace window before cancelling: a deactivateRunnable already running
         // reads these atomics, and any deactivation it queues runs FIFO after the restore below.
         val now = SystemClock.elapsedRealtime()
@@ -490,6 +501,69 @@ abstract class JamiApplication : Application() {
             if (BACKGROUND_DEACTIVATION_ENABLED)
                 backgroundHandler.postDelayed(deactivateRunnable, BACKGROUND_DEACTIVATION_DELAY_MS)
         }
+    }
+
+    private fun deferredWakeIntent(): android.app.PendingIntent = android.app.PendingIntent.getBroadcast(
+        this, 0, android.content.Intent(this, cx.ring.service.DeferredWakeReceiver::class.java),
+        android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+    )
+
+    /**
+     * SK-DEFERWAKE (2026-11-28). A push without a type is "noise" and is dropped inside the
+     * cooldown — but a peer on the full DHT cannot make its push carry a type: measured
+     * 2026-11-28, the same connection request was stored on the public DHT both with and without
+     * its `pt` field, and the proxy pushed the copy without it. Such a peer's request was then
+     * answered only if it happened to be the first noise past a cooldown; one Slave's alive ping
+     * failed 23 times out of 23 overnight. So the FIRST noise push dropped inside a cooldown is
+     * remembered and buys exactly one wake at the cooldown's end — still at most one restore per
+     * [NONCALL_RESTORE_COOLDOWN_MS], which is the bound the cooldown exists to keep. The request
+     * is still on the DHT then (values live ten minutes) and is answered; the peer redials on the
+     * late answer (SK-LATEANSWER). Returns whether this call armed the wake.
+     */
+    private fun armDeferredWake(cooldownLeftMs: Long): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (!deferredNoiseAt.compareAndSet(0L, now)) return false
+        return try {
+            val am = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
+            val at = now + cooldownLeftMs.coerceAtLeast(0L) + DEFERRED_WAKE_MARGIN_MS
+            val pi = deferredWakeIntent()
+            val type = android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP
+            try {
+                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S || am.canScheduleExactAlarms())
+                    am.setExactAndAllowWhileIdle(type, at, pi)
+                else
+                    am.setAndAllowWhileIdle(type, at, pi)
+            } catch (e: SecurityException) {
+                am.setAndAllowWhileIdle(type, at, pi)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "deferred wake: arming failed", e)
+            deferredNoiseAt.set(0L)
+            false
+        }
+    }
+
+    /** The cooldown in which a noise push was dropped is over ([cx.ring.service.DeferredWakeReceiver]). */
+    fun onDeferredWake() {
+        val since = deferredNoiseAt.getAndSet(0L)
+        val asleep = asleepCount()
+        if (since == 0L || asleep <= 0) {
+            // Something else woke the accounts meanwhile, or the process is new: nothing is owed.
+            wakeLog("deferred wake: nothing owed (pending=${since != 0L} asleep=$asleep)")
+            return
+        }
+        // The alarm's own wake lock ends when its receiver returns; the restore and the answer to
+        // the waiting request take longer than that.
+        try {
+            (getSystemService(POWER_SERVICE) as android.os.PowerManager)
+                .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "shiroikuma:deferred-wake")
+                .acquire(DEFERRED_WAKE_AWAKE_MS)
+        } catch (e: Exception) {
+            Log.w(TAG, "deferred wake: wake lock", e)
+        }
+        wakeLog("deferred wake: the cooldown is over and a noise push waited ${(SystemClock.elapsedRealtime() - since) / 1000}s — waking once")
+        onBackgroundPushReceived(isCallPush = false, isMessagePush = false)
     }
 
     /**
@@ -654,6 +728,8 @@ abstract class JamiApplication : Application() {
                 })
                 startNetworkMonitoring()
                 scheduleRefreshJob()
+                // A full-DHT phone stays present on the network: wake lock on power, timer on battery.
+                cx.ring.utils.FullDhtKeepAlive.start(this, mAccountService)
             } catch (e: Exception) {
                 Log.e(TAG, "DRingService start failed", e)
             }

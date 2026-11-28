@@ -460,6 +460,11 @@ sk_gate() {  # $1=pkg, rest=patch files
     echo ">>> $pkg patch set or upstream version changed — forcing re-extract + prefix purge"
     rm -rf "$d/$pkg" "$d/.$pkg" "$d/.dep-$pkg"
     sk_purge_prefix "$pkg"
+    # dhtnet is compiled against opendht's HEADERS (2026-11-27). A patch that changes one — the
+    # suspend-aware clock changes the type behind dht::time_point — leaves a libdhtnet.a built
+    # against the old header unless dhtnet is rebuilt too. Dropping its stamp is enough: the
+    # rebuild runs in the existing tree and recompiles what includes the reinstalled headers.
+    [ "$pkg" = opendht ] && rm -f "$d/.dhtnet"
   fi
 }
 r sk_gate dhtnet    patches/dhtnet-*.patch
@@ -519,7 +524,7 @@ r bash -c 'om=daemon/contrib/src/opendht/rules.mak
 cp patches/opendht-proxy-connect-resilience.patch daemon/contrib/src/opendht/
 grep -q opendht-proxy-connect-resilience.patch "$om" || sed -i "s|^\t\$(MOVE)|\t\$(APPLY) \$(SRC)/opendht/opendht-proxy-connect-resilience.patch\n\t\$(MOVE)|" "$om"
 prev=opendht-proxy-connect-resilience
-for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag opendht-proxy-rx-stats opendht-diag-gate; do
+for p in opendht-proxy-subscription-refresh opendht-proxy-subscription-diag opendht-push-refetch-hardening opendht-dht-message-stats-diag opendht-proxy-rx-stats opendht-suspend-aware-clock opendht-diag-gate; do
   cp "patches/$p.patch" daemon/contrib/src/opendht/
   grep -q "$p.patch" "$om" || sed -i "s|^\t\$(APPLY) \$(SRC)/opendht/$prev.patch\$|&\n\t\$(APPLY) \$(SRC)/opendht/$p.patch|" "$om"
   prev=$p
@@ -530,6 +535,13 @@ done'
 # per-key byte attribution for gets. rules.mak carries the $(APPLY); this also heals an existing tree.
 r bash -c 'cp patches/opendht-push-refetch-hardening.patch daemon/contrib/src/opendht/'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q "SK-PUSHGET" "$d/opendht/src/dht_proxy_client.cpp"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-push-refetch-hardening.patch && rm -f "$d/.opendht"; fi'
+# suspend-aware clock (SK-BOOTCLOCK, 2026-11-27) — in the chain BEFORE the diag gate, which stays last.
+# dht::clock becomes CLOCK_BOOTTIME (monotonic, but counting the time the phone was suspended) instead of
+# std::chrono::steady_clock, and DhtRunner looks at its scheduler at least once a minute. With the stock
+# clock a phone that sleeps wakes up believing no time has passed: the refresh of its presence announcement
+# is still "minutes away" while every storing node dropped the value long ago. rules.mak carries the
+# $(APPLY); this heals an existing tree, and sits BEFORE the make below so that a heal is also built.
+r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ -d "$d/opendht" ] && ! grep -q SK-BOOTCLOCK "$d/opendht/include/opendht/utils.h"; then (cd "$d/opendht" && patch -flp1) < patches/opendht-suspend-aware-clock.patch && rm -f "$d/.opendht" "$d/.dhtnet"; fi'
 r bash -c 'd=daemon/contrib/build-aarch64-linux-android; if [ ! -f "$d/.opendht" ]; then echo ">>> opendht missing/changed — rebuilding"; make -C "$d" .opendht; fi'
 
 # dhtnet LAN-interface fix (idempotent; submodule, not committed — see "The daemon-contrib fix" section)
@@ -712,6 +724,22 @@ r bash -c 'grep -q SK-READRETRY daemon/src/jamidht/jamiaccount.cpp || (cd daemon
 # isSilent() in im/message_engine.cpp it extends. Keeps only the newest undelivered "application/x-sk-alive"
 # account message per peer (the bridge's bridge_ping) and raises no message status for it.
 r bash -c 'grep -q SK-ALIVE daemon/src/im/message_engine.cpp || (cd daemon && patch -flp1) < patches/jami-alive-ping.patch'
+# presence reset (SK-PRESRESET, 2026-11-27; idempotent; daemon's OWN source, presence_manager.cpp only). A buddy
+# that is no longer listened for, or whose DHT was restarted, is reported offline instead of staying in the
+# account's presence cache as online — the cache answered the next subscription, so a dot stayed blue for a
+# peer that had left.
+r bash -c 'grep -q SK-PRESRESET daemon/src/jamidht/presence_manager.cpp || (cd daemon && patch -flp1) < patches/jami-presence-reset.patch'
+# re-announce (SK-REANNOUNCE, 2026-11-27; idempotent; daemon's OWN source + configurationmanager.i, so it MUST
+# precede make-swig.sh). LAST of the daemon patches: it was generated on top of all of them (jamiaccount.cpp/.h,
+# account_manager.cpp/.h, and the three files of jami-proxy-rx-stats). Adds libjami::reannouncePresence(accountId),
+# which the app's keep-alive timer calls on a full-DHT phone on battery (FullDhtKeepAlive.kt).
+r bash -c 'grep -q SK-REANNOUNCE daemon/src/client/configurationmanager.cpp || (cd daemon && patch -flp1) < patches/jami-reannounce-presence.patch'
+# redial undelivered (SK-REDIAL, 2026-11-28; idempotent; daemon's OWN source: im/message_engine.cpp/.h,
+# sip/sipaccountbase.h, jamidht/jamiaccount.h). AFTER jami-reannounce-presence (jamiaccount.h) and jami-alive-ping
+# (message_engine.cpp): generated on top of both. While a message waits undelivered, an account on the FULL DHT asks
+# its peer's devices for a channel again every 3 minutes (a proxy account does not); a redial does not count
+# against MAX_RETRIES.
+r bash -c 'grep -q SK-REDIAL daemon/src/im/message_engine.cpp || (cd daemon && patch -flp1) < patches/jami-redial-undelivered.patch'
 
 # CONTRIB SANITY GATE (2026-08-08) — MUST sit between the patch steps and the build.
 #
