@@ -440,7 +440,10 @@ abstract class JamiApplication : Application() {
                 && SystemClock.elapsedRealtime() - lastDeactivation < NONCALL_RESTORE_COOLDOWN_MS
             ) {
                 val left = NONCALL_RESTORE_COOLDOWN_MS - (SystemClock.elapsedRealtime() - lastDeactivation)
-                val armed = armDeferredWake(left)
+                // Only while the accounts sleep: awake, the request behind this push is being
+                // answered right now, and a later wake for it would serve nothing (seen on the
+                // first day, 2026-11-28: every wake drew such a push two seconds later).
+                val armed = asleepCount() > 0 && armDeferredWake(left)
                 wakeLog("  → DROPPED: noise inside cooldown (${left / 1000}s left, no restore${if (armed) "; one wake armed for the cooldown's end" else ""})")
                 return
             }
